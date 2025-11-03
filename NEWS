@@ -53,8 +53,10 @@ Plugins
 * Worklists plugin:
   - The Worklists plugin now provides a Rest API to:
     - create worklists through POST at /worklists/create
-    - list the worklists throuhg GET at /worklists and /worklists/{uuid}
-    - delete the worklists through DELETE at /worklists/{uuid}
+    - list the worklists throuhg GET at /worklists 
+    - view a single worklist through GET at /worklists/{uuid}
+    - modify a worklist through PUT at /worklists/{uuid}
+    - delete a worklist through DELETE at /worklists/{uuid}
     All details are available in the Orthanc book: https://orthanc.uclouvain.be/book/plugins/worklists-plugin.html
   - New configurations:
     - "SaveInOrthancDatabase" to store the worklists in the Orthanc DB (provided that you are using SQLite or PostgreSQL)

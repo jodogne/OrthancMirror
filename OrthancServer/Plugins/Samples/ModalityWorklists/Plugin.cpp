@@ -533,9 +533,103 @@ extern "C"
   }
 
 
-  OrthancPluginErrorCode GetDeleteWorklist(OrthancPluginRestOutput* output,
-                                     const char* url,
-                                     const OrthancPluginHttpRequest* request)
+  void CreateOrUpdateWorklist(std::string& worklistId, 
+                              bool defaultForceValue,
+                              OrthancPluginRestOutput* output,
+                              const char* url,
+                              const OrthancPluginHttpRequest* request)
+  {
+    Json::Value body;
+
+    if (!OrthancPlugins::ReadJson(body, request->body, request->bodySize))
+    {
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "A JSON payload was expected");
+    }
+
+    if (!body.isMember("Tags") || !body["Tags"].isObject())
+    {
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "'Tags' field is missing or not a JSON object");
+    }
+
+    bool force = defaultForceValue;
+    if (body.isMember("Force")) {
+      force = body["Force"].asBool();
+    }
+
+    Json::Value& jsonWorklist = body["Tags"];
+
+    if (!jsonWorklist.isMember("SpecificCharacterSet"))
+    {
+      jsonWorklist["SpecificCharacterSet"] = Orthanc::GetDicomSpecificCharacterSet(Orthanc::Encoding_Utf8);
+    }
+
+    std::unique_ptr<Orthanc::ParsedDicomFile> dicom(Orthanc::ParsedDicomFile::CreateFromJson(jsonWorklist, Orthanc::DicomFromJsonFlags_None, ""));      
+
+    if (!force) 
+    {
+      if (!dicom->HasTag(Orthanc::DICOM_TAG_SCHEDULED_PROCEDURE_STEP_SEQUENCE))
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "'Tags' is missing a 'ScheduledProcedureStepSequence'.  Use 'Force': true to bypass this check.");
+      }
+      Orthanc::DicomMap step;
+      if (!dicom->LookupSequenceItem(step, Orthanc::DicomPath::Parse("ScheduledProcedureStepSequence"), 0) || !step.HasTag(Orthanc::DICOM_TAG_MODALITY))
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "'ScheduledProcedureStepSequence' is missing a 'Modality'  Use 'Force': true to bypass this check.");
+      }
+      if (!dicom->LookupSequenceItem(step, Orthanc::DicomPath::Parse("ScheduledProcedureStepSequence"), 0) || !step.HasTag(Orthanc::DICOM_TAG_SCHEDULED_PROCEDURE_STEP_START_DATE))
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "'ScheduledProcedureStepSequence' is missing a 'ScheduledProcedureStepStartDate'  Use 'Force': true to bypass this check.");
+      }
+    }
+
+    dicom->SetIfAbsent(Orthanc::DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, "1.2.276.0.7230010.3.1.0.1");
+      
+    if (setStudyInstanceUidIfMissing_)
+    {
+      dicom->SetIfAbsent(Orthanc::DICOM_TAG_STUDY_INSTANCE_UID, Orthanc::FromDcmtkBridge::GenerateUniqueIdentifier(Orthanc::ResourceType_Study));
+    }
+
+    if (worklistId.empty())
+    {
+      worklistId = Orthanc::Toolbox::GenerateUuid();
+    }
+
+    std::string dicomContent;
+    dicom->SaveToMemoryBuffer(dicomContent);
+      
+    switch (worklistStorage_)
+    {
+      case WorklistStorageType_Folder:
+        Orthanc::SystemToolbox::WriteFile(dicomContent.empty() ? NULL : dicomContent.c_str(), dicomContent.size(),
+                                          worklistDirectory_ / Orthanc::SystemToolbox::PathFromUtf8(worklistId + ".wl"), true);
+        break;
+
+      case WorklistStorageType_OrthancDb:
+      {
+        Worklist wl(worklistId, dicomContent);
+        std::string serializedWl;
+        wl.Serialize(serializedWl);
+
+        worklistsStore_->Store(worklistId, serializedWl);
+        break;
+      }
+
+      default:
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+    }
+
+    Json::Value response;
+
+    response["ID"] = worklistId;
+    response["Path"] = "/worklists/" + worklistId;
+
+    OrthancPlugins::AnswerJson(response, output);
+  }
+
+
+  OrthancPluginErrorCode GetPutDeleteWorklist(OrthancPluginRestOutput* output,
+                                              const char* url,
+                                              const OrthancPluginHttpRequest* request)
   {
     std::string worklistId = std::string(request->groups[0]);
 
@@ -555,6 +649,10 @@ extern "C"
       
       OrthancPlugins::AnswerJson(jsonWl, output);
     }
+    else if (request->method == OrthancPluginHttpMethod_Put)
+    {
+      CreateOrUpdateWorklist(worklistId, true, output, url, request);
+    }
     else
     {
       OrthancPlugins::AnswerMethodNotAllowed(output, "DELETE,GET");
@@ -563,9 +661,10 @@ extern "C"
     return OrthancPluginErrorCode_Success;
   }
 
+
   OrthancPluginErrorCode PostCreateWorklist(OrthancPluginRestOutput* output,
-                                           const char* url,
-                                           const OrthancPluginHttpRequest* request)
+                                            const char* url,
+                                            const OrthancPluginHttpRequest* request)
   {
     if (request->method != OrthancPluginHttpMethod_Post)
     {
@@ -573,86 +672,9 @@ extern "C"
     }
     else
     {
-      Json::Value body;
-
-      if (!OrthancPlugins::ReadJson(body, request->body, request->bodySize))
-      {
-        throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "A JSON payload was expected");
-      }
-
-      if (!body.isMember("Tags") || !body["Tags"].isObject())
-      {
-        throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "'Tags' field is missing or not a JSON object");
-      }
-
-      bool force = body.isMember("Force") && body["Force"].asBool();
-
-      Json::Value& jsonWorklist = body["Tags"];
-
-      if (!jsonWorklist.isMember("SpecificCharacterSet"))
-      {
-        jsonWorklist["SpecificCharacterSet"] = Orthanc::GetDicomSpecificCharacterSet(Orthanc::Encoding_Utf8);
-      }
-
-      std::unique_ptr<Orthanc::ParsedDicomFile> dicom(Orthanc::ParsedDicomFile::CreateFromJson(jsonWorklist, Orthanc::DicomFromJsonFlags_None, ""));      
-
-      if (!force) 
-      {
-        if (!dicom->HasTag(Orthanc::DICOM_TAG_SCHEDULED_PROCEDURE_STEP_SEQUENCE))
-        {
-          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "'Tags' is missing a 'ScheduledProcedureStepSequence'.  Use 'Force': true to bypass this check.");
-        }
-        Orthanc::DicomMap step;
-        if (!dicom->LookupSequenceItem(step, Orthanc::DicomPath::Parse("ScheduledProcedureStepSequence"), 0) || !step.HasTag(Orthanc::DICOM_TAG_MODALITY))
-        {
-          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "'ScheduledProcedureStepSequence' is missing a 'Modality'  Use 'Force': true to bypass this check.");
-        }
-        if (!dicom->LookupSequenceItem(step, Orthanc::DicomPath::Parse("ScheduledProcedureStepSequence"), 0) || !step.HasTag(Orthanc::DICOM_TAG_SCHEDULED_PROCEDURE_STEP_START_DATE))
-        {
-          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "'ScheduledProcedureStepSequence' is missing a 'ScheduledProcedureStepStartDate'  Use 'Force': true to bypass this check.");
-        }
-      }
-
-      dicom->SetIfAbsent(Orthanc::DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, "1.2.276.0.7230010.3.1.0.1");
-      
-      if (setStudyInstanceUidIfMissing_)
-      {
-        dicom->SetIfAbsent(Orthanc::DICOM_TAG_STUDY_INSTANCE_UID, Orthanc::FromDcmtkBridge::GenerateUniqueIdentifier(Orthanc::ResourceType_Study));
-      }
-
-      std::string worklistId = Orthanc::Toolbox::GenerateUuid();
-      std::string dicomContent;
-      dicom->SaveToMemoryBuffer(dicomContent);
-      
-      switch (worklistStorage_)
-      {
-        case WorklistStorageType_Folder:
-          Orthanc::SystemToolbox::WriteFile(dicomContent.empty() ? NULL : dicomContent.c_str(), dicomContent.size(),
-                                            worklistDirectory_ / Orthanc::SystemToolbox::PathFromUtf8(worklistId + ".wl"), true);
-          break;
-
-        case WorklistStorageType_OrthancDb:
-        {
-          Worklist wl(worklistId, dicomContent);
-          std::string serializedWl;
-          wl.Serialize(serializedWl);
-
-          worklistsStore_->Store(worklistId, serializedWl);
-          break;
-        }
-
-        default:
-          throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
-      }
-
-      Json::Value response;
-
-      response["ID"] = worklistId;
-      response["Path"] = "/worklists/" + worklistId;
-
-      OrthancPlugins::AnswerJson(response, output);
+      std::string worklistId;
+      CreateOrUpdateWorklist(worklistId, false, output, url, request);
     }
-
     return OrthancPluginErrorCode_Success;
   }
 
@@ -794,7 +816,7 @@ extern "C"
       OrthancPluginRegisterOnChangeCallback(OrthancPlugins::GetGlobalContext(), OnChangeCallback);
 
       OrthancPluginRegisterRestCallback(OrthancPlugins::GetGlobalContext(), "/worklists/create", PostCreateWorklist);
-      OrthancPluginRegisterRestCallback(OrthancPlugins::GetGlobalContext(), "/worklists/([^/]+)", GetDeleteWorklist);
+      OrthancPluginRegisterRestCallback(OrthancPlugins::GetGlobalContext(), "/worklists/([^/]+)", GetPutDeleteWorklist);
       OrthancPluginRegisterRestCallback(OrthancPlugins::GetGlobalContext(), "/worklists", ListWorklists);
     }
     else
