@@ -72,7 +72,9 @@ General
       "Hashing": "sha1"} }
 * Reuse the ThreadedInstanceLoader from the ArchiveJob in C-Store, peer/store ... to optimize loading
   time when working with an object storage.
-
+* Implement a SharedMessageQueue with a max size -> that would greatly simplify the flow control in the 
+  ThreadedInstanceLoader (also used in DicomWeb).
+  
 
 ============================
 Documentation (Orthanc Book)
