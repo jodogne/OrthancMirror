@@ -16,7 +16,6 @@ REST API
 * C-Store, C-Move and C-Get jobs and HTTP responses now include a new "DimseErrorStatus" 
   field (ONLY if the operation fails).
 
-
 Maintenance
 -----------
 
@@ -45,7 +44,7 @@ Maintenance
        while downloading the response.
 * Upgraded dependencies for static builds:
   - civetweb 1.16, including patch for CVE-2025-55763
-
+  - SQLite 3.50.4
 
 Plugins
 -------
@@ -392,7 +391,7 @@ Maintenance
 * Upgraded dependencies for static builds:
   - boost 1.86.0
   - curl 8.9.0
-  - SQLite 3.46
+  - SQLite 3.46.1
 
 
 Version 1.12.4 (2024-06-05)
