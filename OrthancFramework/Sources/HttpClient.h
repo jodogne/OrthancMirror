@@ -31,6 +31,7 @@
 #include <string>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/filesystem.hpp>
 #include <json/value.h>
 
 #if !defined(ORTHANC_ENABLE_CURL)
@@ -100,9 +101,9 @@ namespace Orthanc
     long timeout_;
     std::string proxy_;
     bool verifyPeers_;
-    std::string caCertificates_;
-    std::string clientCertificateFile_;
-    std::string clientCertificateKeyFile_;
+    boost::filesystem::path caCertificates_;
+    boost::filesystem::path clientCertificateFile_;
+    boost::filesystem::path clientCertificateKeyFile_;
     std::string clientCertificateKeyPassword_;
     bool pkcs11Enabled_;
     bool headersToLowerCase_;
@@ -196,21 +197,21 @@ namespace Orthanc
 
     bool IsHttpsVerifyPeers() const;
 
-    void SetHttpsCACertificates(const std::string& certificates);
+    void SetHttpsCACertificates(const boost::filesystem::path& certificates);
 
-    const std::string& GetHttpsCACertificates() const;
+    const boost::filesystem::path& GetHttpsCACertificates() const;
 
-    void SetClientCertificate(const std::string& certificateFile,
-                              const std::string& certificateKeyFile,
+    void SetClientCertificate(const boost::filesystem::path& certificateFile, 
+                              const boost::filesystem::path& certificateKeyFile,
                               const std::string& certificateKeyPassword);
 
     void SetPkcs11Enabled(bool enabled);
 
     bool IsPkcs11Enabled() const;
 
-    const std::string& GetClientCertificateFile() const;
+    const boost::filesystem::path& GetClientCertificateFile() const;
 
-    const std::string& GetClientCertificateKeyFile() const;
+    const boost::filesystem::path& GetClientCertificateKeyFile() const;
 
     const std::string& GetClientCertificateKeyPassword() const;
 
@@ -231,7 +232,7 @@ namespace Orthanc
                                  bool verbose);
 
     static void ConfigureSsl(bool httpsVerifyPeers,
-                             const std::string& httpsCACertificates);
+                             const boost::filesystem::path& httpsCACertificates);
 
     static void SetDefaultVerbose(bool verbose);
 

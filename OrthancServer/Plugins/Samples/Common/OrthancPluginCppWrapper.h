@@ -134,6 +134,14 @@
 #  define HAS_ORTHANC_PLUGIN_LOG_MESSAGE  0
 #endif
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 8)
+#  define HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES  1
+#  define HAS_ORTHANC_PLUGIN_QUEUES            1
+#else
+#  define HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES  0
+#  define HAS_ORTHANC_PLUGIN_QUEUES            0
+#endif
+
 
 // Macro to tag a function as having been deprecated
 #if (__cplusplus >= 201402L)  // C++14
@@ -172,6 +180,8 @@ namespace OrthancPlugins
 {
   typedef std::map<std::string, std::string>  HttpHeaders;
 
+  typedef std::map<std::string, std::string>  GetArguments;
+
   typedef void (*RestCallback) (OrthancPluginRestOutput* output,
                                 const char* url,
                                 const OrthancPluginHttpRequest* request);
@@ -203,13 +213,6 @@ namespace OrthancPlugins
   public:
     MemoryBuffer();
 
-#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
-    // This constructor makes a copy of the given buffer in the memory
-    // handled by the Orthanc core
-    MemoryBuffer(const void* buffer,
-                 size_t size);
-#endif
-
     ~MemoryBuffer()
     {
       Clear();
@@ -220,6 +223,20 @@ namespace OrthancPlugins
       return &buffer_;
     }
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    // Copy of the given buffer into the memory managed by the Orthanc core
+    void Assign(const void* buffer,
+                size_t size);
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    void Assign(const std::string& s);
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    void AssignJson(const Json::Value& value);
+#endif
+
     // This transfers ownership from "other" to "this"
     void Assign(OrthancPluginMemoryBuffer& other);
 
@@ -227,11 +244,11 @@ namespace OrthancPlugins
 
     OrthancPluginMemoryBuffer Release();
 
-    const char* GetData() const
+    const void* GetData() const
     {
       if (buffer_.size > 0)
       {
-        return reinterpret_cast<const char*>(buffer_.data);
+        return buffer_.data;
       }
       else
       {
@@ -855,6 +872,21 @@ namespace OrthancPlugins
                 const HttpHeaders& headers) const;
 
     bool DoPost(MemoryBuffer& target,
+                size_t index,
+                const std::string& uri,
+                const std::string& body,
+                const HttpHeaders& headers,
+                unsigned int timeout) const;
+
+    bool DoPost(MemoryBuffer& target,
+                HttpHeaders& answerHeaders,
+                size_t index,
+                const std::string& uri,
+                const std::string& body,
+                const HttpHeaders& headers,
+                unsigned int timeout) const;
+
+    bool DoPost(MemoryBuffer& target,
                 const std::string& name,
                 const std::string& uri,
                 const std::string& body,
@@ -865,6 +897,21 @@ namespace OrthancPlugins
                 const std::string& uri,
                 const std::string& body,
                 const HttpHeaders& headers) const;
+
+    bool DoPost(Json::Value& target,
+                size_t index,
+                const std::string& uri,
+                const std::string& body,
+                const HttpHeaders& headers,
+                unsigned int timeout) const;
+    
+    bool DoPost(Json::Value& target,
+                HttpHeaders& answerHeaders,
+                size_t index,
+                const std::string& uri,
+                const std::string& body,
+                const HttpHeaders& headers,
+                unsigned int timeout) const;
 
     bool DoPost(Json::Value& target,
                 const std::string& name,
@@ -1402,6 +1449,9 @@ void GetHttpHeaders(HttpHeaders& result, const OrthancPluginHttpRequest* request
 // helper method to re-serialize the get arguments from the SDK into a string
 void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* request);
 
+// helper method to convert Get arguments from the plugin SDK to a std::map
+void GetGetArguments(GetArguments& result, const OrthancPluginHttpRequest* request);
+
 #if HAS_ORTHANC_PLUGIN_WEBDAV == 1
   class IWebDavCollection : public boost::noncopyable
   {
@@ -1559,6 +1609,9 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
     void AddRequestHeader(const std::string& key,
                           const std::string& value);
 
+    void SetRequestHeader(const std::string& key,
+                          const std::string& value);
+
     const HttpHeaders& GetRequestHeaders() const
     {
       return requestHeaders_;
@@ -1589,10 +1642,14 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
       return requestBody_;
     }
 
+    // Execute only
     bool Execute();
 
+    // Forward response as is
+    void ForwardAnswer(OrthancPluginContext* context, OrthancPluginRestOutput* output);
+
     // Execute and forward the response as is
-    void Forward(OrthancPluginContext* context, OrthancPluginRestOutput* output);
+    void ExecuteAndForwardAnswer(OrthancPluginContext* context, OrthancPluginRestOutput* output);
 
     uint16_t GetHttpStatus() const;
 
@@ -1602,6 +1659,103 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
     const std::string& GetAnswerBody() const;
 
     bool GetAnswerJson(Json::Value& output) const;
+  };
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+  class KeyValueStore : public boost::noncopyable
+  {
+  public:
+    class Iterator : public boost::noncopyable
+    {
+    private:
+      OrthancPluginKeysValuesIterator  *iterator_;
+
+    public:
+      explicit Iterator(OrthancPluginKeysValuesIterator *iterator);
+
+      ~Iterator();
+
+      bool Next();
+
+      std::string GetKey() const;
+
+      void GetValue(std::string& target) const;
+    };
+
+  private:
+    std::string storeId_;
+
+  public:
+    explicit KeyValueStore(const std::string& storeId) :
+      storeId_(storeId)
+    {
+    }
+
+    const std::string& GetStoreId() const
+    {
+      return storeId_;
+    }
+
+    void Store(const std::string& key,
+               const void* value,
+               size_t valueSize);
+
+    void Store(const std::string& key,
+               const std::string& value)
+    {
+      Store(key, value.empty() ? NULL : value.c_str(), value.size());
+    }
+
+    bool GetValue(std::string& value,
+                  const std::string& key);
+
+    void DeleteKey(const std::string& key);
+
+    Iterator* CreateIterator();
+  };
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_QUEUES == 1
+  class Queue : public boost::noncopyable
+  {
+  private:
+    std::string queueId_;
+
+    bool DequeueInternal(std::string& value, OrthancPluginQueueOrigin origin);
+
+  public:
+    explicit Queue(const std::string& queueId) :
+      queueId_(queueId)
+    {
+    }
+
+    const std::string& GetQueueId() const
+    {
+      return queueId_;
+    }
+
+    void Enqueue(const void* value,
+                 size_t valueSize);
+
+    void Enqueue(const std::string& value)
+    {
+      Enqueue(value.empty() ? NULL : value.c_str(), value.size());
+    }
+
+    bool DequeueBack(std::string& value)
+    {
+      return DequeueInternal(value, OrthancPluginQueueOrigin_Back);
+    }
+
+    bool DequeueFront(std::string& value)
+    {
+      return DequeueInternal(value, OrthancPluginQueueOrigin_Front);
+    }
+
+    uint64_t GetSize();
   };
 #endif
 }

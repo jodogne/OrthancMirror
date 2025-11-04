@@ -52,7 +52,7 @@ namespace Orthanc
     // This transfers the ownership of the message
     void Enqueue(IDynamicObject* message);
 
-    // The caller is responsible to delete the dequeud message!
+    // The caller is responsible to delete the dequeued message!
     IDynamicObject* Dequeue(int32_t millisecondsTimeout);
 
     bool WaitEmpty(int32_t millisecondsTimeout);

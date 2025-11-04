@@ -38,6 +38,7 @@
 #include "../Sources/OrthancException.h"
 #include "../Sources/RestApi/RestApiHierarchy.h"
 #include "../Sources/WebServiceParameters.h"
+#include "../Sources/MetricsRegistry.h"
 
 #include <ctype.h>
 #include <boost/lexical_cast.hpp>
@@ -116,7 +117,7 @@ TEST(HttpClient, Basic)
 
 TEST(HttpClient, Ssl)
 {
-  SystemToolbox::WriteFile(GITHUB_CERTIFICATES, "UnitTestsResults/github.cert");
+  SystemToolbox::WriteFile(GITHUB_CERTIFICATES, SystemToolbox::PathFromUtf8("UnitTestsResults/github.cert"));
 
   /*{
     std::string s;
@@ -1289,7 +1290,8 @@ namespace
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const HttpToolbox::Arguments& headers) ORTHANC_OVERRIDE
+                                            const HttpToolbox::Arguments& headers,
+                                            const std::string& authenticationPayload) ORTHANC_OVERRIDE
     {
       return false;
     }
@@ -1303,7 +1305,8 @@ namespace
                         const HttpToolbox::Arguments& headers,
                         const HttpToolbox::GetArguments& getArguments,
                         const void* bodyData,
-                        size_t bodySize) ORTHANC_OVERRIDE
+                        size_t bodySize,
+                        const std::string& authenticationPayload) ORTHANC_OVERRIDE
     {
       printf("received %d\n", static_cast<int>(bodySize));
 
@@ -1330,7 +1333,6 @@ namespace
 TEST(HttpClient, DISABLED_Issue156_Slow)
 {
   // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=156
-  
   TotoServer handler;
   HttpServer server;
   server.SetPortNumber(5000);
@@ -1384,3 +1386,14 @@ TEST(HttpClient, DISABLED_Issue156_Crash)
   server.Stop();
 }
 #endif
+
+
+TEST(HttpServer, GetRelativePathToRoot)
+{
+  ASSERT_THROW(HttpServer::GetRelativePathToRoot(""), OrthancException);
+  ASSERT_EQ("./", HttpServer::GetRelativePathToRoot("/"));
+  ASSERT_EQ("./", HttpServer::GetRelativePathToRoot("/system"));
+  ASSERT_EQ("../", HttpServer::GetRelativePathToRoot("/system/"));
+  ASSERT_EQ("./../../", HttpServer::GetRelativePathToRoot("/a/b/system"));
+  ASSERT_EQ("../../../", HttpServer::GetRelativePathToRoot("/a/b/system/"));
+}

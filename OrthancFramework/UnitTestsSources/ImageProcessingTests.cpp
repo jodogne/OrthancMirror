@@ -94,7 +94,7 @@ TEST(DicomImageInformation, Windowing)
     ASSERT_DOUBLE_EQ(1.0, info.GetRescaleSlope());
     ASSERT_DOUBLE_EQ(0.0, info.GetRescaleIntercept());
     ASSERT_EQ(PhotometricInterpretation_Monochrome2, info.GetPhotometricInterpretation());
-    ASSERT_EQ(0, info.GetWindowsCount());
+    ASSERT_EQ(0u, info.GetWindowsCount());
     ASSERT_DOUBLE_EQ(14.0, info.ApplyRescale(14.0));
   }
 
@@ -108,7 +108,7 @@ TEST(DicomImageInformation, Windowing)
     ASSERT_DOUBLE_EQ(-1.75, info.GetRescaleIntercept());
     ASSERT_EQ(PhotometricInterpretation_Monochrome1, info.GetPhotometricInterpretation());
     ASSERT_FALSE(info.HasWindows());
-    ASSERT_EQ(0, info.GetWindowsCount());
+    ASSERT_EQ(0u, info.GetWindowsCount());
     ASSERT_THROW(info.GetWindow(0), OrthancException);
     ASSERT_DOUBLE_EQ(141.75, info.ApplyRescale(14.0));
   }

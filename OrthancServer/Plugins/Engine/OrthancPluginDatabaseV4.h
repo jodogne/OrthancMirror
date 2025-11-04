@@ -88,7 +88,7 @@ namespace Orthanc
     virtual unsigned int GetDatabaseVersion() ORTHANC_OVERRIDE;
 
     virtual void Upgrade(unsigned int targetVersion,
-                         IStorageArea& storageArea) ORTHANC_OVERRIDE;    
+                         IPluginStorageArea& storageArea) ORTHANC_OVERRIDE;
 
     virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE;
 

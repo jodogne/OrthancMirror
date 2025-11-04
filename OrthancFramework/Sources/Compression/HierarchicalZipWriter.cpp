@@ -149,7 +149,7 @@ namespace Orthanc
   }
 
 
-  HierarchicalZipWriter::HierarchicalZipWriter(const char* path)
+  HierarchicalZipWriter::HierarchicalZipWriter(const boost::filesystem::path& path)
   {
     writer_.SetOutputPath(path);
     writer_.Open();

@@ -25,6 +25,7 @@
 #pragma once
 
 #include "IJob.h"
+#include "../OrthancException.h"
 
 namespace Orthanc
 {
@@ -38,9 +39,19 @@ namespace Orthanc
     Json::Value    serialized_;
     bool           hasSerialized_;
     std::string    details_;
+    bool           hasDimseErrorStatus_;
+    uint16_t       dimseErrorStatus_;
+    Json::Value    userData_;
 
+    void InitInternal(const IJob& job);
+    
   public:
     JobStatus();
+
+    JobStatus(ErrorCode code,
+              const std::string& details,
+              const IJob& job,
+              uint16_t dimseErrorStatus);
 
     JobStatus(ErrorCode code,
               const std::string& details,
@@ -86,6 +97,31 @@ namespace Orthanc
     const std::string& GetDetails() const
     {
       return details_;
+    }
+
+    bool HasUserData() const
+    {
+      return !userData_.isNull();
+    }
+
+    const Json::Value& GetUserData() const
+    {
+      return userData_;
+    }
+
+    bool HasDimseErrorStatus() const
+    {
+      return hasDimseErrorStatus_;
+    }
+
+    uint16_t GetDimseErrorStatus() const
+    {
+      if (!hasDimseErrorStatus_)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+
+      return dimseErrorStatus_;
     }
   };
 }

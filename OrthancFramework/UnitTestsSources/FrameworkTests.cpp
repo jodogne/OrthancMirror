@@ -49,6 +49,7 @@
 #endif
 
 #include <ctype.h>
+#include <boost/thread.hpp>
 
 
 using namespace Orthanc;
@@ -368,6 +369,9 @@ TEST(Uri, AutodetectMimeType)
   ASSERT_STREQ("model/obj", EnumerationToString(SystemToolbox::AutodetectMimeType(".obj")));
   ASSERT_STREQ("model/mtl", EnumerationToString(SystemToolbox::AutodetectMimeType(".mtl")));
   ASSERT_STREQ("model/stl", EnumerationToString(SystemToolbox::AutodetectMimeType(".stl")));
+
+  // test with utf8 strings
+  ASSERT_STREQ("model/stl", EnumerationToString(SystemToolbox::AutodetectMimeType("\xd0\x94.stl")));
 }
 #endif
 
@@ -397,6 +401,25 @@ TEST(Toolbox, ComputeMD5)
 
   Toolbox::ComputeMD5(s, set);
   ASSERT_EQ("d1aaf4767a3c10a473407a4e47b02da6", s); // set md5 same as string with the values sorted
+
+  {
+    Toolbox::MD5Context context;
+    context.Append("");
+    context.Append(NULL, 0);
+    context.Append("Hello");
+    context.Export(s);
+    ASSERT_EQ("8b1a9953c4611296a827abf8c47804d7", s);
+    ASSERT_THROW(context.Append("World"), OrthancException);
+    ASSERT_THROW(context.Export(s), OrthancException);
+  }
+
+#if ORTHANC_SANDBOXED != 1
+  {
+    std::istringstream iss(std::string("aaabbbccc"));
+    SystemToolbox::ComputeStreamMD5(s, iss);
+    ASSERT_EQ("d1aaf4767a3c10a473407a4e47b02da6", s);
+  }
+#endif
 }
 
 TEST(Toolbox, ComputeSHA1)
@@ -480,7 +503,7 @@ TEST(Toolbox, ConvertFromLatin1)
   ASSERT_EQ("&abc", Toolbox::ConvertToAscii(s));
 
   // Open in Emacs, then save with UTF-8 encoding, then "hexdump -C"
-  std::string utf8 = Toolbox::ConvertToUtf8(s, Encoding_Latin1, false);
+  std::string utf8 = Toolbox::ConvertToUtf8(s, Encoding_Latin1, false, false);
   ASSERT_EQ(15u, utf8.size());
   ASSERT_EQ(0xc3, static_cast<unsigned char>(utf8[0]));
   ASSERT_EQ(0xa0, static_cast<unsigned char>(utf8[1]));
@@ -507,8 +530,8 @@ TEST(Toolbox, FixUtf8)
 
   std::string s((char*) &latin1[0], sizeof(latin1) / sizeof(char));
 
-  ASSERT_EQ(s, Toolbox::ConvertFromUtf8(Toolbox::ConvertToUtf8(s, Encoding_Latin1, false), Encoding_Latin1));
-  ASSERT_EQ("cre", Toolbox::ConvertToUtf8(s, Encoding_Utf8, false));
+  ASSERT_EQ(s, Toolbox::ConvertFromUtf8(Toolbox::ConvertToUtf8(s, Encoding_Latin1, false, false), Encoding_Latin1));
+  ASSERT_EQ("cre", Toolbox::ConvertToUtf8(s, Encoding_Utf8, false, false));
 }
 
 
@@ -619,8 +642,8 @@ TEST(Toolbox, IsAsciiString)
 #if defined(__linux__)
 TEST(Toolbox, AbsoluteDirectory)
 {
-  ASSERT_EQ("/tmp/hello", SystemToolbox::InterpretRelativePath("/tmp", "hello"));
-  ASSERT_EQ("/tmp", SystemToolbox::InterpretRelativePath("/tmp", "/tmp"));
+  ASSERT_EQ("/tmp/hello", SystemToolbox::PathToUtf8(SystemToolbox::InterpretRelativePath("/tmp", "hello")));
+  ASSERT_EQ("/tmp", SystemToolbox::PathToUtf8(SystemToolbox::InterpretRelativePath("/tmp", "/tmp")));
 }
 #endif
 
@@ -628,7 +651,7 @@ TEST(Toolbox, AbsoluteDirectory)
 #if ORTHANC_SANDBOXED != 1
 TEST(Toolbox, WriteFile)
 {
-  std::string path;
+  boost::filesystem::path path;
 
   {
     TemporaryFile tmp;
@@ -640,33 +663,33 @@ TEST(Toolbox, WriteFile)
     s.append("World");
     ASSERT_EQ(11u, s.size());
 
-    SystemToolbox::WriteFile(s, path.c_str());
+    SystemToolbox::WriteFile(s, path);
 
     std::string t;
-    SystemToolbox::ReadFile(t, path.c_str());
+    SystemToolbox::ReadFile(t, path);
 
     ASSERT_EQ(11u, t.size());
     ASSERT_EQ(0, t[5]);
     ASSERT_EQ(0, memcmp(s.c_str(), t.c_str(), s.size()));
 
     std::string h;
-    ASSERT_EQ(true, SystemToolbox::ReadHeader(h, path.c_str(), 1));
+    ASSERT_EQ(true, SystemToolbox::ReadHeader(h, path, 1));
     ASSERT_EQ(1u, h.size());
     ASSERT_EQ('H', h[0]);
-    ASSERT_TRUE(SystemToolbox::ReadHeader(h, path.c_str(), 0));
+    ASSERT_TRUE(SystemToolbox::ReadHeader(h, path, 0));
     ASSERT_EQ(0u, h.size());
-    ASSERT_FALSE(SystemToolbox::ReadHeader(h, path.c_str(), 32));
+    ASSERT_FALSE(SystemToolbox::ReadHeader(h, path, 32));
     ASSERT_EQ(11u, h.size());
     ASSERT_EQ(0, memcmp(s.c_str(), h.c_str(), s.size()));
   }
 
   std::string u;
-  ASSERT_THROW(SystemToolbox::ReadFile(u, path.c_str()), OrthancException);
+  ASSERT_THROW(SystemToolbox::ReadFile(u, path), OrthancException);
 
   {
     TemporaryFile tmp;
     std::string s = "Hello";
-    SystemToolbox::WriteFile(s, tmp.GetPath(), true /* call fsync() */);
+    SystemToolbox::WriteFile(s.c_str(), s.size(), tmp.GetPath(), true /* call fsync() */);
     std::string t;
     SystemToolbox::ReadFile(t, tmp.GetPath());
     ASSERT_EQ(s, t);
@@ -1259,7 +1282,7 @@ TEST(Toolbox, UriEncode)
   Toolbox::UriEncode(s, t); 
   ASSERT_EQ(t, s);
 
-  Toolbox::UriEncode(s, "!#$&'()*+,/:;=?@[]"); ASSERT_EQ("%21%23%24%26%27%28%29%2A%2B%2C/%3A%3B%3D%3F%40%5B%5D", s);  
+  Toolbox::UriEncode(s, "!#$&'()*+,/:;=?@[]"); ASSERT_EQ("%21%23%24%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D", s);
   Toolbox::UriEncode(s, "%"); ASSERT_EQ("%25", s);
 
   // Encode characters from UTF-8. This is the test string from the
@@ -1406,6 +1429,25 @@ TEST(Toolbox, SubstituteVariables)
 
 
 #if ORTHANC_SANDBOXED != 1
+
+void GetValuesDico(std::map<std::string, std::string>& values, MetricsRegistry& m)
+{
+  values.clear();
+
+  std::string s;
+  m.ExportPrometheusText(s);
+
+  std::vector<std::string> t;
+  Toolbox::TokenizeString(t, s, '\n');
+ 
+  for (size_t i = 0; i < t.size() - 1; i++)
+  {
+    std::vector<std::string> v;
+    Toolbox::TokenizeString(v, t[i], ' ');
+    values[v[0]] = v[1];
+  }
+}
+
 TEST(MetricsRegistry, Basic)
 {
   {
@@ -1553,6 +1595,63 @@ TEST(MetricsRegistry, Basic)
     ASSERT_EQ(MetricsUpdatePolicy_Directly, m.GetUpdatePolicy("c"));
     ASSERT_EQ(MetricsDataType_Integer, m.GetDataType("c"));
   }
+
+  {
+    std::map<std::string, std::string> values;
+
+    MetricsRegistry mr;
+
+    {
+      MetricsRegistry::SharedMetrics max10(mr, "shared_max10", MetricsUpdatePolicy_MaxOver10Seconds);
+    
+      {
+        MetricsRegistry::ActiveCounter c1(max10);
+        MetricsRegistry::ActiveCounter c2(max10);
+        GetValuesDico(values, mr);
+        ASSERT_EQ("2", values["shared_max10"]);
+      }
+
+      GetValuesDico(values, mr);
+      ASSERT_EQ("2", values["shared_max10"]);
+
+      // { // Uncomment to test max values going back to latest values after expiration of the 10 seconds period
+      //   boost::this_thread::sleep(boost::posix_time::milliseconds(12000));
+
+      //   GetValuesDico(values, mr);
+      //   ASSERT_EQ("0", values["shared_max10"]);
+      // }
+    }
+
+    {
+      MetricsRegistry::SharedMetrics min10(mr, "shared_min10", MetricsUpdatePolicy_MinOver10Seconds);
+      min10.SetInitialValue(10);
+
+      GetValuesDico(values, mr);
+      ASSERT_EQ("10", values["shared_min10"]);
+
+      {
+        MetricsRegistry::AvailableResourcesDecounter c1(min10);
+        MetricsRegistry::AvailableResourcesDecounter c2(min10);
+        GetValuesDico(values, mr);
+        ASSERT_EQ("8", values["shared_min10"]);
+      }
+
+      GetValuesDico(values, mr);
+      ASSERT_EQ("8", values["shared_min10"]);
+
+      // {
+      //   // Uncomment to test min values going back to latest values after expiration of the 10 seconds period
+      //   boost::this_thread::sleep(boost::posix_time::milliseconds(12000));
+
+      //   GetValuesDico(values, mr);
+      //   ASSERT_EQ("10", values["shared_min10"]);
+      // }
+
+      min10.SetInitialValue(5);
+      GetValuesDico(values, mr);
+      ASSERT_EQ("5", values["shared_min10"]);
+    }
+  }
 }
 #endif
 
@@ -1590,6 +1689,47 @@ TEST(Toolbox, ReadFileRange)
 }
 #endif
 
+
+#if ORTHANC_SANDBOXED != 1 && ORTHANC_ENABLE_MD5 == 1
+TEST(Toolbox, FileMD5)
+{
+  {
+    TemporaryFile tmp1, tmp2;
+    std::string s = "aaabbbccc";
+
+    SystemToolbox::WriteFile(s, tmp1.GetPath());
+    SystemToolbox::WriteFile(s, tmp2.GetPath());
+
+    std::string md5;
+    SystemToolbox::ComputeFileMD5(md5, tmp1.GetPath());
+
+    ASSERT_EQ("d1aaf4767a3c10a473407a4e47b02da6", md5);
+    ASSERT_TRUE(SystemToolbox::CompareFilesMD5(tmp1.GetPath(), tmp2.GetPath()));
+  }
+
+  { // different sizes
+    TemporaryFile tmp1, tmp2;
+    std::string s1 = "aaabbbccc";
+    std::string s2 = "aaabbbcccd";
+
+    SystemToolbox::WriteFile(s1, tmp1.GetPath());
+    SystemToolbox::WriteFile(s2, tmp2.GetPath());
+
+    ASSERT_FALSE(SystemToolbox::CompareFilesMD5(tmp1.GetPath(), tmp2.GetPath()));
+  }
+
+  { // same sizes, different contents
+    TemporaryFile tmp1, tmp2;
+    std::string s1 = "aaabbbccc";
+    std::string s2 = "aaabbbccd";
+
+    SystemToolbox::WriteFile(s1, tmp1.GetPath());
+    SystemToolbox::WriteFile(s2, tmp2.GetPath());
+
+    ASSERT_FALSE(SystemToolbox::CompareFilesMD5(tmp1.GetPath(), tmp2.GetPath()));
+  }
+}
+#endif
 
 #if ORTHANC_SANDBOXED != 1
 TEST(Toolbox, GetMacAddressess)

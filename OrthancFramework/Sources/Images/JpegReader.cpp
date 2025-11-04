@@ -94,7 +94,7 @@ namespace Orthanc
 
 
 #if ORTHANC_SANDBOXED == 0
-  void JpegReader::ReadFromFile(const std::string& filename)
+  void JpegReader::ReadFromFile(const boost::filesystem::path& filename)
   {
     FILE* fp = SystemToolbox::OpenFile(filename, FileMode_ReadBinary);
     if (!fp)

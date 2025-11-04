@@ -56,6 +56,7 @@ namespace Orthanc
 #include "../../Sources/IDicomImageDecoder.h"
 #include "../../Sources/IServerListener.h"
 #include "../../Sources/ServerJobs/IStorageCommitmentFactory.h"
+#include "PluginMemoryBuffer64.h"
 #include "PluginsManager.h"
 
 #include <list>
@@ -88,11 +89,14 @@ namespace Orthanc
     class HttpClientChunkedAnswer;
     class HttpServerChunkedReader;
     class IDicomInstance;
-    class DicomInstanceFromCallback;
     class DicomInstanceFromBuffer;
     class DicomInstanceFromParsed;
     class WebDavCollection;
-    
+
+public:
+    class DicomInstanceFromCallback;
+
+private:
     void RegisterRestCallback(const void* parameters,
                               bool lock);
 
@@ -102,7 +106,8 @@ namespace Orthanc
                                 HttpMethod method,
                                 const UriComponents& uri,
                                 const HttpToolbox::Arguments& headers,
-                                const HttpToolbox::GetArguments& getArguments);
+                                const HttpToolbox::GetArguments& getArguments,
+                                const std::string& authenticationPayload);
 
     void RegisterOnStoredInstanceCallback(const void* parameters);
 
@@ -133,6 +138,10 @@ namespace Orthanc
     void RegisterRefreshMetricsCallback(const void* parameters);
 
     void RegisterStorageCommitmentScpCallback(const void* parameters);
+
+    void RegisterHttpAuthentication(const void* parameters);
+
+    void RegisterAuditLogHandler(const void* parameters);
 
     void AnswerBuffer(const void* parameters);
 
@@ -220,6 +229,30 @@ namespace Orthanc
 
     void ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& parameters);
 
+    void ApplyAdoptDicomInstance(const _OrthancPluginAdoptDicomInstance& parameters);
+
+    void ApplyGetAttachmentCustomData(const _OrthancPluginGetAttachmentCustomData& parameters);
+
+    void ApplySetAttachmentCustomData(const _OrthancPluginSetAttachmentCustomData& parameters);
+
+    void ApplyStoreKeyValue(const _OrthancPluginStoreKeyValue& parameters);
+
+    void ApplyDeleteKeyValue(const _OrthancPluginDeleteKeyValue& parameters);
+
+    void ApplyGetKeyValue(const _OrthancPluginGetKeyValue& parameters);
+
+    void ApplyCreateKeysValuesIterator(const _OrthancPluginCreateKeysValuesIterator& parameters);
+
+    void ApplyEnqueueValue(const _OrthancPluginEnqueueValue& parameters);
+
+    void ApplyDequeueValue(const _OrthancPluginDequeueValue& parameters);
+
+    void ApplyGetQueueSize(const _OrthancPluginGetQueueSize& parameters);
+
+    void ApplySetStableStatus(const _OrthancPluginSetStableStatus& parameters);
+
+    void ApplyEmitAuditLog(const _OrthancPluginEmitAuditLog& parameters);
+
     void ComputeHash(_OrthancPluginService service,
                      const void* parameters);
 
@@ -263,7 +296,8 @@ namespace Orthanc
                         const HttpToolbox::Arguments& headers,
                         const HttpToolbox::GetArguments& getArguments,
                         const void* bodyData,
-                        size_t bodySize) ORTHANC_OVERRIDE;
+                        size_t bodySize,
+                        const std::string& authenticationPayload) ORTHANC_OVERRIDE;
 
     virtual bool InvokeService(SharedLibrary& plugin,
                                _OrthancPluginService service,
@@ -284,14 +318,14 @@ namespace Orthanc
                                               const DicomInstanceToStore& instance,
                                               const Json::Value& simplified) ORTHANC_OVERRIDE;
 
-    OrthancPluginReceivedInstanceAction ApplyReceivedInstanceCallbacks(MallocMemoryBuffer& modified,
+    OrthancPluginReceivedInstanceAction ApplyReceivedInstanceCallbacks(PluginMemoryBuffer64& modified,
                                                                        const void* receivedDicomBuffer,
                                                                        size_t receivedDicomBufferSize,
                                                                        RequestOrigin origin);
 
     bool HasStorageArea() const;
 
-    IStorageArea* CreateStorageArea();  // To be freed after use
+    IPluginStorageArea* CreateStorageArea();  // To be freed after use
 
     const SharedLibrary& GetStorageAreaLibrary() const;
 
@@ -304,7 +338,7 @@ namespace Orthanc
     const char* GetProperty(const char* plugin,
                             _OrthancPluginProperty property) const;
 
-    void SetCommandLineArguments(int argc, char* argv[]);
+    void SetCommandLineArguments(const std::vector<std::string>& arguments);
 
     PluginsManager& GetManager();
 
@@ -371,7 +405,8 @@ namespace Orthanc
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const HttpToolbox::Arguments& headers) ORTHANC_OVERRIDE;
+                                            const HttpToolbox::Arguments& headers,
+                                            const std::string& authenticationPayload) ORTHANC_OVERRIDE;
 
     // New in Orthanc 1.6.0
     IStorageCommitmentFactory::ILookupHandler* CreateStorageCommitment(
@@ -388,6 +423,14 @@ namespace Orthanc
     unsigned int GetMaxDatabaseRetries() const;
 
     void RegisterWebDavCollections(HttpServer& target);
+
+    IIncomingHttpRequestFilter::AuthenticationStatus CheckAuthentication(
+      std::string& customPayload,
+      std::string& redirection,
+      const char* uri,
+      const char* ip,
+      const HttpToolbox::Arguments& httpHeaders,
+      const HttpToolbox::GetArguments& getArguments) const;
   };
 }
 

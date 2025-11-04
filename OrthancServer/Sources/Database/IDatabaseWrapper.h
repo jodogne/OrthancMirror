@@ -56,6 +56,9 @@ namespace Orthanc
       bool hasMeasureLatency_;
       bool hasFindSupport_;
       bool hasExtendedChanges_;
+      bool hasAttachmentCustomDataSupport_;
+      bool hasKeyValueStoresSupport_;
+      bool hasQueuesSupport_;
 
     public:
       Capabilities() :
@@ -66,7 +69,10 @@ namespace Orthanc
         hasUpdateAndGetStatistics_(false),
         hasMeasureLatency_(false),
         hasFindSupport_(false),
-        hasExtendedChanges_(false)
+        hasExtendedChanges_(false),
+        hasAttachmentCustomDataSupport_(false),
+        hasKeyValueStoresSupport_(false),
+        hasQueuesSupport_(false)
       {
       }
 
@@ -100,6 +106,16 @@ namespace Orthanc
         return hasLabelsSupport_;
       }
 
+      void SetAttachmentCustomDataSupport(bool value)
+      {
+        hasAttachmentCustomDataSupport_ = value;
+      }
+
+      bool HasAttachmentCustomDataSupport() const
+      {
+        return hasAttachmentCustomDataSupport_;
+      }
+      
       void SetHasExtendedChanges(bool value)
       {
         hasExtendedChanges_ = value;
@@ -149,6 +165,27 @@ namespace Orthanc
       {
         return hasFindSupport_;
       }
+
+      void SetKeyValueStoresSupport(bool value)
+      {
+        hasKeyValueStoresSupport_ = value;
+      }
+
+      bool HasKeyValueStoresSupport() const
+      {
+        return hasKeyValueStoresSupport_;
+      }
+
+      void SetQueuesSupport(bool value)
+      {
+        hasQueuesSupport_ = value;
+      }
+
+      bool HasQueuesSupport() const
+      {
+        return hasQueuesSupport_;
+      }
+
     };
 
 
@@ -249,6 +286,13 @@ namespace Orthanc
                                     int64_t& revision,
                                     int64_t id,
                                     FileContentType contentType) = 0;
+
+      virtual void GetAttachmentCustomData(std::string& customData,
+                                           const std::string& attachmentUuid) = 0;
+
+      virtual void SetAttachmentCustomData(const std::string& attachmentUuid,
+                                           const void* customData,
+                                           size_t customDataSize) = 0;
 
       /**
        * If "shared" is "true", the property is shared by all the
@@ -390,6 +434,43 @@ namespace Orthanc
                                       int64_t to,
                                       uint32_t limit,
                                       const std::set<ChangeType>& filterType) = 0;
+
+      // New in Orthanc 1.12.8
+      virtual void StoreKeyValue(const std::string& storeId,
+                                 const std::string& key,
+                                 const void* value,
+                                 size_t valueSize) = 0;
+
+      // New in Orthanc 1.12.8
+      virtual void DeleteKeyValue(const std::string& storeId,
+                                  const std::string& key) = 0;
+
+      // New in Orthanc 1.12.8
+      virtual bool GetKeyValue(std::string& value,
+                               const std::string& storeId,
+                               const std::string& key) = 0;
+
+      // New in Orthanc 1.12.8
+      virtual void ListKeysValues(std::list<std::string>& keys /* out */,
+                                  std::list<std::string>& values /* out */,
+                                  const std::string& storeId,
+                                  bool first,
+                                  const std::string& from /* exclusive bound, only used if "first == false" */,
+                                  uint64_t limit /* maximum number of elements */) = 0;
+
+      // New in Orthanc 1.12.8
+      virtual void EnqueueValue(const std::string& queueId,
+                                const void* value,
+                                size_t valueSize) = 0;
+
+      // New in Orthanc 1.12.8
+      virtual bool DequeueValue(std::string& value,
+                                const std::string& queueId,
+                                QueueOrigin origin) = 0;
+
+      // New in Orthanc 1.12.8, for statistics only
+      virtual uint64_t GetQueueSize(const std::string& queueId) = 0;
+
     };
 
 
@@ -456,7 +537,7 @@ namespace Orthanc
     virtual unsigned int GetDatabaseVersion() = 0;
 
     virtual void Upgrade(unsigned int targetVersion,
-                         IStorageArea& storageArea) = 0;
+                         IPluginStorageArea& storageArea) = 0;
 
     virtual const Capabilities GetDatabaseCapabilities() const = 0;
 

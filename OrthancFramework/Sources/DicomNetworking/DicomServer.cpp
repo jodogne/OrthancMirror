@@ -89,7 +89,7 @@ namespace Orthanc
   }
 
 
-  DicomServer::DicomServer() : 
+  DicomServer::DicomServer() :
     pimpl_(new PImpl),
     checkCalledAet_(true),
     aet_("ANY-SCP"),
@@ -108,7 +108,8 @@ namespace Orthanc
     useDicomTls_(false),
     maximumPduLength_(ASC_DEFAULTMAXPDU),
     remoteCertificateRequired_(true),
-    minimumTlsVersion_(0)
+    minimumTlsVersion_(0),
+    metricsRegistry_(NULL)
   {
   }
 
@@ -432,7 +433,15 @@ namespace Orthanc
 
     CLOG(INFO, DICOM) << "The embedded DICOM server will use " << threadsCount_ << " threads";
 
-    pimpl_->workers_.reset(new RunnableWorkersPool(threadsCount_, "DICOM-"));
+    if (metricsRegistry_ == NULL)
+    {
+      pimpl_->workers_.reset(new RunnableWorkersPool(threadsCount_, "DICOM-"));
+    }
+    else
+    {
+      pimpl_->workers_.reset(new RunnableWorkersPool(threadsCount_, "DICOM-", *metricsRegistry_, "orthanc_available_dicom_threads"));
+    }
+
     pimpl_->thread_ = boost::thread(ServerThread, this, maximumPduLength_, useDicomTls_);
   }
 
@@ -529,12 +538,12 @@ namespace Orthanc
                                "No path to the private key for the default DICOM TLS certificate was provided");
       }
       
-      if (!SystemToolbox::IsRegularFile(privateKeyPath))
+      if (!SystemToolbox::IsRegularFile(SystemToolbox::PathFromUtf8(privateKeyPath)))
       {
         throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + privateKeyPath);
       }
 
-      if (!SystemToolbox::IsRegularFile(certificatePath))
+      if (!SystemToolbox::IsRegularFile(SystemToolbox::PathFromUtf8(certificatePath)))
       {
         throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + certificatePath);
       }
@@ -567,7 +576,7 @@ namespace Orthanc
     {
       CLOG(INFO, DICOM) << "Setting the trusted certificates for DICOM SCP connections: " << path;
 
-      if (!SystemToolbox::IsRegularFile(path))
+      if (!SystemToolbox::IsRegularFile(SystemToolbox::PathFromUtf8(path)))
       {
         throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + path);
       }
@@ -620,4 +629,9 @@ namespace Orthanc
     threadsCount_ = threads;
   }
 
+  void DicomServer::SetMetricsRegistry(MetricsRegistry& registry)
+  {
+    Stop();
+    metricsRegistry_ = &registry;
+  }
 }

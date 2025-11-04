@@ -32,7 +32,7 @@
 namespace Orthanc
 {
   class ServerContext;
-  class IStorageArea;
+  class IPluginStorageArea;
 
   namespace ServerToolbox
   {
@@ -42,7 +42,7 @@ namespace Orthanc
                               ResourceType type);
 
     void ReconstructMainDicomTags(IDatabaseWrapper::ITransaction& transaction,
-                                  IStorageArea& storageArea,
+                                  IPluginStorageArea& storageArea,
                                   ResourceType level);
 
     void LoadIdentifiers(const DicomTag*& tags,

@@ -552,7 +552,8 @@ namespace Orthanc
     
     try
     {
-      if (IHttpHandler::SimpleDelete(NULL, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+      std::string bodyIgnored;
+      if (IHttpHandler::SimpleDelete(bodyIgnored, NULL, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin),
                                      RequestOrigin_Lua, uri, headers) == HttpStatus_200_Ok)
       {
         lua_pushboolean(state, 1);
@@ -565,6 +566,60 @@ namespace Orthanc
     }
 
     LOG(ERROR) << "Lua: Error in RestApiDelete() for URI: " << uri;
+    lua_pushnil(state);
+
+    return 1;
+  }
+
+  // Syntax in Lua: SetStableStatus(resourceId, true)
+  int LuaScripting::SetStableStatus(lua_State* state)
+  {
+    ServerContext* serverContext = GetServerContext(state);
+    if (serverContext == NULL)
+    {
+      LOG(ERROR) << "Lua: The Orthanc API is unavailable";
+      lua_pushnil(state);
+      return 1;
+    }
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if (nArgs < 1 || nArgs > 3 ||
+        !lua_isstring(state, 1) ||                 // Resource
+        !lua_isboolean(state, 2))                  // newStateIsStable
+    {
+      LOG(ERROR) << "Lua: Bad parameters to SetStableStatus()";
+      lua_pushnil(state);
+      return 1;
+    }
+
+    const char* resourceId = lua_tostring(state, 1);
+    bool newStateIsStable = lua_toboolean(state, 2);
+    
+    try
+    {
+      bool hasStateChanged = false;
+
+      if (serverContext->GetIndex().SetStableStatus(hasStateChanged, resourceId, newStateIsStable))
+      {
+        if (hasStateChanged)
+        {
+          lua_pushboolean(state, 1);
+        }
+        else
+        {
+          lua_pushboolean(state, 0);
+        }
+
+        return 1;
+      }
+    }
+    catch (OrthancException& e)
+    {
+      LOG(ERROR) << "Lua: " << e.What();
+    }
+
+    LOG(ERROR) << "Lua: Error in SetStableStatus() for Resource: " << resourceId;
     lua_pushnil(state);
 
     return 1;
@@ -760,6 +815,7 @@ namespace Orthanc
     lua_.RegisterFunction("RestApiPut", RestApiPut);
     lua_.RegisterFunction("RestApiDelete", RestApiDelete);
     lua_.RegisterFunction("GetOrthancConfiguration", GetOrthancConfiguration);
+    lua_.RegisterFunction("SetStableStatus", SetStableStatus);
 
     LOG(INFO) << "Initializing Lua for the event handler";
     LoadGlobalConfiguration();
@@ -1040,8 +1096,8 @@ namespace Orthanc
     for (std::list<std::string>::const_iterator
            it = luaScripts.begin(); it != luaScripts.end(); ++it)
     {
-      std::string path = configLock.GetConfiguration().InterpretStringParameterAsPath(*it);
-      LOG(INFO) << "Installing the Lua scripts from: " << path;
+      boost::filesystem::path path = configLock.GetConfiguration().InterpretStringParameterAsPath(*it);
+      LOG(INFO) << "Installing the Lua scripts from: " << SystemToolbox::PathToUtf8(path);
       std::string script;
       SystemToolbox::ReadFile(script, path);
 

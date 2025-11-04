@@ -43,6 +43,8 @@ namespace Orthanc
   static const char* RUNTIME = "Runtime";
   static const char* ERROR_CODE = "ErrorCode";
   static const char* ERROR_DETAILS = "ErrorDetails";
+  static const char* USER_DATA = "UserData";
+  static const char* DIMSE_ERROR_STATUS = "DimseErrorStatus";
 
 
   class JobsRegistry::JobHandler : public boost::noncopyable
@@ -296,6 +298,18 @@ namespace Orthanc
         target[ERROR_CODE] = static_cast<int>(lastStatus_.GetErrorCode());
         target[ERROR_DETAILS] = lastStatus_.GetDetails();
         
+        // New in Orthanc 1.12.9
+        Json::Value userData;
+        if (job_->GetUserData(userData))
+        {
+          target[USER_DATA] = userData;
+        }
+        
+        if (lastStatus_.HasDimseErrorStatus())
+        {
+          target[DIMSE_ERROR_STATUS] = lastStatus_.GetDimseErrorStatus();
+        }
+
         return true;
       }
       else
@@ -325,7 +339,6 @@ namespace Orthanc
 
       job_.reset(unserializer.UnserializeJob(serialized[JOB]));
       job_->GetJobType(jobType_);
-      job_->Start();
 
       ErrorCode errorCode;
       if (serialized.isMember(ERROR_CODE))
@@ -343,7 +356,21 @@ namespace Orthanc
         details = SerializationToolbox::ReadString(serialized, ERROR_DETAILS);
       }
 
-      lastStatus_ = JobStatus(errorCode, details, *job_);
+      if (serialized.isMember(USER_DATA))
+      {
+        job_->SetUserData(serialized[USER_DATA]);
+      }
+
+      if (serialized.isMember(DIMSE_ERROR_STATUS))
+      {
+        lastStatus_ = JobStatus(errorCode, details, *job_, static_cast<uint16_t>(serialized[DIMSE_ERROR_STATUS].asUInt()));
+      }
+      else
+      {
+        lastStatus_ = JobStatus(errorCode, details, *job_);
+      }
+
+      job_->Start();
     }
   };
 
@@ -868,14 +895,18 @@ namespace Orthanc
           {
             ErrorCode code = it->second->GetLastStatus().GetErrorCode();
             const std::string& details = it->second->GetLastStatus().GetDetails();
-
-            if (details.empty())
+            
+            if (it->second->GetLastStatus().HasDimseErrorStatus())
             {
-              throw OrthancException(code);
+              throw OrthancException(code, details, it->second->GetLastStatus().GetDimseErrorStatus());
+            }
+            else if (!details.empty())
+            {
+              throw OrthancException(code, details);
             }
             else
             {
-              throw OrthancException(code, details);
+              throw OrthancException(code);
             }
           }
           else
@@ -1433,6 +1464,27 @@ namespace Orthanc
     {
       targetState_ = JobState_Retry;
       targetRetryTimeout_ = timeout;
+    }
+  }
+
+
+  void JobsRegistry::RunningJob::UpdateStatus(ErrorCode code,
+                                              const std::string& details,
+                                              uint16_t dimseErrorStatus)
+  {
+    if (!IsValid())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      JobStatus status(code, details, *job_, dimseErrorStatus);
+
+      boost::mutex::scoped_lock lock(registry_.mutex_);
+      registry_.CheckInvariants();
+      assert(handler_->GetState() == JobState_Running);
+
+      handler_->SetLastStatus(status);
     }
   }
 

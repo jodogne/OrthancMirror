@@ -191,13 +191,15 @@ namespace Orthanc
     boost::mutex                        availableInstancesMutex_;
     SharedMessageQueue                  instancesToPreload_;
     std::vector<boost::thread*>         threads_;
+    bool                                loadersShouldStop_;
 
 
   public:
     ThreadedInstanceLoader(ServerContext& context, size_t threadCount, bool transcode, DicomTransferSyntax transferSyntax, unsigned int lossyQuality)
     : InstanceLoader(context, transcode, transferSyntax, lossyQuality),
       availableInstancesSemaphore_(0),
-      bufferedInstancesSemaphore_(3*threadCount)
+      bufferedInstancesSemaphore_(3*threadCount),
+      loadersShouldStop_(false)
     {
       for (size_t i = 0; i < threadCount; i++)
       {
@@ -212,22 +214,38 @@ namespace Orthanc
 
     virtual void Clear() ORTHANC_OVERRIDE
     {
-      for (size_t i = 0; i < threads_.size(); i++)
+      if (threads_.size() > 0)
       {
-        instancesToPreload_.Enqueue(NULL);
-      }
+        LOG(INFO) << "Waiting for loader threads to complete";
+        loadersShouldStop_ = true; // not need to protect this by a mutex.  This is the only "writer" and all loaders are "readers"
 
-      for (size_t i = 0; i < threads_.size(); i++)
-      {
-        if (threads_[i]->joinable())
+        // unlock the loaders if they are waiting on this message queue (this happens when the job completes sucessfully)
+        for (size_t i = 0; i < threads_.size(); i++)
         {
-          threads_[i]->join();
+          instancesToPreload_.Enqueue(NULL);
         }
-        delete threads_[i];
-      }
 
-      threads_.clear();
-      availableInstances_.clear();
+        // If the consumer stops e.g. because the HttpClient disconnected, we must make sure the loader threads are not blocked waiting for room in the bufferedInstances.
+        // If the loader threads have completed their jobs, this is harmless to release the bufferedInstances since they won't be used anymore.
+        for (size_t i = 0; i < threads_.size(); i++)
+        {
+          bufferedInstancesSemaphore_.Release();
+        }
+
+        for (size_t i = 0; i < threads_.size(); i++)
+        {
+          if (threads_[i]->joinable())
+          {
+            threads_[i]->join();
+          }
+          delete threads_[i];
+        }
+
+        threads_.clear();
+        availableInstances_.clear();
+
+        LOG(INFO) << "Waiting for loader threads to complete - done";
+      }
     }
 
     static void PreloaderWorkerThread(ThreadedInstanceLoader* that)
@@ -235,11 +253,14 @@ namespace Orthanc
       static uint16_t threadCounter = 0;
       Logging::SetCurrentThreadName(std::string("ARCH-LOAD-") + boost::lexical_cast<std::string>(threadCounter++));
 
+      LOG(INFO) << "Loader thread has started";
+
       while (true)
       {
         std::unique_ptr<InstanceToPreload> instanceToPreload(dynamic_cast<InstanceToPreload*>(that->instancesToPreload_.Dequeue(0)));
-        if (instanceToPreload.get() == NULL)  // that's the signal to exit the thread
+        if (instanceToPreload.get() == NULL || that->loadersShouldStop_)  // that's the signal to exit the thread
         {
+          LOG(INFO) << "Loader thread has completed";
           return;
         }
         
@@ -269,6 +290,15 @@ namespace Orthanc
         }
         catch (OrthancException& e)
         {
+          LOG(ERROR) << "Failed to load instance " << instanceToPreload->GetId() << " error: " << e.GetDetails();
+          boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
+          // store a NULL result to notify that we could not read the instance
+          that->availableInstances_[instanceToPreload->GetId()] = boost::shared_ptr<std::string>(); 
+          that->availableInstancesSemaphore_.Release();
+        }
+        catch (...)
+        {
+          LOG(ERROR) << "Failed to load instance " << instanceToPreload->GetId() << " unknown error";
           boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
           // store a NULL result to notify that we could not read the instance
           that->availableInstances_[instanceToPreload->GetId()] = boost::shared_ptr<std::string>(); 
@@ -1114,11 +1144,11 @@ namespace Orthanc
       }
     }
 
-    void SetOutputFile(const std::string& path)
+    void SetOutputFile(const boost::filesystem::path& path)
     {
       if (zip_.get() == NULL)
       {
-        zip_.reset(new HierarchicalZipWriter(path.c_str()));
+        zip_.reset(new HierarchicalZipWriter(path));
         zip_->SetZip64(commands_.IsZip64());
         isStream_ = false;
       }
@@ -1542,6 +1572,12 @@ namespace Orthanc
       
       synchronousTarget_.reset();
       asynchronousTarget_.reset();
+
+      // clear the loader threads
+      if (instanceLoader_.get() != NULL)
+      {
+        instanceLoader_->Clear();
+      }
     }
   }
 

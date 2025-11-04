@@ -89,7 +89,7 @@ namespace Orthanc
 
         tmp->Write(dicom);
         
-        arguments.push_back(tmp->GetPath());
+        arguments.push_back(SystemToolbox::PathToUtf8(tmp->GetPath()));
         break;
       }
 

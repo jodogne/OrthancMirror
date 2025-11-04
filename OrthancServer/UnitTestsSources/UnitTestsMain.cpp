@@ -47,6 +47,9 @@
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 
+#if defined(_WIN32) || defined(__CYGWIN__)
+#include <windows.h>
+#endif
 
 using namespace Orthanc;
 
@@ -194,7 +197,7 @@ TEST(DicomMap, DicomAsJson)
   const unsigned char raw[] = { 0x63, 0x72, 0xe2, 0x6e, 0x65 };
   std::string latin1((char*) &raw[0], sizeof(raw) / sizeof(char));
 
-  std::string utf8 = Toolbox::ConvertToUtf8(latin1, Encoding_Latin1, false);
+  std::string utf8 = Toolbox::ConvertToUtf8(latin1, Encoding_Latin1, false, false);
 
   ParsedDicomFile dicom(false);
   dicom.SetEncoding(Encoding_Latin1);
@@ -515,12 +518,16 @@ TEST(StorageCommitmentReports, Basic)
 
 int main(int argc, char **argv)
 {
+#if defined(_WIN32) && !defined(__MINGW32__)
+  // Set Windows console output to UTF-8 (otherwise, strings are considered to be in UTF-16.  For example, Cyrillic UTF-8 strings appear as garbage without that config)
+  SetConsoleOutputCP(CP_UTF8);
+#endif
+
   Logging::Initialize();
-  Toolbox::InitializeGlobalLocale(NULL);
   SetGlobalVerbosity(Verbosity_Verbose);
   Toolbox::DetectEndianness();
-  SystemToolbox::MakeDirectory("UnitTestsResults");
-  OrthancInitialize();
+  SystemToolbox::MakeDirectory(SystemToolbox::PathFromUtf8("UnitTestsResults"));
+  OrthancInitialize("");
 
   ::testing::InitGoogleTest(&argc, argv);
   int result = RUN_ALL_TESTS();

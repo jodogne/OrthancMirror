@@ -30,10 +30,9 @@
 #include <gtest/gtest.h>
 
 #include "../Sources/FileStorage/FilesystemStorage.h"
+#include "../Sources/FileStorage/PluginStorageAreaAdapter.h"
 #include "../Sources/FileStorage/StorageAccessor.h"
 #include "../Sources/FileStorage/StorageCache.h"
-#include "../Sources/HttpServer/BufferHttpSender.h"
-#include "../Sources/HttpServer/FilesystemHttpSender.h"
 #include "../Sources/Logging.h"
 #include "../Sources/OrthancException.h"
 #include "../Sources/Toolbox.h"
@@ -63,12 +62,18 @@ TEST(FilesystemStorage, Basic)
   s.Create(uid.c_str(), &data[0], data.size(), FileContentType_Unknown);
   std::string d;
   {
-    std::unique_ptr<IMemoryBuffer> buffer(s.Read(uid, FileContentType_Unknown));
+    std::unique_ptr<IMemoryBuffer> buffer(s.ReadWhole(uid, FileContentType_Unknown));
     buffer->MoveToString(d);    
   }
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
   ASSERT_EQ(s.GetSize(uid), data.size());
+  {
+    std::unique_ptr<IMemoryBuffer> buffer2(s.ReadRange(uid, FileContentType_Unknown, 0, uid.size()));
+    std::string d2;
+    buffer2->MoveToString(d2);
+    ASSERT_EQ(d, d2);
+  }
 }
 
 TEST(FilesystemStorage, Basic2)
@@ -81,12 +86,18 @@ TEST(FilesystemStorage, Basic2)
   s.Create(uid.c_str(), &data[0], data.size(), FileContentType_Unknown);
   std::string d;
   {
-    std::unique_ptr<IMemoryBuffer> buffer(s.Read(uid, FileContentType_Unknown));
+    std::unique_ptr<IMemoryBuffer> buffer(s.ReadWhole(uid, FileContentType_Unknown));
     buffer->MoveToString(d);    
   }
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
   ASSERT_EQ(s.GetSize(uid), data.size());
+  {
+    std::unique_ptr<IMemoryBuffer> buffer2(s.ReadRange(uid, FileContentType_Unknown, 0, uid.size()));
+    std::string d2;
+    buffer2->MoveToString(d2);
+    ASSERT_EQ(d, d2);
+  }
 }
 
 TEST(FilesystemStorage, FileWithSameNameAsTopDirectory)
@@ -97,7 +108,7 @@ TEST(FilesystemStorage, FileWithSameNameAsTopDirectory)
   std::vector<uint8_t> data;
   StringToVector(data, Toolbox::GenerateUuid());
 
-  SystemToolbox::WriteFile("toto", "UnitTestsStorageTop/12");
+  SystemToolbox::WriteFile("toto", SystemToolbox::PathFromUtf8("UnitTestsStorageTop/12"));
   ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
   s.Clear();
 }
@@ -110,8 +121,8 @@ TEST(FilesystemStorage, FileWithSameNameAsChildDirectory)
   std::vector<uint8_t> data;
   StringToVector(data, Toolbox::GenerateUuid());
 
-  SystemToolbox::MakeDirectory("UnitTestsStorageChild/12");
-  SystemToolbox::WriteFile("toto", "UnitTestsStorageChild/12/34");
+  SystemToolbox::MakeDirectory(SystemToolbox::PathFromUtf8("UnitTestsStorageChild/12"));
+  SystemToolbox::WriteFile("toto", SystemToolbox::PathFromUtf8("UnitTestsStorageChild/12/34"));
   ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
   s.Clear();
 }
@@ -124,12 +135,27 @@ TEST(FilesystemStorage, FileAlreadyExists)
   std::vector<uint8_t> data;
   StringToVector(data, Toolbox::GenerateUuid());
 
-  SystemToolbox::MakeDirectory("UnitTestsStorageFileAlreadyExists/12/34");
-  SystemToolbox::WriteFile("toto", "UnitTestsStorageFileAlreadyExists/12/34/12345678-1234-1234-1234-1234567890ab");
+  SystemToolbox::MakeDirectory(SystemToolbox::PathFromUtf8("UnitTestsStorageFileAlreadyExists/12/34"));
+  SystemToolbox::WriteFile("toto", SystemToolbox::PathFromUtf8("UnitTestsStorageFileAlreadyExists/12/34/12345678-1234-1234-1234-1234567890ab"));
   ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
   s.Clear();
 }
 
+#if !defined(__MINGW32__)  // non-ASCII paths are not supported when built with mingw
+TEST(FilesystemStorage, FileAlreadyExistsUtf8)
+{
+  FilesystemStorage s(SystemToolbox::PathFromUtf8("\xd0\x95UnitTestsStorageFileAlreadyExists"));
+  s.Clear();
+
+  std::vector<uint8_t> data;
+  StringToVector(data, Toolbox::GenerateUuid());
+
+  SystemToolbox::MakeDirectory(SystemToolbox::PathFromUtf8("\xd0\x95UnitTestsStorageFileAlreadyExists/12/34"));
+  SystemToolbox::WriteFile("toto", SystemToolbox::PathFromUtf8("\xd0\x95UnitTestsStorageFileAlreadyExists/12/34/12345678-1234-1234-1234-1234567890ab"));
+  ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
+  s.Clear();
+}
+#endif
 
 TEST(FilesystemStorage, EndToEnd)
 {
@@ -169,13 +195,14 @@ TEST(FilesystemStorage, EndToEnd)
 
 TEST(StorageAccessor, NoCompression)
 {
-  FilesystemStorage s("UnitTestsStorage");
+  PluginStorageAreaAdapter s(new FilesystemStorage("UnitTestsStorage"));
   StorageCache cache;
   StorageAccessor accessor(s, cache);
 
-  std::string data = "Hello world";
-  FileInfo info = accessor.Write(data, FileContentType_Dicom, CompressionType_None, true);
-  
+  const std::string data = "Hello world";
+  FileInfo info;
+  accessor.Write(info, data.c_str(), data.size(), FileContentType_Dicom, CompressionType_None, true, NULL);
+
   std::string r;
   accessor.Read(r, info);
 
@@ -191,13 +218,14 @@ TEST(StorageAccessor, NoCompression)
 
 TEST(StorageAccessor, Compression)
 {
-  FilesystemStorage s("UnitTestsStorage");
+  PluginStorageAreaAdapter s(new FilesystemStorage("UnitTestsStorage"));
   StorageCache cache;
   StorageAccessor accessor(s, cache);
 
-  std::string data = "Hello world";
-  FileInfo info = accessor.Write(data, FileContentType_Dicom, CompressionType_ZlibWithSize, true);
-  
+  const std::string data = "Hello world";
+  FileInfo info;
+  accessor.Write(info, data.c_str(), data.size(), FileContentType_Dicom, CompressionType_ZlibWithSize, true, NULL);
+
   std::string r;
   accessor.Read(r, info);
 
@@ -212,20 +240,22 @@ TEST(StorageAccessor, Compression)
 
 TEST(StorageAccessor, Mix)
 {
-  FilesystemStorage s("UnitTestsStorage");
+  PluginStorageAreaAdapter s(new FilesystemStorage("UnitTestsStorage"));
   StorageCache cache;
   StorageAccessor accessor(s, cache);
 
-  std::string r;
-  std::string compressedData = "Hello";
-  std::string uncompressedData = "HelloWorld";
+  const std::string compressedData = "Hello";
+  const std::string uncompressedData = "HelloWorld";
 
-  FileInfo compressedInfo = accessor.Write(compressedData, FileContentType_Dicom, CompressionType_ZlibWithSize, false);  
-  FileInfo uncompressedInfo = accessor.Write(uncompressedData, FileContentType_Dicom, CompressionType_None, false);
-  
+  FileInfo compressedInfo;
+  accessor.Write(compressedInfo, compressedData.c_str(), compressedData.size(), FileContentType_Dicom, CompressionType_ZlibWithSize, false, NULL);
+
+  std::string r;
   accessor.Read(r, compressedInfo);
   ASSERT_EQ(compressedData, r);
 
+  FileInfo uncompressedInfo;
+  accessor.Write(uncompressedInfo, uncompressedData.c_str(), uncompressedData.size(), FileContentType_Dicom, CompressionType_None, false, NULL);
   accessor.Read(r, uncompressedInfo);
   ASSERT_EQ(uncompressedData, r);
   ASSERT_NE(compressedData, r);
@@ -324,4 +354,46 @@ TEST(StorageAccessor, Range)
     ASSERT_EQ("o", s);
     ASSERT_THROW(StorageAccessor::Range::ParseHttpRange("bytes=5-").Extract(s, "Hello"), OrthancException);
   }
+}
+
+
+TEST(SystemToolbox, ReadRange)
+{
+  const boost::filesystem::path path(SystemToolbox::PathFromUtf8("UnitTestsResults/hello.txt"));
+  SystemToolbox::WriteFile("abc", path);
+
+  std::string s;
+  SystemToolbox::ReadFileRange(s, path, 0, 1, true);
+  ASSERT_EQ(1u, s.size());
+  ASSERT_EQ('a', s[0]);
+
+  SystemToolbox::ReadFileRange(s, path, 1, 2, true);
+  ASSERT_EQ(1u, s.size());
+  ASSERT_EQ('b', s[0]);
+
+  SystemToolbox::ReadFileRange(s, path, 2, 3, true);
+  ASSERT_EQ(1u, s.size());
+  ASSERT_EQ('c', s[0]);
+
+  ASSERT_THROW(SystemToolbox::ReadFileRange(s, path, 3, 4, true), OrthancException);
+
+  SystemToolbox::ReadFileRange(s, path, 0, 2, true);
+  ASSERT_EQ(2u, s.size());
+  ASSERT_EQ('a', s[0]);
+  ASSERT_EQ('b', s[1]);
+
+  SystemToolbox::ReadFileRange(s, path, 1, 3, true);
+  ASSERT_EQ(2u, s.size());
+  ASSERT_EQ('b', s[0]);
+  ASSERT_EQ('c', s[1]);
+
+  ASSERT_THROW(SystemToolbox::ReadFileRange(s, path, 2, 4, true), OrthancException);
+
+  SystemToolbox::ReadFileRange(s, path, 0, 3, true);
+  ASSERT_EQ(3u, s.size());
+  ASSERT_EQ('a', s[0]);
+  ASSERT_EQ('b', s[1]);
+  ASSERT_EQ('c', s[2]);
+
+  ASSERT_THROW(SystemToolbox::ReadFileRange(s, path, 1, 4, true), OrthancException);
 }

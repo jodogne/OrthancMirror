@@ -12,7 +12,7 @@ cat <<EOF > /tmp/cppcheck-suppressions.txt
 constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
 knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
-nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
+nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:322
 stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1525
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
@@ -36,7 +36,7 @@ assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cp
 assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1026
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
-assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3058
+assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3066
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:286
 assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
 EOF
@@ -102,5 +102,6 @@ ${CPPCHECK} --enable=all --quiet --std=c++11 \
             ../../OrthancServer/Plugins/Samples/Housekeeper \
             ../../OrthancServer/Plugins/Samples/ModalityWorklists \
             ../../OrthancServer/Plugins/Samples/MultitenantDicom \
+            ../../OrthancServer/Plugins/Samples/AdoptDicomInstance \
             \
             2>&1

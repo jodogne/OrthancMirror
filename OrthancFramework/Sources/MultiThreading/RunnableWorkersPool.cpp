@@ -30,29 +30,38 @@
 #include "../OrthancException.h"
 #include "../Logging.h"
 
+
 namespace Orthanc
 {
   struct RunnableWorkersPool::PImpl
   {
-    class Worker
+    class Worker : public boost::noncopyable
     {
     private:
       const bool&           continue_;
       SharedMessageQueue&   queue_;
       boost::thread         thread_;
-      std::string           name_;
+      std::string           threadName_;
+      MetricsRegistry::SharedMetrics* availableWorkers_;
  
       static void WorkerThread(Worker* that)
       {
-        Logging::SetCurrentThreadName(that->name_);
+        Logging::SetCurrentThreadName(that->threadName_);
 
         while (that->continue_)
         {
           try
           {
             std::unique_ptr<IDynamicObject>  obj(that->queue_.Dequeue(100));
+            
             if (obj.get() != NULL)
             {
+              std::unique_ptr<MetricsRegistry::AvailableResourcesDecounter> counter;
+              if (that->availableWorkers_ != NULL)
+              {
+                counter.reset(new MetricsRegistry::AvailableResourcesDecounter(*that->availableWorkers_));
+              }
+
               IRunnableBySteps& runnable = *dynamic_cast<IRunnableBySteps*>(obj.get());
               
               bool wishToContinue = runnable.Step();
@@ -86,10 +95,12 @@ namespace Orthanc
     public:
       Worker(const bool& globalContinue,
              SharedMessageQueue& queue,
-             const std::string& name) : 
+             const std::string& threadName,
+             MetricsRegistry::SharedMetrics* availableWorkers) :
         continue_(globalContinue),
         queue_(queue),
-        name_(name)
+        threadName_(threadName),
+        availableWorkers_(availableWorkers)
       {
         thread_ = boost::thread(WorkerThread, this);
       }
@@ -103,16 +114,32 @@ namespace Orthanc
       }
     };
 
-
     bool                  continue_;
     std::vector<Worker*>  workers_;
     SharedMessageQueue    queue_;
+    std::unique_ptr<MetricsRegistry::SharedMetrics>  availableWorkers_;
+
+  public:
+    explicit PImpl(MetricsRegistry::SharedMetrics* availableWorkers /* takes ownership */) :
+      continue_(false),
+      availableWorkers_(availableWorkers)
+    {
+    }
   };
 
 
-
-  RunnableWorkersPool::RunnableWorkersPool(size_t countWorkers, const std::string& name) : pimpl_(new PImpl)
+  void RunnableWorkersPool::Start(size_t countWorkers,
+                                  const std::string& baseThreadName,
+                                  MetricsRegistry::SharedMetrics* availableWorkers)
   {
+    std::unique_ptr<MetricsRegistry::SharedMetrics> protection(availableWorkers);
+
+    if (pimpl_.get() != NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    pimpl_.reset(new PImpl(protection.release()));
     pimpl_->continue_ = true;
 
     if (countWorkers == 0)
@@ -124,13 +151,34 @@ namespace Orthanc
 
     for (size_t i = 0; i < countWorkers; i++)
     {
-      std::string workerName = name + boost::lexical_cast<std::string>(i);
-      pimpl_->workers_[i] = new PImpl::Worker(pimpl_->continue_, pimpl_->queue_, workerName);
+      std::string workerName = baseThreadName + boost::lexical_cast<std::string>(i);
+      pimpl_->workers_[i] = new PImpl::Worker(pimpl_->continue_, pimpl_->queue_, workerName, pimpl_->availableWorkers_.get());
     }
   }
 
 
-  void RunnableWorkersPool::Stop()
+  RunnableWorkersPool::RunnableWorkersPool(size_t countWorkers,
+                                           const std::string& baseThreadName)
+  {
+    Start(countWorkers, baseThreadName, NULL);
+  }
+
+
+  RunnableWorkersPool::RunnableWorkersPool(size_t countWorkers,
+                                           const std::string& baseThreadName,
+                                           MetricsRegistry& registry,
+                                           const char* availableWorkersMetricsName)
+  {
+    std::unique_ptr<MetricsRegistry::SharedMetrics> availableWorkers(
+      new MetricsRegistry::SharedMetrics(registry, availableWorkersMetricsName, MetricsUpdatePolicy_MinOver10Seconds));
+
+    availableWorkers->Add(countWorkers); // mark all workers as available
+
+    Start(countWorkers, baseThreadName, availableWorkers.release());
+  }
+
+
+  RunnableWorkersPool::~RunnableWorkersPool()
   {
     if (pimpl_->continue_)
     {
@@ -147,12 +195,6 @@ namespace Orthanc
         }
       }
     }
-  }
-
-
-  RunnableWorkersPool::~RunnableWorkersPool()
-  {
-    Stop();
   }
 
 

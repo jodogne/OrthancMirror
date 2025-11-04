@@ -171,12 +171,12 @@ namespace Orthanc
                                           const void* dicom,
                                           size_t size);
 
-    void LogMissingTagsForStore() const;
+    std::string FormatMissingTagsForStore() const;
 
-    static void LogMissingTagsForStore(const std::string& patientId,
-                                       const std::string& studyInstanceUid,
-                                       const std::string& seriesInstanceUid,
-                                       const std::string& sopInstanceUid);
+    static std::string FormatMissingTagsForStore(const std::string& patientId,
+                                                 const std::string& studyInstanceUid,
+                                                 const std::string& seriesInstanceUid,
+                                                 const std::string& sopInstanceUid);
 
     bool LookupStringValue(std::string& result,
                            const DicomTag& tag,

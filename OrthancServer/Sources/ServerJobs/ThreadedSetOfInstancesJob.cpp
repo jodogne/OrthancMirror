@@ -367,6 +367,7 @@ namespace Orthanc
   static const char* KEY_PARENT_RESOURCES = "ParentResources";
   static const char* KEY_DESCRIPTION = "Description";
   static const char* KEY_PERMISSIVE = "Permissive";
+  static const char* KEY_USER_DATA = "UserData";
   static const char* KEY_CURRENT_STEP = "CurrentStep";
   static const char* KEY_TYPE = "Type";
   static const char* KEY_INSTANCES = "Instances";
@@ -402,6 +403,7 @@ namespace Orthanc
     target[KEY_TYPE] = type;
     
     target[KEY_PERMISSIVE] = permissive_;
+    target[KEY_USER_DATA] = userData_;
     target[KEY_CURRENT_STEP] = static_cast<unsigned int>(currentStep_);
     target[KEY_DESCRIPTION] = description_;
     target[KEY_KEEP_SOURCE] = keepSource_;
@@ -455,6 +457,17 @@ namespace Orthanc
     if (source.isMember(KEY_CURRENT_STEP))
     {
       currentStep_ = static_cast<ThreadedJobStep>(SerializationToolbox::ReadUnsignedInteger(source, KEY_CURRENT_STEP));
+    }
+
+    if (source.isMember(KEY_PERMISSIVE))
+    {
+      SerializationToolbox::ReadBoolean(source, KEY_PERMISSIVE);
+    }
+
+    // new in 1.12.9
+    if (source.isMember(KEY_USER_DATA))
+    {
+      userData_ = source[KEY_USER_DATA];
     }
   }
 
@@ -537,6 +550,27 @@ namespace Orthanc
 
     return description_;
   }
+
+
+  void ThreadedSetOfInstancesJob::SetUserData(const Json::Value& userData)
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+
+    userData_ = userData;
+  }
+
+  bool ThreadedSetOfInstancesJob::GetUserData(Json::Value& userData) const
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+
+    if (!userData_.isNull())
+    {
+      userData = userData_;
+      return true;
+    }
+    return false;
+  }
+
 
   void ThreadedSetOfInstancesJob::SetErrorCode(ErrorCode errorCode)
   {

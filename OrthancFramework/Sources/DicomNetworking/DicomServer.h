@@ -47,6 +47,8 @@
 
 namespace Orthanc
 {
+  class MetricsRegistry;
+
   class DicomServer : public boost::noncopyable
   {
   public:
@@ -93,7 +95,7 @@ namespace Orthanc
     bool         remoteCertificateRequired_;  // New in 1.9.3
     unsigned int minimumTlsVersion_;          // New in 1.12.4
     std::set<std::string> acceptedCiphers_;   // New in 1.12.4
-
+    MetricsRegistry* metricsRegistry_;        // New in 1.12.9
 
     static void ServerThread(DicomServer* server,
                              unsigned int maximumPduLength,
@@ -175,5 +177,6 @@ namespace Orthanc
 
     void SetThreadsCount(unsigned int threadsCount);
 
+    void SetMetricsRegistry(MetricsRegistry& registry);
   };
 }

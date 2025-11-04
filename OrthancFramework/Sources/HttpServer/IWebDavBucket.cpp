@@ -48,7 +48,20 @@ static std::string AddTrailingSlash(const std::string& s)
     return s;
   }
 }
-  
+
+static std::string AddLeadingSlash(const std::string& s)
+{
+  if (s.empty() ||
+      s[0] != '/')
+  {
+    return std::string("/") + s;
+  }
+  else
+  {
+    return s;
+  }
+}
+
 
 namespace Orthanc
 {
@@ -163,7 +176,14 @@ namespace Orthanc
                                    const std::string& parentPath) const
   {
     std::string href;
-    Toolbox::UriEncode(href, AddTrailingSlash(parentPath) + GetDisplayName());
+    std::vector<std::string> pathTokens;
+
+    Toolbox::SplitString(pathTokens, parentPath, '/');
+    pathTokens.push_back(GetDisplayName());
+
+    Toolbox::UriEncode(href, pathTokens);
+    href = AddLeadingSlash(href);
+
     FormatInternal(node, href, GetDisplayName(), GetCreationTime(), GetModificationTime());
 
     pugi::xml_node prop = node.first_element_by_path("D:propstat/D:prop");
@@ -181,7 +201,14 @@ namespace Orthanc
                                      const std::string& parentPath) const
   {
     std::string href;
-    Toolbox::UriEncode(href, AddTrailingSlash(parentPath) + GetDisplayName());
+    std::vector<std::string> pathTokens;
+
+    Toolbox::SplitString(pathTokens, parentPath, '/');
+    pathTokens.push_back(GetDisplayName());
+
+    Toolbox::UriEncode(href, pathTokens);
+    href = AddLeadingSlash(href);
+
     FormatInternal(node, href, GetDisplayName(), GetCreationTime(), GetModificationTime());
         
     pugi::xml_node prop = node.first_element_by_path("D:propstat/D:prop");
@@ -245,7 +272,8 @@ namespace Orthanc
       }
        
       std::string href;
-      Toolbox::UriEncode(href, Toolbox::FlattenUri(tokens) + "/");
+      Toolbox::UriEncode(href, tokens);
+      href = AddTrailingSlash(AddLeadingSlash(href));
 
       boost::posix_time::ptime now = GetNow();
       FormatInternal(self, href, folder, now, now);

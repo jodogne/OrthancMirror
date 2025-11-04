@@ -43,7 +43,7 @@ int main(int argc, char **argv)
   
   Orthanc::Logging::EnableInfoLevel(true);
   Orthanc::Toolbox::DetectEndianness();
-  Orthanc::SystemToolbox::MakeDirectory("UnitTestsResults");
+  Orthanc::SystemToolbox::MakeDirectory(Orthanc::SystemToolbox::PathFromUtf8("UnitTestsResults"));
   
   ::testing::InitGoogleTest(&argc, argv);
   int result = RUN_ALL_TESTS();

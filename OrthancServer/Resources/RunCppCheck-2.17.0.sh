@@ -9,7 +9,7 @@ if [ $# -ge 1 ]; then
 fi
 
 cat <<EOF > /tmp/cppcheck-suppressions.txt
-nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
+nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:322
 stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1525
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
@@ -106,5 +106,6 @@ ${CPPCHECK} --enable=all --std=gnu++11 --library=boost \
             ../../OrthancServer/Plugins/Samples/Housekeeper \
             ../../OrthancServer/Plugins/Samples/ModalityWorklists \
             ../../OrthancServer/Plugins/Samples/MultitenantDicom \
+            ../../OrthancServer/Plugins/Samples/AdoptDicomInstance \
             \
             2>&1

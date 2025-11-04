@@ -357,7 +357,7 @@ namespace Orthanc
 
 
   ServerContext::ServerContext(IDatabaseWrapper& database,
-                               IStorageArea& area,
+                               IPluginStorageArea& area,
                                bool unitTesting,
                                size_t maxCompletedJobs,
                                bool readOnly,
@@ -496,7 +496,27 @@ namespace Orthanc
         std::list<std::string> acceptedSopClasses;
         std::set<std::string> rejectedSopClasses;
         lock.GetConfiguration().GetListOfStringsParameter(acceptedSopClasses, "AcceptedSopClasses");
-        lock.GetConfiguration().GetSetOfStringsParameter(rejectedSopClasses, "RejectSopClasses");
+
+        static const char* const REJECTED_SOP_CLASS = "RejectedSopClasses";
+        if (lock.GetJson().isMember(REJECTED_SOP_CLASS))
+        {
+          lock.GetConfiguration().GetSetOfStringsParameter(rejectedSopClasses, REJECTED_SOP_CLASS);
+        }
+        else
+        {
+          static const char* const REJECT_SOP_CLASS = "RejectSopClasses";
+          if (lock.GetJson().isMember(REJECT_SOP_CLASS))
+          {
+            /**
+             * This is for backward compatibility. In Orthanc 1.12.6,
+             * there was a typo: "RejectedSopClasses" was spelled as
+             * "RejectSopClasses".
+             * https://discourse.orthanc-server.org/t/fix-for-config-param-rejectsopclasses-vs-rejectedsopclasses/5900
+             **/
+            lock.GetConfiguration().GetSetOfStringsParameter(rejectedSopClasses, REJECT_SOP_CLASS);
+          }
+        }
+
         SetAcceptedSopClasses(acceptedSopClasses, rejectedSopClasses);
 
         defaultDicomRetrieveMethod_ = StringToRetrieveMethod(lock.GetConfiguration().GetStringParameter("DicomDefaultRetrieveMethod", "C-MOVE"));
@@ -594,10 +614,11 @@ namespace Orthanc
 
 
   void ServerContext::RemoveFile(const std::string& fileUuid,
-                                 FileContentType type)
+                                 FileContentType type,
+                                 const std::string& customData)
   {
     StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-    accessor.Remove(fileUuid, type);
+    accessor.Remove(fileUuid, type, customData);
   }
 
 
@@ -605,6 +626,37 @@ namespace Orthanc
                                                                   DicomInstanceToStore& dicom,
                                                                   StoreInstanceMode mode,
                                                                   bool isReconstruct)
+  {
+    FileInfo adoptedFileNotUsed;
+
+    return StoreAfterTranscoding(resultPublicId,
+                                 dicom,
+                                 mode,
+                                 isReconstruct,
+                                 false,
+                                 adoptedFileNotUsed);
+  }
+
+  ServerContext::StoreResult ServerContext::AdoptDicomInstance(std::string& resultPublicId,
+                                                               DicomInstanceToStore& dicom,
+                                                               StoreInstanceMode mode,
+                                                               const FileInfo& adoptedFile)
+  {
+    return StoreAfterTranscoding(resultPublicId,
+                                 dicom,
+                                 mode,
+                                 false,
+                                 true,
+                                 adoptedFile);
+  }
+
+
+  ServerContext::StoreResult ServerContext::StoreAfterTranscoding(std::string& resultPublicId,
+                                                                  DicomInstanceToStore& dicom,
+                                                                  StoreInstanceMode mode,
+                                                                  bool isReconstruct,
+                                                                  bool isAdoption,
+                                                                  const FileInfo& adoptedFile)
   {
     bool overwrite;
     switch (mode)
@@ -708,19 +760,25 @@ namespace Orthanc
       // TODO Should we use "gzip" instead?
       CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-      FileInfo dicomInfo = accessor.Write(dicom.GetBufferData(), dicom.GetBufferSize(), 
-                                          FileContentType_Dicom, compression, storeMD5_);
+      StatelessDatabaseOperations::Attachments attachments;
+      FileInfo dicomInfo;
 
-      ServerIndex::Attachments attachments;
-      attachments.push_back(dicomInfo);
+      if (!isAdoption)
+      {
+        accessor.Write(dicomInfo, dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom, compression, storeMD5_, &dicom);
+        attachments.push_back(dicomInfo);
+      }
+      else
+      {
+        attachments.push_back(adoptedFile);
+      }
 
       FileInfo dicomUntilPixelData;
       if (hasPixelDataOffset &&
-          (!area_.HasReadRange() ||
+          (!area_.HasEfficientReadRange() ||
            compressionEnabled_))
       {
-        dicomUntilPixelData = accessor.Write(dicom.GetBufferData(), pixelDataOffset, 
-                                             FileContentType_DicomUntilPixelData, compression, storeMD5_);
+        accessor.Write(dicomUntilPixelData, dicom.GetBufferData(), pixelDataOffset, FileContentType_DicomUntilPixelData, compression, storeMD5_, NULL);
         attachments.push_back(dicomUntilPixelData);
       }
 
@@ -765,7 +823,10 @@ namespace Orthanc
             
       if (result.GetStatus() != StoreStatus_Success)
       {
-        accessor.Remove(dicomInfo);
+        if (!isAdoption)
+        {
+          accessor.Remove(dicomInfo);
+        }
 
         if (dicomUntilPixelData.IsValid())
         {
@@ -779,7 +840,14 @@ namespace Orthanc
         switch (result.GetStatus())
         {
           case StoreStatus_Success:
-            LOG(INFO) << "New instance stored (" << resultPublicId << ")";
+            if (isAdoption)
+            {
+              LOG(INFO) << "New instance adopted (" << resultPublicId << ")";
+            }
+            else
+            {
+              LOG(INFO) << "New instance stored (" << resultPublicId << ")";
+            }
             break;
 
           case StoreStatus_AlreadyStored:
@@ -827,7 +895,7 @@ namespace Orthanc
     {
       if (e.GetErrorCode() == ErrorCode_InexistentTag)
       {
-        summary.LogMissingTagsForStore();
+        LOG(ERROR) << summary.FormatMissingTagsForStore();
       }
       
       throw;
@@ -841,12 +909,12 @@ namespace Orthanc
   { 
     DicomInstanceToStore* dicom = &receivedDicom;
 
+#if ORTHANC_ENABLE_PLUGINS == 1
     // WARNING: The scope of "modifiedBuffer" and "modifiedDicom" must
     // be the same as that of "dicom"
-    MallocMemoryBuffer modifiedBuffer;
+    PluginMemoryBuffer64 modifiedBuffer;
     std::unique_ptr<DicomInstanceToStore> modifiedDicom;
 
-#if ORTHANC_ENABLE_PLUGINS == 1
     if (HasPlugins())
     {
       // New in Orthanc 1.10.0
@@ -1019,8 +1087,8 @@ namespace Orthanc
     StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
     accessor.Read(content, attachment);
 
-    FileInfo modified = accessor.Write(content.empty() ? NULL : content.c_str(),
-                                       content.size(), attachmentType, compression, storeMD5_);
+    FileInfo modified;
+    accessor.Write(modified, content.empty() ? NULL : content.c_str(), content.size(), attachmentType, compression, storeMD5_, NULL);
 
     try
     {
@@ -1202,7 +1270,7 @@ namespace Orthanc
 
 
       if (hasPixelDataOffset &&
-          area_.HasReadRange() &&
+          area_.HasEfficientReadRange() &&
           LookupAttachment(attachment, FileContentType_Dicom, instanceAttachments) &&
           attachment.GetCompressionType() == CompressionType_None)
       {
@@ -1280,13 +1348,13 @@ namespace Orthanc
             index_.OverwriteMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
                                      boost::lexical_cast<std::string>(pixelDataOffset));
 
-            if (!area_.HasReadRange() ||
+            if (!area_.HasEfficientReadRange() ||
                 compressionEnabled_)
             {
               int64_t newRevision;
-              AddAttachment(newRevision, instancePublicId, FileContentType_DicomUntilPixelData,
+              AddAttachment(newRevision, instancePublicId, ResourceType_Instance, FileContentType_DicomUntilPixelData,
                             dicom.empty() ? NULL: dicom.c_str(), pixelDataOffset,
-                            false /* no old revision */, -1 /* dummy revision */, "" /* dummy MD5 */);
+                             false /* no old revision */, -1 /* dummy revision */, "" /* dummy MD5 */);
             }
           }
         }
@@ -1355,7 +1423,7 @@ namespace Orthanc
       return true;
     }
 
-    if (!area_.HasReadRange())
+    if (!area_.HasEfficientReadRange())
     {
       return false;
     }
@@ -1514,6 +1582,7 @@ namespace Orthanc
 
   bool ServerContext::AddAttachment(int64_t& newRevision,
                                     const std::string& resourceId,
+                                    ResourceType resourceType,
                                     FileContentType attachmentType,
                                     const void* data,
                                     size_t size,
@@ -1527,7 +1596,11 @@ namespace Orthanc
     CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
     StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-    FileInfo attachment = accessor.Write(data, size, attachmentType, compression, storeMD5_);
+
+    assert(attachmentType != FileContentType_Dicom && attachmentType != FileContentType_DicomUntilPixelData); // this method can not be used to store instances
+
+    FileInfo attachment;
+    accessor.Write(attachment, data, size, attachmentType, compression, storeMD5_, NULL);
 
     try
     {
@@ -1902,13 +1975,13 @@ namespace Orthanc
   }
   
 
-  void ServerContext::StoreWithTranscoding(std::string& sopClassUid,
-                                           std::string& sopInstanceUid,
-                                           DicomStoreUserConnection& connection,
-                                           const std::string& dicom,
-                                           bool hasMoveOriginator,
-                                           const std::string& moveOriginatorAet,
-                                           uint16_t moveOriginatorId)
+  void ServerContext::PerformCStoreWithTranscoding(std::string& sopClassUid,
+                                                   std::string& sopInstanceUid,
+                                                   DicomStoreUserConnection& connection,
+                                                   const std::string& dicom,
+                                                   bool hasMoveOriginator,
+                                                   const std::string& moveOriginatorAet,
+                                                   uint16_t moveOriginatorId)
   {
     const void* data = dicom.empty() ? NULL : dicom.c_str();
     const RemoteModalityParameters& modality = connection.GetParameters().GetRemoteModality();

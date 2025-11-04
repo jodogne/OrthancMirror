@@ -1,6 +1,193 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* New configuration "HttpBindAddresses" to list the IP addresses on which the
+  HTTP server listens.  By default, this list is empty and the HTTP server listens
+  on all network interfaces.
+
+REST API
+--------
+
+* Fix: C-Get SCU jobs or HTTP responses were always successful even if the C-Get operation
+  actually failed.
+* C-Store, C-Move and C-Get jobs and HTTP responses now include a new "DimseErrorStatus" 
+  field (ONLY if the operation fails).
+
+
+Maintenance
+-----------
+
+* Under Windows, the console output is now configured to interpret strings as UTF-8.
+  This notably allow cyrillic strings to display correctly in the console.
+* Improved streaming of HTTP responses under OS pressure.  In some conditions, when the OS
+  was not able to send a full buffer over the network, Orthanc was not retrying 
+  to send the remaining part.  This is now fixed.  
+  (https://discourse.orthanc-server.org/t/incomplete-zip-downloads-from-get-studies-id-media/6046)
+* Reworked all the paths handling, improving general support of non ASCII-only paths on Windows,
+  specifically for the Storage directories and for the configuration files.
+  However, on Windows, some features might still not support non ASCII-only paths:
+  - Reading a DCMTK dictionary ("ExternalDictionaries" configuration)
+  - Using a "TemporaryDirectory" to save zip file or to export DICOMDIR
+  - The "SslCertificate" and other related configurations
+* Fix: DicomGetScu jobs are now saved in DB.
+* Fix: When the configuration option "MaximumStorageCacheSize" was set to 0, the default value (128)
+       was actually applied.  From now on, a value of 0 really means that the storage cache is disabled.
+* Fix: Orthanc was unable to convert the tags into dicom+json format if the instance contained an 
+       empty element in a sequence.  This was preventing access to /dicom-web/../metadata routes and prevented
+       visualization in e.g. the Stone Web viewer and OHIF.
+* Fix issue 252: Disallow colons in HTTP basic usernames
+* Fix: Decoding of LUT with less than 256 entries:
+       https://discourse.orthanc-server.org/t/cannot-preview-dicom-file/6275
+* Fix: Possible deadlocks when using ZipLoaderThreads > 1 when the HttpClient disconnects
+       while downloading the response.
+* Upgraded dependencies for static builds:
+  - civetweb 1.16, including patch for CVE-2025-55763
+
+
+Plugins
+-------
+
+* Worklists plugin:
+  - The Worklists plugin now provides a Rest API to:
+    - create worklists through POST at /worklists/create
+    - list the worklists throuhg GET at /worklists 
+    - view a single worklist through GET at /worklists/{uuid}
+    - modify a worklist through PUT at /worklists/{uuid}
+    - delete a worklist through DELETE at /worklists/{uuid}
+    All details are available in the Orthanc book: https://orthanc.uclouvain.be/book/plugins/worklists-plugin.html
+  - New configurations:
+    - "SaveInOrthancDatabase" to store the worklists in the Orthanc DB (provided that you are using SQLite or PostgreSQL)
+    - "DeleteWorklistsOnStableStudy" to delete the worklist once its related study has been received and is stable
+    - "SetStudyInstanceUidIfMissing" to add a StudyInstanceUID if the Rest API request does not include one.
+    - "DeleteWorklistsDelay" to delete a worklist N hours after it has been created (only available if using the "SaveInOrthancDatabase" mode).
+    - "HousekeepingInterval" to define the delay between 2 executions of the Worklist Housekeeping thread that deletes
+      the worklists when required.
+  - Note: the previous "Database" configuration has now been renamed in "Directory" to better differentiate the "File" or "DB modes.
+
+
+Version 1.12.9 (2025-08-11)
+===========================
+
+REST API
+--------
+
+* When creating a job, a "UserData" field can be added to the payload.
+  This data will travel along with the job and will be available in the
+  "/jobs/{jobId}" route.
+* Added new metrics in "/tools/metrics-prometheus":
+  - "orthanc_available_dicom_threads" displays the minimum
+    number of DICOM threads that were available during the last 10 seconds.
+  - "orthanc_available_http_threads_count" displays the minimum
+    number of HTTP threads that were available during the last 10 seconds.
+    It is basically the opposite of "orthanc_rest_api_active_requests" but
+    it is more convenient to configure alerts on. "orthanc_rest_api_active_requests"
+    also monitors the internal requests coming from plugins while "orthanc_available_http_threads"
+    monitors the requests received by the external HTTP server.
+  - Fixed the "orthanc_rest_api_active_requests" metrix that was not 
+    reset after 10 seconds.
+
+Plugin SDK
+----------
+
+* Added new primitives:
+  - "OrthancPluginSetStableStatus()" to force the stabilization of a
+    DICOM resource from a plugin.
+  - "OrthancPluginRegisterHttpAuthentication()" to install a custom
+    callback to authenticate HTTP requests.
+  - "OrthancPluginEmitAuditLog()" to generate an audit log.
+  - "OrthancPluginRegisterAuditLogHandler()" to handle audit logs.
+* The OrthancPluginHttpRequest structure provides the payload of
+  the possible HTTP authentication callback.
+* OrthancPluginCallRestApi() now also returns the body of DELETE requests:
+  https://discourse.orthanc-server.org/t/response-to-plugin-from-orthanc-api-delete-endpoint/6022
+* Added macro ORTHANC_PLUGIN_SINCE_SDK to track in which version of
+  Orthanc the SDK primitives were introduced.
+
+Plugins
+-------
+
+* Housekeeper plugin:
+  - New "ForceReconstructFiles" option: If set to "true", forces the
+    "ReconstructFiles" option when reconstructing resources, even if
+    the plugin did not detect any changes in the configuration that
+    should trigger a reconstruct.
+
+Lua
+---
+
+* Added new "SetStableStatus()" function.
+
+Maintenance
+-----------
+
+* For security, if the "RegisteredUsers" configuration option is present
+  but empty, Orthanc does not create the default user "orthanc" anymore.
+* Added new CMake option "-DBUILD_UNIT_TESTS=ON" to disable the building of unit tests.
+* Fix handling of backslashes in DICOM elements if encoding is ISO_IR 13.
+* Fix initialization of ICU.
+
+
+Version 1.12.8 (2025-06-13)
+===========================
+
+General
+-------
+
+* The default SQLite database engine now supports metadata and attachment revisions.
+
+REST API
+--------
+
+* API version upgraded to 29
+* If the database backend provides the "HasExtendedFind" primitive, the
+  value "IsProtected" can be included in the "ResponseContent" field of
+  "/tools/find" to request the "IsProtected" status of patient resources.
+
+Plugin SDK
+----------
+
+* Added new functions (available to all plugins) to access key-value
+  stores and queues stored as a part of the Orthanc database.
+* New SDK to create storage area plugins (V3) that associate custom data with
+  attachments. The built-in SQLite database engine supports such custom data.
+* New SDK to handle custom data for attachments, key-value stores, and queues
+  by custom database backends (cf. "OrthancDatabasePlugin.proto").
+* Added OrthancPluginAdoptDicomInstance() to adopt DICOM instances stored elsewhere
+  than in the storage area (to be used by "orthanc-advanced-storage" plugin).
+
+Plugins
+-------
+
+* New sample plugins: "CppSkeleton" and "AdoptDicomInstance"
+* Housekeeper plugin:
+  - If "LimitMainDicomTagsReconstructLevel" was set, files were not transcoded
+    if they had to. The "LimitMainDicomTagsReconstructLevel" configuration is now
+    ignored when a full processing is required.
+* Delayed Deletion plugin:
+  - Added an index in the delayed-deletion SQLite external DB to speed up delayed
+    deletions. This new index will only apply to new databases. If you want to speed
+    up an existing installation, run "CREATE INDEX PendingIndex ON Pending(uuid)"
+    manually in the plugin SQLite DB. With this patch, we observed a 100 fold
+    performance improvement when the "Pending" table contains 1-2 millions files.
+    Contribution by Yurii (George) from ivtech.dev.
+
+Maintenance
+-----------
+
+* In verbose logs, the elapsed time spent in each HTTP call is now reported.
+* Fix computation of MD5 hashes for memory buffers whose size is larger than 2^31 bytes.
+* Configuration options "RejectSopClasses" and "RejectedSopClasses" are taken as synonyms.
+  In Orthanc 1.12.6 and 1.12.7, "RejectSopClasses" was used instead of the expected
+  "RejectedSopClasses" spelling.
+* Fix the re-encoding of DICOM files larger than 4GB.
+* Improved translations of HTTP error codes when a plugin calls the core REST API.
+  In particular, a plugin could receive an error OrthancPluginErrorCode_UnknownResource (code 17)
+  when the underlying REST handler was actually returning an HTTP error 415. The plugin will
+  now receive an error OrthancPluginErrorCode_UnsupportedMediaType (code 3000).
+
 
 Version 1.12.7 (2025-04-07)
 ===========================
@@ -1477,8 +1664,8 @@ Plugins
 -------
 
 * New functions in the SDK:
-  - OrthancPluginHttpClientChunkedBody(): HTTP client for POST/PUT with a chunked body
-  - OrthancPluginRegisterMultipartRestCallback(): HTTP server for POST/PUT with multipart body
+  - OrthancPluginChunkedHttpClient(): HTTP client for POST/PUT with a chunked body
+  - OrthancPluginRegisterChunkedRestCallback(): HTTP server for POST/PUT with multipart body
   - OrthancPluginGetTagName(): Retrieve the name of a DICOM tag from its group and element
 
 Maintenance

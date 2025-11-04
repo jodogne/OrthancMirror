@@ -194,7 +194,7 @@ TEST(ZipReader, Basic)
     Orthanc::ZipWriter w;
     ASSERT_EQ(0u, w.GetArchiveSize());
 
-    w.SetOutputPath(f.GetPath().c_str());
+    w.SetOutputPath(f.GetPath());
     w.Open();
     w.OpenFile("world/hello");
     w.Write("Hello world");
@@ -207,7 +207,7 @@ TEST(ZipReader, Basic)
   std::unique_ptr<ZipReader> reader(ZipReader::CreateFromFile(f.GetPath()));
 
   ASSERT_EQ(1u, reader->GetFilesCount());
-  
+
   std::string filename, content;
   ASSERT_TRUE(reader->ReadNextFile(filename, content));
   ASSERT_EQ("world/hello", filename);

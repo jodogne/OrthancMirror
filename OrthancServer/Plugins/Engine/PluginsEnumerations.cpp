@@ -664,5 +664,116 @@ namespace Orthanc
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
+
+
+    OrthancPluginCompressionType Convert(CompressionType type)
+    {
+      switch (type)
+      {
+        case CompressionType_None:
+          return OrthancPluginCompressionType_None;
+
+        case CompressionType_ZlibWithSize:
+          return OrthancPluginCompressionType_ZlibWithSize;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+    CompressionType Convert(OrthancPluginCompressionType type)
+    {
+      switch (type)
+      {
+        case OrthancPluginCompressionType_None:
+          return CompressionType_None;
+
+        case OrthancPluginCompressionType_ZlibWithSize:
+          return CompressionType_ZlibWithSize;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+    OrthancPluginStoreStatus Convert(StoreStatus status)
+    {
+      switch (status)
+      {
+        case StoreStatus_Success:
+          return OrthancPluginStoreStatus_Success;
+
+        case StoreStatus_AlreadyStored:
+          return OrthancPluginStoreStatus_AlreadyStored;
+
+        case StoreStatus_Failure:
+          return OrthancPluginStoreStatus_Failure;
+
+        case StoreStatus_FilteredOut:
+          return OrthancPluginStoreStatus_FilteredOut;
+
+        case StoreStatus_StorageFull:
+          return OrthancPluginStoreStatus_StorageFull;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
+    StoreStatus Convert(OrthancPluginStoreStatus status)
+    {
+      switch (status)
+      {
+        case OrthancPluginStoreStatus_Success:
+          return StoreStatus_Success;
+
+        case OrthancPluginStoreStatus_AlreadyStored:
+          return StoreStatus_AlreadyStored;
+
+        case OrthancPluginStoreStatus_Failure:
+          return StoreStatus_Failure;
+
+        case OrthancPluginStoreStatus_FilteredOut:
+          return StoreStatus_FilteredOut;
+
+        case OrthancPluginStoreStatus_StorageFull:
+          return StoreStatus_StorageFull;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+    OrthancPluginQueueOrigin Convert(QueueOrigin origin)
+    {
+      switch (origin)
+      {
+        case QueueOrigin_Front:
+          return OrthancPluginQueueOrigin_Front;
+
+        case QueueOrigin_Back:
+          return OrthancPluginQueueOrigin_Back;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+    QueueOrigin Convert(OrthancPluginQueueOrigin origin)
+    {
+      switch (origin)
+      {
+        case OrthancPluginQueueOrigin_Front:
+          return QueueOrigin_Front;
+
+        case OrthancPluginQueueOrigin_Back:
+          return QueueOrigin_Back;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
   }
 }

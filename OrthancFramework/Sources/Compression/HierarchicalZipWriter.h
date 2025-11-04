@@ -29,6 +29,7 @@
 #include <map>
 #include <list>
 #include <boost/lexical_cast.hpp>
+#include <boost/filesystem.hpp>
 
 #if ORTHANC_BUILD_UNIT_TESTS == 1
 #  include <gtest/gtest_prod.h>
@@ -83,7 +84,7 @@ namespace Orthanc
     ZipWriter writer_;
 
   public:
-    explicit HierarchicalZipWriter(const char* path);
+    explicit HierarchicalZipWriter(const boost::filesystem::path& path);
 
     HierarchicalZipWriter(ZipWriter::IOutputStream* stream,  // transfers ownership
                           bool isZip64);

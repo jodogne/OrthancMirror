@@ -428,19 +428,36 @@ namespace Orthanc
         lutBlue == NULL ||
         pixelData == NULL)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_NotImplemented, "Inconsistent Palette Color Lookup Table");
     }
 
     switch (format)
     {
       case PixelFormat_RGB24:
       {
-        if (r != "256\\0\\16" ||
-            rc != 256 ||
-            gc != 256 ||
-            bc != 256)
+        std::vector<std::string> splitR;
+        Toolbox::SplitString(splitR, r.c_str(), '\\');
+        if (splitR.size() != 3)
         {
-          throw OrthancException(ErrorCode_NotImplemented);
+          throw OrthancException(ErrorCode_NotImplemented, std::string("Palette Color Lookup Table Descriptor invalid length: '") + r.c_str() + "'");
+        }
+        
+        const unsigned int paletteSize = boost::lexical_cast<unsigned int>(splitR[0]);
+        const unsigned int firstInputValueMapped = boost::lexical_cast<unsigned int>(splitR[1]);
+        const unsigned int nbBitsUsedInLut = boost::lexical_cast<unsigned int>(splitR[2]);  // The LUT is always 16bits but only part of it might be used
+        if (firstInputValueMapped != 0 ||
+            nbBitsUsedInLut < 8)
+        {
+          throw OrthancException(ErrorCode_NotImplemented, "Inconsistent Palette Color Lookup Table");
+        }
+
+        const unsigned int offsetBits = nbBitsUsedInLut - 8; // Since the LUT is 16bits and the target color value is 8bpp
+
+        if (rc != paletteSize ||
+            gc != paletteSize ||
+            bc != paletteSize)
+        {
+          throw OrthancException(ErrorCode_NotImplemented, std::string("Palette Color Lookup Table Descriptor invalid palette size: '") + r.c_str() + "'");
         }
 
         if (pixelLength != target->GetWidth() * target->GetHeight())
@@ -477,9 +494,9 @@ namespace Orthanc
 
           for (unsigned int x = 0; x < width; x++)
           {
-            p[0] = lutRed[*source] >> 8;
-            p[1] = lutGreen[*source] >> 8;
-            p[2] = lutBlue[*source] >> 8;
+            p[0] = lutRed[*source] >> offsetBits;
+            p[1] = lutGreen[*source] >> offsetBits;
+            p[2] = lutBlue[*source] >> offsetBits;
             source++;
             p += 3;
           }
@@ -496,7 +513,7 @@ namespace Orthanc
             bc != 65536 ||
             pixelLength != 2 * target->GetWidth() * target->GetHeight())
         {
-          throw OrthancException(ErrorCode_NotImplemented);
+          throw OrthancException(ErrorCode_NotImplemented, std::string("Palette Color Lookup Table Descriptor not supported: '") + r.c_str() + "'");
         }
 
         const uint16_t* source = reinterpret_cast<const uint16_t*>(pixelData);

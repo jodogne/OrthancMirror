@@ -222,13 +222,13 @@ namespace Orthanc
 
 
   void SystemToolbox::ReadFile(std::string& content,
-                               const std::string& path,
+                               const boost::filesystem::path& path,
                                bool log)
   {
     if (!IsRegularFile(path))
     {
       throw OrthancException(ErrorCode_RegularFileExpected,
-                             "The path does not point to a regular file: " + path,
+                             "The path does not point to a regular file: " + PathToUtf8(path),
                              log);
     }
 
@@ -238,8 +238,7 @@ namespace Orthanc
       f.open(path, std::ifstream::in | std::ifstream::binary);
       if (!f.good())
       {
-        throw OrthancException(ErrorCode_InexistentFile,
-                               "File not found: " + path,
+        throw OrthancException(ErrorCode_InexistentFile, "File not found: " + PathToUtf8(path),
                                log);
       }
 
@@ -270,20 +269,14 @@ namespace Orthanc
   }
 
 
-  void SystemToolbox::ReadFile(std::string &content, const std::string &path)
-  {
-    ReadFile(content, path, true /* log */);
-  }
-
-
   bool SystemToolbox::ReadHeader(std::string& header,
-                                 const std::string& path,
+                                 const boost::filesystem::path& path,
                                  size_t headerSize)
   {
     if (!IsRegularFile(path))
     {
       throw OrthancException(ErrorCode_RegularFileExpected,
-                             "The path does not point to a regular file: " + path);
+                             "The path does not point to a regular file: " + PathToUtf8(path));
     }
 
     try
@@ -331,17 +324,16 @@ namespace Orthanc
     }
   }
 
-
-  void SystemToolbox::WriteFile(const void* content,
-                                size_t size,
-                                const std::string& path,
+  
+  void SystemToolbox::WriteFile(const void *content, 
+                                size_t size, 
+                                const boost::filesystem::path& path,
                                 bool callFsync)
   {
     try
     {
-      //boost::filesystem::ofstream f;
       boost::iostreams::stream<boost::iostreams::file_descriptor_sink> f;
-    
+
       f.open(path, std::ofstream::out | std::ofstream::binary);
       if (!f.good())
       {
@@ -372,7 +364,7 @@ namespace Orthanc
          * systems:
          * https://github.com/boostorg/iostreams/blob/develop/include/boost/iostreams/detail/file_handle.hpp
          **/
-      
+
 #if defined(_WIN32)
         // https://docs.microsoft.com/fr-fr/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers
         success = (::FlushFileBuffers(f->handle()) != 0);
@@ -401,28 +393,15 @@ namespace Orthanc
   }
 
 
-  void SystemToolbox::WriteFile(const void *content, size_t size, const std::string &path)
-  {
-    WriteFile(content, size, path, false /* don't automatically call fsync */);
-  }
-
-
   void SystemToolbox::WriteFile(const std::string& content,
-                                const std::string& path,
-                                bool callFsync)
-  {
-    WriteFile(content.size() > 0 ? content.c_str() : NULL,
-              content.size(), path, callFsync);
+                                const boost::filesystem::path& path) 
+  { 
+    WriteFile(content.size() > 0 ? content.c_str() : NULL, 
+              content.size(), path, false /* don't automatically call fsync */); 
   }
 
 
-  void SystemToolbox::WriteFile(const std::string &content, const std::string &path)
-  {
-    WriteFile(content, path, false /* don't automatically call fsync */);
-  }
-
-
-  void SystemToolbox::RemoveFile(const std::string& path)
+  void SystemToolbox::RemoveFile(const boost::filesystem::path& path)
   {
     if (boost::filesystem::exists(path))
     {
@@ -438,7 +417,7 @@ namespace Orthanc
   }
 
 
-  uint64_t SystemToolbox::GetFileSize(const std::string& path)
+  uint64_t SystemToolbox::GetFileSize(const boost::filesystem::path& path)
   {
     try
     {
@@ -455,7 +434,66 @@ namespace Orthanc
   }
 
 
-  void SystemToolbox::MakeDirectory(const std::string& path)
+#if ORTHANC_ENABLE_MD5 == 1
+  void SystemToolbox::ComputeStreamMD5(std::string& result,
+                                       std::istream& inputStream)
+  {
+    Toolbox::MD5Context context;
+
+    const size_t bufferSize = 1024;
+    char buffer[bufferSize];
+
+    while (inputStream.good())
+    {
+      inputStream.read(buffer, bufferSize);
+      std::streamsize bytesRead = inputStream.gcount();
+
+      if (bytesRead > 0)
+      {
+        context.Append(buffer, bytesRead);
+      }
+    }
+
+    context.Export(result);
+  }
+  
+
+  void SystemToolbox::ComputeFileMD5(std::string& result,
+                                     const boost::filesystem::path& path)
+  {
+    boost::filesystem::ifstream fileStream;
+    fileStream.open(path, std::ifstream::in | std::ifstream::binary);
+
+    if (!fileStream.good())
+    {
+      throw OrthancException(ErrorCode_InexistentFile, "File not found: " + PathToUtf8(path));
+    }
+
+    ComputeStreamMD5(result, fileStream);
+  }
+
+
+  bool SystemToolbox::CompareFilesMD5(const boost::filesystem::path& path1,
+                                      const boost::filesystem::path& path2)
+  {
+    if (GetFileSize(path1) != GetFileSize(path2))
+    {
+      return false;
+    }
+    else
+    {
+      std::string path1md5, path2md5;
+    
+      ComputeFileMD5(path1md5, path1);
+      ComputeFileMD5(path2md5, path2);
+
+      return path1md5 == path2md5;
+    }
+  }
+#endif
+
+
+  void SystemToolbox::MakeDirectory(const boost::filesystem::path& path)
   {
     if (boost::filesystem::exists(path))
     {
@@ -471,12 +509,6 @@ namespace Orthanc
         throw OrthancException(ErrorCode_MakeDirectory);
       }
     }
-  }
-
-
-  bool SystemToolbox::IsExistingFile(const std::string& path)
-  {
-    return boost::filesystem::exists(path);
   }
 
 
@@ -552,17 +584,84 @@ namespace Orthanc
 #endif
 
 
-  std::string SystemToolbox::GetPathToExecutable()
+#ifdef _WIN32
+  std::wstring SystemToolbox::Utf8ToWString(const std::string& str)
   {
-    boost::filesystem::path p(GetPathToExecutableInternal());
-    return boost::filesystem::absolute(p).string();
+    if (str.empty())
+    {
+      return std::wstring();
+    }
+
+    int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int) str.size(), NULL, 0);
+
+    std::wstring wstr(sizeNeeded, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int) str.size(), &wstr[0], sizeNeeded);
+
+    return wstr;
+  }
+
+  std::string SystemToolbox::WStringToUtf8(const std::wstring &wstr)
+  {
+    if (wstr.empty())
+    {
+      return std::string();
+    }
+
+    int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int) wstr.size(), NULL, 0, NULL, NULL);
+
+    std::string str(sizeNeeded, 0);
+    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int) wstr.size(), &str[0], sizeNeeded, NULL, NULL);
+
+    return str;
+  }
+
+  std::wstring SystemToolbox::WStringFromCharPtr(const char *str)
+  {
+    if (str == NULL)
+    {
+      return std::wstring();
+    }
+
+    int sizeNeeded = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
+
+    std::wstring wstr(sizeNeeded, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str, -1, &wstr[0], sizeNeeded);
+
+    return wstr;
+
+  }
+#endif
+
+  boost::filesystem::path SystemToolbox::PathFromUtf8(const std::string& utf8)
+  {
+#if defined(_WIN32) && !defined(__MINGW32__)  // non-ASCII paths are not supported when building with MinGW
+    return boost::filesystem::path(Utf8ToWString(utf8));
+#else
+    return boost::filesystem::path(utf8); // POSIX: std::string is UTF-8
+#endif
+  }
+
+  std::string SystemToolbox::PathToUtf8(const boost::filesystem::path& p)
+  {
+#if defined(_WIN32) && !defined(__MINGW32__)  // non-ASCII paths are not supported when building with MinGW
+    return WStringToUtf8(p.wstring());
+#else
+    return p.string(); // POSIX: already UTF-8
+#endif
   }
 
 
-  std::string SystemToolbox::GetDirectoryOfExecutable()
+  boost::filesystem::path SystemToolbox::GetPathToExecutable()
   {
-    boost::filesystem::path p(GetPathToExecutableInternal());
-    return boost::filesystem::absolute(p.parent_path()).string();
+    boost::filesystem::path p(PathFromUtf8(GetPathToExecutableInternal()));
+    return boost::filesystem::absolute(p);
+  }
+
+
+  boost::filesystem::path SystemToolbox::GetDirectoryOfExecutable()
+  {
+    boost::filesystem::path p(PathFromUtf8(GetPathToExecutableInternal()));
+    return boost::filesystem::absolute(p.parent_path());
   }
 
 
@@ -629,7 +728,7 @@ namespace Orthanc
   }
 
 
-  bool SystemToolbox::IsRegularFile(const std::string& path)
+  bool SystemToolbox::IsRegularFile(const boost::filesystem::path& path)
   {
     try
     {
@@ -648,14 +747,28 @@ namespace Orthanc
   }
 
 
-  FILE* SystemToolbox::OpenFile(const std::string& path,
+  FILE* SystemToolbox::OpenFile(const boost::filesystem::path& path,
                                 FileMode mode)
   {
 #if defined(_WIN32)
-    // TODO Deal with special characters by converting to the current locale
-#endif
+    const wchar_t *m;
+    switch (mode)
+    {
+      case FileMode_ReadBinary:
+        m = L"rb";
+        break;
 
-    const char* m;
+      case FileMode_WriteBinary:
+        m = L"wb";
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    return _wfopen(path.wstring().c_str(), m);
+#else
+    const char *m;
     switch (mode)
     {
       case FileMode_ReadBinary:
@@ -671,6 +784,7 @@ namespace Orthanc
     }
 
     return fopen(path.c_str(), m);
+#endif
   }
 
 
@@ -773,9 +887,10 @@ namespace Orthanc
     return false;
   }
 
-  MimeType SystemToolbox::AutodetectMimeType(const std::string& path)
+
+  MimeType SystemToolbox::AutodetectMimeType(const boost::filesystem::path& path)
   {
-    std::string extension = boost::filesystem::path(path).extension().string();
+    std::string extension = path.extension().string();
     Toolbox::ToLowerCase(extension);
 
     // http://en.wikipedia.org/wiki/Mime_types
@@ -913,16 +1028,15 @@ namespace Orthanc
   }
 
 
-  std::string SystemToolbox::InterpretRelativePath(const std::string& baseDirectory,
-                                                   const std::string& relativePath)
+  boost::filesystem::path SystemToolbox::InterpretRelativePath(const boost::filesystem::path& baseDirectory,
+                                                               const std::string& relativePath)
   {
-    boost::filesystem::path base(baseDirectory);
-    boost::filesystem::path relative(relativePath);
+    boost::filesystem::path relative = SystemToolbox::PathFromUtf8(relativePath);
 
     /**
        The following lines should be equivalent to this one: 
 
-       return (base / relative).string();
+       return (base / relative);
 
        However, for some unknown reason, some versions of Boost do not
        make the proper path resolution when "baseDirectory" is an
@@ -931,17 +1045,17 @@ namespace Orthanc
 
     if (relative.is_absolute())
     {
-      return relative.string();
+      return relative;
     }
     else
     {
-      return (base / relative).string();
+      return baseDirectory / relative;
     }
   }
 
 
   void SystemToolbox::ReadFileRange(std::string& content,                              
-                                    const std::string& path,
+                                    const boost::filesystem::path& path,
                                     uint64_t start,  // Inclusive
                                     uint64_t end,    // Exclusive
                                     bool throwIfOverflow)
@@ -954,15 +1068,15 @@ namespace Orthanc
     if (!IsRegularFile(path))
     {
       throw OrthancException(ErrorCode_RegularFileExpected,
-                             "The path does not point to a regular file: " + path);
+                             "The path does not point to a regular file: " + SystemToolbox::PathToUtf8(path));
     }
 
     boost::filesystem::ifstream f;
     f.open(path, std::ifstream::in | std::ifstream::binary);
     if (!f.good())
     {
-      throw OrthancException(ErrorCode_InexistentFile,
-                             "File not found: " + path);
+      throw OrthancException(ErrorCode_InexistentFile, 
+                             "File not found: " + SystemToolbox::PathToUtf8(path));
     }
 
     uint64_t fileSize = static_cast<uint64_t>(GetStreamSize(f));

@@ -39,7 +39,9 @@
 #include <OrthancServerResources.h>
 
 #include <stdio.h>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
+
 
 namespace Orthanc
 {  
@@ -384,19 +386,22 @@ namespace Orthanc
       }
     }
 
-    boost::mutex::scoped_lock  lock_;
+    boost::recursive_mutex::scoped_lock  lock_;
     IDatabaseListener&         listener_;
     SignalRemainingAncestor&   signalRemainingAncestor_;
+    bool                       hasFastTotalSize_;
 
   public:
-    TransactionBase(boost::mutex& mutex,
+    TransactionBase(boost::recursive_mutex& mutex,
                     SQLite::Connection& db,
                     IDatabaseListener& listener,
-                    SignalRemainingAncestor& signalRemainingAncestor) :
+                    SignalRemainingAncestor& signalRemainingAncestor,
+                    bool hasFastTotalSize) :
       UnitTestsTransaction(db),
       lock_(mutex),
       listener_(listener),
-      signalRemainingAncestor_(signalRemainingAncestor)
+      signalRemainingAncestor_(signalRemainingAncestor),
+      hasFastTotalSize_(hasFastTotalSize)
     {
     }
 
@@ -410,8 +415,9 @@ namespace Orthanc
                                const FileInfo& attachment,
                                int64_t revision) ORTHANC_OVERRIDE
     {
-      // TODO - REVISIONS
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO AttachedFiles (id, fileType, uuid, compressedSize, uncompressedSize, compressionType, uncompressedMD5, compressedMD5) VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+        "INSERT INTO AttachedFiles (id, fileType, uuid, compressedSize, uncompressedSize, compressionType, uncompressedMD5, compressedMD5, revision, customData) "
+        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
       s.BindInt64(0, id);
       s.BindInt(1, attachment.GetContentType());
       s.BindString(2, attachment.GetUuid());
@@ -420,9 +426,10 @@ namespace Orthanc
       s.BindInt(5, attachment.GetCompressionType());
       s.BindString(6, attachment.GetUncompressedMD5());
       s.BindString(7, attachment.GetCompressedMD5());
+      s.BindInt(8, revision);
+      s.BindBlob(9, attachment.GetCustomData());
       s.Run();
     }
-
 
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId,
@@ -473,10 +480,12 @@ namespace Orthanc
 #define C3_STRING_1 3
 #define C4_STRING_2 4
 #define C5_STRING_3 5
-#define C6_INT_1 6
-#define C7_INT_2 7
-#define C8_BIG_INT_1 8
-#define C9_BIG_INT_2 9
+#define C6_STRING_4 6
+#define C7_INT_1 7
+#define C8_INT_2 8
+#define C9_INT_3 9
+#define C10_BIG_INT_1 10
+#define C11_BIG_INT_2 11
 
 #define QUERY_LOOKUP 1
 #define QUERY_MAIN_DICOM_TAGS 2
@@ -522,6 +531,19 @@ namespace Orthanc
 
       s.Step();
       count = s.ColumnInt64(0);
+    }
+
+
+    static void ReadCustomData(FileInfo& info,
+                               SQLite::Statement& statement,
+                               int column)
+    {
+      std::string customData;
+      if (!statement.ColumnIsNull(column) &&
+          statement.ColumnBlobAsString(column, &customData))
+      {
+        info.SwapCustomData(customData);
+      }
     }
 
 
@@ -588,10 +610,12 @@ namespace Orthanc
              "  Lookup.publicId AS c3_string1, "
              "  NULL AS c4_string2, "
              "  NULL AS c5_string3, "
-             "  NULL AS c6_int1, "
-             "  NULL AS c7_int2, "
-             "  NULL AS c8_big_int1, "
-             "  NULL AS c9_big_int2 "
+             "  NULL AS c6_string4, "
+             "  NULL AS c7_int1, "
+             "  NULL AS c8_int2, "
+             "  NULL AS c9_int3, "
+             "  NULL AS c10_big_int1, "
+             "  NULL AS c11_big_int2 "
              "  FROM Lookup ";
 
       // need one instance info ? (part 2: execute the queries)
@@ -605,10 +629,12 @@ namespace Orthanc
                "    instancePublicId AS c3_string1, "
                "    NULL AS c4_string2, "
                "    NULL AS c5_string3, "
-               "    NULL AS c6_int1, "
-               "    NULL AS c7_int2, "
-               "    instanceInternalId AS c8_big_int1, "
-               "    NULL AS c9_big_int2 "
+               "    NULL AS c6_string4, "
+               "    NULL AS c7_int1, "
+               "    NULL AS c8_int2, "
+               "    NULL AS c9_int3, "
+               "    instanceInternalId AS c10_big_int1, "
+               "    NULL AS c11_big_int2 "
                "   FROM OneInstance ";
 
         sql += "   UNION SELECT"
@@ -618,10 +644,12 @@ namespace Orthanc
                "    Metadata.value AS c3_string1, "
                "    NULL AS c4_string2, "
                "    NULL AS c5_string3, "
-               "    Metadata.type AS c6_int1, "
-               "    NULL AS c7_int2, "
-               "    NULL AS c8_big_int1, "
-               "    NULL AS c9_big_int2 "
+               "    NULL AS c6_string4, "
+               "    Metadata.type AS c7_int1, "
+               "    NULL AS c8_int2, "
+               "    NULL AS c9_int3, "
+               "    NULL AS c10_big_int1, "
+               "    NULL AS c11_big_int2 "
                "   FROM OneInstance "
                "   INNER JOIN Metadata ON Metadata.id = OneInstance.instanceInternalId ";
               
@@ -632,10 +660,12 @@ namespace Orthanc
                "    uuid AS c3_string1, "
                "    uncompressedMD5 AS c4_string2, "
                "    compressedMD5 AS c5_string3, "
-               "    fileType AS c6_int1, "
-               "    compressionType AS c7_int2, "
-               "    compressedSize AS c8_big_int1, "
-               "    uncompressedSize AS c9_big_int2 "
+               "    customData AS c6_string4, "
+               "    fileType AS c7_int1, "
+               "    compressionType AS c8_int2, "
+               "    revision AS c9_int3, "
+               "    compressedSize AS c10_big_int1, "
+               "    uncompressedSize AS c11_big_int2 "
                "   FROM OneInstance "
                "   INNER JOIN AttachedFiles ON AttachedFiles.id = OneInstance.instanceInternalId ";
 
@@ -651,10 +681,12 @@ namespace Orthanc
                "  value AS c3_string1, "
                "  NULL AS c4_string2, "
                "  NULL AS c5_string3, "
-               "  tagGroup AS c6_int1, "
-               "  tagElement AS c7_int2, "
-               "  NULL AS c8_big_int1, "
-               "  NULL AS c9_big_int2 "
+               "  NULL AS c6_string4, "
+               "  tagGroup AS c7_int1, "
+               "  tagElement AS c8_int2, "
+               "  NULL AS c9_int3, "
+               "  NULL AS c10_big_int1, "
+               "  NULL AS c11_big_int2 "
                "FROM Lookup "
                "INNER JOIN MainDicomTags ON MainDicomTags.id = Lookup.internalId ";
       }
@@ -669,10 +701,12 @@ namespace Orthanc
                "  value AS c3_string1, "
                "  NULL AS c4_string2, "
                "  NULL AS c5_string3, "
-               "  type AS c6_int1, "
-               "  NULL AS c7_int2, "
-               "  NULL AS c8_big_int1, "
-               "  NULL AS c9_big_int2 "
+               "  NULL AS c6_string4, "
+               "  type AS c7_int1, "
+               "  revision AS c8_int2, "
+               "  NULL AS c9_int3, "
+               "  NULL AS c10_big_int1, "
+               "  NULL AS c11_big_int2 "
                "FROM Lookup "
                "INNER JOIN Metadata ON Metadata.id = Lookup.internalId ";
       }
@@ -687,10 +721,12 @@ namespace Orthanc
                "  uuid AS c3_string1, "
                "  uncompressedMD5 AS c4_string2, "
                "  compressedMD5 AS c5_string3, "
-               "  fileType AS c6_int1, "
-               "  compressionType AS c7_int2, "
-               "  compressedSize AS c8_big_int1, "
-               "  uncompressedSize AS c9_big_int2 "
+               "  customData AS c6_string4, "
+               "  fileType AS c7_int1, "
+               "  compressionType AS c8_int2, "
+               "  revision AS c9_int3, "
+               "  compressedSize AS c10_big_int1, "
+               "  uncompressedSize AS c11_big_int2 "
                "FROM Lookup "
                "INNER JOIN AttachedFiles ON AttachedFiles.id = Lookup.internalId ";
       }
@@ -706,10 +742,12 @@ namespace Orthanc
                "  label AS c3_string1, "
                "  NULL AS c4_string2, "
                "  NULL AS c5_string3, "
-               "  NULL AS c6_int1, "
-               "  NULL AS c7_int2, "
-               "  NULL AS c8_big_int1, "
-               "  NULL AS c9_big_int2 "
+               "  NULL AS c6_string4, "
+               "  NULL AS c7_int1, "
+               "  NULL AS c8_int2, "
+               "  NULL AS c9_int3, "
+               "  NULL AS c10_big_int1, "
+               "  NULL AS c11_big_int2 "
                "FROM Lookup "
                "INNER JOIN Labels ON Labels.id = Lookup.internalId ";
       }
@@ -726,10 +764,12 @@ namespace Orthanc
                  "  value AS c3_string1, "
                  "  NULL AS c4_string2, "
                  "  NULL AS c5_string3, "
-                 "  tagGroup AS c6_int1, "
-                 "  tagElement AS c7_int2, "
-                 "  NULL AS c8_big_int1, "
-                 "  NULL AS c9_big_int2 "
+                 "  NULL AS c6_string4, "
+                 "  tagGroup AS c7_int1, "
+                 "  tagElement AS c8_int2, "
+                 "  NULL AS c9_int3, "
+                 "  NULL AS c10_big_int1, "
+                 "  NULL AS c11_big_int2 "
                  "FROM Lookup "
                  "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
                  "INNER JOIN MainDicomTags ON MainDicomTags.id = currentLevel.parentId ";
@@ -745,10 +785,12 @@ namespace Orthanc
                  "  value AS c3_string1, "
                  "  NULL AS c4_string2, "
                  "  NULL AS c5_string3, "
-                 "  type AS c6_int1, "
-                 "  NULL AS c7_int2, "
-                 "  NULL AS c8_big_int1, "
-                 "  NULL AS c9_big_int2 "
+                 "  NULL AS c6_string4, "
+                 "  type AS c7_int1, "
+                 "  revision AS c8_int2, "
+                 "  NULL AS c9_int3, "
+                 "  NULL AS c10_big_int1, "
+                 "  NULL AS c11_big_int2 "
                  "FROM Lookup "
                  "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
                  "INNER JOIN Metadata ON Metadata.id = currentLevel.parentId ";        
@@ -766,10 +808,12 @@ namespace Orthanc
                   "  value AS c3_string1, "
                   "  NULL AS c4_string2, "
                   "  NULL AS c5_string3, "
-                  "  tagGroup AS c6_int1, "
-                  "  tagElement AS c7_int2, "
-                  "  NULL AS c8_big_int1, "
-                  "  NULL AS c9_big_int2 "
+                  "  NULL AS c6_string4, "
+                  "  tagGroup AS c7_int1, "
+                  "  tagElement AS c8_int2, "
+                  "  NULL AS c9_int3, "
+                  "  NULL AS c10_big_int1, "
+                  "  NULL AS c11_big_int2 "
                   "FROM Lookup "
                   "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
                   "INNER JOIN Resources parentLevel ON currentLevel.parentId = parentLevel.internalId "
@@ -786,10 +830,12 @@ namespace Orthanc
                   "  value AS c3_string1, "
                   "  NULL AS c4_string2, "
                   "  NULL AS c5_string3, "
-                  "  type AS c6_int1, "
-                  "  NULL AS c7_int2, "
-                  "  NULL AS c8_big_int1, "
-                  "  NULL AS c9_big_int2 "
+                  "  NULL AS c6_string4, "
+                  "  type AS c7_int1, "
+                  "  revision AS c8_int2, "
+                  "  NULL AS c9_int3, "
+                  "  NULL AS c10_big_int1, "
+                  "  NULL AS c11_big_int2 "
                   "FROM Lookup "
                   "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
                   "INNER JOIN Resources parentLevel ON currentLevel.parentId = parentLevel.internalId "
@@ -808,10 +854,12 @@ namespace Orthanc
                "  value AS c3_string1, "
                "  NULL AS c4_string2, "
                "  NULL AS c5_string3, "
-               "  tagGroup AS c6_int1, "
-               "  tagElement AS c7_int2, "
-               "  NULL AS c8_big_int1, "
-               "  NULL AS c9_big_int2 "
+               "  NULL AS c6_string4, "
+               "  tagGroup AS c7_int1, "
+               "  tagElement AS c8_int2, "
+               "  NULL AS c9_int3, "
+               "  NULL AS c10_big_int1, "
+               "  NULL AS c11_big_int2 "
                "FROM Lookup "
                "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
                "  INNER JOIN MainDicomTags ON MainDicomTags.id = childLevel.internalId AND " + JoinRequestedTags(request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1))); 
@@ -827,10 +875,12 @@ namespace Orthanc
                 "  value AS c3_string1, "
                 "  NULL AS c4_string2, "
                 "  NULL AS c5_string3, "
-                "  tagGroup AS c6_int1, "
-                "  tagElement AS c7_int2, "
-                "  NULL AS c8_big_int1, "
-                "  NULL AS c9_big_int2 "
+                "  NULL AS c6_string4, "
+                "  tagGroup AS c7_int1, "
+                "  tagElement AS c8_int2, "
+                "  NULL AS c9_int3, "
+                "  NULL AS c10_big_int1, "
+                "  NULL AS c11_big_int2 "
                 "FROM Lookup "
                 "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
                 "  INNER JOIN Resources grandChildLevel ON grandChildLevel.parentId = childLevel.internalId "
@@ -847,10 +897,12 @@ namespace Orthanc
                "  parentLevel.publicId AS c3_string1, "
                "  NULL AS c4_string2, "
                "  NULL AS c5_string3, "
-               "  NULL AS c6_int1, "
-               "  NULL AS c7_int2, "
-               "  NULL AS c8_big_int1, "
-               "  NULL AS c9_big_int2 "
+               "  NULL AS c6_string4, "
+               "  NULL AS c7_int1, "
+               "  NULL AS c8_int2, "
+               "  NULL AS c9_int3, "
+               "  NULL AS c10_big_int1, "
+               "  NULL AS c11_big_int2 "
                "FROM Lookup "
                "  INNER JOIN Resources currentLevel ON currentLevel.internalId = Lookup.internalId "
                "  INNER JOIN Resources parentLevel ON currentLevel.parentId = parentLevel.internalId ";
@@ -866,10 +918,12 @@ namespace Orthanc
                 "  value AS c3_string1, "
                 "  NULL AS c4_string2, "
                 "  NULL AS c5_string3, "
-                "  type AS c6_int1, "
-                "  NULL AS c7_int2, "
-                "  NULL AS c8_big_int1, "
-                "  NULL AS c9_big_int2 "
+                "  NULL AS c6_string4, "
+                "  type AS c7_int1, "
+                "  revision AS c8_int2, "
+                "  NULL AS c9_int3, "
+                "  NULL AS c10_big_int1, "
+                "  NULL AS c11_big_int2 "
                 "FROM Lookup "
                 "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
                 "  INNER JOIN Metadata ON Metadata.id = childLevel.internalId AND Metadata.type IN (" + JoinRequestedMetadata(request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1))) + ") ";
@@ -885,10 +939,12 @@ namespace Orthanc
                 "  value AS c3_string1, "
                 "  NULL AS c4_string2, "
                 "  NULL AS c5_string3, "
-                "  type AS c6_int1, "
-                "  NULL AS c7_int2, "
-                "  NULL AS c8_big_int1, "
-                "  NULL AS c9_big_int2 "
+                "  NULL AS c6_string4, "
+                "  type AS c7_int1, "
+                "  revision AS c8_int2, "
+                "  NULL AS c9_int3, "
+                "  NULL AS c10_big_int1, "
+                "  NULL AS c11_big_int2 "
                 "FROM Lookup "
                 "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
                 "  INNER JOIN Resources grandChildLevel ON grandChildLevel.parentId = childLevel.internalId "
@@ -907,10 +963,12 @@ namespace Orthanc
                "  childLevel.publicId AS c3_string1, "
                "  NULL AS c4_string2, "
                "  NULL AS c5_string3, "
-               "  NULL AS c6_int1, "
-               "  NULL AS c7_int2, "
-               "  NULL AS c8_big_int1, "
-               "  NULL AS c9_big_int2 "
+               "  NULL AS c6_string4, "
+               "  NULL AS c7_int1, "
+               "  NULL AS c8_int2, "
+               "  NULL AS c9_int3, "
+               "  NULL AS c10_big_int1, "
+               "  NULL AS c11_big_int2 "
                "FROM Lookup "
                "  INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId ";
       }
@@ -926,10 +984,12 @@ namespace Orthanc
                "  NULL AS c3_string1, "
                "  NULL AS c4_string2, "
                "  NULL AS c5_string3, "
-               "  COUNT(*) AS c6_int1, "
-               "  NULL AS c7_int2, "
-               "  NULL AS c8_big_int1, "
-               "  NULL AS c9_big_int2 "
+               "  NULL AS c6_string4, "
+               "  COUNT(*) AS c7_int1, "
+               "  NULL AS c8_int2, "
+               "  NULL AS c9_int3, "
+               "  NULL AS c10_big_int1, "
+               "  NULL AS c11_big_int2 "
                "FROM Lookup "
                "  INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId GROUP BY Lookup.internalId ";
       }
@@ -945,10 +1005,12 @@ namespace Orthanc
               "  grandChildLevel.publicId AS c3_string1, "
               "  NULL AS c4_string2, "
               "  NULL AS c5_string3, "
-              "  NULL AS c6_int1, "
-              "  NULL AS c7_int2, "
-              "  NULL AS c8_big_int1, "
-              "  NULL AS c9_big_int2 "
+              "  NULL AS c6_string4, "
+              "  NULL AS c7_int1, "
+              "  NULL AS c8_int2, "
+              "  NULL AS c9_int3, "
+              "  NULL AS c10_big_int1, "
+              "  NULL AS c11_big_int2 "
               "FROM Lookup "
               "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
               "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId ";
@@ -964,10 +1026,12 @@ namespace Orthanc
               "  NULL AS c3_string1, "
               "  NULL AS c4_string2, "
               "  NULL AS c5_string3, "
-               "  COUNT(*) AS c6_int1, "
-              "  NULL AS c7_int2, "
-              "  NULL AS c8_big_int1, "
-              "  NULL AS c9_big_int2 "
+              "  NULL AS c6_string4, "
+              "  COUNT(*) AS c7_int1, "
+              "  NULL AS c8_int2, "
+              "  NULL AS c9_int3, "
+              "  NULL AS c10_big_int1, "
+              "  NULL AS c11_big_int2 "
               "FROM Lookup "
               "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
               "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId GROUP BY Lookup.internalId ";
@@ -983,10 +1047,12 @@ namespace Orthanc
               "  grandGrandChildLevel.publicId AS c3_string1, "
               "  NULL AS c4_string2, "
               "  NULL AS c5_string3, "
-              "  NULL AS c6_int1, "
-              "  NULL AS c7_int2, "
-              "  NULL AS c8_big_int1, "
-              "  NULL AS c9_big_int2 "
+              "  NULL AS c6_string4, "
+              "  NULL AS c7_int1, "
+              "  NULL AS c8_int2, "
+              "  NULL AS c9_int3, "
+              "  NULL AS c10_big_int1, "
+              "  NULL AS c11_big_int2 "
               "FROM Lookup "
               "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
               "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId "
@@ -1002,10 +1068,12 @@ namespace Orthanc
               "  NULL AS c3_string1, "
               "  NULL AS c4_string2, "
               "  NULL AS c5_string3, "
-               "  COUNT(*) AS c6_int1, "
-              "  NULL AS c7_int2, "
-              "  NULL AS c8_big_int1, "
-              "  NULL AS c9_big_int2 "
+              "  NULL AS c6_string4, "
+              "  COUNT(*) AS c7_int1, "
+              "  NULL AS c8_int2, "
+              "  NULL AS c9_int3, "
+              "  NULL AS c10_big_int1, "
+              "  NULL AS c11_big_int2 "
               "FROM Lookup "
               "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
               "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId "
@@ -1043,19 +1111,21 @@ namespace Orthanc
           case QUERY_ATTACHMENTS:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C6_INT_1)),
-                          s.ColumnInt64(C9_BIG_INT_2), s.ColumnString(C4_STRING_2),
-                          static_cast<CompressionType>(s.ColumnInt(C7_INT_2)),
-                          s.ColumnInt64(C8_BIG_INT_1), s.ColumnString(C5_STRING_3));
-            res.AddAttachment(file, 0 /* TODO - REVISIONS */);
+            FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C7_INT_1)),
+                          s.ColumnInt64(C11_BIG_INT_2), s.ColumnString(C4_STRING_2),
+                          static_cast<CompressionType>(s.ColumnInt(C8_INT_2)),
+                          s.ColumnInt64(C10_BIG_INT_1), s.ColumnString(C5_STRING_3));
+            ReadCustomData(file, s, C6_STRING_4);
+
+            res.AddAttachment(file, s.ColumnInt(C9_INT_3));
           }; break;
 
           case QUERY_MAIN_DICOM_TAGS:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddStringDicomTag(requestLevel, 
-                                  static_cast<uint16_t>(s.ColumnInt(C6_INT_1)),
-                                  static_cast<uint16_t>(s.ColumnInt(C7_INT_2)),
+                                  static_cast<uint16_t>(s.ColumnInt(C7_INT_1)),
+                                  static_cast<uint16_t>(s.ColumnInt(C8_INT_2)),
                                   s.ColumnString(C3_STRING_1));
           }; break;
 
@@ -1063,8 +1133,8 @@ namespace Orthanc
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddStringDicomTag(static_cast<ResourceType>(requestLevel - 1), 
-                                  static_cast<uint16_t>(s.ColumnInt(C6_INT_1)),
-                                  static_cast<uint16_t>(s.ColumnInt(C7_INT_2)),
+                                  static_cast<uint16_t>(s.ColumnInt(C7_INT_1)),
+                                  static_cast<uint16_t>(s.ColumnInt(C8_INT_2)),
                                   s.ColumnString(C3_STRING_1));
           }; break;
 
@@ -1072,8 +1142,8 @@ namespace Orthanc
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddStringDicomTag(static_cast<ResourceType>(requestLevel - 2), 
-                                  static_cast<uint16_t>(s.ColumnInt(C6_INT_1)),
-                                  static_cast<uint16_t>(s.ColumnInt(C7_INT_2)),
+                                  static_cast<uint16_t>(s.ColumnInt(C7_INT_1)),
+                                  static_cast<uint16_t>(s.ColumnInt(C8_INT_2)),
                                   s.ColumnString(C3_STRING_1));
           }; break;
 
@@ -1081,7 +1151,7 @@ namespace Orthanc
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddChildrenMainDicomTagValue(static_cast<ResourceType>(requestLevel + 1), 
-                                             DicomTag(static_cast<uint16_t>(s.ColumnInt(C6_INT_1)), static_cast<uint16_t>(s.ColumnInt(C7_INT_2))),
+                                             DicomTag(static_cast<uint16_t>(s.ColumnInt(C7_INT_1)), static_cast<uint16_t>(s.ColumnInt(C8_INT_2))),
                                              s.ColumnString(C3_STRING_1));
           }; break;
 
@@ -1089,7 +1159,7 @@ namespace Orthanc
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddChildrenMainDicomTagValue(static_cast<ResourceType>(requestLevel + 2), 
-                                             DicomTag(static_cast<uint16_t>(s.ColumnInt(C6_INT_1)), static_cast<uint16_t>(s.ColumnInt(C7_INT_2))),
+                                             DicomTag(static_cast<uint16_t>(s.ColumnInt(C7_INT_1)), static_cast<uint16_t>(s.ColumnInt(C8_INT_2))),
                                              s.ColumnString(C3_STRING_1));
           }; break;
 
@@ -1097,31 +1167,31 @@ namespace Orthanc
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddMetadata(static_cast<ResourceType>(requestLevel), 
-                            static_cast<MetadataType>(s.ColumnInt(C6_INT_1)),
-                            s.ColumnString(C3_STRING_1), 0 /* no support for revision */);
+                            static_cast<MetadataType>(s.ColumnInt(C7_INT_1)),
+                            s.ColumnString(C3_STRING_1), s.ColumnInt(C8_INT_2));
           }; break;
 
           case QUERY_PARENT_METADATA:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddMetadata(static_cast<ResourceType>(requestLevel - 1), 
-                            static_cast<MetadataType>(s.ColumnInt(C6_INT_1)),
-                            s.ColumnString(C3_STRING_1), 0 /* no support for revision */);
+                            static_cast<MetadataType>(s.ColumnInt(C7_INT_1)),
+                            s.ColumnString(C3_STRING_1), s.ColumnInt(C8_INT_2));
           }; break;
 
           case QUERY_GRAND_PARENT_METADATA:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddMetadata(static_cast<ResourceType>(requestLevel - 2), 
-                            static_cast<MetadataType>(s.ColumnInt(C6_INT_1)),
-                            s.ColumnString(C3_STRING_1), 0 /* no support for revision */);
+                            static_cast<MetadataType>(s.ColumnInt(C7_INT_1)),
+                            s.ColumnString(C3_STRING_1), s.ColumnInt(C8_INT_2));
           }; break;
 
           case QUERY_CHILDREN_METADATA:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddChildrenMetadataValue(static_cast<ResourceType>(requestLevel + 1), 
-                                         static_cast<MetadataType>(s.ColumnInt(C6_INT_1)),
+                                         static_cast<MetadataType>(s.ColumnInt(C7_INT_1)),
                                          s.ColumnString(C3_STRING_1));
           }; break;
 
@@ -1129,7 +1199,7 @@ namespace Orthanc
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddChildrenMetadataValue(static_cast<ResourceType>(requestLevel + 2), 
-                                         static_cast<MetadataType>(s.ColumnInt(C6_INT_1)),
+                                         static_cast<MetadataType>(s.ColumnInt(C7_INT_1)),
                                          s.ColumnString(C3_STRING_1));
           }; break;
 
@@ -1170,21 +1240,21 @@ namespace Orthanc
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 1),
-                                 static_cast<uint64_t>(s.ColumnInt64(C6_INT_1)));
+                                 static_cast<uint64_t>(s.ColumnInt64(C7_INT_1)));
           }; break;
 
           case QUERY_GRAND_CHILDREN_COUNT:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 2),
-                                 static_cast<uint64_t>(s.ColumnInt64(C6_INT_1)));
+                                 static_cast<uint64_t>(s.ColumnInt64(C7_INT_1)));
           }; break;
 
           case QUERY_GRAND_GRAND_CHILDREN_COUNT:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 3),
-                                 static_cast<uint64_t>(s.ColumnInt64(C6_INT_1)));
+                                 static_cast<uint64_t>(s.ColumnInt64(C7_INT_1)));
           }; break;
 
           case QUERY_ONE_INSTANCE_IDENTIFIER:
@@ -1196,16 +1266,18 @@ namespace Orthanc
           case QUERY_ONE_INSTANCE_METADATA:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            res.AddOneInstanceMetadata(static_cast<MetadataType>(s.ColumnInt(C6_INT_1)), s.ColumnString(C3_STRING_1));
+            res.AddOneInstanceMetadata(static_cast<MetadataType>(s.ColumnInt(C7_INT_1)), s.ColumnString(C3_STRING_1));
           }; break;
 
           case QUERY_ONE_INSTANCE_ATTACHMENTS:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C6_INT_1)),
-                          s.ColumnInt64(C9_BIG_INT_2), s.ColumnString(C4_STRING_2),
-                          static_cast<CompressionType>(s.ColumnInt(C7_INT_2)),
-                          s.ColumnInt64(C8_BIG_INT_1), s.ColumnString(C5_STRING_3));
+            FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C7_INT_1)),
+                          s.ColumnInt64(C11_BIG_INT_2), s.ColumnString(C4_STRING_2),
+                          static_cast<CompressionType>(s.ColumnInt(C8_INT_2)),
+                          s.ColumnInt64(C10_BIG_INT_1), s.ColumnString(C5_STRING_3));
+            ReadCustomData(file, s, C6_STRING_4);
+
             res.AddOneInstanceAttachment(file);
           }; break;
 
@@ -1312,6 +1384,32 @@ namespace Orthanc
       }
     }
 
+    void DeleteDeletedFile(const std::string& uuid)
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM DeletedFiles WHERE uuid=?");
+      s.BindString(0, uuid);
+      s.Run();
+    }
+
+    void GetDeletedFileCustomData(std::string& customData, const std::string& uuid)
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "SELECT customData FROM DeletedFiles WHERE uuid=?");
+      s.BindString(0, uuid);
+    
+      if (s.Step())
+      { 
+        if (s.ColumnIsNull(0) ||
+            !s.ColumnBlobAsString(0, &customData))
+        {
+          customData.clear();
+        }
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
+    }
 
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
                                 int64_t id) ORTHANC_OVERRIDE
@@ -1597,23 +1695,39 @@ namespace Orthanc
 
     virtual uint64_t GetTotalCompressedSize() ORTHANC_OVERRIDE
     {
-      // Old SQL query that was used in Orthanc <= 1.5.0:
-      // SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT SUM(compressedSize) FROM AttachedFiles");
+      std::unique_ptr<SQLite::Statement> statement;
 
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT value FROM GlobalIntegers WHERE key=0");
-      s.Run();
-      return static_cast<uint64_t>(s.ColumnInt64(0));
+      if (hasFastTotalSize_)
+      {
+        statement.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT value FROM GlobalIntegers WHERE key=0"));
+      }
+      else
+      {
+        // Old SQL query that was used in Orthanc <= 1.5.0:
+        statement.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT SUM(compressedSize) FROM AttachedFiles"));
+      }
+
+      statement->Run();
+      return static_cast<uint64_t>(statement->ColumnInt64(0));
     }
 
     
     virtual uint64_t GetTotalUncompressedSize() ORTHANC_OVERRIDE
     {
-      // Old SQL query that was used in Orthanc <= 1.5.0:
-      // SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT SUM(uncompressedSize) FROM AttachedFiles");
+      std::unique_ptr<SQLite::Statement> statement;
 
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT value FROM GlobalIntegers WHERE key=1");
-      s.Run();
-      return static_cast<uint64_t>(s.ColumnInt64(0));
+      if (hasFastTotalSize_)
+      {
+        statement.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT value FROM GlobalIntegers WHERE key=1"));
+      }
+      else
+      {
+        // Old SQL query that was used in Orthanc <= 1.5.0:
+        statement.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT SUM(uncompressedSize) FROM AttachedFiles"));
+      }
+
+      statement->Run();
+      return static_cast<uint64_t>(statement->ColumnInt64(0));
     }
 
 
@@ -1687,7 +1801,7 @@ namespace Orthanc
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                           "SELECT uuid, uncompressedSize, compressionType, compressedSize, "
-                          "uncompressedMD5, compressedMD5 FROM AttachedFiles WHERE id=? AND fileType=?");
+                          "uncompressedMD5, compressedMD5, revision, customData FROM AttachedFiles WHERE id=? AND fileType=?");
       s.BindInt64(0, id);
       s.BindInt(1, contentType);
 
@@ -1704,11 +1818,46 @@ namespace Orthanc
                               static_cast<CompressionType>(s.ColumnInt(2)),
                               s.ColumnInt64(3),
                               s.ColumnString(5));
-        revision = 0;   // TODO - REVISIONS
+        ReadCustomData(attachment, s, 7);
+        revision = s.ColumnInt(6);
         return true;
       }
     }
 
+    virtual void GetAttachmentCustomData(std::string& customData,
+                                         const std::string& attachmentUuid) ORTHANC_OVERRIDE
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "SELECT customData FROM AttachedFiles WHERE uuid=?");
+      s.BindString(0, attachmentUuid);
+
+      if (!s.Step())
+      {
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
+      else
+      {
+        if (s.ColumnIsNull(0))
+        {
+          customData.clear();
+        }
+        else if (!s.ColumnBlobAsString(0, &customData))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+    }
+
+    virtual void SetAttachmentCustomData(const std::string& attachmentUuid,
+                                         const void* customData,
+                                         size_t customDataSize) ORTHANC_OVERRIDE
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "UPDATE AttachedFiles SET customData=? WHERE uuid=?");
+      s.BindBlob(0, customData, customDataSize);
+      s.BindString(1, attachmentUuid);
+      s.Run();
+    }
 
     virtual bool LookupGlobalProperty(std::string& target,
                                       GlobalProperty property,
@@ -1739,7 +1888,7 @@ namespace Orthanc
                                 MetadataType type) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                          "SELECT value FROM Metadata WHERE id=? AND type=?");
+                          "SELECT value, revision FROM Metadata WHERE id=? AND type=?");
       s.BindInt64(0, id);
       s.BindInt(1, type);
 
@@ -1750,7 +1899,7 @@ namespace Orthanc
       else
       {
         target = s.ColumnString(0);
-        revision = 0;   // TODO - REVISIONS
+        revision = s.ColumnInt(1);
         return true;
       }
     }
@@ -1922,11 +2071,11 @@ namespace Orthanc
                              const std::string& value,
                              int64_t revision) ORTHANC_OVERRIDE
     {
-      // TODO - REVISIONS
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO Metadata (id, type, value) VALUES(?, ?, ?)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO Metadata (id, type, value, revision) VALUES(?, ?, ?, ?)");
       s.BindInt64(0, id);
       s.BindInt(1, type);
       s.BindString(2, value);
+      s.BindInt(3, revision);
       s.Run();
     }
 
@@ -2027,6 +2176,170 @@ namespace Orthanc
         target.insert(s.ColumnString(0));
       }
     }
+
+    virtual void StoreKeyValue(const std::string& storeId,
+                               const std::string& key,
+                               const void* value,
+                               size_t valueSize) ORTHANC_OVERRIDE
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO KeyValueStores (storeId, key, value) VALUES(?, ?, ?)");
+      s.BindString(0, storeId);
+      s.BindString(1, key);
+      s.BindBlob(2, value, valueSize);
+      s.Run();
+    }
+
+    virtual void DeleteKeyValue(const std::string& storeId,
+                                const std::string& key) ORTHANC_OVERRIDE
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM KeyValueStores WHERE storeId = ? AND key = ?");
+      s.BindString(0, storeId);
+      s.BindString(1, key);
+      s.Run();
+    }
+
+    virtual bool GetKeyValue(std::string& value,
+                             const std::string& storeId,
+                             const std::string& key) ORTHANC_OVERRIDE
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "SELECT value FROM KeyValueStores WHERE storeId=? AND key=?");
+      s.BindString(0, storeId);
+      s.BindString(1, key);
+
+      if (!s.Step())
+      {
+        // No value found
+        return false;
+      }
+      else
+      {
+        if (!s.ColumnBlobAsString(0, &value))
+        {
+          throw OrthancException(ErrorCode_NotEnoughMemory);
+        }
+        else
+        {
+          return true;
+        }
+      }    
+    }
+
+    // New in Orthanc 1.12.8
+    virtual void ListKeysValues(std::list<std::string>& keys /* out */,
+                                std::list<std::string>& values /* out */,
+                                const std::string& storeId,
+                                bool first,
+                                const std::string& from /* only used if "first == false" */,
+                                uint64_t limit) ORTHANC_OVERRIDE
+    {
+      int64_t actualLimit = limit;
+      if (limit == 0)
+      {
+        actualLimit = -1;  // In SQLite, "if negative, there is no upper bound on the number of rows returned"
+      }
+
+      std::unique_ptr<SQLite::Statement> statement;
+
+      if (first)
+      {
+        statement.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT key, value FROM KeyValueStores WHERE storeId=? ORDER BY key ASC LIMIT ?"));
+        statement->BindString(0, storeId);
+        statement->BindInt64(1, actualLimit);
+      }
+      else
+      {
+        statement.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT key, value FROM KeyValueStores WHERE storeId=? AND key>? ORDER BY key ASC LIMIT ?"));
+        statement->BindString(0, storeId);
+        statement->BindString(1, from);
+        statement->BindInt64(2, actualLimit);
+      }
+
+      while (statement->Step())
+      {
+        std::string value;
+        if (!statement->ColumnBlobAsString(1, &value))
+        {
+          throw OrthancException(ErrorCode_NotEnoughMemory);
+        }
+
+        keys.push_back(statement->ColumnString(0));
+        values.push_back(value);
+      }
+    }
+
+
+    // New in Orthanc 1.12.8
+    virtual void EnqueueValue(const std::string& queueId,
+                              const void* value,
+                              size_t valueSize) ORTHANC_OVERRIDE
+    {
+      if (static_cast<size_t>(static_cast<int>(valueSize)) != valueSize)
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory, "Value is too large for a SQLite database");
+      }
+
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
+                          "INSERT INTO Queues (queueId, value) VALUES (?, ?)");
+      s.BindString(0, queueId);
+      s.BindBlob(1, value, valueSize);
+      s.Run();
+    }
+
+    // New in Orthanc 1.12.8
+    virtual bool DequeueValue(std::string& value,
+                              const std::string& queueId,
+                              QueueOrigin origin) ORTHANC_OVERRIDE
+    {
+      int64_t rowId;
+      std::unique_ptr<SQLite::Statement> s;
+
+      switch (origin)
+      {
+        case QueueOrigin_Front:
+          s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT id, value FROM Queues WHERE queueId=? ORDER BY id ASC LIMIT 1"));
+          break;
+
+        case QueueOrigin_Back:
+          s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT id, value FROM Queues WHERE queueId=? ORDER BY id DESC LIMIT 1"));
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      s->BindString(0, queueId);
+      if (!s->Step())
+      {
+        // No value found
+        return false;
+      }
+      else
+      {
+        rowId = s->ColumnInt64(0);
+
+        if (!s->ColumnBlobAsString(1, &value))
+        {
+          throw OrthancException(ErrorCode_NotEnoughMemory);
+        }
+
+        SQLite::Statement s2(db_, SQLITE_FROM_HERE,
+                            "DELETE FROM Queues WHERE id = ?");
+        s2.BindInt64(0, rowId);
+        s2.Run();
+
+        return true;
+      }    
+    }
+
+    // New in Orthanc 1.12.8
+    virtual uint64_t GetQueueSize(const std::string& queueId) ORTHANC_OVERRIDE
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT COUNT(*) FROM Queues WHERE queueId=?");
+      s.BindString(0, queueId);
+      s.Step();
+      return s.ColumnInt64(0);
+    }
   };
 
 
@@ -2055,6 +2368,11 @@ namespace Orthanc
     {
       if (sqlite_.activeTransaction_ != NULL)
       {
+        std::string id = context.GetStringValue(0);
+
+        std::string customData;
+        sqlite_.activeTransaction_->GetDeletedFileCustomData(customData, id);
+
         std::string uncompressedMD5, compressedMD5;
 
         if (!context.IsNullValue(5))
@@ -2074,8 +2392,10 @@ namespace Orthanc
                       static_cast<CompressionType>(context.GetIntValue(3)),
                       static_cast<uint64_t>(context.GetInt64Value(4)),
                       compressedMD5);
+        info.SwapCustomData(customData);
 
         sqlite_.activeTransaction_->GetListener().SignalAttachmentDeleted(info);
+        sqlite_.activeTransaction_->DeleteDeletedFile(id);
       }
     }
   };
@@ -2120,20 +2440,40 @@ namespace Orthanc
     SQLiteDatabaseWrapper&                that_;
     std::unique_ptr<SQLite::Transaction>  transaction_;
     int64_t                               initialDiskSize_;
+    bool                                  isNested_;
+
+  // Rationale for the isNested_ field: 
+  //   This was added while implementing the DelayedDeletion part of the advanced-storage plugin.
+  //   When Orthanc deletes an attachment, a SQLite transaction is created to delete the attachment from
+  //   the SQLite DB and, while the transaction is still active, the StorageRemove callback is called.
+  //   The DelayedDeleter does not delete the file directly but, instead, it queues it for deletion.
+  //   Queuing is done through the Orthanc SDK that creates a RW transaction (because it is a generic function).
+  //   Since there is already an active RW transaction, this "nested" transaction does not need to perform anything
+  //   in its Begin/Commit since this will be performed at higher level by the current activeTransaction_.
+  //   However, in case of Rollback, this nested transaction must call the top level transaction Rollback.
 
   public:
     ReadWriteTransaction(SQLiteDatabaseWrapper& that,
-                         IDatabaseListener& listener) :
-      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_),
+                         IDatabaseListener& listener,
+                         bool hasFastTotalSize) :
+      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_, hasFastTotalSize),
       that_(that),
-      transaction_(new SQLite::Transaction(that_.db_))
+      transaction_(new SQLite::Transaction(that_.db_)),
+      isNested_(false)
     {
       if (that_.activeTransaction_ != NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        if (dynamic_cast<SQLiteDatabaseWrapper::ReadWriteTransaction*>(that_.activeTransaction_) == NULL)
+        {
+          throw OrthancException(ErrorCode_InternalError, "Unable to create a nested RW transaction, the current transaction is not a RW transaction");
+        }
+        
+        isNested_ = true;
       }
-      
-      that_.activeTransaction_ = this;
+      else
+      {
+        that_.activeTransaction_ = this;
+      }
 
 #if defined(NDEBUG)
       // Release mode
@@ -2146,26 +2486,42 @@ namespace Orthanc
 
     virtual ~ReadWriteTransaction()
     {
-      assert(that_.activeTransaction_ != NULL);    
-      that_.activeTransaction_ = NULL;
+      if (!isNested_)
+      {
+        assert(that_.activeTransaction_ != NULL);    
+        that_.activeTransaction_ = NULL;
+      }
     }
 
-    void Begin()
+    virtual void Begin()
     {
-      transaction_->Begin();
+      if (!isNested_)
+      {
+        transaction_->Begin();
+      }
     }
 
     virtual void Rollback() ORTHANC_OVERRIDE
     {
-      transaction_->Rollback();
+      if (isNested_)
+      {
+        that_.activeTransaction_->Rollback();
+      }
+      else
+      {
+        transaction_->Rollback();
+      }
     }
 
     virtual void Commit(int64_t fileSizeDelta /* only used in debug */) ORTHANC_OVERRIDE
     {
-      transaction_->Commit();
+      if (!isNested_)
+      {
+        transaction_->Commit();
 
-      assert(initialDiskSize_ + fileSizeDelta >= 0 &&
-             initialDiskSize_ + fileSizeDelta == static_cast<int64_t>(GetTotalCompressedSize()));
+        assert(initialDiskSize_ + fileSizeDelta >= 0 &&
+              initialDiskSize_ + fileSizeDelta == static_cast<int64_t>(GetTotalCompressedSize()));
+      }
     }
   };
 
@@ -2174,25 +2530,34 @@ namespace Orthanc
   {
   private:
     SQLiteDatabaseWrapper&  that_;
+    bool                    isNested_;  // see explanation on the ReadWriteTransaction
     
   public:
     ReadOnlyTransaction(SQLiteDatabaseWrapper& that,
-                        IDatabaseListener& listener) :
-      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_),
-      that_(that)
+                        IDatabaseListener& listener,
+                        bool hasFastTotalSize) :
+      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_, hasFastTotalSize),
+      that_(that),
+      isNested_(false)
     {
       if (that_.activeTransaction_ != NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        isNested_ = true;
+        // throw OrthancException(ErrorCode_InternalError);
       }
-      
-      that_.activeTransaction_ = this;
+      else
+      {      
+        that_.activeTransaction_ = this;
+      }
     }
 
     virtual ~ReadOnlyTransaction()
     {
-      assert(that_.activeTransaction_ != NULL);    
-      that_.activeTransaction_ = NULL;
+      if (!isNested_)
+      {
+        assert(that_.activeTransaction_ != NULL);    
+        that_.activeTransaction_ = NULL;
+      }
     }
 
     virtual void Rollback() ORTHANC_OVERRIDE
@@ -2214,11 +2579,14 @@ namespace Orthanc
     signalRemainingAncestor_(NULL),
     version_(0)
   {
-    // TODO: implement revisions in SQLite
+    dbCapabilities_.SetRevisionsSupport(true);
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
     dbCapabilities_.SetHasExtendedChanges(true);
     dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
+    dbCapabilities_.SetKeyValueStoresSupport(true);
+    dbCapabilities_.SetQueuesSupport(true);
+    dbCapabilities_.SetAttachmentCustomDataSupport(true);
     db_.Open(path);
   }
 
@@ -2228,11 +2596,14 @@ namespace Orthanc
     signalRemainingAncestor_(NULL),
     version_(0)
   {
-    // TODO: implement revisions in SQLite
+    dbCapabilities_.SetRevisionsSupport(true);
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
     dbCapabilities_.SetHasExtendedChanges(true);
     dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
+    dbCapabilities_.SetKeyValueStoresSupport(true);
+    dbCapabilities_.SetQueuesSupport(true);
+    dbCapabilities_.SetAttachmentCustomDataSupport(true);
     db_.OpenInMemory();
   }
 
@@ -2245,10 +2616,29 @@ namespace Orthanc
   }
 
 
+  static void ExecuteEmbeddedScript(SQLite::Connection& db,
+                                    ServerResources::FileResourceId resourceId)
+  {
+    std::string script;
+    ServerResources::GetFileResource(script, resourceId);
+    db.Execute(script);
+  }
+
+
+  static void InjectEmbeddedScript(std::string& sql,
+                                   const std::string& name,
+                                   ServerResources::FileResourceId resourceId)
+  {
+    std::string script;
+    ServerResources::GetFileResource(script, resourceId);
+    boost::replace_all(sql, name, script);
+  }
+
+
   void SQLiteDatabaseWrapper::Open()
   {
     {
-      boost::mutex::scoped_lock lock(mutex_);
+      boost::recursive_mutex::scoped_lock lock(mutex_);
 
       if (signalRemainingAncestor_ != NULL)
       {
@@ -2283,6 +2673,12 @@ namespace Orthanc
         LOG(INFO) << "Creating the database";
         std::string query;
         ServerResources::GetFileResource(query, ServerResources::PREPARE_DATABASE);
+
+        InjectEmbeddedScript(query, "${INSTALL_TRACK_ATTACHMENTS_SIZE}", ServerResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
+        InjectEmbeddedScript(query, "${INSTALL_LABELS_TABLE}", ServerResources::INSTALL_LABELS_TABLE);
+        InjectEmbeddedScript(query, "${INSTALL_DELETED_FILES}", ServerResources::INSTALL_DELETED_FILES);
+        InjectEmbeddedScript(query, "${INSTALL_KEY_VALUE_STORES_AND_QUEUES}", ServerResources::INSTALL_KEY_VALUE_STORES_AND_QUEUES);
+
         db_.Execute(query);
       }
 
@@ -2317,18 +2713,35 @@ namespace Orthanc
             tmp != "1")
         {
           LOG(INFO) << "Installing the SQLite triggers to track the size of the attachments";
-          std::string query;
-          ServerResources::GetFileResource(query, ServerResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
-          db_.Execute(query);
+          ExecuteEmbeddedScript(db_, ServerResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
         }
 
         // New in Orthanc 1.12.0
         if (!db_.DoesTableExist("Labels"))
         {
           LOG(INFO) << "Installing the \"Labels\" table";
-          std::string query;
-          ServerResources::GetFileResource(query, ServerResources::INSTALL_LABELS_TABLE);
-          db_.Execute(query);
+          ExecuteEmbeddedScript(db_, ServerResources::INSTALL_LABELS_TABLE);
+        }
+
+        // New in Orthanc 1.12.8
+        if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_SQLiteHasRevisionAndCustomData, true /* unused in SQLite */)
+            || tmp != "1")
+        {
+          LOG(INFO) << "Upgrading SQLite schema to support revision and customData";
+          ExecuteEmbeddedScript(db_, ServerResources::INSTALL_REVISION_AND_CUSTOM_DATA);
+        }
+
+        // New in Orthanc 1.12.8
+        if (!db_.DoesTableExist("DeletedFiles"))
+        {
+          ExecuteEmbeddedScript(db_, ServerResources::INSTALL_DELETED_FILES);
+        }
+
+        // New in Orthanc 1.12.8
+        if (!db_.DoesTableExist("KeyValueStores"))
+        {
+          LOG(INFO) << "Installing the \"KeyValueStores\" and \"Queues\" tables";
+          ExecuteEmbeddedScript(db_, ServerResources::INSTALL_KEY_VALUE_STORES_AND_QUEUES);
         }
       }
 
@@ -2339,7 +2752,7 @@ namespace Orthanc
 
   void SQLiteDatabaseWrapper::Close()
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    boost::recursive_mutex::scoped_lock lock(mutex_);
     // close and delete the WAL when exiting properly -> the DB is stored in a single file (no more -wal and -shm files)
     db_.Execute("PRAGMA JOURNAL_MODE=DELETE;");
     db_.Close();
@@ -2358,9 +2771,9 @@ namespace Orthanc
 
 
   void SQLiteDatabaseWrapper::Upgrade(unsigned int targetVersion,
-                                      IStorageArea& storageArea)
+                                      IPluginStorageArea& storageArea)
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    boost::recursive_mutex::scoped_lock lock(mutex_);
 
     if (targetVersion != 6)
     {
@@ -2401,33 +2814,59 @@ namespace Orthanc
       VoidDatabaseListener listener;
       
       {
-        std::unique_ptr<ITransaction> transaction(StartTransaction(TransactionType_ReadWrite, listener));
-        ServerToolbox::ReconstructMainDicomTags(*transaction, storageArea, ResourceType_Patient);
-        ServerToolbox::ReconstructMainDicomTags(*transaction, storageArea, ResourceType_Study);
-        ServerToolbox::ReconstructMainDicomTags(*transaction, storageArea, ResourceType_Series);
-        ServerToolbox::ReconstructMainDicomTags(*transaction, storageArea, ResourceType_Instance);
+        ReadWriteTransaction transaction(*this, listener, false /* GetTotalSizeIsFast necessitates the table "GlobalIntegers" */);
+        transaction.Begin();
+
+        // ReconstructMaindDicomTags uses LookupAttachment that needs revision and customData.  Since we don't want to maintain a legacy version
+        // of LookupAttachment, we modify the table now)
+        LOG(INFO) << "First upgrading SQLite schema to support revision and customData to be able to reconstruct main DICOM tags";
+        std::string query;
+        ServerResources::GetFileResource(query, ServerResources::INSTALL_REVISION_AND_CUSTOM_DATA);
+        db_.Execute(query);
+
+        ServerToolbox::ReconstructMainDicomTags(transaction, storageArea, ResourceType_Patient);
+        ServerToolbox::ReconstructMainDicomTags(transaction, storageArea, ResourceType_Study);
+        ServerToolbox::ReconstructMainDicomTags(transaction, storageArea, ResourceType_Series);
+        ServerToolbox::ReconstructMainDicomTags(transaction, storageArea, ResourceType_Instance);
         db_.Execute("UPDATE GlobalProperties SET value=\"6\" WHERE property=" +
                     boost::lexical_cast<std::string>(GlobalProperty_DatabaseSchemaVersion) + ";");
-        transaction->Commit(0);
+        transaction.Commit(0);
       }
       
       version_ = 6;
     }
+
   }
 
+  // class RaiiTransactionLogger
+  // {
+  //   TransactionType type_;
+  //   public:
+  //     RaiiTransactionLogger(TransactionType type)
+  //     : type_(type)
+  //     {
+  //       LOG(INFO) << "IN  " << (type_ == TransactionType_ReadOnly ? "RO" : "RW");
+  //     }
+  //     ~RaiiTransactionLogger()
+  //     {
+  //     LOG(INFO) << "OUT " << (type_ == TransactionType_ReadOnly ? "RO" : "RW");
+  //     }
+  // };
 
   IDatabaseWrapper::ITransaction* SQLiteDatabaseWrapper::StartTransaction(TransactionType type,
                                                                           IDatabaseListener& listener)
   {
+    // RaiiTransactionLogger logger(type);
+
     switch (type)
     {
       case TransactionType_ReadOnly:
-        return new ReadOnlyTransaction(*this, listener);  // This is a no-op transaction in SQLite (thanks to mutex)
+        return new ReadOnlyTransaction(*this, listener, true);  // This is a no-op transaction in SQLite (thanks to mutex)
 
       case TransactionType_ReadWrite:
       {
         std::unique_ptr<ReadWriteTransaction> transaction;
-        transaction.reset(new ReadWriteTransaction(*this, listener));
+        transaction.reset(new ReadWriteTransaction(*this, listener, true));
         transaction->Begin();
         return transaction.release();
       }
@@ -2440,7 +2879,7 @@ namespace Orthanc
   
   void SQLiteDatabaseWrapper::FlushToDisk()
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    boost::recursive_mutex::scoped_lock lock(mutex_);
     db_.FlushToDisk();
   }
 

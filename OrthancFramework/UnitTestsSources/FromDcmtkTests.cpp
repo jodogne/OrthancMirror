@@ -264,7 +264,7 @@ TEST(FromDcmtkBridge, Encodings1)
   {
     std::string source(testEncodingsEncoded[i]);
     std::string expected(testEncodingsExpected[i]);
-    std::string s = Toolbox::ConvertToUtf8(source, testEncodings[i], false);
+    std::string s = Toolbox::ConvertToUtf8(source, testEncodings[i], false, false);
     //std::cout << EnumerationToString(testEncodings[i]) << std::endl;
     EXPECT_EQ(expected, s);
   }
@@ -334,7 +334,7 @@ TEST(FromDcmtkBridge, Encodings3)
       ParsedDicomFile f(true);
       f.SetEncoding(testEncodings[i]);
 
-      std::string s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i], false);
+      std::string s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i], false, false);
       f.Insert(DICOM_TAG_PATIENT_NAME, s, false, "");
       f.SaveToMemoryBuffer(dicom);
     }
@@ -571,7 +571,7 @@ TEST(ParsedDicomFile, JsonEncoding)
         ASSERT_FALSE(hasCodeExtensions);
       }
 
-      Json::Value s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i], false);
+      Json::Value s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i], false, false);
       f.Replace(DICOM_TAG_PATIENT_NAME, s, false, DicomReplaceMode_InsertIfAbsent, "");
 
       Json::Value v;
@@ -1172,7 +1172,7 @@ TEST(ParsedDicomFile, DicomMapEncodings2)
         // Sanity check to test the proper behavior of "EncodingTests.py"
         std::string encoded = Toolbox::ConvertFromUtf8(testEncodingsExpected[i], testEncodings[i]);
         ASSERT_STREQ(testEncodingsEncoded[i], encoded.c_str());
-        std::string decoded = Toolbox::ConvertToUtf8(encoded, testEncodings[i], false);
+        std::string decoded = Toolbox::ConvertToUtf8(encoded, testEncodings[i], false, false);
         ASSERT_STREQ(testEncodingsExpected[i], decoded.c_str());
 
         if (testEncodings[i] != Encoding_Chinese)
@@ -1181,7 +1181,7 @@ TEST(ParsedDicomFile, DicomMapEncodings2)
           // test against Chinese, it is normal that it does not correspond to UTF8
 
           const std::string tmp = Toolbox::ConvertToUtf8(
-            Toolbox::ConvertFromUtf8(utf8, testEncodings[i]), testEncodings[i], false);
+            Toolbox::ConvertFromUtf8(utf8, testEncodings[i]), testEncodings[i], false, false);
           ASSERT_STREQ(testEncodingsExpected[i], tmp.c_str());
         }
       }
@@ -2260,6 +2260,47 @@ TEST(DicomWebJson, Sequence)
 }
 
 
+TEST(DicomWebJson, SequenceWithEmptyItem)
+{
+  ParsedDicomFile dicom(false);
+  
+  {
+    std::unique_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_OriginalAttributesSequence));
+
+    for (unsigned int i = 0; i < 3; i++)
+    {
+      std::unique_ptr<DcmItem> item(new DcmItem);
+      if (i != 1) // the 2nd element is empty
+      {
+        std::unique_ptr<DcmSequenceOfItems> subSequence(new DcmSequenceOfItems(DCM_ModifiedAttributesSequence));
+
+        std::unique_ptr<DcmItem> subItem(new DcmItem);
+        std::string s = "item" + boost::lexical_cast<std::string>(i);
+        subItem->putAndInsertString(DCM_AccessionNumber, s.c_str(), OFFalse);
+
+        ASSERT_TRUE(subSequence->append(subItem.release()).good());
+        ASSERT_TRUE(item->insert(subSequence.release(), false, false).good());
+      }
+
+      ASSERT_TRUE(sequence->append(item.release()).good());
+    }
+
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->insert(sequence.release(), false, false).good());
+  }
+
+  DicomWebJsonVisitor visitor;
+  dicom.Apply(visitor);  // this raised an exception in 1.12.9
+
+  const Json::Value& output = visitor.GetResult();
+  // LOG(INFO) << output.toStyledString();
+
+  ASSERT_EQ("SQ", output["04000561"]["vr"].asString());
+  ASSERT_EQ(3u, output["04000561"]["Value"].size());
+
+  ASSERT_EQ("item0", output["04000561"]["Value"][0]["04000550"]["Value"][0]["00080050"]["Value"][0].asString());
+  ASSERT_EQ("item2", output["04000561"]["Value"][2]["04000550"]["Value"][0]["00080050"]["Value"][0].asString());
+}
+
 TEST(ParsedDicomCache, Basic)
 {
   ParsedDicomCache cache(10);
@@ -2987,6 +3028,13 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
       }
     }
 
+    virtual Action VisitEmptyElement(const std::vector<DicomTag>& parentTags,
+                                     const std::vector<size_t>& parentIndexes) ORTHANC_OVERRIDE
+    {
+      return Action_None;
+    }
+
+
     virtual Action VisitBinary(const std::vector<DicomTag>& parentTags,
                                const std::vector<size_t>& parentIndexes,
                                const DicomTag& tag,
@@ -3510,12 +3558,12 @@ TEST(ParsedDicomFile, DISABLED_InjectEmptyPixelData2)
     std::string path = (std::string(getenv("HOME")) +
                         "/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
                         std::string(GetTransferSyntaxUid(a)) + ".dcm");
-    if (Orthanc::SystemToolbox::IsRegularFile(path))
+    if (Orthanc::SystemToolbox::IsRegularFile(SystemToolbox::PathFromUtf8(path)))
     {
       printf("\n======= %s\n", GetTransferSyntaxUid(a));
 
       std::string source;
-      Orthanc::SystemToolbox::ReadFile(source, path);
+      Orthanc::SystemToolbox::ReadFile(source, Orthanc::SystemToolbox::PathFromUtf8(path));
 
       ParsedDicomFile dicom(source);
       std::unique_ptr<DcmElement> removal(dicom.GetDcmtkObject().getDataset()->remove(DCM_PixelData));
@@ -3575,12 +3623,12 @@ TEST(Toto, DISABLED_Transcode3)
       std::string path = (std::string(getenv("HOME")) +
                           "/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
                           std::string(GetTransferSyntaxUid(a)) + ".dcm");
-      if (Orthanc::SystemToolbox::IsRegularFile(path))
+      if (Orthanc::SystemToolbox::IsRegularFile(SystemToolbox::PathFromUtf8(path)))
       {
         printf("\n======= %s\n", GetTransferSyntaxUid(a));
 
         std::string source;
-        Orthanc::SystemToolbox::ReadFile(source, path);
+        Orthanc::SystemToolbox::ReadFile(source, SystemToolbox::PathFromUtf8(path));
 
         std::string c, k;
         try
