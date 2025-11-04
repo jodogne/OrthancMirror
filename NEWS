@@ -5,7 +5,7 @@ General
 -------
 
 * New configuration "HttpBindAddresses" to list the IP addresses on which the
-  HTTP server listens.  By default, this list is empty and the HTTP server listens
+  HTTP server listens. By default, this list is empty and the HTTP server listens
   on all network interfaces.
 
 REST API
@@ -13,31 +13,31 @@ REST API
 
 * Fix: C-Get SCU jobs or HTTP responses were always successful even if the C-Get operation
   actually failed.
-* C-Store, C-Move and C-Get jobs and HTTP responses now include a new "DimseErrorStatus" 
+* C-Store, C-Move and C-Get jobs and HTTP responses now include a new "DimseErrorStatus"
   field (ONLY if the operation fails).
 
 Maintenance
 -----------
 
-* Under Windows, the console output is now configured to interpret strings as UTF-8.
-  This notably allow cyrillic strings to display correctly in the console.
-* Improved streaming of HTTP responses under OS pressure.  In some conditions, when the OS
-  was not able to send a full buffer over the network, Orthanc was not retrying 
-  to send the remaining part.  This is now fixed.  
+* Under Microsoft Windows, the console output is now configured to interpret strings as UTF-8.
+  This notably allow Cyrillic strings to display correctly in the console.
+* Improved streaming of HTTP responses under OS pressure. In some conditions, when the OS
+  was not able to send a full buffer over the network, Orthanc was not retrying
+  to send the remaining part.
   (https://discourse.orthanc-server.org/t/incomplete-zip-downloads-from-get-studies-id-media/6046)
 * Reworked all the paths handling, improving general support of non ASCII-only paths on Windows,
   specifically for the Storage directories and for the configuration files.
-  However, on Windows, some features might still not support non ASCII-only paths:
+  However, on Microsoft Windows, some features might still not support non ASCII-only paths:
   - Reading a DCMTK dictionary ("ExternalDictionaries" configuration)
   - Using a "TemporaryDirectory" to save zip file or to export DICOMDIR
   - The "SslCertificate" and other related configurations
 * Fix: DicomGetScu jobs are now saved in DB.
 * Fix: When the configuration option "MaximumStorageCacheSize" was set to 0, the default value (128)
-       was actually applied.  From now on, a value of 0 really means that the storage cache is disabled.
-* Fix: Orthanc was unable to convert the tags into dicom+json format if the instance contained an 
-       empty element in a sequence.  This was preventing access to /dicom-web/../metadata routes and prevented
+       was actually applied. From now on, a value of 0 really means that the storage cache is disabled.
+* Fix: Orthanc was unable to convert the tags into dicom+json format if the instance contained an
+       empty element in a sequence. This was preventing access to /dicom-web/../metadata routes and
        visualization in e.g. the Stone Web viewer and OHIF.
-* Fix issue 252: Disallow colons in HTTP basic usernames
+* Fix issue #252: Disallow colons in HTTP basic usernames
 * Fix: Decoding of LUT with less than 256 entries:
        https://discourse.orthanc-server.org/t/cannot-preview-dicom-file/6275
 * Fix: Possible deadlocks when using ZipLoaderThreads > 1 when the HttpClient disconnects
@@ -52,21 +52,24 @@ Plugins
 -------
 
 * Worklists plugin:
-  - The Worklists plugin now provides a Rest API to:
+  - The Worklists plugin now provides a REST API to:
     - create worklists through POST at /worklists/create
-    - list the worklists throuhg GET at /worklists 
+    - list the worklists through GET at /worklists
     - view a single worklist through GET at /worklists/{uuid}
     - modify a worklist through PUT at /worklists/{uuid}
     - delete a worklist through DELETE at /worklists/{uuid}
-    All details are available in the Orthanc book: https://orthanc.uclouvain.be/book/plugins/worklists-plugin.html
-  - New configurations:
-    - "SaveInOrthancDatabase" to store the worklists in the Orthanc DB (provided that you are using SQLite or PostgreSQL)
-    - "DeleteWorklistsOnStableStudy" to delete the worklist once its related study has been received and is stable
-    - "SetStudyInstanceUidIfMissing" to add a StudyInstanceUID if the Rest API request does not include one.
-    - "DeleteWorklistsDelay" to delete a worklist N hours after it has been created (only available if using the "SaveInOrthancDatabase" mode).
-    - "HousekeepingInterval" to define the delay between 2 executions of the Worklist Housekeeping thread that deletes
-      the worklists when required.
-  - Note: the previous "Database" configuration has now been renamed in "Directory" to better differentiate the "File" or "DB modes.
+    All details are available in the Orthanc book:
+    https://orthanc.uclouvain.be/book/plugins/worklists-plugin.html
+  - New configuration options:
+    - "SaveInOrthancDatabase" to store the worklists in the Orthanc DB (provided that you are using SQLite or PostgreSQL).
+    - "DeleteWorklistsOnStableStudy" to delete the worklist once its related study has been received and is stable.
+    - "SetStudyInstanceUidIfMissing" to add a StudyInstanceUID if the REST API request does not include one.
+    - "DeleteWorklistsDelay" to delete a worklist N hours after it has been created
+      (only available if using the "SaveInOrthancDatabase" mode).
+    - "HousekeepingInterval" to define the delay between 2 executions of the Worklist Housekeeping thread
+      that deletes the worklists when required.
+  - Note: the previous "Database" configuration has now been renamed in "Directory" to better differentiate
+    the "File" or "DB modes.
 
 
 Version 1.12.9 (2025-08-11)
@@ -670,7 +673,7 @@ Maintenance
 * Enforce the existence of the patient/study/instance while creating its archive
 * Security: New configuration option "RestApiWriteToFileSystemEnabled"
   to allow "/instances/../export" (the latter is now disabled by default)
-* Fix issue 214: VOILUTSequence is not returned in Wado-RS
+* Fix issue #214: VOILUTSequence is not returned in Wado-RS
 * Fix /tools/reset crashing when ExtraMainDicomTags were defined
 * Fix Housekeeper plugin infinite loop if Orthanc is empty.
 * Fix a crash in /tools/reconstruct triggered by the Housekeeper plugin 
