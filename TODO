@@ -1,11 +1,3 @@
-current work on C-Get SCU:
-- for the negotiation, limit SOPClassUID to the ones listed in a C-Find response or to a list provided in the Rest API ?
-- SetupPresentationContexts
-- handle progress
-- handle cancellation when the job is cancelled ?
-
-
-
 =======================
 === Orthanc Roadmap ===
 =======================
@@ -31,7 +23,6 @@ General
 * Option to enable DNS lookups in DICOM:
   https://orthanc.uclouvain.be/hg/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/OrthancFramework.cpp#l88
 * Toolbox::ComputeMD5() fails on files larger than 4GB
-* Add an option to run Orthanc in read-only mode both for DICOM and for Rest API.
 * Logging: add more specific information to contextualize the logs.
   For a DICOM Transfer, that would be nice to include the modality in the context + a study identifier or a job id.
 * (1) Accept extra DICOM tags dictionaries in the DCMTK format '.dic' (easier to use than declare
@@ -74,6 +65,16 @@ General
 * Allow saving PrivateTags in ExtraMainDicomTags.
   Note: they can actually be stored but they then appear as "Unknown Tag & Data" in the responses.
   If we try to add the PrivateCreator in the ExtraMainDicomTags, then, the DICOMWeb plugin fails to initialize because the private tags are not known.
+* Support hashed passwords in RegisteredUsers.  E.g:
+  "RegisteredUsers": { 
+    "admin": {
+      "Password": "5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8", 
+      "Hashing": "sha1"} }
+* Reuse the ThreadedInstanceLoader from the ArchiveJob in C-Store, peer/store ... to optimize loading
+  time when working with an object storage.
+* Implement a SharedMessageQueue with a max size -> that would greatly simplify the flow control in the 
+  ThreadedInstanceLoader (also used in DicomWeb).
+  
 
 ============================
 Documentation (Orthanc Book)
@@ -143,6 +144,9 @@ Mid-term
   require ffmpeg or a similar library -> can not be done in the Orthanc core.
   -> keep it for a python plugin
   -> or require the payload to include rows/columns/cinerate/...
+* When creating e.g a PDF series with /tools/create-dicom with a ParentStudy,
+  the new series does not have the InstitutionName copied from the parent study.
+  Can be tested with "Add PDF" in OE2.
 * (1) In the /studies/{id}/anonymize route, add an option to remove
   secondary captures.  They usually contains Patient info in the
   image. The SOPClassUID might be used to identify such secondary
@@ -168,8 +172,7 @@ Mid-term
   The patch that was initialy provided was breaking the IngestTranscoding.
   This might require a DCMTK decoding plugin ?
   https://discourse.orthanc-server.org/t/orthanc-convert-ybr-to-rgb-but-does-not-change-metadata/3533/9
-* Implement a 'commit' route to force the Stable status earlier.
-  https://discourse.orthanc-server.org/t/expediting-stability-of-a-dicom-study-new-api-endpoint/1684
+
 
 ---------
 Long-term
@@ -183,6 +186,14 @@ Long-term
 =====
 DICOM
 =====
+
+----------
+Short-term
+----------
+
+* Investigate stucked C-MOVE that seems to block the job engine:
+  https://discourse.orthanc-server.org/t/frozen-jobs-and-rest-api-not-responding-after-stuck-c-move/6280/11
+
 
 --------
 Mid-term
@@ -202,14 +213,12 @@ Mid-term
   DicomImageDecoder
 * Strict hierarchical C-FIND:
   https://groups.google.com/d/msg/orthanc-users/VBHpeGVSNKM/tkaVvjWFBwAJ
-* report DIMSE error codes in Rest API and job status for /store /query /move /retrieve
 * Log outgoing C-Find queries
 * Support other Transfer Syntaxes in the Worklist plugin:
   https://discourse.orthanc-server.org/t/could-you-please-create-an-option-to-set-the-transfer-syntax-in-the-worklist-plugin-currently-little-endian-explicit-is-fixed/4871
 * Deidentify Trace level logs: https://discourse.orthanc-server.org/t/dicom-log-deidentification-at-trace-log-level/5563
   We should implement something like GetDeidentifiedContent(const DcmDataSet& dataset) that would 
   reproduce DcmDataSet::print but hide individual elements that contain PHI.
-
 
 ---------
 Long-term
@@ -294,20 +303,49 @@ SDK
 * Provide a C++ callback similar to "ReceivedInstanceFilter()" in Lua
   https://orthanc.uclouvain.be/book/users/lua.html#filtering-incoming-dicom-instances
   https://groups.google.com/d/msg/orthanc-users/BtvLTE5Ni8A/vIMhmMgfBAAJ
-* Update the SDK to handle buffer sizes > 4GB (all sizes are currently coded in uint32_t)
+* Update the SDK to handle buffer sizes > 4GB (currently, sizes are often coded in uint32_t),
+  only where it makes sense, by introducing additional primitives that use
+  "OrthancPluginMemoryBuffer64" instead of "OrthancPluginMemoryBuffer"
 * Add a C-Get SCP handler: OrthancPluginRegisterGetCallback
   https://groups.google.com/g/orthanc-users/c/NRhPkYX9IXQ/m/mWS11g0jBwAJ
 * Add a primitive for user authentication (to generate 401 HTTP status, whereas
   the "RegisterIncomingHttpRequestFilter()" can only generate 403 HTTP status)
   https://groups.google.com/g/orthanc-users/c/ymtaAmgSs6Q/m/PqVBactQAQAJ
-* Add an index on the UUID column in the DelayedDeletion plugin:
-  https://discourse.orthanc-server.org/t/delayeddeletion-improvement-unique-index-on-pending-uuid-column/4032
+  NB: OrthancPluginRegisterHttpAuthentication() was introduced in Orthanc 1.12.9
 * Orthanc shall refuse to start if one registers 2 storage plugins.
   Right now, this is not possible because OrthancPluginRegisterStorageArea2 does not return any value
   and it can not throw an Exception because that's a core function called from a plugin -> the Exception
   can not cross the C/C++ frontier safely -> we need a OrthancPluginRegisterStorageArea3 with a return value.
   Ex: install DelayedDeletion + S3 storage.  Right now, the second plugin to load is just ignored with an error
   message in the logs.
+* Queues: There is currently a risk of loosing messages from the Queues:
+    message = orthanc.DequeueValue("instances-to-process", orthanc.QueueOrigin.FRONT)
+    # consider Orthanc is interrupted here (hard shutdown)
+    proccess(message)
+  The message will never be processed ...
+  We should have an acknowledge/commit mechanism e.g:
+    message, messageId = orthanc.DequeueValue2("instances-to-process", orthanc.QueueOrigin.FRONT, 5) # where 5 is a "timeout"
+    # At this point, the message is still in the queue but will not be dequeued by other consumers.
+    # If the message is not acknowledged within 5 seconds, it will get back into the queue.
+    process(message)
+    orthanc.AcknowledgeQueue("instances-to-process", messageId)
+    # This requires adding a new "timeout" column in the DB with the reservation_expiration timestamp.
+
+  Note by SJ: Introducing an acknowledgement would greatly complexify
+  the SDK and the core of Orthanc. I would favor another approach by
+  introducing 2 functions in the SDK:
+  - OrthancPluginQueuePeekFront(context, found, target, queueId): Same behavior as
+    OrthancPluginDequeueValue(), but limited to the back of the queue, and doesn't modify the queue
+  - OrthancPluginQueuePopFront(context, target): Remove the front element from the queue
+  As long as OrthancPluginQueuePopFront() is not called, no message would be lost.
+  Note that we cannot propose "OrthancPluginQueuePeekBack()" or
+  "OrthancPluginQueuePeek(..., OrthancPluginQueueOrigin_Back)" (i.e., LIFO stacks), as a
+  concurrent call to "OrthancPluginEnqueueValue()" would alter the back of the queue.
+
+  Note by AM: With PeekFront: 2 consumers on 2 Orthanc instances might consume the same message no ?
+
+* Add OrthancPluginSetStableStatus2() which would take an additional OrthancPluginResourceType
+  argument to avoid possible ambiguity about the resource of interest
 
 
 -----------
@@ -374,9 +412,6 @@ Big-endian architectures
 Microsoft Windows
 -----------------
 
-* Add compatibility with non-ASCII paths (Orthanc expresses its paths
-  as UTF-8 strings, but Windows expects them to be translated to the 
-  system locale)
 * Fix error message when stopping the service:
   https://groups.google.com/g/orthanc-users/c/NyrwUJ9N6Ec/m/sTZIcWvaAgAJ
   

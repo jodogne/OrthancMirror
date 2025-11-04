@@ -297,13 +297,14 @@ namespace Orthanc
                               const HttpToolbox::Arguments& headers,
                               const HttpToolbox::GetArguments& getArguments,
                               const void* bodyData,
-                              size_t bodySize)
+                              size_t bodySize,
+                              const std::string& authenticationPayload)
   {
     MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_rest_api_duration_ms");
     MetricsRegistry::ActiveCounter counter(activeRequests_);
 
     return RestApi::Handle(output, origin, remoteIp, username, method,
-                           uri, headers, getArguments, bodyData, bodySize);
+                           uri, headers, getArguments, bodyData, bodySize, authenticationPayload);
   }
 
 
@@ -324,6 +325,7 @@ namespace Orthanc
   static const char* KEY_PRIORITY = "Priority";
   static const char* KEY_SYNCHRONOUS = "Synchronous";
   static const char* KEY_ASYNCHRONOUS = "Asynchronous";
+  static const char* KEY_USER_DATA = "UserData";
 
   
   bool OrthancRestApi::IsSynchronousJobRequest(bool isDefaultSynchronous,
@@ -441,6 +443,11 @@ namespace Orthanc
       job->SetPermissive(false);
     }
 
+    if (body.isMember(KEY_USER_DATA))
+    {
+      job->SetUserData(body[KEY_USER_DATA]);
+    }
+
     SubmitGenericJob(call, raii.release(), isDefaultSynchronous, body);
   }
 
@@ -467,6 +474,11 @@ namespace Orthanc
       job->SetPermissive(false);
     }
 
+    if (body.isMember(KEY_USER_DATA))
+    {
+      job->SetUserData(body[KEY_USER_DATA]);
+    }
+
     SubmitGenericJob(call, raii.release(), isDefaultSynchronous, body);
   }  
 
@@ -481,7 +493,7 @@ namespace Orthanc
                        "If `true`, run the job in asynchronous mode, which means that the REST API call will immediately "
                        "return, reporting the identifier of a job. Prefer this flavor wherever possible.", false)
       .SetRequestField(KEY_PRIORITY, RestApiCallDocumentation::Type_Number,
-                       "In asynchronous mode, the priority of the job. The higher the value, the higher the priority.", false)
+                       "In asynchronous mode, the priority of the job. The higher the value, the higher the priority.  Default value is `0`", false)
       .SetAnswerField("ID", RestApiCallDocumentation::Type_String, "In asynchronous mode, identifier of the job")
       .SetAnswerField("Path", RestApiCallDocumentation::Type_String, "In asynchronous mode, path to access the job in the REST API");
   }
@@ -492,7 +504,9 @@ namespace Orthanc
     DocumentSubmitGenericJob(call);
     call.GetDocumentation()
       .SetRequestField(KEY_PERMISSIVE, RestApiCallDocumentation::Type_Boolean,
-                       "If `true`, ignore errors during the individual steps of the job.", false);
+                       "If `true`, ignore errors during the individual steps of the job.  Default value is `false`.", false)
+      .SetRequestField(KEY_USER_DATA, RestApiCallDocumentation::Type_JsonObject,
+                       "User data that will travel along with the job.", false);
   }
 
 
@@ -705,8 +719,8 @@ namespace Orthanc
     {
       call.GetDocumentation().SetHttpGetArgument(GET_RESPONSE_CONTENT, RestApiCallDocumentation::Type_String,
                             "Defines the content of response for each returned resource.  Allowed values are `MainDicomTags`, "
-                            "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `Attachments`.  If not specified, Orthanc "
-                            "will return `MainDicomTags`, `Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`."
+                            "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `IsProtected`, `Attachments`.  If not specified, Orthanc "
+                            "will return `MainDicomTags`, `Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `IsProtected`."
                             "e.g: '" + GET_RESPONSE_CONTENT + "=MainDicomTags;Children "
                             "(new in Orthanc 1.12.5 - overrides `expand`)", false);
 
@@ -719,8 +733,8 @@ namespace Orthanc
       call.GetDocumentation().SetRequestField(POST_RESPONSE_CONTENT, RestApiCallDocumentation::Type_JsonListOfStrings,
                             "Defines the content of response for each returned resource. (this field, if present, overrides the \"Expand\" field).  "
                             "Allowed values are `MainDicomTags`, "
-                            "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `Attachments`.  If not specified, Orthanc "
-                            "will return `MainDicomTags`, `Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`."
+                            "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `IsProtected`, `Attachments`.  If not specified, Orthanc "
+                            "will return `MainDicomTags`, `Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `IsProtected`."
                             "(new in Orthanc 1.12.5)", false);
 
       call.GetDocumentation().SetRequestField(POST_EXPAND, RestApiCallDocumentation::Type_Boolean,

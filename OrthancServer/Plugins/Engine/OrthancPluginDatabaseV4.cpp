@@ -41,7 +41,7 @@
 #include "OrthancDatabasePlugin.pb.h"  // Auto-generated file
 
 #include <cassert>
-
+#include <limits>
 
 namespace Orthanc
 {
@@ -100,15 +100,17 @@ namespace Orthanc
   }
 
     
-  static FileInfo Convert(const DatabasePluginMessages::FileInfo& source)
+  static void Convert(FileInfo& info,
+                      const DatabasePluginMessages::FileInfo& source)
   {
-    return FileInfo(source.uuid(),
+    info = FileInfo(source.uuid(),
                     static_cast<FileContentType>(source.content_type()),
                     source.uncompressed_size(),
                     source.uncompressed_hash(),
                     static_cast<CompressionType>(source.compression_type()),
                     source.compressed_size(),
                     source.compressed_hash());
+    info.SetCustomData(source.custom_data());
   }
 
 
@@ -576,6 +578,7 @@ namespace Orthanc
       request.mutable_add_attachment()->mutable_attachment()->set_compression_type(attachment.GetCompressionType());
       request.mutable_add_attachment()->mutable_attachment()->set_compressed_size(attachment.GetCompressedSize());
       request.mutable_add_attachment()->mutable_attachment()->set_compressed_hash(attachment.GetCompressedMD5());        
+      request.mutable_add_attachment()->mutable_attachment()->set_custom_data(attachment.GetCustomData());  // New in 1.12.8
       request.mutable_add_attachment()->set_revision(revision);
 
       ExecuteTransaction(DatabasePluginMessages::OPERATION_ADD_ATTACHMENT, request);
@@ -604,7 +607,9 @@ namespace Orthanc
       DatabasePluginMessages::TransactionResponse response;
       ExecuteTransaction(response, DatabasePluginMessages::OPERATION_DELETE_ATTACHMENT, request);
 
-      listener_.SignalAttachmentDeleted(Convert(response.delete_attachment().deleted_attachment()));
+      FileInfo info;
+      Convert(info, response.delete_attachment().deleted_attachment());
+      listener_.SignalAttachmentDeleted(info);
     }
 
     
@@ -629,7 +634,9 @@ namespace Orthanc
 
       for (int i = 0; i < response.delete_resource().deleted_attachments().size(); i++)
       {
-        listener_.SignalAttachmentDeleted(Convert(response.delete_resource().deleted_attachments(i)));
+        FileInfo info;
+        Convert(info, response.delete_resource().deleted_attachments(i));
+        listener_.SignalAttachmentDeleted(info);
       }
 
       for (int i = 0; i < response.delete_resource().deleted_resources().size(); i++)
@@ -1006,7 +1013,7 @@ namespace Orthanc
 
       if (response.lookup_attachment().found())
       {
-        attachment = Convert(response.lookup_attachment().attachment());
+        Convert(attachment, response.lookup_attachment().attachment());
         revision = response.lookup_attachment().revision();
         return true;
       }
@@ -1016,7 +1023,48 @@ namespace Orthanc
       }
     }
 
-    
+
+    virtual void GetAttachmentCustomData(std::string& customData,
+                                         const std::string& attachmentUuid) ORTHANC_OVERRIDE
+    {
+      if (database_.GetDatabaseCapabilities().HasAttachmentCustomDataSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_get_attachment_custom_data()->set_uuid(attachmentUuid);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_ATTACHMENT_CUSTOM_DATA, request);
+
+        customData = response.get_attachment_custom_data().custom_data();
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual void SetAttachmentCustomData(const std::string& attachmentUuid,
+                                         const void* customData,
+                                         size_t customDataSize) ORTHANC_OVERRIDE
+    {
+      if (database_.GetDatabaseCapabilities().HasAttachmentCustomDataSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_set_attachment_custom_data()->set_uuid(attachmentUuid);
+        request.mutable_set_attachment_custom_data()->set_custom_data(customData, customDataSize);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_SET_ATTACHMENT_CUSTOM_DATA, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+
     virtual bool LookupGlobalProperty(std::string& target,
                                       GlobalProperty property,
                                       bool shared) ORTHANC_OVERRIDE
@@ -1686,7 +1734,9 @@ namespace Orthanc
 
           for (int j = 0; j < source.attachments().size(); j++)
           {
-            target->AddAttachment(Convert(source.attachments(j)), source.attachments_revisions(j));
+            FileInfo info;
+            Convert(info, source.attachments(j));
+            target->AddAttachment(info, source.attachments_revisions(j));
           }
 
           Convert(*target, ResourceType_Patient, source.patient_content());
@@ -1748,7 +1798,8 @@ namespace Orthanc
 
             for (int j = 0; j < source.one_instance_attachments().size(); j++)
             {
-              FileInfo info(Convert(source.one_instance_attachments(j)));
+              FileInfo info;
+              Convert(info, source.one_instance_attachments(j));
               if (attachments.find(info.GetContentType()) == attachments.end())
               {
                 attachments[info.GetContentType()] = info;
@@ -1803,6 +1854,201 @@ namespace Orthanc
       {
         Compatibility::GenericFind find(*this, *this);
         find.ExecuteExpand(response, capabilities, request, identifier);
+      }
+    }
+
+    virtual void StoreKeyValue(const std::string& storeId,
+                               const std::string& key,
+                               const void* value,
+                               size_t valueSize) ORTHANC_OVERRIDE
+    {
+      // In protobuf, bytes "may contain any arbitrary sequence of bytes no longer than 2^32"
+      // https://protobuf.dev/programming-guides/proto3/
+      if (valueSize > std::numeric_limits<uint32_t>::max())
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory);
+      }
+
+      if (database_.GetDatabaseCapabilities().HasKeyValueStoresSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_store_key_value()->set_store_id(storeId);
+        request.mutable_store_key_value()->set_key(key);
+        request.mutable_store_key_value()->set_value(value, valueSize);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_STORE_KEY_VALUE, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual void DeleteKeyValue(const std::string& storeId,
+                                const std::string& key) ORTHANC_OVERRIDE
+    {
+      if (database_.GetDatabaseCapabilities().HasKeyValueStoresSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_delete_key_value()->set_store_id(storeId);
+        request.mutable_delete_key_value()->set_key(key);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_DELETE_KEY_VALUE, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual bool GetKeyValue(std::string& value,
+                             const std::string& storeId,
+                             const std::string& key) ORTHANC_OVERRIDE
+    {
+      if (database_.GetDatabaseCapabilities().HasKeyValueStoresSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_get_key_value()->set_store_id(storeId);
+        request.mutable_get_key_value()->set_key(key);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_KEY_VALUE, request);
+
+        if (response.get_key_value().found())
+        {
+          value = response.get_key_value().value();
+          return true;
+        }
+        else
+        {
+          return false;
+        }
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual void ListKeysValues(std::list<std::string>& keys,
+                                std::list<std::string>& values,
+                                const std::string& storeId,
+                                bool fromFirst,
+                                const std::string& fromKey,
+                                uint64_t limit) ORTHANC_OVERRIDE
+    {
+      if (database_.GetDatabaseCapabilities().HasKeyValueStoresSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_list_keys_values()->set_store_id(storeId);
+        request.mutable_list_keys_values()->set_from_first(fromFirst);
+        request.mutable_list_keys_values()->set_from_key(fromKey);
+        request.mutable_list_keys_values()->set_limit(limit);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LIST_KEY_VALUES, request);
+
+        for (int i = 0; i < response.list_keys_values().keys_values_size(); ++i)
+        {
+          keys.push_back(response.list_keys_values().keys_values(i).key());
+          values.push_back(response.list_keys_values().keys_values(i).value());
+        }
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual void EnqueueValue(const std::string& queueId,
+                              const void* value,
+                              size_t valueSize) ORTHANC_OVERRIDE
+    {
+      // In protobuf, bytes "may contain any arbitrary sequence of bytes no longer than 2^32"
+      // https://protobuf.dev/programming-guides/proto3/
+      if (valueSize > std::numeric_limits<uint32_t>::max())
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory);
+      }
+
+      if (database_.GetDatabaseCapabilities().HasQueuesSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_enqueue_value()->set_queue_id(queueId);
+        request.mutable_enqueue_value()->set_value(value, valueSize);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_ENQUEUE_VALUE, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual bool DequeueValue(std::string& value,
+                              const std::string& queueId,
+                              QueueOrigin origin) ORTHANC_OVERRIDE
+    {
+      if (database_.GetDatabaseCapabilities().HasQueuesSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_dequeue_value()->set_queue_id(queueId);
+
+        switch (origin)
+        {
+          case QueueOrigin_Back:
+            request.mutable_dequeue_value()->set_origin(DatabasePluginMessages::QUEUE_ORIGIN_BACK);
+            break;
+
+          case QueueOrigin_Front:
+            request.mutable_dequeue_value()->set_origin(DatabasePluginMessages::QUEUE_ORIGIN_FRONT);
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_DEQUEUE_VALUE, request);
+
+        if (response.dequeue_value().found())
+        {
+          value = response.dequeue_value().value();
+          return true;
+        }
+        else
+        {
+          return false;
+        }
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual uint64_t GetQueueSize(const std::string& queueId) ORTHANC_OVERRIDE
+    {
+      if (database_.GetDatabaseCapabilities().HasQueuesSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_get_queue_size()->set_queue_id(queueId);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_QUEUE_SIZE, request);
+
+        return response.get_queue_size().size();
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
       }
     }
   };
@@ -1895,6 +2141,9 @@ namespace Orthanc
       dbCapabilities_.SetMeasureLatency(systemInfo.has_measure_latency());
       dbCapabilities_.SetHasExtendedChanges(systemInfo.has_extended_changes());
       dbCapabilities_.SetHasFindSupport(systemInfo.supports_find());
+      dbCapabilities_.SetKeyValueStoresSupport(systemInfo.supports_key_value_stores());
+      dbCapabilities_.SetQueuesSupport(systemInfo.supports_queues());
+      dbCapabilities_.SetAttachmentCustomDataSupport(systemInfo.has_attachment_custom_data());
     }
 
     open_ = true;
@@ -1961,7 +2210,7 @@ namespace Orthanc
 
   
   void OrthancPluginDatabaseV4::Upgrade(unsigned int targetVersion,
-                                        IStorageArea& storageArea)
+                                        IPluginStorageArea& storageArea)
   {
     if (!open_)
     {

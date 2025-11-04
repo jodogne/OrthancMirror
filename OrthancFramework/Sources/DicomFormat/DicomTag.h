@@ -194,6 +194,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_FRAME_INCREMENT_POINTER(0x0028, 0x0009);
   static const DicomTag DICOM_TAG_GRID_FRAME_OFFSET_VECTOR(0x3004, 0x000c);
   static const DicomTag DICOM_TAG_PIXEL_SPACING(0x0028, 0x0030);
+  static const DicomTag DICOM_TAG_IMAGER_PIXEL_SPACING(0x0018, 0x1164);
   static const DicomTag DICOM_TAG_RESCALE_INTERCEPT(0x0028, 0x1052);
   static const DicomTag DICOM_TAG_RESCALE_SLOPE(0x0028, 0x1053);
   static const DicomTag DICOM_TAG_SLICE_THICKNESS(0x0018, 0x0050);
@@ -241,6 +242,10 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_REFERENCED_FILE_ID(0x0004, 0x1500);
 
   // Tags for DicomWeb
-  static const Orthanc::DicomTag DICOM_TAG_RETRIEVE_URL(0x0008, 0x1190);
+  static const DicomTag DICOM_TAG_RETRIEVE_URL(0x0008, 0x1190);
 
+  // Tags for Worklists
+  static const DicomTag DICOM_TAG_SCHEDULED_PROCEDURE_STEP_SEQUENCE(0x0040, 0x0100);
+  static const DicomTag DICOM_TAG_SCHEDULED_STATION_AETITLE(0x0040, 0x0001);
+  static const DicomTag DICOM_TAG_SCHEDULED_PROCEDURE_STEP_START_DATE(0x0040, 0x0002);
 }

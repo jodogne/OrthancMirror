@@ -38,6 +38,13 @@
 
 namespace Orthanc
 {
+  static std::string DimseToHexString(uint16_t dimseStatus)
+  {
+    char buf[16];
+    sprintf(buf, "0x%04X", dimseStatus);
+    return buf;
+  }
+
   static void ProgressCallback(void * /*callbackData*/,
                                T_DIMSE_StoreProgress *progress,
                                T_DIMSE_C_StoreRQ * req)
@@ -453,12 +460,11 @@ namespace Orthanc
         response.DimseStatus != 0xB006 &&  // Warning - Elements Discarded
         response.DimseStatus != 0x0111)    // Warning - Duplicate SOPInstanceUID (https://discourse.orthanc-server.org/t/ignore-dimse-status-0x0111-when-sending-partial-duplicate-studies/4555/3)
     {
-      char buf[16];
-      sprintf(buf, "%04X", response.DimseStatus);
       throw OrthancException(ErrorCode_NetworkProtocol,
                              "C-STORE SCU to AET \"" +
                              GetParameters().GetRemoteModality().GetApplicationEntityTitle() +
-                             "\" has failed with DIMSE status 0x" + buf);
+                             "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus),
+                             response.DimseStatus);
     }
   }
 

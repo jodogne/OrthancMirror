@@ -3,6 +3,7 @@ ThirdPartyDownloads/
 CMakeLists.txt.user
 *.cpp.orig
 *.h.orig
+*.patch.orig
 .vs/
 .vscode/
 *~
@@ -16,3 +17,8 @@ OrthancFramework/Resources/CodeGeneration/.venv/
 .project
 Resources/Testing/Issue32/Java/bin
 Resources/Testing/Issue32/Java/target
+build/
+
+# when opening Orthanc in Visual Studio, by default, it creates these files/folders:
+OrthancServer/CMakeSettings.json
+OrthancServer/out/

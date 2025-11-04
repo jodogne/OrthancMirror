@@ -178,7 +178,7 @@ namespace Orthanc
       request_.SetRetrieveAttachments(retrieve);
     }
 
-    // NB: "index" is only used in this method to fill the "IsStable" information
+    // NB: "index" is used in this method to fill the "IsStable" and "IsProtected" information
     void Expand(Json::Value& target,
                 const FindResponse::Resource& resource,
                 ServerIndex& index,

@@ -71,7 +71,6 @@
 
   // The period (in seconds) between 2 calls of the "OnHeartBeat"
   // lua callback.  O means the heart beat is disabled.
-  // TODO: text below for Orthanc book:
   // Note: that the period is actually not the delay between
   // the end of an execution and the triggering of the next one.
   // Since there is only one lua context, if other lua code is being
@@ -117,6 +116,19 @@
 
   // HTTP port for the REST services and for the GUI
   "HttpPort" : 8042,
+
+  // IP addresses the HTTP server listens on.  
+  // This is usefull when, e.g. your computer has multiple network
+  // interfaces and you want Orthanc to be accessible on a single
+  // sub-network.
+  // By default, the HTTP server listens on all IP addresses.
+  // Note that, setting "HttpBindAddresses" to ["127.0.0.1"] is
+  // almost equivalent to settting "RemoteAccessAllowed".  In the
+  // first case, external HTTP clients won't be able to connect at 
+  // all to Orthanc while, in the second case, external HTTP clients 
+  // will be able to connect but will receive a 401 Unauthorized
+  // HTTP status code. 
+  //"HttpBindAddresses": ["1.2.3.4", "127.0.0.1"]
 
   // When the following option is "true", if an error is encountered
   // while calling the REST API, a JSON message describing the error
@@ -307,10 +319,11 @@
 
   // The list of the registered users. Because Orthanc uses HTTP
   // Basic Authentication, the passwords are stored as plain text.
-  "RegisteredUsers" : {
-    // "alice" : "alicePassword"
-  },
-
+  /**
+     "RegisteredUsers" : {
+       // "alice" : "alicePassword"
+     },
+  **/
 
 
   /**

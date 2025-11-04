@@ -55,6 +55,7 @@ message FileInfo {
   int32   compression_type = 5;  // opaque "CompressionType" in Orthanc
   uint64  compressed_size = 6;
   string  compressed_hash = 7;
+  bytes   custom_data = 8;       // New in 1.12.8
 }
 
 enum ResourceType {
@@ -92,6 +93,11 @@ enum OrderingCast {
   ORDERING_CAST_STRING = 0;
   ORDERING_CAST_INT = 1;
   ORDERING_CAST_FLOAT = 2;
+}
+
+enum QueueOrigin {
+  QUEUE_ORIGIN_FRONT = 0;
+  QUEUE_ORIGIN_BACK = 1;
 }
 
 message ServerIndexChange {
@@ -166,6 +172,9 @@ message GetSystemInformation {
     bool has_measure_latency = 7;
     bool supports_find = 8;         // New in Orthanc 1.12.5
     bool has_extended_changes = 9;  // New in Orthanc 1.12.5
+    bool supports_key_value_stores = 10;  // New in Orthanc 1.12.8
+    bool supports_queues = 11;            // New in Orthanc 1.12.8
+    bool has_attachment_custom_data = 12; // New in Orthanc 1.12.8
   }
 }
 
@@ -321,6 +330,16 @@ enum TransactionOperation {
   OPERATION_FIND = 50;                        // New in Orthanc 1.12.5
   OPERATION_GET_CHANGES_EXTENDED = 51;        // New in Orthanc 1.12.5
   OPERATION_COUNT_RESOURCES = 52;             // New in Orthanc 1.12.5
+  OPERATION_STORE_KEY_VALUE = 53;             // New in Orthanc 1.12.8
+  OPERATION_DELETE_KEY_VALUE = 54;            // New in Orthanc 1.12.8
+  OPERATION_GET_KEY_VALUE = 55;               // New in Orthanc 1.12.8
+  OPERATION_LIST_KEY_VALUES = 56;             // New in Orthanc 1.12.8
+  OPERATION_ENQUEUE_VALUE = 57;               // New in Orthanc 1.12.8
+  OPERATION_DEQUEUE_VALUE = 58;               // New in Orthanc 1.12.8
+  OPERATION_GET_QUEUE_SIZE = 59;              // New in Orthanc 1.12.8
+  OPERATION_GET_ATTACHMENT_CUSTOM_DATA = 60;  // New in Orthanc 1.12.8
+  OPERATION_SET_ATTACHMENT_CUSTOM_DATA = 61;  // New in Orthanc 1.12.8
+
 }
 
 message Rollback {
@@ -974,6 +993,109 @@ message CountResources
   }
 }
 
+message StoreKeyValue {
+  message Request {
+    string store_id = 1;
+    string key = 2;
+    bytes value = 3;
+  }
+
+  message Response {
+  }
+}
+
+message DeleteKeyValue {
+  message Request {
+    string store_id = 1;
+    string key = 2;
+  }
+
+  message Response {
+  }
+}
+
+message GetKeyValue {
+  message Request {
+    string store_id = 1;
+    string key = 2;
+  }
+
+  message Response {
+    bool found = 1;
+    bytes value = 2;
+  }
+}
+
+message ListKeysValues {
+  message Request {
+    string store_id = 1;
+    bool from_first = 2;
+    string from_key = 3;  // Only meaningful if "from_first == false"
+    uint64 limit = 4;
+  }
+
+  message Response {
+    message KeyValue {
+      string key = 1;
+      bytes value = 2;
+    }
+    repeated KeyValue keys_values = 1;
+  }
+}
+
+message EnqueueValue {
+  message Request {
+    string queue_id = 1;
+    bytes value = 2;
+  }
+
+  message Response {
+  }
+}
+
+message DequeueValue {
+  message Request {
+    string queue_id = 1;
+    QueueOrigin origin = 2;
+  }
+
+  message Response {
+    bool found = 1;
+    bytes value = 2;
+  }
+}
+
+message GetQueueSize {
+  message Request {
+    string queue_id = 1;
+  }
+
+  message Response {
+    uint64 size = 1;
+  }
+}
+
+message GetAttachmentCustomData {
+  message Request {
+    string uuid = 1;
+  }
+
+  message Response {
+    bytes custom_data = 1;
+  }
+}
+
+message SetAttachmentCustomData {
+  message Request {
+    string uuid = 1;
+    bytes custom_data = 2;
+  }
+
+  message Response {
+  }
+}
+
+
 message TransactionRequest {
   sfixed64              transaction = 1;
   TransactionOperation  operation = 2;
@@ -1031,6 +1153,15 @@ message TransactionRequest {
   Find.Request                            find = 150;
   GetChangesExtended.Request              get_changes_extended = 151;
   Find.Request                            count_resources = 152;
+  StoreKeyValue.Request                   store_key_value = 153;
+  DeleteKeyValue.Request                  delete_key_value = 154;
+  GetKeyValue.Request                     get_key_value = 155;
+  ListKeysValues.Request                  list_keys_values = 156;
+  EnqueueValue.Request                    enqueue_value = 157;
+  DequeueValue.Request                    dequeue_value = 158;
+  GetQueueSize.Request                    get_queue_size = 159;
+  GetAttachmentCustomData.Request         get_attachment_custom_data = 160;
+  SetAttachmentCustomData.Request         set_attachment_custom_data = 161;
 }
 
 message TransactionResponse {
@@ -1087,6 +1218,15 @@ message TransactionResponse {
   repeated Find.Response                   find = 150;   // One message per found resource
   GetChangesExtended.Response              get_changes_extended = 151;
   CountResources.Response                  count_resources = 152;
+  StoreKeyValue.Response                   store_key_value = 153;
+  DeleteKeyValue.Response                  delete_key_value = 154;
+  GetKeyValue.Response                     get_key_value = 155;
+  ListKeysValues.Response                  list_keys_values = 156;
+  EnqueueValue.Response                    enqueue_value = 157;
+  DequeueValue.Response                    dequeue_value = 158;
+  GetQueueSize.Response                    get_queue_size = 159;
+  GetAttachmentCustomData.Response         get_attachment_custom_data = 160;
+  SetAttachmentCustomData.Response         set_attachment_custom_data = 161;
 }
 
 enum RequestType {

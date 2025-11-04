@@ -49,6 +49,14 @@ namespace Orthanc
 
   class OrthancConfiguration : public boost::noncopyable
   {
+  public:
+    enum RegisteredUsersStatus
+    {
+      RegisteredUsersStatus_NoConfiguration,  // There is no "RegisteredUsers" section in the configuration file
+      RegisteredUsersStatus_NoUser,           // The "RegisteredUsers" section is present, but declares no user
+      RegisteredUsersStatus_HasUser           // The "RegisteredUsers" section is present and contains at least 1 user
+    };
+
   private:
     typedef std::map<std::string, RemoteModalityParameters>   Modalities;
     typedef std::map<std::string, WebServiceParameters>       Peers;
@@ -59,7 +67,7 @@ namespace Orthanc
     boost::filesystem::path  defaultDirectory_;
     std::string              configurationAbsolutePath_;
     FontRegistry             fontRegistry_;
-    const char*              configurationFileArg_;
+    boost::filesystem::path  configurationFileArg_;
     Modalities               modalities_;
     Peers                    peers_;
     JobsEngineThreadsCount   jobsEngineThreadsCount_;
@@ -67,7 +75,6 @@ namespace Orthanc
     std::set<Warnings>       disabledWarnings_;
 
     OrthancConfiguration() :
-      configurationFileArg_(NULL),
       serverIndex_(NULL)
     {
     }
@@ -156,7 +163,7 @@ namespace Orthanc
       return fontRegistry_;
     }
 
-    void Read(const char* configurationFile);
+    void Read(const boost::filesystem::path &configurationFile);
 
     // "SetServerIndex()" must have been called
     void LoadModalitiesAndPeers();
@@ -198,11 +205,10 @@ namespace Orthanc
     void GetListOfOrthancPeers(std::set<std::string>& target) const;
 
     unsigned int GetDicomLossyTranscodingQuality() const;
-    
-    // Returns "true" iff. at least one user is registered
-    bool SetupRegisteredUsers(HttpServer& httpServer) const;
 
-    std::string InterpretStringParameterAsPath(const std::string& parameter) const;
+    RegisteredUsersStatus SetupRegisteredUsers(HttpServer& httpServer) const;
+
+    boost::filesystem::path InterpretStringParameterAsPath(const std::string& parameter) const;
     
     void GetListOfStringsParameter(std::list<std::string>& target,
                                    const std::string& key) const;

@@ -135,7 +135,7 @@ namespace Orthanc
     {
       if (dir_.get() == NULL)
       {
-        dir_.reset(new DcmDicomDir(file_.GetPath().c_str(), 
+        dir_.reset(new DcmDicomDir(SystemToolbox::PathToUtf8(file_.GetPath()).c_str(), 
                                    fileSetId_.c_str()));
         //SetTagValue(dir_->getRootRecord(), DCM_SpecificCharacterSet, GetDicomSpecificCharacterSet(Encoding_Utf8));
       }
@@ -167,7 +167,8 @@ namespace Orthanc
         {
           if (s != NULL)
           {
-            result = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
+            const bool skipBacklashes = true;  // cf. "ISO_IR 13": In this method, the VR will never be UT, ST, or LT
+            result = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions, skipBacklashes);
           }
           
           return true;

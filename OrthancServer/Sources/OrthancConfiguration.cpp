@@ -56,13 +56,13 @@ namespace Orthanc
     std::map<std::string, std::string> env;
     SystemToolbox::GetEnvironmentVariables(env);
     
-    LOG(WARNING) << "Reading the configuration from: " << path;
+    LOG(WARNING) << "Reading the configuration from: " << SystemToolbox::PathToUtf8(path);
 
     Json::Value config;
 
     {
       std::string content;
-      SystemToolbox::ReadFile(content, path.string());
+      SystemToolbox::ReadFile(content, path);
 
       content = Toolbox::SubstituteVariables(content, env);
 
@@ -71,7 +71,7 @@ namespace Orthanc
           tmp.type() != Json::objectValue)
       {
         throw OrthancException(ErrorCode_BadJson,
-                               "The configuration file does not follow the JSON syntax: " + path.string());
+                               "The configuration file does not follow the JSON syntax: " + SystemToolbox::PathToUtf8(path));
       }
 
       Toolbox::CopyJsonWithoutComments(config, tmp);
@@ -103,11 +103,11 @@ namespace Orthanc
 
     
   static void ScanFolderForConfiguration(Json::Value& target,
-                                         const char* folder)
+                                         const boost::filesystem::path& folder)
   {
     using namespace boost::filesystem;
 
-    LOG(WARNING) << "Scanning folder \"" << folder << "\" for configuration files";
+    LOG(WARNING) << "Scanning folder \"" << Orthanc::SystemToolbox::PathToUtf8(folder) << "\" for configuration files";
 
     directory_iterator end_it; // default construction yields past-the-end
     for (directory_iterator it(folder);
@@ -121,25 +121,25 @@ namespace Orthanc
 
         if (extension == ".json")
         {
-          AddFileToConfiguration(target, it->path().string());
+          AddFileToConfiguration(target, it->path());
         }
       }
     }
   }
 
     
-  static void ReadConfiguration(Json::Value& target,
-                                const char* configurationFile)
+  static void ReadConfiguration(Json::Value& target, 
+                                const boost::filesystem::path &configurationFile)
   {
     target = Json::objectValue;
 
-    if (configurationFile != NULL)
+    if (!configurationFile.empty())
     {
       if (!boost::filesystem::exists(configurationFile))
       {
         throw OrthancException(ErrorCode_InexistentFile,
                                "Inexistent path to configuration: " +
-                               std::string(configurationFile));
+                               SystemToolbox::PathToUtf8(configurationFile));
       }
       
       if (boost::filesystem::is_directory(configurationFile))
@@ -583,7 +583,7 @@ namespace Orthanc
   }
 
 
-  void OrthancConfiguration::Read(const char* configurationFile)
+  void OrthancConfiguration::Read(const boost::filesystem::path& configurationFile)
   {
     // Read the content of the configuration
     configurationFileArg_ = configurationFile;
@@ -593,11 +593,11 @@ namespace Orthanc
     defaultDirectory_ = boost::filesystem::current_path();
     configurationAbsolutePath_ = "";
 
-    if (configurationFile)
+    if (configurationFile.empty())
     {
       if (boost::filesystem::is_directory(configurationFile))
       {
-        defaultDirectory_ = boost::filesystem::path(configurationFile);
+        defaultDirectory_ = configurationFile;
         configurationAbsolutePath_ = boost::filesystem::absolute(configurationFile).parent_path().string();
       }
       else
@@ -707,39 +707,53 @@ namespace Orthanc
   }
 
 
-  bool OrthancConfiguration::SetupRegisteredUsers(HttpServer& httpServer) const
+  OrthancConfiguration::RegisteredUsersStatus OrthancConfiguration::SetupRegisteredUsers(HttpServer& httpServer) const
   {
+    static const char* const REGISTERED_USERS = "RegisteredUsers";
+
     httpServer.ClearUsers();
 
-    if (!json_.isMember("RegisteredUsers"))
+    if (!json_.isMember(REGISTERED_USERS))
     {
-      return false;
+      return RegisteredUsersStatus_NoConfiguration;
     }
-
-    const Json::Value& users = json_["RegisteredUsers"];
-    if (users.type() != Json::objectValue)
+    else
     {
-      throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of users");
-    }
+      const Json::Value& users = json_[REGISTERED_USERS];
+      if (users.type() != Json::objectValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of users");
+      }
 
-    bool hasUser = false;
-    Json::Value::Members usernames = users.getMemberNames();
-    for (size_t i = 0; i < usernames.size(); i++)
-    {
-      const std::string& username = usernames[i];
-      std::string password = users[username].asString();
-      httpServer.RegisterUser(username.c_str(), password.c_str());
-      hasUser = true;
-    }
+      bool hasUser = false;
+      Json::Value::Members usernames = users.getMemberNames();
+      for (size_t i = 0; i < usernames.size(); i++)
+      {
+        const std::string& username = usernames[i];
 
-    return hasUser;
+        if (users[username].type() != Json::stringValue)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of users");
+        }
+        else
+        {
+          std::string password = users[username].asString();
+          httpServer.RegisterUser(username.c_str(), password.c_str());
+          hasUser = true;
+        }
+      }
+
+      return (hasUser ?
+              RegisteredUsersStatus_HasUser :
+              RegisteredUsersStatus_NoUser);
+    }
   }
     
 
-  std::string OrthancConfiguration::InterpretStringParameterAsPath(
+  boost::filesystem::path OrthancConfiguration::InterpretStringParameterAsPath(
     const std::string& parameter) const
   {
-    return SystemToolbox::InterpretRelativePath(defaultDirectory_.string(), parameter);
+    return SystemToolbox::InterpretRelativePath(defaultDirectory_, parameter);
   }
 
     

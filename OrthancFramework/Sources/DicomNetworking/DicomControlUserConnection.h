@@ -126,10 +126,10 @@ namespace Orthanc
 
     void Move(const std::string& targetAet,
               ResourceType level,
-              const DicomMap& findResult);
+              const DicomMap& moveQuery);
     
     void Move(const std::string& targetAet,
-              const DicomMap& findResult);
+              const DicomMap& moveQuery);
     
     void MovePatient(const std::string& targetAet,
                      const std::string& patientId);

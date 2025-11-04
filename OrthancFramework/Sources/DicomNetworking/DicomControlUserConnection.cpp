@@ -35,6 +35,14 @@
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmnet/diutil.h>
 
+#if DCMTK_VERSION_NUMBER < 366
+#define STATUS_GET_Pending_SubOperationsAreContinuing                   0xff00
+#define STATUS_GET_Success                                              0x0000
+#define STATUS_MOVE_Pending_SubOperationsAreContinuing                  0xff00
+#define STATUS_MOVE_Success_SubOperationsCompleteNoFailures             0x0000
+#endif
+
+
 namespace Orthanc
 {
   static void TestAndCopyTag(DicomMap& result,
@@ -51,6 +59,12 @@ namespace Orthanc
     }
   }
 
+  static std::string DimseToHexString(uint16_t dimseStatus)
+  {
+    char buf[16];
+    sprintf(buf, "0x%04X", dimseStatus);
+    return buf;
+  }
 
   namespace
   {
@@ -372,23 +386,20 @@ namespace Orthanc
         response.DimseStatus != 0xFF00 &&  // Pending - Matches are continuing 
         response.DimseStatus != 0xFF01)    // Pending - Matches are continuing 
     {
-      char buf[16];
-      sprintf(buf, "%04X", response.DimseStatus);
-
       if (response.DimseStatus == STATUS_FIND_Failed_UnableToProcess)
       {
         throw OrthancException(ErrorCode_NetworkProtocol,
                                HttpStatus_422_UnprocessableEntity,
                                "C-FIND SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
-                               "\" has failed with DIMSE status 0x" + buf +
+                               "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus) +
                                " (unable to process - invalid query ?)");
       }
       else
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "C-FIND SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
-                               "\" has failed with DIMSE status 0x" + buf);
+                               "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus));
       }
     }
   }
@@ -401,6 +412,10 @@ namespace Orthanc
     DicomControlUserConnection::IProgressListener* listener = reinterpret_cast<DicomControlUserConnection::IProgressListener*>(callbackData);
     if (listener)
     {
+      OFString str;
+      CLOG(TRACE, DICOM) << "Received Move Progress:" << std::endl
+                         << DIMSE_dumpMessage(str, *response, DIMSE_INCOMING);
+
       listener->OnProgressUpdated(response->NumberOfRemainingSubOperations,
                                   response->NumberOfCompletedSubOperations,
                                   response->NumberOfFailedSubOperations,
@@ -487,32 +502,31 @@ namespace Orthanc
      * http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.4.2.html#table_C.4-2
      **/
     
-    if (response.DimseStatus != 0x0000 &&  // Success
-        response.DimseStatus != 0xFF00)    // Pending - Sub-operations are continuing
+    if (response.DimseStatus != STATUS_MOVE_Success_SubOperationsCompleteNoFailures &&
+        response.DimseStatus != STATUS_MOVE_Pending_SubOperationsAreContinuing)
     {
-      char buf[16];
-      sprintf(buf, "%04X", response.DimseStatus);
-
       if (response.DimseStatus == STATUS_MOVE_Failed_UnableToProcess)
       {
         throw OrthancException(ErrorCode_NetworkProtocol,
                                HttpStatus_422_UnprocessableEntity,
                                "C-MOVE SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
-                               "\" has failed with DIMSE status 0x" + buf +
-                               " (unable to process - resource not found ?)");
+                               "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus) +
+                               " (unable to process - resource not found ?)",
+                               response.DimseStatus);
       }
       else
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "C-MOVE SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
-                               "\" has failed with DIMSE status 0x" + buf);
+                               "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus),
+                               response.DimseStatus);
       }
     }
   }
     
 
-  void DicomControlUserConnection::Get(const DicomMap& findResult,
+  void DicomControlUserConnection::Get(const DicomMap& getQuery,
                                        CGetInstanceReceivedCallback instanceReceivedCallback,
                                        void* callbackContext)
   {
@@ -520,7 +534,7 @@ namespace Orthanc
     association_->Open(parameters_);
 
     std::unique_ptr<ParsedDicomFile> query(
-      ConvertQueryFields(findResult, parameters_.GetRemoteModality().GetManufacturer()));
+      ConvertQueryFields(getQuery, parameters_.GetRemoteModality().GetManufacturer()));
     DcmDataset* queryDataset = query->GetDcmtkObject().getDataset();
 
     std::string remoteAet;
@@ -530,7 +544,7 @@ namespace Orthanc
     association_->GetAssociationParameters(remoteAet, remoteIp, calledAet);
 
     const char* sopClass = NULL;
-    const std::string tmp = findResult.GetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL).GetContent();
+    const std::string tmp = getQuery.GetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL).GetContent();
     ResourceType level = StringToResourceType(tmp.c_str());
     switch (level)
     {
@@ -578,7 +592,11 @@ namespace Orthanc
     {
         OFString tempStr;
         CLOG(TRACE, DICOM) << "Failed sending C-GET request: " << DimseCondition::dump(tempStr, cond);
-        // return cond;
+
+        throw OrthancException(ErrorCode_NetworkProtocol, "C-GET SCU to AET \"" +
+                               parameters_.GetRemoteModality().GetApplicationEntityTitle() +
+                               "\" has failed to send the C-GET request");
+
     }
 
     // equivalent to handleCGETSession in DCMTK
@@ -607,8 +625,9 @@ namespace Orthanc
         {
           OFString tempStr;
           CLOG(TRACE, DICOM) << "Failed receiving DIMSE command: " << DimseCondition::dump(tempStr, result);
-          // delete statusDetail;
-          break;  // TODO: return value
+          throw OrthancException(ErrorCode_NetworkProtocol, "C-GET SCU to AET \"" +
+                                 parameters_.GetRemoteModality().GetApplicationEntityTitle() +
+                                 "\" has failed to receive DIMSE command");
         }
         // Handle C-GET Response
         if (rsp.CommandField == DIMSE_C_GET_RSP)
@@ -627,9 +646,17 @@ namespace Orthanc
                                                   rsp.msg.CGetRSP.NumberOfWarningSubOperations);
           }
 
-          if (rsp.msg.CGetRSP.DimseStatus == 0x0000)  // final success message
+          if (rsp.msg.CGetRSP.DimseStatus == STATUS_GET_Success)  // final success message
           {
             continueSession = false;
+          }
+          else if (rsp.msg.CGetRSP.DimseStatus != STATUS_GET_Pending_SubOperationsAreContinuing)
+          {
+            throw OrthancException(ErrorCode_NetworkProtocol,
+                                   "C-GET SCU to AET \"" +
+                                   parameters_.GetRemoteModality().GetApplicationEntityTitle() +
+                                   "\" has failed with DIMSE status " + DimseToHexString(rsp.msg.CGetRSP.DimseStatus),
+                                   rsp.msg.CGetRSP.DimseStatus);
           }
         }
         // Handle C-STORE Request
@@ -695,7 +722,9 @@ namespace Orthanc
                                                       NULL, NULL, NULL /* commandSet */);
             if (result.bad())
             {
-              continueSession = false;
+              throw OrthancException(ErrorCode_NetworkProtocol, "C-GET SCU to AET \"" +
+                                     parameters_.GetRemoteModality().GetApplicationEntityTitle() +
+                                     "\" has failed to send response message");
             }
             else
             {
@@ -712,16 +741,13 @@ namespace Orthanc
                                << std::hex << std::setfill('0') << std::setw(4)
                                << static_cast<unsigned int>(rsp.CommandField);
           
-          result          = DIMSE_BADCOMMANDTYPE;
-          continueSession = false;
+          throw OrthancException(ErrorCode_NetworkProtocol, "C-GET SCU to AET \"" +
+                                 parameters_.GetRemoteModality().GetApplicationEntityTitle() +
+                                 "\": Expected C-GET response or C-STORE request but received DIMSE command " + DimseToHexString(rsp.CommandField));
         }
 
-        // delete statusDetail; // should be NULL if not existing or added to response list
-        // statusDetail = NULL;
     }
     /* All responses received or break signal occurred */
-
-    // return result;
 }
 
 
@@ -881,28 +907,28 @@ namespace Orthanc
 
   void DicomControlUserConnection::Move(const std::string& targetAet,
                                         ResourceType level,
-                                        const DicomMap& findResult)
+                                        const DicomMap& moveQuery)
   {
     DicomMap move;
     switch (level)
     {
       case ResourceType_Patient:
-        TestAndCopyTag(move, findResult, DICOM_TAG_PATIENT_ID);
+        TestAndCopyTag(move, moveQuery, DICOM_TAG_PATIENT_ID);
         break;
 
       case ResourceType_Study:
-        TestAndCopyTag(move, findResult, DICOM_TAG_STUDY_INSTANCE_UID);
+        TestAndCopyTag(move, moveQuery, DICOM_TAG_STUDY_INSTANCE_UID);
         break;
 
       case ResourceType_Series:
-        TestAndCopyTag(move, findResult, DICOM_TAG_STUDY_INSTANCE_UID);
-        TestAndCopyTag(move, findResult, DICOM_TAG_SERIES_INSTANCE_UID);
+        TestAndCopyTag(move, moveQuery, DICOM_TAG_STUDY_INSTANCE_UID);
+        TestAndCopyTag(move, moveQuery, DICOM_TAG_SERIES_INSTANCE_UID);
         break;
 
       case ResourceType_Instance:
-        TestAndCopyTag(move, findResult, DICOM_TAG_STUDY_INSTANCE_UID);
-        TestAndCopyTag(move, findResult, DICOM_TAG_SERIES_INSTANCE_UID);
-        TestAndCopyTag(move, findResult, DICOM_TAG_SOP_INSTANCE_UID);
+        TestAndCopyTag(move, moveQuery, DICOM_TAG_STUDY_INSTANCE_UID);
+        TestAndCopyTag(move, moveQuery, DICOM_TAG_SERIES_INSTANCE_UID);
+        TestAndCopyTag(move, moveQuery, DICOM_TAG_SOP_INSTANCE_UID);
         break;
 
       default:
@@ -914,17 +940,17 @@ namespace Orthanc
 
 
   void DicomControlUserConnection::Move(const std::string& targetAet,
-                                        const DicomMap& findResult)
+                                        const DicomMap& moveQuery)
   {
-    if (!findResult.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
+    if (!moveQuery.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
     {
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    const std::string tmp = findResult.GetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL).GetContent();
+    const std::string tmp = moveQuery.GetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL).GetContent();
     ResourceType level = StringToResourceType(tmp.c_str());
 
-    Move(targetAet, level, findResult);
+    Move(targetAet, level, moveQuery);
   }
 
 

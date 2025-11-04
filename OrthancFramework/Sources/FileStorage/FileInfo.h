@@ -42,6 +42,7 @@ namespace Orthanc
     CompressionType  compressionType_;
     uint64_t         compressedSize_;
     std::string      compressedMD5_;
+    std::string      customData_;
 
   public:
     FileInfo();
@@ -80,5 +81,14 @@ namespace Orthanc
     const std::string& GetCompressedMD5() const;
 
     const std::string& GetUncompressedMD5() const;
+
+    void SetCustomData(const void* data,
+                       size_t size);
+
+    void SetCustomData(const std::string& data);
+
+    void SwapCustomData(std::string& data);
+
+    const std::string& GetCustomData() const;
   };
 }

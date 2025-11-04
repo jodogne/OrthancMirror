@@ -32,6 +32,7 @@
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/Toolbox.h"
+#include "../../../OrthancFramework/Sources/SystemToolbox.h"
 
 #include <cassert>
 #include <memory>
@@ -51,7 +52,7 @@
 namespace Orthanc
 {
   PluginsManager::Plugin::Plugin(PluginsManager& pluginManager,
-                                 const std::string& path) : 
+                                 const boost::filesystem::path& path) : 
     library_(path),
     pluginManager_(pluginManager)
   {
@@ -240,23 +241,22 @@ namespace Orthanc
   }
 
   
-  void PluginsManager::RegisterPlugin(const std::string& path)
+  void PluginsManager::RegisterPlugin(const boost::filesystem::path& path)
   {
     if (!boost::filesystem::exists(path))
     {
-      boost::filesystem::path p(path);
-      std::string extension = p.extension().string();
+      std::string extension = path.extension().string();
       Toolbox::ToLowerCase(extension);
 
       if (extension == PLUGIN_EXTENSION)
       { 
         // if this is a plugin path, fail to start
-        throw OrthancException(ErrorCode_SharedLibrary, "Inexistent path to plugin: " + path);
+        throw OrthancException(ErrorCode_SharedLibrary, "Inexistent path to plugin: " + SystemToolbox::PathToUtf8(path));
       }
       else
       { 
         // it might be a directory -> just log a warning
-        LOG(WARNING) << "Inexistent path to plugins: " << path;
+        LOG(WARNING) << "Inexistent path to plugins: " << SystemToolbox::PathToUtf8(path);
         return;
       }
     }
@@ -293,7 +293,7 @@ namespace Orthanc
   }
 
 
-  void PluginsManager::ScanFolderForPlugins(const std::string& folder,
+  void PluginsManager::ScanFolderForPlugins(const boost::filesystem::path& folder,
                                             bool isRecursive)
   {
     using namespace boost::filesystem;
@@ -303,14 +303,14 @@ namespace Orthanc
       return;
     }
 
-    CLOG(INFO, PLUGINS) << "Scanning folder " << folder << " for plugins";
+    CLOG(INFO, PLUGINS) << "Scanning folder " << SystemToolbox::PathToUtf8(folder) << " for plugins";
 
     directory_iterator end_it; // default construction yields past-the-end
     for (directory_iterator it(folder);
           it != end_it;
           ++it)
     {
-      std::string path = it->path().string();
+      boost::filesystem::path path = it->path();
 
       if (is_directory(it->status()))
       {

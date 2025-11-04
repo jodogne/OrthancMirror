@@ -28,6 +28,7 @@
 #include "IJobOperation.h"
 
 #include "../../Compatibility.h"  // For ORTHANC_OVERRIDE
+#include "../../OrthancException.h"
 
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
@@ -139,5 +140,15 @@ namespace Orthanc
     }
 
     void AwakeTrailingSleep();
+
+    virtual void SetUserData(const Json::Value& userData) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    virtual bool GetUserData(Json::Value& userData) const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
   };
 }

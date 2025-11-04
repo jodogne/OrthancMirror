@@ -29,6 +29,7 @@
 
 #include <map>
 #include <list>
+#include <boost/filesystem.hpp>
 
 namespace Orthanc
 {
@@ -45,7 +46,7 @@ namespace Orthanc
 
     public:
       Plugin(PluginsManager& pluginManager,
-             const std::string& path);
+             const boost::filesystem::path& path);
 
       SharedLibrary& GetSharedLibrary()
       {
@@ -87,9 +88,9 @@ namespace Orthanc
 
     ~PluginsManager();
 
-    void RegisterPlugin(const std::string& path);
+    void RegisterPlugin(const boost::filesystem::path& path);
 
-    void ScanFolderForPlugins(const std::string& path,
+    void ScanFolderForPlugins(const boost::filesystem::path& path,
                               bool isRecursive);
 
     void RegisterServiceProvider(IPluginServiceProvider& provider)

@@ -136,6 +136,7 @@ namespace Orthanc
     ResponseContentFlags_Children             = (1 << 10),
     ResponseContentFlags_Labels               = (1 << 11),
     ResponseContentFlags_IsStable             = (1 << 12),
+    ResponseContentFlags_IsProtected          = (1 << 13),
 
     ResponseContentFlags_INTERNAL_CountResources = (1 << 30),
     
@@ -150,7 +151,8 @@ namespace Orthanc
                                         ResponseContentFlags_Parent | 
                                         ResponseContentFlags_Children | 
                                         ResponseContentFlags_Labels |
-                                        ResponseContentFlags_IsStable),  // equivalent to "Expand": true
+                                        ResponseContentFlags_IsStable |
+                                        ResponseContentFlags_IsProtected),  // equivalent to "Expand": true
     
     ResponseContentFlags_Default = (ResponseContentFlags_ID |
                                     ResponseContentFlags_Type |
@@ -171,6 +173,7 @@ namespace Orthanc
     GlobalProperty_AnonymizationSequence = 3,
     GlobalProperty_JobsRegistry = 5,
     GlobalProperty_GetTotalSizeIsFast = 6,      // New in Orthanc 1.5.2
+    GlobalProperty_SQLiteHasRevisionAndCustomData = 7,     // New in Orthanc 1.12.8
     GlobalProperty_Modalities = 20,             // New in Orthanc 1.5.0
     GlobalProperty_Peers = 21,                  // New in Orthanc 1.5.0
 
@@ -207,6 +210,8 @@ namespace Orthanc
     MetadataType_MainDicomTagsSignature = 15,    // New in Orthanc 1.11.0
     MetadataType_MainDicomSequences = 16,        // New in Orthanc 1.11.1
     MetadataType_Instance_PixelDataVR = 17,      // New in Orthanc 1.12.1
+    MetadataType_Patient_IsProtected = 18,       // New in Orthanc 1.12.9 (used only by DB plugins)
+    MetadataType_Patient_PatientRecyclingOrder = 19,  // New in Orthanc 1.12.9 (used only by DB plugins)
     
     // Make sure that the value "65535" can be stored into this enumeration
     MetadataType_StartUser = 1024,
@@ -258,6 +263,11 @@ namespace Orthanc
     Warnings_007_MissingRequestedTagsNotReadFromDisk       // new in Orthanc 1.12.5
   };
 
+  enum QueueOrigin
+  {
+    QueueOrigin_Front,
+    QueueOrigin_Back
+  };
 
   void InitializeServerEnumerations();
 

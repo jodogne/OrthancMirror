@@ -30,9 +30,10 @@
 #include "../DicomFormat/DicomPath.h"
 
 #include <dcmtk/dcmdata/dcdatset.h>
+#include <dcmtk/dcmdata/dcdict.h>
+#include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
 #include <dcmtk/dcmdata/dcpixseq.h>
-#include <dcmtk/dcmdata/dcfilefo.h>
 #include <json/value.h>
 
 #if ORTHANC_ENABLE_DCMTK != 1
@@ -85,6 +86,40 @@ namespace Orthanc
                         const DicomPath& path);
     };
     
+
+    class ORTHANC_PUBLIC DictionaryWriterLock : public boost::noncopyable
+    {
+    private:
+      DcmDataDictionary& dictionary_;
+
+    public:
+      DictionaryWriterLock();
+
+      ~DictionaryWriterLock();
+
+      DcmDataDictionary& GetDictionary()
+      {
+        return dictionary_;
+      }
+    };
+
+
+    class ORTHANC_PUBLIC DictionaryReaderLock : public boost::noncopyable
+    {
+    private:
+      const DcmDataDictionary& dictionary_;
+
+    public:
+      DictionaryReaderLock();
+
+      ~DictionaryReaderLock();
+
+      const DcmDataDictionary& GetDictionary() const
+      {
+        return dictionary_;
+      }
+    };
+
 
   private:
     FromDcmtkBridge();  // Pure static class
@@ -157,7 +192,8 @@ namespace Orthanc
                                           unsigned int maxStringLength,
                                           Encoding encoding,
                                           bool hasCodeExtensions,
-                                          const std::set<DicomTag>& ignoreTagLength);
+                                          const std::set<DicomTag>& ignoreTagLength,
+                                          ValueRepresentation vr);
 
     static void ExtractHeaderAsJson(Json::Value& target, 
                                     DcmMetaInfo& header,
@@ -280,7 +316,7 @@ namespace Orthanc
     static bool LookupOrthancTransferSyntax(DicomTransferSyntax& target,
                                             DcmDataset& dicom);
 
-    static void LogMissingTagsForStore(DcmDataset& dicom);
+    static std::string FormatMissingTagsForStore(DcmDataset& dicom);
 
     static void RemovePath(DcmDataset& dataset,
                            const DicomPath& path);

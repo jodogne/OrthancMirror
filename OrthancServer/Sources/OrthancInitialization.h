@@ -29,13 +29,13 @@
 
 namespace Orthanc
 {
-  void OrthancInitialize(const char* configurationFile = NULL);
+  void OrthancInitialize(const boost::filesystem::path& configurationFile);
 
   void OrthancFinalize();
 
   IDatabaseWrapper* CreateDatabaseWrapper();
 
-  IStorageArea* CreateStorageArea();
+  IPluginStorageArea* CreateStorageArea();
 
   void SetGlobalVerbosity(Verbosity verbosity);
 

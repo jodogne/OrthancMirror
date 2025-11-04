@@ -30,6 +30,7 @@
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomServer.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/FileStorage/MemoryStorageArea.h"
+#include "../../OrthancFramework/Sources/FileStorage/PluginStorageAreaAdapter.h"
 #include "../../OrthancFramework/Sources/HttpServer/FilesystemHttpHandler.h"
 #include "../../OrthancFramework/Sources/HttpServer/HttpServer.h"
 #include "../../OrthancFramework/Sources/Logging.h"
@@ -51,6 +52,9 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
+#if defined(_WIN32) || defined(__CYGWIN__)
+#include <windows.h>
+#endif
 
 using namespace Orthanc;
 
@@ -533,7 +537,7 @@ public:
   {
   }
 
-  virtual bool IsValidBearerToken(const std::string& token) ORTHANC_OVERRIDE
+  virtual bool IsValidBearerToken(const std::string& token) const ORTHANC_OVERRIDE
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
     return (plugins_ != NULL &&
@@ -548,7 +552,7 @@ public:
                          const char* ip,
                          const char* username,
                          const HttpToolbox::Arguments& httpHeaders,
-                         const HttpToolbox::GetArguments& getArguments) ORTHANC_OVERRIDE
+                         const HttpToolbox::GetArguments& getArguments) const ORTHANC_OVERRIDE
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (plugins_ != NULL &&
@@ -569,24 +573,24 @@ public:
 
       switch (method)
       {
-        case HttpMethod_Get:
-          call.PushString("GET");
-          break;
+      case HttpMethod_Get:
+        call.PushString("GET");
+        break;
 
-        case HttpMethod_Put:
-          call.PushString("PUT");
-          break;
+      case HttpMethod_Put:
+        call.PushString("PUT");
+        break;
 
-        case HttpMethod_Post:
-          call.PushString("POST");
-          break;
+      case HttpMethod_Post:
+        call.PushString("POST");
+        break;
 
-        case HttpMethod_Delete:
-          call.PushString("DELETE");
-          break;
+      case HttpMethod_Delete:
+        call.PushString("DELETE");
+        break;
 
-        default:
-          return true;
+      default:
+        return true;
       }
 
       call.PushString(uri);
@@ -602,6 +606,23 @@ public:
     }
 
     return true;
+  }
+
+  virtual AuthenticationStatus CheckAuthentication(std::string& customPayload /* out: payload to provide to "IsAllowed()" */,
+                                                   std::string& redirection   /* out: path relative to the root */,
+                                                   const char* uri,
+                                                   const char* ip,
+                                                   const HttpToolbox::Arguments& httpHeaders,
+                                                   const HttpToolbox::GetArguments& getArguments) const ORTHANC_OVERRIDE
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (plugins_ != NULL)
+    {
+      return plugins_->CheckAuthentication(customPayload, redirection, uri, ip, httpHeaders, getArguments);
+    }
+#endif
+
+    return AuthenticationStatus_BuiltIn;
   }
 };
 
@@ -683,6 +704,11 @@ public:
         message["Details"] = exception.GetDetails();
       }
 
+      if (exception.HasDimseErrorStatus())
+      {
+        message["DimseErrorStatus"] = exception.GetDimseErrorStatus();
+      }
+
       std::string info = message.toStyledString();
       output.SendStatus(httpStatus, info);
     }
@@ -690,10 +716,10 @@ public:
 };
 
 
-static void PrintHelp(const char* path)
+static void PrintHelp(const boost::filesystem::path& path)
 {
   std::cout 
-    << "Usage: " << path << " [OPTION]... [CONFIGURATION]" << std::endl
+    << "Usage: " << SystemToolbox::PathToUtf8(path) << " [OPTION]... [CONFIGURATION]" << std::endl
     << "Orthanc, lightweight, RESTful DICOM server for healthcare and medical research." << std::endl
     << std::endl
     << "The \"CONFIGURATION\" argument can be a single file or a directory. In the " << std::endl
@@ -755,10 +781,10 @@ static void PrintHelp(const char* path)
 }
 
 
-static void PrintVersion(const char* path)
+static void PrintVersion(const boost::filesystem::path &path)
 {
   std::cout
-    << path << " " << ORTHANC_VERSION << std::endl
+    << SystemToolbox::PathToUtf8(path) << " " << ORTHANC_VERSION << std::endl
     << "Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics Department, University Hospital of Liege (Belgium)" << std::endl
     << "Copyright (C) 2017-2023 Osimis S.A. (Belgium)" << std::endl
     << "Copyright (C) 2024-2025 Orthanc Team SRL (Belgium)" << std::endl
@@ -780,10 +806,10 @@ static void PrintErrorCode(ErrorCode code, const char* description)
 }
 
 
-static void PrintErrors(const char* path)
+static void PrintErrors(const boost::filesystem::path& path)
 {
   std::cout
-    << path << " " << ORTHANC_VERSION << std::endl
+    << SystemToolbox::PathToUtf8(path) << " " << ORTHANC_VERSION << std::endl
     << "Orthanc, lightweight, RESTful DICOM server for healthcare and medical research." 
     << std::endl << std::endl
     << "List of error codes that could be returned by Orthanc:" 
@@ -860,7 +886,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_DirectoryOverFile, "The directory to be created is already occupied by a regular file");
     PrintErrorCode(ErrorCode_FileStorageCannotWrite, "Unable to create a subdirectory or a file in the file storage");
     PrintErrorCode(ErrorCode_DirectoryExpected, "The specified path does not point to a directory");
-    PrintErrorCode(ErrorCode_HttpPortInUse, "The TCP port of the HTTP server is privileged or already in use");
+    PrintErrorCode(ErrorCode_HttpPortInUse, "The TCP port of the HTTP server is privileged or already in use or one of the HTTP bind addresses does not exist");
     PrintErrorCode(ErrorCode_DicomPortInUse, "The TCP port of the DICOM server is privileged or already in use");
     PrintErrorCode(ErrorCode_BadHttpStatusInRest, "This HTTP status is not allowed in a REST API");
     PrintErrorCode(ErrorCode_RegularFileExpected, "The specified path does not point to a regular file");
@@ -924,7 +950,7 @@ static void LoadPlugins(OrthancPlugins& plugins)
   for (std::list<std::string>::const_iterator
          it = pathList.begin(); it != pathList.end(); ++it)
   {
-    std::string path;
+    boost::filesystem::path path;
 
     {
       OrthancConfiguration::ReaderLock lock;
@@ -1042,6 +1068,8 @@ static bool StartHttpServer(ServerContext& context,
 #  error "Either Mongoose or Civetweb must be enabled to compile this file"
 #endif
   
+    httpServer.SetMetricsRegistry(context.GetMetricsRegistry());
+
     {
       OrthancConfiguration::ReaderLock lock;
       
@@ -1050,6 +1078,9 @@ static bool StartHttpServer(ServerContext& context,
       // HTTP server
       httpServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpThreadsCount", 50));
       httpServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpPort", 8042));
+      std::set<std::string> httpBindAddresses;
+      lock.GetConfiguration().GetSetOfStringsParameter(httpBindAddresses, "HttpBindAddresses");
+      httpServer.SetBindAddresses(httpBindAddresses);
       httpServer.SetRemoteAccessAllowed(lock.GetConfiguration().GetBooleanParameter("RemoteAccessAllowed", false));
       httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", defaultKeepAlive));
       httpServer.SetKeepAliveTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("KeepAliveTimeout", 1));
@@ -1089,12 +1120,16 @@ static bool StartHttpServer(ServerContext& context,
         httpServer.SetAuthenticationEnabled(false);
       }
 
-      bool hasUsers = lock.GetConfiguration().SetupRegisteredUsers(httpServer);
+      OrthancConfiguration::RegisteredUsersStatus status = lock.GetConfiguration().SetupRegisteredUsers(httpServer);
+      assert(status == OrthancConfiguration::RegisteredUsersStatus_NoConfiguration ||
+             status == OrthancConfiguration::RegisteredUsersStatus_NoUser ||
+             status == OrthancConfiguration::RegisteredUsersStatus_HasUser);
 
       if (httpServer.IsAuthenticationEnabled() &&
-          !hasUsers)
+          status != OrthancConfiguration::RegisteredUsersStatus_HasUser)
       {
-        if (httpServer.IsRemoteAccessAllowed())
+        if (httpServer.IsRemoteAccessAllowed() &&
+            status == OrthancConfiguration::RegisteredUsersStatus_NoConfiguration)
         {
           /**
            * Starting with Orthanc 1.5.8, if no user is explicitly
@@ -1116,13 +1151,14 @@ static bool StartHttpServer(ServerContext& context,
         else
         {
           LOG(WARNING) << "HTTP authentication is enabled, but no user is declared, "
-                       << "check the value of configuration option \"RegisteredUsers\"";
+                       << "check the value of configuration option \"RegisteredUsers\" "
+                       << "if you cannot access Orthanc as expected";
         }
       }
       
       if (lock.GetConfiguration().GetBooleanParameter("SslEnabled", false))
       {
-        std::string certificate = lock.GetConfiguration().InterpretStringParameterAsPath(
+        boost::filesystem::path certificate = lock.GetConfiguration().InterpretStringParameterAsPath(
           lock.GetConfiguration().GetStringParameter("SslCertificate", "certificate.pem"));
         httpServer.SetSslEnabled(true);
         httpServer.SetSslCertificate(certificate.c_str());
@@ -1171,10 +1207,10 @@ static bool StartHttpServer(ServerContext& context,
 
       if (lock.GetConfiguration().GetBooleanParameter("SslVerifyPeers", false))
       {
-        std::string trustedClientCertificates = lock.GetConfiguration().InterpretStringParameterAsPath(
+        boost::filesystem::path trustedClientCertificates = lock.GetConfiguration().InterpretStringParameterAsPath(
           lock.GetConfiguration().GetStringParameter("SslTrustedClientCertificates", "trustedCertificates.pem"));
         httpServer.SetSslVerifyPeers(true);
-        httpServer.SetSslTrustedClientCertificates(trustedClientCertificates.c_str());
+        httpServer.SetSslTrustedClientCertificates(trustedClientCertificates);
       }
       else
       {
@@ -1274,6 +1310,7 @@ static bool StartDicomServer(ServerContext& context,
   
     // Setup the DICOM server  
     DicomServer dicomServer;
+    dicomServer.SetMetricsRegistry(context.GetMetricsRegistry());
     dicomServer.SetRemoteModalities(modalities);
     dicomServer.SetStoreRequestHandlerFactory(serverFactory);
     dicomServer.SetMoveRequestHandlerFactory(serverFactory);
@@ -1426,7 +1463,7 @@ static bool ConfigureHttpHandler(ServerContext& context,
 
 
 static void UpgradeDatabase(IDatabaseWrapper& database,
-                            IStorageArea& storageArea)
+                            IPluginStorageArea& storageArea)
 {
   // Upgrade the schema of the database, if needed
   unsigned int currentVersion = database.GetDatabaseVersion();
@@ -1529,7 +1566,7 @@ namespace
 
 
 static bool ConfigureServerContext(IDatabaseWrapper& database,
-                                   IStorageArea& storageArea,
+                                   IPluginStorageArea& storageArea,
                                    OrthancPlugins *plugins,
                                    bool loadJobsFromDatabase)
 {
@@ -1544,10 +1581,11 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     // ServerContext, otherwise the possible Lua scripts will not be
     // able to properly issue HTTP/HTTPS queries
 
-    std::string httpsCaCertificates = lock.GetConfiguration().GetStringParameter("HttpsCACertificates", "");
-    if (!httpsCaCertificates.empty())
+    std::string httpsCaCertificatesStr = lock.GetConfiguration().GetStringParameter("HttpsCACertificates", "");
+    boost::filesystem::path httpsCaCertificates;
+    if (!httpsCaCertificatesStr.empty())
     {
-      httpsCaCertificates = lock.GetConfiguration().InterpretStringParameterAsPath(httpsCaCertificates);
+      httpsCaCertificates = lock.GetConfiguration().InterpretStringParameterAsPath(httpsCaCertificatesStr);
     }
 
     HttpClient::ConfigureSsl(lock.GetConfiguration().GetBooleanParameter("HttpsVerifyPeers", true),
@@ -1667,7 +1705,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
 
 static bool ConfigureDatabase(IDatabaseWrapper& database,
-                              IStorageArea& storageArea,
+                              IPluginStorageArea& storageArea,
                               OrthancPlugins *plugins,
                               bool upgradeDatabase,
                               bool loadJobsFromDatabase)
@@ -1740,13 +1778,12 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
 }
 
 
-static bool ConfigurePlugins(int argc, 
-                             char* argv[],
+static bool ConfigurePlugins(const std::vector<std::string> arguments,
                              bool upgradeDatabase,
                              bool loadJobsFromDatabase)
 {
   std::unique_ptr<IDatabaseWrapper>  databasePtr;
-  std::unique_ptr<IStorageArea>  storage;
+  std::unique_ptr<IPluginStorageArea>  storage;
 
 #if ORTHANC_ENABLE_PLUGINS == 1
   std::string databaseServerIdentifier;
@@ -1756,7 +1793,7 @@ static bool ConfigurePlugins(int argc,
   }
   
   OrthancPlugins plugins(databaseServerIdentifier);
-  plugins.SetCommandLineArguments(argc, argv);
+  plugins.SetCommandLineArguments(arguments);
   LoadPlugins(plugins);
 
   IDatabaseWrapper* database = NULL;
@@ -1805,12 +1842,11 @@ static bool ConfigurePlugins(int argc,
 }
 
 
-static bool StartOrthanc(int argc, 
-                         char* argv[],
+static bool StartOrthanc(const std::vector<std::string>& arguments,
                          bool upgradeDatabase,
                          bool loadJobsFromDatabase)
 {
-  return ConfigurePlugins(argc, argv, upgradeDatabase, loadJobsFromDatabase);
+  return ConfigurePlugins(arguments, upgradeDatabase, loadJobsFromDatabase);
 }
 
 
@@ -1838,24 +1874,49 @@ static bool DisplayPerformanceWarning()
 }
 
 
-int main(int argc, char* argv[]) 
+#if defined(_WIN32) && !defined(__MINGW32__)
+// arguments are passed as UTF-16 on Windows
+int wmain(int argc, wchar_t *argv[])
 {
+  // Set Windows console output to UTF-8 (otherwise, strings are considered to be in UTF-16.  For example, Cyrillic UTF-8 strings appear as garbage without that config)
+  SetConsoleOutputCP(CP_UTF8);
+
+  // Transform the UTF-16 arguments into UTF-8 arguments
+  std::vector<std::string> arguments; // UTF-8 arguments
+
+  for (int i = 0; i < argc; i++)
+  {
+    std::wstring argument(argv[i]);
+    arguments.push_back(SystemToolbox::WStringToUtf8(argument));
+  }
+
+#else
+int main(int argc, char* argv[])
+{
+  std::vector<std::string> arguments; // UTF-8 arguments
+
+  // the arguments are assumed to be directly in UTF-8
+  for (int i = 0; i < argc; i++)
+  {
+    arguments.push_back(argv[i]);
+  }
+#endif
+
   Logging::Initialize();
   Logging::SetCurrentThreadName("MAIN");
   SetGlobalVerbosity(Verbosity_Default);
 
   bool upgradeDatabase = false;
   bool loadJobsFromDatabase = true;
-  const char* configurationFile = NULL;
-
+  boost::filesystem::path configurationFile;
 
   /**
    * Parse the command-line options.
    **/ 
 
-  for (int i = 1; i < argc; i++)
+  for (size_t i = 1; i < arguments.size(); i++)
   {
-    std::string argument(argv[i]); 
+    const std::string& argument = arguments[i];    
 
     if (argument.empty())
     {
@@ -1863,7 +1924,7 @@ int main(int argc, char* argv[])
     }
     else if (argument[0] != '-')
     {
-      if (configurationFile != NULL)
+      if (!configurationFile.empty())
       {
         LOG(ERROR) << "More than one configuration path were provided on the command line, aborting";
         return -1;
@@ -1873,23 +1934,28 @@ int main(int argc, char* argv[])
         // Use the first argument that does not start with a "-" as
         // the configuration file
 
-        // TODO WHAT IS THE ENCODING?
-        configurationFile = argv[i];
+        configurationFile = SystemToolbox::PathFromUtf8(argument);
+//        // TODO WHAT IS THE ENCODING?
+//#if defined(_WIN32)
+//        //configurationFileUtf8Str = SystemToolbox::WStringToUtf8(SystemToolbox::WStringFromCharPtr(argv[i]));
+//#else
+//        configurationFileUtf8Str = std::string(argv[i]);
+//#endif
       }
     }
     else if (argument == "--errors")
     {
-      PrintErrors(argv[0]);
+      PrintErrors(SystemToolbox::PathFromUtf8(arguments[0]));
       return 0;
     }
     else if (argument == "--help")
     {
-      PrintHelp(argv[0]);
+      PrintHelp(SystemToolbox::PathFromUtf8(arguments[0]));
       return 0;
     }
     else if (argument == "--version")
     {
-      PrintVersion(argv[0]);
+      PrintVersion(SystemToolbox::PathFromUtf8(arguments[0]));
       return 0;
     }
     else if (argument == "--verbose")
@@ -1976,7 +2042,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-          SystemToolbox::WriteFile(configurationSample, target);
+          SystemToolbox::WriteFile(configurationSample, SystemToolbox::PathFromUtf8(target));
         }
         return 0;
       }
@@ -1997,7 +2063,7 @@ int main(int argc, char* argv[])
         {
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
-          MemoryStorageArea inMemoryStorage;
+          PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
           ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateOpenApiDocumentation(openapi);
@@ -2027,7 +2093,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-          SystemToolbox::WriteFile(s, target);
+          SystemToolbox::WriteFile(s, SystemToolbox::PathFromUtf8(target));
         }
         return 0;
       }
@@ -2048,7 +2114,7 @@ int main(int argc, char* argv[])
         {
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
-          MemoryStorageArea inMemoryStorage;
+          PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
           ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
@@ -2061,7 +2127,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-          SystemToolbox::WriteFile(cheatsheet, target);
+          SystemToolbox::WriteFile(cheatsheet, SystemToolbox::PathFromUtf8(target));
         }
         return 0;
       }
@@ -2141,7 +2207,7 @@ int main(int argc, char* argv[])
     {
       OrthancInitialize(configurationFile);
 
-      bool restart = StartOrthanc(argc, argv, upgradeDatabase, loadJobsFromDatabase);
+      bool restart = StartOrthanc(arguments, upgradeDatabase, loadJobsFromDatabase);
       if (restart)
       {
         OrthancFinalize();

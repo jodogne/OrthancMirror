@@ -24,8 +24,9 @@
 
 #pragma once
 
-#include "../IMemoryBuffer.h"
+#include "../Compatibility.h"
 #include "../Enumerations.h"
+#include "../IMemoryBuffer.h"
 
 #include <stdint.h>
 #include <string>
@@ -33,6 +34,8 @@
 
 namespace Orthanc
 {
+  class DicomInstanceToStore;
+
   class IStorageArea : public boost::noncopyable
   {
   public:
@@ -45,17 +48,44 @@ namespace Orthanc
                         size_t size,
                         FileContentType type) = 0;
 
-    virtual IMemoryBuffer* Read(const std::string& uuid,
-                                FileContentType type) = 0;
-
     virtual IMemoryBuffer* ReadRange(const std::string& uuid,
                                      FileContentType type,
                                      uint64_t start /* inclusive */,
                                      uint64_t end /* exclusive */) = 0;
 
-    virtual bool HasReadRange() const = 0;
+    virtual bool HasEfficientReadRange() const = 0;
 
     virtual void Remove(const std::string& uuid,
                         FileContentType type) = 0;
+  };
+
+
+  // storage area with customData (customData are used only in plugins)
+  class IPluginStorageArea : public boost::noncopyable
+  {
+  public:
+    virtual ~IPluginStorageArea()
+    {
+    }
+
+    virtual void Create(std::string& customData /* out */,
+                        const std::string& uuid,
+                        const void* content,
+                        size_t size,
+                        FileContentType type,
+                        CompressionType compression,
+                        const DicomInstanceToStore* dicomInstance /* can be NULL if not a DICOM instance */) = 0;
+
+    virtual IMemoryBuffer* ReadRange(const std::string& uuid,
+                                     FileContentType type,
+                                     uint64_t start /* inclusive */,
+                                     uint64_t end /* exclusive */,
+                                     const std::string& customData) = 0;
+
+    virtual bool HasEfficientReadRange() const = 0;
+
+    virtual void Remove(const std::string& uuid,
+                        FileContentType type,
+                        const std::string& customData) = 0;
   };
 }

@@ -30,6 +30,10 @@
 #include <cassert>
 #include <stdint.h>
 
+#if defined(__linux__) && !defined(NDEBUG)
+#  include <pthread.h>
+#endif
+
 
 /*********************************************************
  * Common section
@@ -596,7 +600,7 @@ namespace Orthanc
       **/
 
       boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-      boost::filesystem::path root(directory);
+      boost::filesystem::path root(SystemToolbox::PathFromUtf8(directory));
       boost::filesystem::path exe(SystemToolbox::GetPathToExecutable());
       
       if (!boost::filesystem::exists(root) ||
@@ -658,6 +662,11 @@ namespace Orthanc
       }
 
       threadNames_[id] = name;
+
+#if defined(__linux__) && !defined(NDEBUG) && !defined(__LSB_VERSION__)
+      // set the thread name at "system" level too -> required to have the thread names visible in GDB !
+      pthread_setname_np(pthread_self(), name.substr(0, 15).c_str());  // thread names are limited to 15 in Linux
+#endif              
     }
 
     void SetCurrentThreadName(const std::string& name)

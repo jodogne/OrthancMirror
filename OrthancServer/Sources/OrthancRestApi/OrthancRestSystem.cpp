@@ -95,6 +95,8 @@ namespace Orthanc
     static const char* const HAS_LABELS = "HasLabels";
     static const char* const CAPABILITIES = "Capabilities";
     static const char* const HAS_EXTENDED_CHANGES = "HasExtendedChanges";
+    static const char* const HAS_KEY_VALUE_STORES = "HasKeyValueStores";
+    static const char* const HAS_QUEUES = "HasQueues";
     static const char* const HAS_EXTENDED_FIND = "HasExtendedFind";
     static const char* const READ_ONLY = "ReadOnly";
 
@@ -188,14 +190,12 @@ namespace Orthanc
 
     if (plugins.HasStorageArea())
     {
-      std::string p = plugins.GetStorageAreaLibrary().GetPath();
-      result[STORAGE_AREA_PLUGIN] = boost::filesystem::canonical(p).string();
+      result[STORAGE_AREA_PLUGIN] = SystemToolbox::PathToUtf8(plugins.GetStorageAreaLibrary().GetPath());
     }
 
     if (plugins.HasDatabaseBackend())
     {
-      std::string p = plugins.GetDatabaseBackendLibrary().GetPath();
-      result[DATABASE_BACKEND_PLUGIN] = boost::filesystem::canonical(p).string();     
+      result[DATABASE_BACKEND_PLUGIN] = SystemToolbox::PathToUtf8(plugins.GetDatabaseBackendLibrary().GetPath());
     }
 #else
     result[PLUGINS_ENABLED] = false;
@@ -211,6 +211,8 @@ namespace Orthanc
     result[CAPABILITIES] = Json::objectValue;
     result[CAPABILITIES][HAS_EXTENDED_CHANGES] = OrthancRestApi::GetIndex(call).HasExtendedChanges();
     result[CAPABILITIES][HAS_EXTENDED_FIND] = OrthancRestApi::GetIndex(call).HasFindSupport();
+    result[CAPABILITIES][HAS_KEY_VALUE_STORES] = OrthancRestApi::GetIndex(call).HasKeyValueStoresSupport();
+    result[CAPABILITIES][HAS_QUEUES] = OrthancRestApi::GetIndex(call).HasQueuesSupport();
     
     call.GetOutput().AnswerJson(result);
   }

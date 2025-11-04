@@ -494,7 +494,7 @@ namespace Orthanc
 
     std::string target;
     call.BodyToString(target);
-    SystemToolbox::WriteFile(dicom, target);
+    SystemToolbox::WriteFile(dicom, SystemToolbox::PathFromUtf8(target));
 
     call.GetOutput().AnswerBuffer("{}", MimeType_Json);
   }
@@ -2666,7 +2666,7 @@ namespace Orthanc
       }
 
       int64_t newRevision;
-      context.AddAttachment(newRevision, publicId, StringToContentType(name), call.GetBodyData(),
+      context.AddAttachment(newRevision, publicId, level, StringToContentType(name), call.GetBodyData(),
                             call.GetBodySize(), hasOldRevision, oldRevision, oldMD5);
 
       SetBufferContentETag(call.GetOutput(), newRevision, call.GetBodyData(), call.GetBodySize());  // New in Orthanc 1.9.2

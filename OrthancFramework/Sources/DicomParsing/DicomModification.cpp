@@ -179,6 +179,12 @@ namespace Orthanc
       return GetDefaultAction(parentTags, parentIndexes, tag);
     }
 
+    virtual Action VisitEmptyElement(const std::vector<DicomTag>& parentTags,
+                                     const std::vector<size_t>& parentIndexes) ORTHANC_OVERRIDE
+    {
+      return Action_None;
+    }
+
     virtual Action VisitIntegers(const std::vector<DicomTag>& parentTags,
                                  const std::vector<size_t>& parentIndexes,
                                  const DicomTag& tag,

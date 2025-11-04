@@ -27,6 +27,7 @@
 
 #include "Logging.h"
 #include "OrthancException.h"
+#include "SystemToolbox.h"
 
 #include <boost/filesystem.hpp>
 
@@ -40,15 +41,15 @@
 
 namespace Orthanc
 {
-  SharedLibrary::SharedLibrary(const std::string& path) : 
+  SharedLibrary::SharedLibrary(const boost::filesystem::path& path) : 
     path_(path), 
     handle_(NULL)
   {
 #if defined(_WIN32)
-    handle_ = ::LoadLibraryA(path_.c_str());
+    handle_ = ::LoadLibraryW(path_.wstring().c_str());
     if (handle_ == NULL)
     {
-      LOG(ERROR) << "LoadLibrary(" << path_ << ") failed: Error " << ::GetLastError();
+      LOG(ERROR) << "LoadLibrary(" << SystemToolbox::PathToUtf8(path_) << ") failed: Error " << ::GetLastError();
 
       if (::GetLastError() == ERROR_BAD_EXE_FORMAT &&
           sizeof(void*) == 4)
@@ -120,7 +121,7 @@ namespace Orthanc
   }
 
 
-  const std::string &SharedLibrary::GetPath() const
+  const boost::filesystem::path& SharedLibrary::GetPath() const
   {
     return path_;
   }

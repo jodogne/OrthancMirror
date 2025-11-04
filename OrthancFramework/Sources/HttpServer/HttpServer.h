@@ -50,12 +50,15 @@
 
 
 #include "IIncomingHttpRequestFilter.h"
+#include "../MetricsRegistry.h"
 
 #include <list>
 #include <map>
 #include <set>
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
+#include <boost/filesystem.hpp>
+
 
 namespace Orthanc
 {
@@ -98,13 +101,14 @@ namespace Orthanc
     bool remoteAllowed_;
     bool authentication_;
     bool sslVerifyPeers_;
-    std::string trustedClientCertificates_;
+    boost::filesystem::path trustedClientCertificates_;
     bool ssl_;
-    std::string certificate_;
+    boost::filesystem::path certificate_;
     unsigned int sslMinimumVersion_;
     bool sslHasCiphers_;
     std::string sslCiphers_;
     uint16_t port_;
+    std::set<std::string> bindAddresses_;
     IIncomingHttpRequestFilter* filter_;
     bool keepAlive_;
     unsigned int keepAliveTimeout_;
@@ -114,6 +118,10 @@ namespace Orthanc
     unsigned int threadsCount_;
     bool tcpNoDelay_;
     unsigned int requestTimeout_;  // In seconds
+    std::unique_ptr<MetricsRegistry::SharedMetrics> availableHttpThreadsMetrics_;  // New in Orthanc 1.12.9
+
+    boost::mutex threadCounterMutex_;  // New in Orthanc 1.12.9
+    uint16_t threadCounter_;           // Introduced as a global, static variable in Orthanc 1.12.2
 
 #if ORTHANC_ENABLE_PUGIXML == 1
     WebDavBuckets webDavBuckets_;
@@ -129,6 +137,8 @@ namespace Orthanc
     void SetPortNumber(uint16_t port);
 
     uint16_t GetPortNumber() const;
+
+    void SetBindAddresses(const std::set<std::string>& bindAddresses);
 
     void Start();
 
@@ -155,7 +165,7 @@ namespace Orthanc
 
     void SetSslCiphers(const std::list<std::string>& ciphers);
     
-    void SetSslTrustedClientCertificates(const char* path);
+    void SetSslTrustedClientCertificates(const boost::filesystem::path& path);
 
     bool IsKeepAliveEnabled() const;
 
@@ -165,9 +175,9 @@ namespace Orthanc
 
     void SetKeepAliveTimeout(unsigned int timeout);
 
-    const std::string& GetSslCertificate() const;
+    const boost::filesystem::path& GetSslCertificate() const;
 
-    void SetSslCertificate(const char* path);
+    void SetSslCertificate(const boost::filesystem::path& path);
 
     bool IsRemoteAccessAllowed() const;
 
@@ -225,6 +235,16 @@ namespace Orthanc
                                   const UriComponents& uri,
                                   const std::map<std::string, std::string>& headers,
                                   const std::string& body,
-                                  const std::string& boundary);
+                                  const std::string& boundary,
+                                  const std::string& authenticationPayload);
+
+    static std::string GetRelativePathToRoot(const std::string& uri);
+
+    void SetMetricsRegistry(MetricsRegistry& metricsRegistry);
+
+    // Can return NULL if SetMetricsRegistry() was not call beforehand
+    MetricsRegistry::AvailableResourcesDecounter* CreateAvailableHttpThreadsDecounter();
+
+    void UpdateCurrentThreadName();
   };
 }

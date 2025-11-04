@@ -26,6 +26,9 @@
 
 #include "../Enumerations.h"
 
+#include <json/value.h>
+#include <stdint.h>
+
 namespace Orthanc
 {
   class OrthancException;
@@ -37,11 +40,16 @@ namespace Orthanc
     unsigned int  timeout_;
     ErrorCode     error_;
     std::string   failureDetails_;
+    bool          hasDimseErrorStatus_;
+    uint16_t      dimseErrorStatus_;
+
     
     explicit JobStepResult(JobStepCode code) :
       code_(code),
       timeout_(0),
-      error_(ErrorCode_Success)
+      error_(ErrorCode_Success),
+      hasDimseErrorStatus_(false),
+      dimseErrorStatus_(0x0000)
     {
     }
 
@@ -57,6 +65,10 @@ namespace Orthanc
     static JobStepResult Failure(const ErrorCode& error,
                                  const char* details);
 
+    static JobStepResult Failure(const ErrorCode& error,
+                                 const char* details,
+                                 uint16_t dimseErrorStatus);
+
     static JobStepResult Failure(const OrthancException& exception);
 
     JobStepCode GetCode() const;
@@ -66,5 +78,9 @@ namespace Orthanc
     ErrorCode GetFailureCode() const;
 
     const std::string& GetFailureDetails() const;
+
+    bool HasDimseErrorStatus() const;
+
+    uint16_t GetDimseErrorStatus() const;
   };
 }

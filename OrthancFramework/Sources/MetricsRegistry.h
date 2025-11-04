@@ -106,6 +106,9 @@ namespace Orthanc
       SetIntegerValue(name, value, MetricsUpdatePolicy_Directly);
     }
     
+    void SetInitialValue(const std::string& name,
+                         int64_t value);
+
     void IncrementIntegerValue(const std::string& name,
                                int64_t delta);
 
@@ -131,6 +134,8 @@ namespace Orthanc
                     MetricsUpdatePolicy policy);
 
       void Add(int64_t delta);
+
+      void SetInitialValue(int64_t value);
     };
 
 
@@ -145,6 +150,17 @@ namespace Orthanc
       ~ActiveCounter();
     };
 
+
+    class ORTHANC_PUBLIC AvailableResourcesDecounter : public boost::noncopyable
+    {
+    private:
+      SharedMetrics&   metrics_;
+
+    public:
+      explicit AvailableResourcesDecounter(SharedMetrics& metrics);
+
+      ~AvailableResourcesDecounter();
+    };
 
     class ORTHANC_PUBLIC Timer : public boost::noncopyable
     {

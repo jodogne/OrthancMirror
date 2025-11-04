@@ -38,6 +38,7 @@
 
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
+#include "../ChunkedBuffer.h"
 #include "../Compatibility.h"
 #include "../Logging.h"
 #include "../Toolbox.h"
@@ -45,6 +46,7 @@
 
 #if ORTHANC_SANDBOXED == 0
 #  include "../TemporaryFile.h"
+#  include "../SystemToolbox.h"
 #endif
 
 #include <list>
@@ -57,7 +59,6 @@
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcdicent.h>
-#include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcostrmb.h>
@@ -126,6 +127,38 @@ static bool hasExternalDictionaries_ = false;
 
 namespace Orthanc
 {
+  FromDcmtkBridge::DictionaryWriterLock::DictionaryWriterLock() :
+    dictionary_(dcmDataDict.wrlock())
+  {
+  }
+
+
+  FromDcmtkBridge::DictionaryWriterLock::~DictionaryWriterLock()
+  {
+#if DCMTK_VERSION_NUMBER >= 364
+    dcmDataDict.wrunlock();
+#else
+    dcmDataDict.unlock();
+#endif
+  }
+
+
+  FromDcmtkBridge::DictionaryReaderLock::DictionaryReaderLock() :
+    dictionary_(dcmDataDict.rdlock())
+  {
+  }
+
+
+  FromDcmtkBridge::DictionaryReaderLock::~DictionaryReaderLock()
+  {
+#if DCMTK_VERSION_NUMBER >= 364
+    dcmDataDict.rdunlock();
+#else
+    dcmDataDict.unlock();
+#endif
+  }
+
+
   static bool IsBinaryTag(const DcmTag& key)
   {
     return (key.isUnknownVR() ||
@@ -147,7 +180,7 @@ namespace Orthanc
     TemporaryFile tmp;
     tmp.Write(content);
 
-    if (!dictionary.loadDictionary(tmp.GetPath().c_str()))
+    if (!dictionary.loadDictionary(SystemToolbox::PathToUtf8(tmp.GetPath()).c_str()))
     {
       throw OrthancException(ErrorCode_InternalError,
                              "Cannot read embedded dictionary. Under Windows, make sure that " 
@@ -167,37 +200,73 @@ namespace Orthanc
 
   namespace
   {
-    class DictionaryLocker : public boost::noncopyable
+    class ChunkedBufferStream : public DcmOutputStream
     {
     private:
-      DcmDataDictionary& dictionary_;
+      class Consumer : public DcmConsumer
+      {
+      private:
+        ChunkedBuffer  buffer_;
+
+      public:
+        void Flatten(std::string& buffer)
+        {
+          buffer_.Flatten(buffer);
+        }
+
+        OFBool good() const ORTHANC_OVERRIDE
+        {
+          return true;
+        }
+
+        OFCondition status() const ORTHANC_OVERRIDE
+        {
+          return EC_Normal;
+        }
+
+        OFBool isFlushed() const ORTHANC_OVERRIDE
+        {
+          return true;
+        }
+
+        offile_off_t avail() const ORTHANC_OVERRIDE
+        {
+          // since we cannot report "unlimited", let's claim that we can still write 10MB.
+          // Note that offile_off_t is a signed type.
+          return 10 * 1024 * 1024;
+        }
+
+        offile_off_t write(const void *buf,
+                           offile_off_t buflen) ORTHANC_OVERRIDE
+        {
+          buffer_.AddChunk(buf, buflen);
+          return buflen;
+        }
+
+        void flush() ORTHANC_OVERRIDE
+        {
+          // Nothing to flush
+        }
+      };
+
+      Consumer consumer_;
 
     public:
-      DictionaryLocker() : dictionary_(dcmDataDict.wrlock())
+      ChunkedBufferStream() :
+        DcmOutputStream(&consumer_)
       {
       }
 
-      ~DictionaryLocker()
+      void Flatten(std::string& buffer)
       {
-#if DCMTK_VERSION_NUMBER >= 364
-        dcmDataDict.wrunlock();
-#else
-        dcmDataDict.unlock();
-#endif
-      }
-
-      DcmDataDictionary& operator*()
-      {
-        return dictionary_;
-      }
-
-      DcmDataDictionary* operator->()
-      {
-        return &dictionary_;
+        consumer_.Flatten(buffer);
       }
     };
+  }
 
-    
+
+  namespace
+  {
     ORTHANC_FORCE_INLINE
     static std::string FloatToString(float v)
     {
@@ -296,9 +365,9 @@ namespace Orthanc
     
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
     {
-      DictionaryLocker locker;
+      DictionaryWriterLock lock;
 
-      locker->clear();
+      lock.GetDictionary().clear();
 
       CLOG(INFO, DICOM) << "Loading the embedded dictionaries";
       /**
@@ -306,14 +375,14 @@ namespace Orthanc
        * command "strace storescu 2>&1 |grep dic" shows that DICONDE
        * dictionary is not loaded by storescu.
        **/
-      //LoadEmbeddedDictionary(*locker, FrameworkResources::DICTIONARY_DICONDE);
+      //LoadEmbeddedDictionary(lock.GetDictionary(), FrameworkResources::DICTIONARY_DICONDE);
 
-      LoadEmbeddedDictionary(*locker, FrameworkResources::DICTIONARY_DICOM);
+      LoadEmbeddedDictionary(lock.GetDictionary(), FrameworkResources::DICTIONARY_DICOM);
 
       if (loadPrivateDictionary)
       {
         CLOG(INFO, DICOM) << "Loading the embedded dictionary of private tags";
-        LoadEmbeddedDictionary(*locker, FrameworkResources::DICTIONARY_PRIVATE);
+        LoadEmbeddedDictionary(lock.GetDictionary(), FrameworkResources::DICTIONARY_PRIVATE);
       }
       else
       {
@@ -373,16 +442,16 @@ namespace Orthanc
 
   void FromDcmtkBridge::LoadExternalDictionaries(const std::vector<std::string>& dictionaries)
   {
-    DictionaryLocker locker;
+    DictionaryWriterLock lock;
 
     CLOG(INFO, DICOM) << "Clearing the DICOM dictionary";
-    locker->clear();
+    lock.GetDictionary().clear();
 
     for (size_t i = 0; i < dictionaries.size(); i++)
     {
       LOG(WARNING) << "Loading external DICOM dictionary: \"" << dictionaries[i] << "\"";
         
-      if (!locker->loadDictionary(dictionaries[i].c_str()))
+      if (!lock.GetDictionary().loadDictionary(dictionaries[i].c_str()))
       {
         throw OrthancException(ErrorCode_InexistentFile);
       }
@@ -475,10 +544,10 @@ namespace Orthanc
     entry->setElementRangeRestriction(DcmDictRange_Unspecified);
 
     {
-      DictionaryLocker locker;
+      DictionaryWriterLock lock;
 
-      if (locker->findEntry(DcmTagKey(tag.GetGroup(), tag.GetElement()),
-                            privateCreator.empty() ? NULL : privateCreator.c_str()))
+      if (lock.GetDictionary().findEntry(DcmTagKey(tag.GetGroup(), tag.GetElement()),
+                                         privateCreator.empty() ? NULL : privateCreator.c_str()))
       {
         throw OrthancException(ErrorCode_AlreadyExistingTag,
                                "Cannot register twice the tag (" + tag.Format() +
@@ -486,7 +555,7 @@ namespace Orthanc
       }
       else
       {
-        locker->addEntry(entry.release());
+        lock.GetDictionary().addEntry(entry.release());
       }
     }
   }
@@ -564,8 +633,8 @@ namespace Orthanc
       {
         target.SetValueInternal(element->getTag().getGTag(),
                                 element->getTag().getETag(),
-                                ConvertLeafElement(*element, DicomToJsonFlags_Default,
-                                                   maxStringLength, encoding, hasCodeExtensions, ignoreTagLength));
+                                ConvertLeafElement(*element, DicomToJsonFlags_Default, maxStringLength, encoding,
+                                                   hasCodeExtensions, ignoreTagLength, Convert(element->getVR())));
       }
       else
       {
@@ -626,7 +695,8 @@ namespace Orthanc
                                                   unsigned int maxStringLength,
                                                   Encoding encoding,
                                                   bool hasCodeExtensions,
-                                                  const std::set<DicomTag>& ignoreTagLength)
+                                                  const std::set<DicomTag>& ignoreTagLength,
+                                                  ValueRepresentation vr)
   {
     if (!element.isLeaf())
     {
@@ -646,7 +716,7 @@ namespace Orthanc
         else
         {
           const std::string s(c);
-          const std::string utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
+          const std::string utf8 = Toolbox::ConvertDicomStringToUtf8(s, encoding, hasCodeExtensions, Convert(element.getVR()));
           return CreateValueFromUtf8String(GetTag(element), utf8, maxStringLength, ignoreTagLength);
         }
       }
@@ -663,10 +733,11 @@ namespace Orthanc
        * syntax (cf. DICOM CP 246).
        * ftp://medical.nema.org/medical/dicom/final/cp246_ft.pdf
        **/
-      DictionaryLocker locker;
-      
-      const DcmDictEntry* entry = locker->findEntry(element.getTag().getXTag(), 
-                                                    element.getTag().getPrivateCreator());
+      DictionaryReaderLock lock;
+
+      // The "entry" value is only valid while "lock" is active
+      const DcmDictEntry* entry = lock.GetDictionary().findEntry(element.getTag().getXTag(),
+                                                                 element.getTag().getPrivateCreator());
       if (entry != NULL && 
           entry->getVR().isaString())
       {
@@ -713,7 +784,7 @@ namespace Orthanc
             // "SpecificCharacterSet" tag, if present. This branch is
             // new in Orthanc 1.9.1 (cf. DICOM CP 246).
             const std::string s(reinterpret_cast<const char*>(data), length);
-            const std::string utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
+            const std::string utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions, Convert(element.getVR()));
             return CreateValueFromUtf8String(GetTag(element), utf8, maxStringLength, ignoreTagLength);
           }
         }
@@ -1033,7 +1104,7 @@ namespace Orthanc
     {
       // The "0" below lets "LeafValueToJson()" take care of "TooLong" values
       std::unique_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
-                                    (element, flags, 0, encoding, hasCodeExtensions, ignoreTagLength));
+                                    (element, flags, 0, encoding, hasCodeExtensions, ignoreTagLength, Convert(element.getVR())));
 
       if (ignoreTagLength.find(GetTag(element)) == ignoreTagLength.end())
       {
@@ -1111,8 +1182,8 @@ namespace Orthanc
 
       if (!(flags & DicomToJsonFlags_IncludeUnknownTags))
       {
-        DictionaryLocker locker;
-        if (locker->findEntry(element->getTag(), element->getTag().getPrivateCreator()) == NULL)
+        DictionaryReaderLock lock;
+        if (lock.GetDictionary().findEntry(element->getTag(), element->getTag().getPrivateCreator()) == NULL)
         {
           continue;
         }
@@ -1572,7 +1643,12 @@ namespace Orthanc
   }
 
 
-  
+#if 0
+  /**
+   * This was the implementation in Orthanc <= 1.12.7. This version
+   * uses "DcmFileFormat::calcElementLength()", which cannot handle
+   * DICOM files whose size cannot be represented on 32 bits.
+   **/
   static bool SaveToMemoryBufferInternal(std::string& buffer,
                                          DcmFileFormat& dicom,
                                          E_TransferSyntax xfer,
@@ -1619,6 +1695,46 @@ namespace Orthanc
       return false;
     }
   }
+#endif
+
+
+#if 1
+  /**
+   * This is the cleaner implementation used in Orthanc >= 1.12.8,
+   * which allows to write DICOM files larger than 4GB.
+   **/
+  static bool SaveToMemoryBufferInternal(std::string& buffer,
+                                         DcmFileFormat& dicom,
+                                         E_TransferSyntax xfer,
+                                         std::string& errorMessage)
+  {
+    ChunkedBufferStream ob;
+
+    // Fill the (chunked) memory buffer with the meta-header and the dataset
+    dicom.transferInit();
+    OFCondition c = dicom.write(ob, xfer, /*opt_sequenceType*/ EET_ExplicitLength, NULL,
+                                /*opt_groupLength*/ EGL_recalcGL,
+                                /*opt_paddingType*/ EPD_noChange,
+                                /*padlen*/ 0, /*subPadlen*/ 0, /*instanceLength*/ 0,
+                                EWM_updateMeta /* creates new SOP instance UID on lossy */);
+    dicom.transferEnd();
+
+    if (c.good())
+    {
+      ob.flush();
+      ob.Flatten(buffer);
+      return true;
+    }
+    else
+    {
+      // Error
+      buffer.clear();
+      errorMessage = std::string(c.text());
+      return false;
+    }
+  }
+#endif
+
 
   bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
                                            DcmDataset& dataSet)
@@ -2480,7 +2596,7 @@ namespace Orthanc
               element->getString(c).good() && 
               c != NULL)
           {
-            std::string a = Toolbox::ConvertToUtf8(c, source, hasSourceCodeExtensions);
+            std::string a = Toolbox::ConvertToUtf8(c, source, hasSourceCodeExtensions, Convert(element->getVR()));
             std::string b = Toolbox::ConvertFromUtf8(a, target);
             element->putString(b.c_str());
           }
@@ -2573,22 +2689,28 @@ namespace Orthanc
 
     std::set<DcmTagKey> toRemove;
     
-    for (unsigned long i = 0; i < dataset.card(); i++)
+    if (dataset.card() > 0)
     {
-      DcmElement* element = dataset.getElement(i);
-      if (element == NULL)
+      for (unsigned long i = 0; i < dataset.card(); i++)
       {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-      else
-      {
-        if (!ApplyVisitorToElement(*element, visitor, parentTags, parentIndexes, encoding, hasCodeExtensions))
+        DcmElement* element = dataset.getElement(i);
+        if (element == NULL)
         {
-          toRemove.insert(element->getTag());
+          throw OrthancException(ErrorCode_InternalError);
         }
-      }      
+        else
+        {
+          if (!ApplyVisitorToElement(*element, visitor, parentTags, parentIndexes, encoding, hasCodeExtensions))
+          {
+            toRemove.insert(element->getTag());
+          }
+        }      
+      }
     }
-
+    else
+    {
+      visitor.VisitEmptyElement(parentTags, parentIndexes);
+    }
     // Remove all the tags that were planned for removal (cf. ITagVisitor::Action_Remove)
     for (std::set<DcmTagKey>::const_iterator
            it = toRemove.begin(); it != toRemove.end(); ++it)
@@ -2646,10 +2768,11 @@ namespace Orthanc
     if (evr == EVR_UN)
     {
       // New in Orthanc 1.9.5
-      DictionaryLocker locker;
-      
-      const DcmDictEntry* entry = locker->findEntry(element.getTag().getXTag(),
-                                                    element.getTag().getPrivateCreator());
+      FromDcmtkBridge::DictionaryReaderLock lock;
+
+      // The "entry" value is only valid while "lock" is active
+      const DcmDictEntry* entry = lock.GetDictionary().findEntry(element.getTag().getXTag(),
+                                                                 element.getTag().getPrivateCreator());
 
       if (entry != NULL)
       {
@@ -2733,7 +2856,7 @@ namespace Orthanc
         else
         {
           std::string s(c);
-          utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
+          utf8 = Toolbox::ConvertDicomStringToUtf8(s, encoding, hasCodeExtensions, FromDcmtkBridge::Convert(element.getVR()));
         }
       }
 
@@ -2809,8 +2932,8 @@ namespace Orthanc
 
             std::string ignored;
             std::string s(reinterpret_cast<const char*>(data), l);
-            action = visitor.VisitString(ignored, parentTags, parentIndexes, tag, vr,
-                                         Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions));
+            std::string utf8 = Toolbox::ConvertDicomStringToUtf8(s, encoding, hasCodeExtensions, FromDcmtkBridge::Convert(element.getVR()));
+            action = visitor.VisitString(ignored, parentTags, parentIndexes, tag, vr, utf8);
           }
           else
           {
@@ -3162,7 +3285,7 @@ namespace Orthanc
   }
 
 
-  void FromDcmtkBridge::LogMissingTagsForStore(DcmDataset& dicom)
+  std::string FromDcmtkBridge::FormatMissingTagsForStore(DcmDataset& dicom)
   {
     std::string patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid;
 
@@ -3194,7 +3317,7 @@ namespace Orthanc
       sopInstanceUid.assign(c);
     }
     
-    DicomMap::LogMissingTagsForStore(patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
+    return DicomMap::FormatMissingTagsForStore(patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
   }
 
 

@@ -1448,6 +1448,69 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }
+
+    virtual void StoreKeyValue(const std::string& storeId,
+                               const std::string& key,
+                               const void* value,
+                               size_t valueSize) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+    virtual void DeleteKeyValue(const std::string& storeId,
+                                const std::string& key) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+    virtual bool GetKeyValue(std::string& value,
+                             const std::string& storeId,
+                             const std::string& key) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+    virtual void ListKeysValues(std::list<std::string>& keys,
+                                std::list<std::string>& values,
+                                const std::string& storeId,
+                                bool first,
+                                const std::string& from,
+                                uint64_t limit) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+    virtual void EnqueueValue(const std::string& queueId,
+                              const void* value,
+                              size_t valueSize) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+    virtual bool DequeueValue(std::string& value,
+                              const std::string& queueId,
+                              QueueOrigin origin) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+    virtual uint64_t GetQueueSize(const std::string& queueId) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+    virtual void GetAttachmentCustomData(std::string& customData,
+                                         const std::string& attachmentUuid) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+    }
+
+    virtual void SetAttachmentCustomData(const std::string& attachmentUuid,
+                                         const void* customData,
+                                         size_t customDataSize) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+    }
   };
 
 
@@ -1620,7 +1683,7 @@ namespace Orthanc
 
 
   void OrthancPluginDatabase::Upgrade(unsigned int targetVersion,
-                                      IStorageArea& storageArea)
+                                      IPluginStorageArea& storageArea)
   {
     VoidDatabaseListener listener;
     

@@ -82,7 +82,26 @@ namespace Orthanc
   class ORTHANC_PUBLIC Toolbox
   {
   public:
-    class ORTHANC_PUBLIC LinesIterator
+#if ORTHANC_ENABLE_MD5 == 1
+    class ORTHANC_PUBLIC MD5Context : public boost::noncopyable
+    {
+    private:
+      class PImpl;
+      boost::shared_ptr<PImpl> pimpl_;
+
+    public:
+      MD5Context();
+
+      void Append(const void* data,
+                  size_t size);
+
+      void Append(const std::string& source);
+
+      void Export(std::string& target);
+    };
+#endif
+
+    class ORTHANC_PUBLIC LinesIterator : public boost::noncopyable
     {
     private:
       const std::string& content_;
@@ -167,7 +186,13 @@ namespace Orthanc
 #if ORTHANC_ENABLE_LOCALE == 1
     static std::string ConvertToUtf8(const std::string& source,
                                      Encoding sourceEncoding,
-                                     bool hasCodeExtensions);
+                                     bool hasCodeExtensions,
+                                     bool skipBackslashes /* was always "false" in Orthanc <= 1.12.8 */);
+
+    static std::string ConvertDicomStringToUtf8(const std::string& source,
+                                                Encoding sourceEncoding,
+                                                bool hasCodeExtensions,
+                                                ValueRepresentation vr);
 
     static std::string ConvertFromUtf8(const std::string& source,
                                        Encoding targetEncoding);
@@ -301,6 +326,9 @@ namespace Orthanc
     static void UriEncode(std::string& target,
                           const std::string& source);
 
+    static void UriEncode(std::string& target,
+                          const std::vector<std::string>& pathTokens);
+
     static std::string GetJsonStringField(const ::Json::Value& json,
                                           const std::string& key,
                                           const std::string& defaultValue);
@@ -377,11 +405,13 @@ namespace Orthanc
 
     static void RemoveSurroundingQuotes(std::string& value);
 
-    class ORTHANC_PUBLIC ElapsedTimer
+    class ORTHANC_PUBLIC ElapsedTimer : public boost::noncopyable
     {
+    private:
       boost::posix_time::ptime  start_;
+
     public:
-      explicit ElapsedTimer();
+      ElapsedTimer();
 
       uint64_t GetElapsedMilliseconds();
       uint64_t GetElapsedMicroseconds();
@@ -394,21 +424,36 @@ namespace Orthanc
     };
 
     // This is a helper class to measure and log time spend e.g in a method.
-    // This should be used only during debugging and should likely not ever used in a release.
+    // This should be used only during debugging and should likely not ever be used in a release.
     // By default, you should use it as a RAII but you may force Restart/StopAndLog manually if needed.
-    class ORTHANC_PUBLIC ElapsedTimeLogger
+    class ORTHANC_PUBLIC DebugElapsedTimeLogger : public boost::noncopyable
     {
     private:
       ElapsedTimer      timer_;
       const std::string message_;
-      bool logged_;
+      bool              logged_;
 
     public:
-      explicit ElapsedTimeLogger(const std::string& message);
-      ~ElapsedTimeLogger();  
+      explicit DebugElapsedTimeLogger(const std::string& message);
+
+      ~DebugElapsedTimeLogger();  
 
       void Restart();
       void StopAndLog();
+    };
+
+    // This variant logs the same message when entering the method and when exiting (with the elapsed time).
+    // Logs goes to verbose-http.
+    class ORTHANC_PUBLIC ApiElapsedTimeLogger : public boost::noncopyable
+    {
+    private:
+      ElapsedTimer      timer_;
+      const std::string message_;
+
+    public:
+      explicit ApiElapsedTimeLogger(const std::string& message);
+
+      ~ApiElapsedTimeLogger();
     };
 
     static std::string GetHumanFileSize(uint64_t sizeInBytes);
