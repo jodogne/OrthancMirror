@@ -42,6 +42,8 @@ Maintenance
        https://discourse.orthanc-server.org/t/cannot-preview-dicom-file/6275
 * Fix: Possible deadlocks when using ZipLoaderThreads > 1 when the HttpClient disconnects
        while downloading the response.
+* Fix issue #227: In SQL, string literals must use 'single quotes'
+  https://stackoverflow.com/a/25141338
 * Upgraded dependencies for static builds:
   - civetweb 1.16, including patch for CVE-2025-55763
   - SQLite 3.50.4
