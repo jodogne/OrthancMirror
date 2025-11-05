@@ -216,6 +216,16 @@ Mid-term
 * Log outgoing C-Find queries
 * Support other Transfer Syntaxes in the Worklist plugin:
   https://discourse.orthanc-server.org/t/could-you-please-create-an-option-to-set-the-transfer-syntax-in-the-worklist-plugin-currently-little-endian-explicit-is-fixed/4871
+* For C-Find (including C-Find for worklists) Orthanc always uses the "DefaultEncoding" in the response even if it needs to 
+  return e.g. an Utf-8 PatientName that can not be represented in the the "DefaultEncoding" e.g. "Latin1".  
+  According to the standard (PS 3.4 C.4.1.1.3.2):
+    Conditionally, the Attribute Specific Character Set (0008,0005). This Attribute shall be included if expanded or replacement 
+    character sets may be used in any of the Attributes in the Response Identifier. It shall not be included otherwise. 
+    The C-FIND SCP is not required to return responses in the Specific Character Set requested by the SCU if that character set 
+    is not supported by the SCP. The SCP may return responses with a different Specific Character Set.
+  Therefore, Orthanc should:
+    - Preferrably use the same SpecificCharacterSet as the one used in the C-Find request.
+    - If Orthanc is unable to represent a string with this encoding, it shall switch to UTF-8 in the response
 * Deidentify Trace level logs: https://discourse.orthanc-server.org/t/dicom-log-deidentification-at-trace-log-level/5563
   We should implement something like GetDeidentifiedContent(const DcmDataSet& dataset) that would 
   reproduce DcmDataSet::print but hide individual elements that contain PHI.
