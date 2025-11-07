@@ -426,7 +426,8 @@ namespace Orthanc
     
   void DicomControlUserConnection::MoveInternal(const std::string& targetAet,
                                                 ResourceType level,
-                                                const DicomMap& fields)
+                                                const DicomMap& fields,
+                                                uint16_t messageId)
   {
     assert(association_.get() != NULL);
     association_->Open(parameters_);
@@ -448,7 +449,15 @@ namespace Orthanc
 
     T_DIMSE_C_MoveRQ request;
     memset(&request, 0, sizeof(request));
-    request.MessageID = association_->GetDcmtkAssociation().nextMsgID++;
+    if (messageId == 0)
+    {
+      request.MessageID = association_->GetDcmtkAssociation().nextMsgID++;
+    }
+    else
+    {
+      request.MessageID = messageId;
+    }
+    
     strncpy(request.AffectedSOPClassUID, sopClass, DIC_UI_LEN);
     request.Priority = DIMSE_PRIORITY_MEDIUM;
     request.DataSetType = DIMSE_DATASET_PRESENT;
@@ -907,7 +916,8 @@ namespace Orthanc
 
   void DicomControlUserConnection::Move(const std::string& targetAet,
                                         ResourceType level,
-                                        const DicomMap& moveQuery)
+                                        const DicomMap& moveQuery,
+                                        uint16_t messageId)
   {
     DicomMap move;
     switch (level)
@@ -935,12 +945,13 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-    MoveInternal(targetAet, level, move);
+    MoveInternal(targetAet, level, move, messageId);
   }
 
 
   void DicomControlUserConnection::Move(const std::string& targetAet,
-                                        const DicomMap& moveQuery)
+                                        const DicomMap& moveQuery,
+                                        uint16_t messageId)
   {
     if (!moveQuery.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
     {
@@ -950,49 +961,7 @@ namespace Orthanc
     const std::string tmp = moveQuery.GetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL).GetContent();
     ResourceType level = StringToResourceType(tmp.c_str());
 
-    Move(targetAet, level, moveQuery);
-  }
-
-
-  void DicomControlUserConnection::MovePatient(const std::string& targetAet,
-                                               const std::string& patientId)
-  {
-    DicomMap query;
-    query.SetValue(DICOM_TAG_PATIENT_ID, patientId, false);
-    MoveInternal(targetAet, ResourceType_Patient, query);
-  }
-    
-
-  void DicomControlUserConnection::MoveStudy(const std::string& targetAet,
-                                             const std::string& studyUid)
-  {
-    DicomMap query;
-    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid, false);
-    MoveInternal(targetAet, ResourceType_Study, query);
-  }
-
-    
-  void DicomControlUserConnection::MoveSeries(const std::string& targetAet,
-                                              const std::string& studyUid,
-                                              const std::string& seriesUid)
-  {
-    DicomMap query;
-    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid, false);
-    query.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid, false);
-    MoveInternal(targetAet, ResourceType_Series, query);
-  }
-
-
-  void DicomControlUserConnection::MoveInstance(const std::string& targetAet,
-                                                const std::string& studyUid,
-                                                const std::string& seriesUid,
-                                                const std::string& instanceUid)
-  {
-    DicomMap query;
-    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid, false);
-    query.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid, false);
-    query.SetValue(DICOM_TAG_SOP_INSTANCE_UID, instanceUid, false);
-    MoveInternal(targetAet, ResourceType_Instance, query);
+    Move(targetAet, level, moveQuery, messageId);
   }
 
 
