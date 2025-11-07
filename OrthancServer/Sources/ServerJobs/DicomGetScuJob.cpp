@@ -46,7 +46,7 @@ namespace Orthanc
                                           const std::string& calledAet)
   {
     // this code is equivalent to OrthancStoreRequestHandler
-    ServerContext* context = reinterpret_cast<ServerContext*>(callbackContext);
+    DicomRetrieveScuBaseJob* job = reinterpret_cast<DicomRetrieveScuBaseJob*>(callbackContext);
 
     std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromDcmDataset(dataset));
     
@@ -56,7 +56,14 @@ namespace Orthanc
                          (remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str()));
 
       std::string id;
-      ServerContext::StoreResult result = context->Store(id, *toStore, StoreInstanceMode_Default);
+      ServerContext::StoreResult result = job->GetContext().Store(id, *toStore, StoreInstanceMode_Default);
+
+      // keep track of the received instances in the job
+      if (result.GetStatus() == StoreStatus_Success || result.GetStatus() == StoreStatus_AlreadyStored)
+      {
+        job->AddReceivedInstance(id);
+      }
+
       return result.GetCStoreStatusCode();
     }
 
@@ -99,7 +106,7 @@ namespace Orthanc
     }
 
     connection_->SetProgressListener(this);
-    connection_->Get(findAnswer, InstanceReceivedHandler, &context_);
+    connection_->Get(findAnswer, InstanceReceivedHandler, this);
   }
 
   void DicomGetScuJob::AddFindAnswer(const DicomMap& answer)
