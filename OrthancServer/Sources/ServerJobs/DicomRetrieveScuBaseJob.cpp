@@ -85,7 +85,7 @@ namespace Orthanc
     {
       if (it->second == this)
       {
-        messagesRegistry.erase(it);
+        messagesRegistry.erase(it->first);
         return;
       }
     }
