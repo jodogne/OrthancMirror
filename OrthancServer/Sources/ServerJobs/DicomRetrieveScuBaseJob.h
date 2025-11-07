@@ -36,6 +36,8 @@ namespace Orthanc
   class DicomRetrieveScuBaseJob : public SetOfCommandsJob, public DicomControlUserConnection::IProgressListener
   {
   protected:
+    uint16_t GetMessageId(const std::string& localAet);
+    
     class Command : public SetOfCommandsJob::ICommand
     {
     private:
@@ -53,6 +55,8 @@ namespace Orthanc
       dimseErrorStatus_(0)
       {
       }
+
+      virtual ~Command();
 
       virtual bool Execute(const std::string &jobId) ORTHANC_OVERRIDE;
 
@@ -165,5 +169,9 @@ namespace Orthanc
     }
 
     void AddReceivedInstance(const std::string& instanceId);
+
+    static void AddReceivedInstanceFromCStore(uint16_t originatorMessageId, 
+                                              const std::string& originatorAet, 
+                                              const std::string& instanceId);
   };
 }

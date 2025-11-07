@@ -29,6 +29,7 @@
 #include <dcmtk/dcmnet/dimse.h>
 #include <algorithm>
 #include "../../../OrthancFramework/Sources/Logging.h"
+#include <boost/thread/mutex.hpp>
 
 static const char* const LOCAL_AET = "LocalAet";
 static const char* const QUERY = "Query";
@@ -36,8 +37,59 @@ static const char* const QUERY_FORMAT = "QueryFormat";  // New in 1.9.5
 static const char* const REMOTE = "Remote";
 static const char* const TIMEOUT = "Timeout";
 
+static std::map<std::string, Orthanc::SetOfCommandsJob::ICommand*> messagesRegistry; 
+static uint16_t messageRegistryCurrentId = 1000;
+static boost::mutex messageRegistryMutex;
+
 namespace Orthanc
 {
+  std::string GetKey(const std::string& aet, uint16_t messageId)
+  {
+    return aet + "-" + boost::lexical_cast<std::string>(messageId);
+  }
+
+  uint16_t DicomRetrieveScuBaseJob::GetMessageId(const std::string& localAet)
+  {
+    assert(currentCommand_ != NULL);
+    boost::mutex::scoped_lock lock(messageRegistryMutex);
+    
+    // Each resource retrieval (command) has its own messageId.  
+    // We start at 1000 to clearly differentiate them from other messages.  We can actually use ANY value between 0 & 65535.
+    messageRegistryCurrentId = std::max(1000, (messageRegistryCurrentId + 1) % 0xFFFF);
+    messagesRegistry[GetKey(localAet, messageRegistryCurrentId)] = currentCommand_;
+    
+    return messageRegistryCurrentId;
+  }
+
+  void DicomRetrieveScuBaseJob::AddReceivedInstanceFromCStore(uint16_t originatorMessageId, 
+                                                              const std::string& originatorAet, 
+                                                              const std::string& instanceId)
+  {
+    boost::mutex::scoped_lock lock(messageRegistryMutex);
+
+    std::string key = GetKey(originatorAet, originatorMessageId);
+
+    if (messagesRegistry.find(key) != messagesRegistry.end())
+    {
+      dynamic_cast<DicomRetrieveScuBaseJob::Command*>(messagesRegistry[key])->AddReceivedInstance(instanceId);
+    }
+  }
+
+  DicomRetrieveScuBaseJob::Command::~Command()
+  {
+    // remove the command from the messageRegistry
+    boost::mutex::scoped_lock lock(messageRegistryMutex);
+
+    for (std::map<std::string, Orthanc::SetOfCommandsJob::ICommand*>::const_iterator it = messagesRegistry.begin();
+         it != messagesRegistry.end(); ++it)
+    {
+      if (it->second == this)
+      {
+        messagesRegistry.erase(it);
+        return;
+      }
+    }
+  }
 
   bool DicomRetrieveScuBaseJob::Command::Execute(const std::string &jobId)
   {
