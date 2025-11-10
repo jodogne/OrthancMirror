@@ -76,12 +76,11 @@ struct Worklist
 
 
   Worklist(const std::string& id, const Json::Value& jsonWl) :
-    id_(id)
+    id_(id),
+    createdAt_ = jsonWl["CreatedAt"].asString()
   {
-    createdAt_ = jsonWl["CreatedAt"].asString();
     std::string b64DicomContent = jsonWl["Dicom"].asString();
     Orthanc::Toolbox::DecodeBase64(dicomContent_, b64DicomContent);
-
   }
 
   void Serialize(std::string& target) const
