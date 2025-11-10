@@ -578,7 +578,7 @@ namespace Orthanc
     }
 
     T_DIMSE_Message msgGetRequest;
-    memset((char*)&msgGetRequest, 0, sizeof(msgGetRequest));
+    memset(reinterpret_cast<void*>(&msgGetRequest), 0, sizeof(msgGetRequest));
     msgGetRequest.CommandField = DIMSE_C_GET_RQ;
 
     T_DIMSE_C_GetRQ* request = &(msgGetRequest.msg.CGetRQ);
@@ -617,7 +617,7 @@ namespace Orthanc
     {
         T_DIMSE_Message rsp;
         // Make sure everything is zeroed (especially options)
-        memset((char*)&rsp, 0, sizeof(rsp));
+        memset(reinterpret_cast<void*>(&rsp), 0, sizeof(rsp));
 
         // DcmDataset* statusDetail = NULL;
         T_ASC_PresentationContextID cmdPresId = 0;
@@ -711,7 +711,7 @@ namespace Orthanc
 
             // send the Store response
             T_DIMSE_Message storeResponse;
-            memset((char*)&storeResponse, 0, sizeof(storeResponse));
+            memset(reinterpret_cast<void*>(&storeResponse), 0, sizeof(storeResponse));
             storeResponse.CommandField         = DIMSE_C_STORE_RSP;
 
             T_DIMSE_C_StoreRSP& storeRsp       = storeResponse.msg.CStoreRSP;

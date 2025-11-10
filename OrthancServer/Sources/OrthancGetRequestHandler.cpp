@@ -133,8 +133,8 @@ namespace Orthanc
     LST_HEAD **l = &assoc->params->DULparams.acceptedPresentationContext;
     if (*l != NULL)
     {
-      DUL_PRESENTATIONCONTEXT* pc = (DUL_PRESENTATIONCONTEXT*) LST_Head(l);
-      LST_Position(l, (LST_NODE*)pc);
+      DUL_PRESENTATIONCONTEXT* pc = reinterpret_cast<DUL_PRESENTATIONCONTEXT*>(LST_Head(l));
+      LST_Position(l, reinterpret_cast<LST_NODE*>(pc));
       while (pc)
       {
         if (pc->result == ASC_P_ACCEPTANCE)
@@ -157,7 +157,7 @@ namespace Orthanc
           }
         }
             
-        pc = (DUL_PRESENTATIONCONTEXT*) LST_Next(l);
+        pc = reinterpret_cast<DUL_PRESENTATIONCONTEXT*>(LST_Next(l));
       }
     }
 

@@ -252,7 +252,7 @@ TEST(PngWriter, EndToEnd)
     v = 0;
     for (unsigned int y = 0; y < height; y++)
     {
-      const uint16_t *p = reinterpret_cast<const uint16_t*>((const uint8_t*) r.GetConstBuffer() + y * r.GetPitch());
+      const uint16_t *p = reinterpret_cast<const uint16_t*>(reinterpret_cast<const uint8_t*>(r.GetConstBuffer()) + y * r.GetPitch());
       ASSERT_EQ(p, r.GetConstRow(y));
       for (unsigned int x = 0; x < width; x++, p++, v++)
       {
@@ -276,7 +276,7 @@ TEST(PngWriter, EndToEnd)
     v = 0;
     for (unsigned int y = 0; y < height; y++)
     {
-      const uint16_t *p = reinterpret_cast<const uint16_t*>((const uint8_t*) r2.GetConstBuffer() + y * r2.GetPitch());
+      const uint16_t *p = reinterpret_cast<const uint16_t*>(reinterpret_cast<const uint8_t*>(r2.GetConstBuffer()) + y * r2.GetPitch());
       ASSERT_EQ(p, r2.GetConstRow(y));
       for (unsigned int x = 0; x < width; x++, p++, v++)
       {
@@ -500,7 +500,7 @@ TEST(PamWriter, EndToEnd)
     for (unsigned int y = 0; y < height; y++)
     {
       const uint16_t *p = reinterpret_cast<const uint16_t*>
-        ((const uint8_t*) r.GetConstBuffer() + y * r.GetPitch());
+        (reinterpret_cast<const uint8_t*>(r.GetConstBuffer()) + y * r.GetPitch());
       ASSERT_EQ(p, r.GetConstRow(y));
       for (unsigned int x = 0; x < width; x++, p++, v++)
       {
@@ -522,7 +522,7 @@ TEST(PamWriter, EndToEnd)
     for (unsigned int y = 0; y < height; y++)
     {
       const uint16_t* p = reinterpret_cast<const uint16_t*>
-        ((const uint8_t*)r.GetConstBuffer() + y * r.GetPitch());
+        (reinterpret_cast<const uint8_t*>(r.GetConstBuffer()) + y * r.GetPitch());
       ASSERT_EQ(p, r.GetConstRow(y));
       for (unsigned int x = 0; x < width; x++, p++, v++)
       {
@@ -547,7 +547,7 @@ TEST(PamWriter, EndToEnd)
     for (unsigned int y = 0; y < height; y++)
     {
       const uint16_t *p = reinterpret_cast<const uint16_t*>
-        ((const uint8_t*) r2.GetConstBuffer() + y * r2.GetPitch());
+        (reinterpret_cast<const uint8_t*>(r2.GetConstBuffer()) + y * r2.GetPitch());
       ASSERT_EQ(p, r2.GetConstRow(y));
       for (unsigned int x = 0; x < width; x++, p++, v++)
       {
@@ -574,7 +574,7 @@ TEST(PamWriter, EndToEnd)
     for (unsigned int y = 0; y < height; y++)
     {
       const uint16_t* p = reinterpret_cast<const uint16_t*>
-        ((const uint8_t*)r2.GetConstBuffer() + y * r2.GetPitch());
+        (reinterpret_cast<const uint8_t*>(r2.GetConstBuffer()) + y * r2.GetPitch());
       ASSERT_EQ(p, r2.GetConstRow(y));
       for (unsigned int x = 0; x < width; x++, p++, v++)
       {
