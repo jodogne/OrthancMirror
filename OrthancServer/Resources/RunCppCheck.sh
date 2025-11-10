@@ -41,6 +41,8 @@ assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModification
 assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
 variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:228
 variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
+uselessOverride:../../OrthancFramework/Sources/MultiThreading/IRunnableBySteps.h:35
+uselessOverride:../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h:76
 EOF
 
 # TODO: re-enable nullPointerOutOfMemory
