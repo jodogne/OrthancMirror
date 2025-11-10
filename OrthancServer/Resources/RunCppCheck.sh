@@ -47,6 +47,10 @@ cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:85
 cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:108
 cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:124
 cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:140
+constParameterPointer:../../OrthancServer/Plugins/Include/orthanc/OrthancCPlugin.h
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:447
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:451
+constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3053
 EOF
 
 # TODO: re-enable nullPointerOutOfMemory
