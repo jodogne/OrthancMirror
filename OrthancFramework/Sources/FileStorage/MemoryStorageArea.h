@@ -42,7 +42,7 @@ namespace Orthanc
     Content  content_;
     
   public:
-    virtual ~MemoryStorageArea();
+    virtual ~MemoryStorageArea() ORTHANC_OVERRIDE;
     
     virtual void Create(const std::string& uuid,
                         const void* content,

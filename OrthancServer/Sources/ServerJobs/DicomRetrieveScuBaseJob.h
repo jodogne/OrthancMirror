@@ -56,7 +56,7 @@ namespace Orthanc
       {
       }
 
-      virtual ~Command();
+      virtual ~Command() ORTHANC_OVERRIDE;
 
       virtual bool Execute(const std::string &jobId) ORTHANC_OVERRIDE;
 

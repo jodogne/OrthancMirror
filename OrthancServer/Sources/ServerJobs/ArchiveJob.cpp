@@ -207,7 +207,7 @@ namespace Orthanc
       }
     }
 
-    virtual ~ThreadedInstanceLoader()
+    virtual ~ThreadedInstanceLoader() ORTHANC_OVERRIDE
     {
       Clear();
     }

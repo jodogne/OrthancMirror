@@ -1562,7 +1562,7 @@ namespace Orthanc
           }
         }
 
-        virtual ~Handler()
+        virtual ~Handler() ORTHANC_OVERRIDE
         {
           assert(handler_ != NULL);
           parameters_.destructor(handler_);
@@ -6687,7 +6687,7 @@ namespace Orthanc
       assert(reader_ != NULL);
     }
 
-    virtual ~HttpServerChunkedReader()
+    virtual ~HttpServerChunkedReader() ORTHANC_OVERRIDE
     {
       assert(reader_ != NULL);
       parameters_.finalize(reader_);
