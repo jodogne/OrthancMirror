@@ -83,7 +83,7 @@ namespace Orthanc
                bool enableExtendedSopClass,
                ResourceType jobLevel);
     
-    virtual ~ArchiveJob();
+    virtual ~ArchiveJob() ORTHANC_OVERRIDE;
 
     void AcquireSynchronousTarget(ZipWriter::IOutputStream* synchronousTarget);
 

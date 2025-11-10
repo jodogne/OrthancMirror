@@ -597,7 +597,7 @@ namespace Orthanc
     virtual INode* CreateSubfolder(const std::string& path) = 0;
 
   public:
-    virtual ~InternalNode()
+    virtual ~InternalNode() ORTHANC_OVERRIDE
     {
       for (Children::iterator it = children_.begin(); it != children_.end(); ++it)
       {

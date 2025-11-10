@@ -527,7 +527,7 @@ namespace Orthanc
     }
 
     
-    virtual ~Transaction()
+    virtual ~Transaction() ORTHANC_OVERRIDE
     {
       try
       {

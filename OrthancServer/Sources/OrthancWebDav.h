@@ -99,7 +99,7 @@ namespace Orthanc
                   bool allowDicomDelete,
                   bool allowUpload);
 
-    virtual ~OrthancWebDav()
+    virtual ~OrthancWebDav() ORTHANC_OVERRIDE
     {
       Stop();
     }

@@ -54,7 +54,7 @@ namespace Orthanc
                             void* database,
                             const std::string& serverIdentifier);
 
-    virtual ~OrthancPluginDatabaseV3();
+    virtual ~OrthancPluginDatabaseV3() ORTHANC_OVERRIDE;
 
     virtual void Open() ORTHANC_OVERRIDE;
 
