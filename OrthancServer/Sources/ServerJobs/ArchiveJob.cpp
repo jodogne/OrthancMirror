@@ -781,7 +781,6 @@ namespace Orthanc
       }
         
       void Apply(HierarchicalZipWriter& writer,
-                 ServerContext& context,
                  InstanceLoader& instanceLoader,
                  DicomDirWriter* dicomDir,
                  const std::string& dicomDirFolder,
@@ -857,7 +856,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
 
-      commands_[index]->Apply(writer, context, instanceLoader, dicomDir, dicomDirFolder, transcode, transferSyntax);
+      commands_[index]->Apply(writer, instanceLoader, dicomDir, dicomDirFolder, transcode, transferSyntax);
     }
       
   public:

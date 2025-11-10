@@ -103,7 +103,7 @@ namespace Orthanc
     // WARNING: "instanceId" can be different from
     // "instance.GetHasher().HashInstance()" if transcoding is enabled
     void AnswerStoredInstance(RestApiPostCall& call,
-                              DicomInstanceToStore& instance,
+                              const DicomInstanceToStore& instance,
                               StoreStatus status,
                               const std::string& instanceId) const;
 

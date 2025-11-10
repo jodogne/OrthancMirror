@@ -169,9 +169,9 @@ namespace Orthanc
   }
 
 
-  void RestApiHierarchy::DeleteChildren(Children& children)
+  void RestApiHierarchy::DeleteChildren(const Children& children)
   {
-    for (Children::iterator it = children.begin();
+    for (Children::const_iterator it = children.begin();
          it != children.end(); ++it)
     {
       delete it->second;
