@@ -1597,7 +1597,7 @@ namespace Orthanc
     for (JobsIndex::const_iterator it = jobsIndex_.begin();
          it != jobsIndex_.end(); ++it)
     {
-      JobHandler& job = *it->second;
+      const JobHandler& job = *it->second;
 
       switch (job.GetState())
       {

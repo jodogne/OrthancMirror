@@ -185,7 +185,7 @@ namespace Orthanc
       for (std::set<std::string>::const_iterator it = instancesToReconstruct_.begin(); it != instancesToReconstruct_.end(); ++it)
       {
         ServerContext::DicomCacheLocker locker(GetContext(), *it);
-        ParsedDicomFile& modifiedDicom = locker.GetDicom();
+        const ParsedDicomFile& modifiedDicom = locker.GetDicom();
 
         GetContext().GetIndex().ReconstructInstance(modifiedDicom, false, ResourceType_Instance /* dummy */);
       }
@@ -219,7 +219,7 @@ namespace Orthanc
     try
     {
       ServerContext::DicomCacheLocker locker(GetContext(), instance);
-      ParsedDicomFile& original = locker.GetDicom();
+      const ParsedDicomFile& original = locker.GetDicom();
 
       originalHasher.reset(new DicomInstanceHasher(original.GetHasher()));
       modified.reset(original.Clone(true));

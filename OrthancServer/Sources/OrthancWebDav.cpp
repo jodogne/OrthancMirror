@@ -1256,7 +1256,7 @@ namespace Orthanc
             success = true;
           }
         }
-        catch (OrthancException& e)
+        catch (const OrthancException&)
         {
         }
       }
