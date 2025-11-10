@@ -75,11 +75,12 @@ namespace Orthanc
     if (connection_.get() == NULL)
     {
       std::set<std::string> sopClassesToPropose;
-      std::set<std::string> acceptedSopClasses;
       std::list<DicomTransferSyntax> proposedTransferSyntaxes;
 
       if (sopClassesFromResourcesToRetrieve_.size() > 0)
       {
+        std::set<std::string> acceptedSopClasses;
+        
         context_.GetAcceptedSopClasses(acceptedSopClasses, 0); 
 
         // keep the sop classes from the resources to retrieve only if they are accepted by Orthanc

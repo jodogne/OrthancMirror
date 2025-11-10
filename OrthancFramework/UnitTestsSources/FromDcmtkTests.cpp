@@ -3630,9 +3630,9 @@ TEST(Toto, DISABLED_Transcode3)
         std::string source;
         Orthanc::SystemToolbox::ReadFile(source, SystemToolbox::PathFromUtf8(path));
 
-        std::string c, k;
         try
         {
+          std::string c, k;
           scu.Transcode(c, k, transcoder, source.c_str(), source.size(),
                         DicomTransferSyntax_LittleEndianExplicit, false, "", 0);
         }
@@ -3678,8 +3678,6 @@ TEST(Toto, DISABLED_Transcode4)
     std::set<DicomTransferSyntax> s;
     s.insert(a);
 
-    std::string t;
-
     IDicomTranscoder::DicomImage source, target;
     source.AcquireParsed(dynamic_cast<DcmFileFormat*>(toto->clone()));
 
@@ -3698,7 +3696,6 @@ TEST(Toto, DISABLED_Transcode4)
                     a == DicomTransferSyntax_JPEGProcess2_4 ||
                     a == DicomTransferSyntax_JPEGLSLossy);
       
-      printf("SIZE: %d\n", static_cast<int>(t.size()));
       if (sourceUid == IDicomTranscoder::GetSopInstanceUid(target.GetParsed()))
       {
         ASSERT_FALSE(lossy);

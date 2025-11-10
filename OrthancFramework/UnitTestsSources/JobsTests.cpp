@@ -282,10 +282,10 @@ TEST(MultiThreading, SharedMessageQueueBasic)
 
 TEST(MultiThreading, SharedMessageQueueClean)
 {
-  std::set<int> s;
-
   try
   {
+    std::set<int> s;
+
     SharedMessageQueue q;
     q.Enqueue(new DynamicInteger(10, s));
     q.Enqueue(new DynamicInteger(20, s));  
@@ -740,10 +740,10 @@ TEST(JobsEngine, DISABLED_SequenceOfOperationsJob)
   engine.SetWorkersCount(3);
   engine.Start();
 
-  std::string id;
   SequenceOfOperationsJob* job = NULL;
 
   {
+    std::string id;
     std::unique_ptr<SequenceOfOperationsJob> a(new SequenceOfOperationsJob);
     job = a.get();
     engine.GetRegistry().Submit(id, a.release(), 0);
@@ -1137,9 +1137,9 @@ TEST(JobsSerialization, DicomModification2)
 TEST(JobsSerialization, Registry)
 {   
   Json::Value s;
-  std::string i1, i2;
 
   {
+    std::string i1, i2;
     JobsRegistry registry(10);
     registry.Submit(i1, new DummyJob(), 10);
     registry.Submit(i2, new SequenceOfOperationsJob(), 30);
