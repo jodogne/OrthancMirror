@@ -420,6 +420,7 @@ namespace Orthanc
                                                    const Json::Value& serialized) :
     SetOfCommandsJob(new Unserializer(*this), serialized),
     context_(context),
+    ready_(false),
     transactionUid_(SerializationToolbox::ReadString(serialized, TRANSACTION_UID)),
     calledAet_(SerializationToolbox::ReadString(serialized, CALLED_AET))
     // "ready_" is initialized by the unserializer
