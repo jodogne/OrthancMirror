@@ -73,8 +73,8 @@ namespace Orthanc
 
     struct PriorityComparator
     {
-      bool operator() (JobHandler* const& a,
-                       JobHandler* const& b) const;
+      bool operator() (const JobHandler* const& a,
+                       const JobHandler* const& b) const;
     };
 
     typedef std::map<std::string, JobHandler*>              JobsIndex;
@@ -100,7 +100,7 @@ namespace Orthanc
 #ifndef NDEBUG
     bool IsPendingJob(const JobHandler& job) const;
 
-    bool IsCompletedJob(JobHandler& job) const;
+    bool IsCompletedJob(const JobHandler& job) const;
 
     bool IsRetryJob(JobHandler& job) const;
 #endif

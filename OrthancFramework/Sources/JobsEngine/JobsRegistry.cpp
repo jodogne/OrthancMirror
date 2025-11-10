@@ -375,8 +375,8 @@ namespace Orthanc
   };
 
 
-  bool JobsRegistry::PriorityComparator::operator() (JobHandler* const& a,
-                                                     JobHandler* const& b) const
+  bool JobsRegistry::PriorityComparator::operator() (const JobHandler* const& a,
+                                                     const JobHandler* const& b) const
   {
     return a->GetPriority() < b->GetPriority();
   }
@@ -404,7 +404,7 @@ namespace Orthanc
     return false;
   }
 
-  bool JobsRegistry::IsCompletedJob(JobHandler& job) const
+  bool JobsRegistry::IsCompletedJob(const JobHandler& job) const
   {
     for (CompletedJobs::const_iterator it = completedJobs_.begin();
          it != completedJobs_.end(); ++it)
