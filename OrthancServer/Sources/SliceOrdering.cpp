@@ -192,12 +192,12 @@ namespace Orthanc
       }
 
       hasNormal_ = ComputeNormal(normal_, instance);
-
-      std::string s;
       hasIndexInSeries_ = false;
 
       try
       {
+        std::string s;
+  
         if (index.LookupMetadata(s, instanceId, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
         {
           indexInSeries_ = boost::lexical_cast<size_t>(Toolbox::StripSpaces(s));

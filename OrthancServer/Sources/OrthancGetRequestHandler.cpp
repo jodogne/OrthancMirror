@@ -137,9 +137,10 @@ namespace Orthanc
       LST_Position(l, (LST_NODE*)pc);
       while (pc)
       {
-        DicomTransferSyntax transferSyntax;
         if (pc->result == ASC_P_ACCEPTANCE)
         {
+          DicomTransferSyntax transferSyntax;
+          
           if (LookupTransferSyntax(transferSyntax, pc->acceptedTransferSyntax))
           {
             /*CLOG(TRACE, DICOM) << "C-GET SCP accepted: SOP class " << pc->abstractSyntax

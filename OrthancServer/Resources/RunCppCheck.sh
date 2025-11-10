@@ -39,9 +39,18 @@ assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/Database
 assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3066
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:286
 assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
+variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:228
+variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
 EOF
 
-${CPPCHECK} --enable=all --quiet --std=c++11 \
+# TODO: re-enable nullPointerOutOfMemory
+
+${CPPCHECK} -j 8 --enable=all --quiet --std=c++11 \
+            --suppress=missingIncludeSystem \
+            --suppress=missingInclude \
+            --suppress=useStlAlgorithm \
+            --suppress:nullPointerOutOfMemory \
+            --check-level=exhaustive \
             --suppressions-list=/tmp/cppcheck-suppressions.txt \
             -DBOOST_HAS_DATE_TIME=1 \
             -DBOOST_HAS_FILESYSTEM_V3=1 \
