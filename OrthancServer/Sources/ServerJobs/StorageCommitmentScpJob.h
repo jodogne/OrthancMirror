@@ -78,7 +78,7 @@ namespace Orthanc
     StorageCommitmentScpJob(ServerContext& context,
                             const Json::Value& serialized);
 
-    void Reserve(size_t size);
+    virtual void Reserve(size_t size) ORTHANC_OVERRIDE;
     
     void AddInstance(const std::string& sopClassUid,
                      const std::string& sopInstanceUid);
