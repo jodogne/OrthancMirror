@@ -1885,7 +1885,7 @@ namespace Orthanc
           return decoded.release();
         }
       }
-      catch (OrthancException& e)
+      catch (const OrthancException&)
       { // ignore, we'll try other alternatives
       }
     }
@@ -1898,7 +1898,7 @@ namespace Orthanc
       {
         decoded.reset(GetPlugins().Decode(buffer, size, frameIndex));
       }
-      catch (OrthancException& e)
+      catch (const OrthancException&)
       {
       }
       

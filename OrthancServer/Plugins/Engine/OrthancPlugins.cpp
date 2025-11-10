@@ -5888,7 +5888,7 @@ namespace Orthanc
       case _OrthancPluginService_KeysValuesIteratorGetKey:
       {
         const _OrthancPluginKeysValuesIteratorGetKey& p = *reinterpret_cast<const _OrthancPluginKeysValuesIteratorGetKey*>(parameters);
-        StatelessDatabaseOperations::KeysValuesIterator& iterator = *reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
+        const StatelessDatabaseOperations::KeysValuesIterator& iterator = *reinterpret_cast<const StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
         *p.target = iterator.GetKey().c_str();
         return true;
       }
@@ -5896,7 +5896,7 @@ namespace Orthanc
       case _OrthancPluginService_KeysValuesIteratorGetValue:
       {
         const _OrthancPluginKeysValuesIteratorGetValue& p = *reinterpret_cast<const _OrthancPluginKeysValuesIteratorGetValue*>(parameters);
-        StatelessDatabaseOperations::KeysValuesIterator& iterator = *reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
+        const StatelessDatabaseOperations::KeysValuesIterator& iterator = *reinterpret_cast<const StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
         CopyToMemoryBuffer(p.target, iterator.GetValue());
         return true;
       }
