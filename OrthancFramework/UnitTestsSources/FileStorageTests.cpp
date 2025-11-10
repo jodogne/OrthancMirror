@@ -59,7 +59,7 @@ TEST(FilesystemStorage, Basic)
 
   std::string data = Toolbox::GenerateUuid();
   std::string uid = Toolbox::GenerateUuid();
-  s.Create(uid.c_str(), &data[0], data.size(), FileContentType_Unknown);
+  s.Create(uid, &data[0], data.size(), FileContentType_Unknown);
   std::string d;
   {
     std::unique_ptr<IMemoryBuffer> buffer(s.ReadWhole(uid, FileContentType_Unknown));
@@ -83,7 +83,7 @@ TEST(FilesystemStorage, Basic2)
   std::vector<uint8_t> data;
   StringToVector(data, Toolbox::GenerateUuid());
   std::string uid = Toolbox::GenerateUuid();
-  s.Create(uid.c_str(), &data[0], data.size(), FileContentType_Unknown);
+  s.Create(uid, &data[0], data.size(), FileContentType_Unknown);
   std::string d;
   {
     std::unique_ptr<IMemoryBuffer> buffer(s.ReadWhole(uid, FileContentType_Unknown));
@@ -167,7 +167,7 @@ TEST(FilesystemStorage, EndToEnd)
   {
     std::string t = Toolbox::GenerateUuid();
     std::string uid = Toolbox::GenerateUuid();
-    s.Create(uid.c_str(), &t[0], t.size(), FileContentType_Unknown);
+    s.Create(uid, &t[0], t.size(), FileContentType_Unknown);
     u.push_back(uid);
   }
 

@@ -272,7 +272,7 @@ namespace Orthanc
           currentPrivateCreator = "";
         }
 
-        std::unique_ptr<DcmElement> cloned(FromDcmtkBridge::CreateElementForTag(*it, currentPrivateCreator.c_str()));
+        std::unique_ptr<DcmElement> cloned(FromDcmtkBridge::CreateElementForTag(*it, currentPrivateCreator));
         cloned->copyFrom(*element);
         target->insert(cloned.release());
       }
