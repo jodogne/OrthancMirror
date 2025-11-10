@@ -79,7 +79,7 @@ namespace Orthanc
 
     const std::string& GetDescription() const;
 
-    void Reserve(size_t size);
+    virtual void Reserve(size_t size);
 
     size_t GetCommandsCount() const;
 
