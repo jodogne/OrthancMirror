@@ -43,6 +43,10 @@ variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:228
 variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
 uselessOverride:../../OrthancFramework/Sources/MultiThreading/IRunnableBySteps.h:35
 uselessOverride:../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h:76
+cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:85
+cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:108
+cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:124
+cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:140
 EOF
 
 # TODO: re-enable nullPointerOutOfMemory

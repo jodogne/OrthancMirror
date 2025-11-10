@@ -2019,13 +2019,13 @@ namespace Orthanc
           }
           else
           {
-            ok = element.putUint16Array((const Uint16*) decoded->c_str(), decoded->size() / sizeof(Uint16)).good();
+            ok = element.putUint16Array(reinterpret_cast<const Uint16*>(decoded->c_str()), decoded->size() / sizeof(Uint16)).good();
           }
           
           break;
       
         default:
-          ok = element.putUint8Array((const Uint8*) decoded->c_str(), decoded->size()).good();
+          ok = element.putUint8Array(reinterpret_cast<const Uint8*>(decoded->c_str()), decoded->size()).good();
           break;
       }
       
