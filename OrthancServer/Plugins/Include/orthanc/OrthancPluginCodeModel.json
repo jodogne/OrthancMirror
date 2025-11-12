@@ -5504,11 +5504,11 @@
             "documentation": {
                 "args": {
                     "queueId": "A unique identifier identifying both the plugin and the queue.",
-                    "valueId": "An opaque id obtained from OrthancPluginReserveQueueValue"
+                    "valueId": "The opaque identifier for the value obtained from OrthancPluginReserveQueueValue()."
                 },
                 "description": [],
                 "return": "0 if success, other value if error.",
-                "summary": "Acknowledge that a queue value has been consumed and definitely removes it from the queue."
+                "summary": "Acknowledge that a queue value has been properly consumed by the plugin and can be definitely removed from the queue."
             },
             "return_sdk_enumeration": "OrthancPluginErrorCode",
             "return_sdk_type": "enumeration",
