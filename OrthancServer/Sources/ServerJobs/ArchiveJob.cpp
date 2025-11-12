@@ -813,16 +813,11 @@ namespace Orthanc
 
             writer.OpenFile(filename_.c_str());
 
-            std::unique_ptr<ParsedDicomFile> parsed;
-            
             writer.Write(content);
 
             if (dicomDir != NULL)
             {
-              if (parsed.get() == NULL)
-              {
-                parsed.reset(new ParsedDicomFile(content));
-              }
+              std::unique_ptr<ParsedDicomFile> parsed(new ParsedDicomFile(content));
 
               dicomDir->Add(dicomDirFolder, filename_, *parsed);
             }

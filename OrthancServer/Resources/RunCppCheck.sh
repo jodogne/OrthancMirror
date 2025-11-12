@@ -51,6 +51,10 @@ constParameterPointer:../../OrthancServer/Plugins/Include/orthanc/OrthancCPlugin
 constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:447
 constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:451
 constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3053
+knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:114
+knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:425
+knownConditionTrueFalse:../../OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp:345
+
 EOF
 
 # TODO: re-enable nullPointerOutOfMemory
