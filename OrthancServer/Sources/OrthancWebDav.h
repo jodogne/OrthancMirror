@@ -101,7 +101,7 @@ namespace Orthanc
 
     virtual ~OrthancWebDav() ORTHANC_OVERRIDE
     {
-      Stop();
+      OrthancWebDav::Stop();
     }
 
     virtual bool IsExistingFolder(const UriComponents& path) ORTHANC_OVERRIDE;

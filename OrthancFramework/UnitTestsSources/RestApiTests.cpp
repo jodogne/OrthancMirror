@@ -402,7 +402,7 @@ namespace
     void Reset()
     {
       HttpContentNegociation::Dictionary parameters;
-      Handle("nope", "nope", parameters);
+      AcceptHandler::Handle("nope", "nope", parameters);
     }
 
     const std::string& GetType() const
