@@ -27,18 +27,24 @@ SET(SERVE_FOLDERS_VERSION "0.0" CACHE STRING "Version of the plugin")
 SET(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
 SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 
-SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
-SET(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of boost")
+include(${CMAKE_CURRENT_SOURCE_DIR}/../../../../OrthancFramework/Resources/CMake/OrthancFrameworkParameters.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../../../../OrthancFramework/Resources/CMake/OrthancFrameworkConfiguration.cmake)
 
-include(${CMAKE_SOURCE_DIR}/../Common/OrthancPlugins.cmake)
-include(${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Resources/CMake/JsonCppConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Resources/CMake/BoostConfiguration.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../Common/OrthancPluginsExports.cmake)
+
+include_directories(
+  ${CMAKE_SOURCE_DIR}/../../Include/
+  )
 
 add_library(ServeFolders SHARED 
   Plugin.cpp
+  ${ORTHANC_CORE_SOURCES_DEPENDENCIES}
+  ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/Enumerations.cpp
+  ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/Logging.cpp
+  ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/OrthancException.cpp
+  ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/SystemToolbox.cpp
+  ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/Toolbox.cpp
   ${CMAKE_SOURCE_DIR}/../Common/OrthancPluginCppWrapper.cpp
-  ${JSONCPP_SOURCES}
-  ${BOOST_SOURCES}
   )
 
 DefineSourceBasenameForTarget(ServeFolders)

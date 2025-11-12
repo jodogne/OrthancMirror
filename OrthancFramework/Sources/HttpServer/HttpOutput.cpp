@@ -976,7 +976,7 @@ namespace Orthanc
       stateMachine_.AddHeader("Content-Disposition", "filename=\"" + std::string(filename) + "\"");
     }
 
-    stateMachine_.StartStream(contentType.c_str());
+    stateMachine_.StartStream(contentType);
 
     while (stream.ReadNextChunk())
     {
@@ -988,7 +988,7 @@ namespace Orthanc
 
   void HttpOutput::StartStream(const std::string& contentType)
   {
-    stateMachine_.StartStream(contentType.c_str());
+    stateMachine_.StartStream(contentType);
   }
 
   void HttpOutput::SendStreamItem(const void* data,

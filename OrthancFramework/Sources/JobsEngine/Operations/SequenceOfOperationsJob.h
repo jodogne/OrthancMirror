@@ -70,7 +70,7 @@ namespace Orthanc
     SequenceOfOperationsJob(IJobUnserializer& unserializer,
                             const Json::Value& serialized);
 
-    virtual ~SequenceOfOperationsJob();
+    virtual ~SequenceOfOperationsJob() ORTHANC_OVERRIDE;
 
     void SetDescription(const std::string& description);
 

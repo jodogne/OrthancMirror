@@ -375,6 +375,8 @@ namespace Orthanc
     }
     else
     {
+      SetOfCommandsJob::Reserve(size);
+
       sopClassUids_.reserve(size);
       sopInstanceUids_.reserve(size);
     }

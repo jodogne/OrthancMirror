@@ -54,7 +54,7 @@ TEST(SQLite, Configuration)
 
 TEST(SQLite, Connection)
 {
-  SystemToolbox::RemoveFile("UnitTestsResults/coucou");
+  SystemToolbox::RemoveFile(SystemToolbox::PathFromUtf8("UnitTestsResults/coucou"));
   SQLite::Connection c;
   c.Open("UnitTestsResults/coucou");
   c.Execute("CREATE TABLE c(k INTEGER PRIMARY KEY AUTOINCREMENT, v INTEGER)");

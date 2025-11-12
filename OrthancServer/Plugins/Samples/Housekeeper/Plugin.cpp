@@ -107,7 +107,7 @@ struct RunningPeriod
   bool isInPeriod() const
   {
     time_t now = time(NULL);
-    tm* nowLocalTime = localtime(&now);
+    const tm* nowLocalTime = localtime(&now);
 
     if (nowLocalTime->tm_wday != weekday_)
     {

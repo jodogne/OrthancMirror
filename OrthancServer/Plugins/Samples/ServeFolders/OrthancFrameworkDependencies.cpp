@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- *
+ * 
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -21,30 +21,34 @@
  **/
 
 
-#pragma once
+/**
+ * Remove the dependency upon ICU in plugins, as this greatly increase
+ * the size of the resulting binaries, since they must embed the ICU
+ * dictionary.
+ **/
 
-#include "../../../../OrthancFramework/Sources/DicomNetworking/IStoreRequestHandler.h"
+#if BOOST_LOCALE_WITH_ICU == 1
+#  undef BOOST_LOCALE_WITH_ICU
+#  if ORTHANC_STATIC_ICU == 1
+#    include <unicode/udata.h>
 
-
-class StoreRequestHandler : public Orthanc::IStoreRequestHandler
+// Define an empty ICU dictionary for static builds
+extern "C"
 {
-private:
-  // Everything is constant, so no need for a mutex
-  const std::set<std::string> labels_;
-  const std::set<Orthanc::ResourceType> levels_;
-
-public:
-  StoreRequestHandler(const std::set<std::string>& labels,
-                      const std::set<Orthanc::ResourceType>& levels) :
-    labels_(labels),
-    levels_(levels)
+  struct
   {
-  }
+    double bogus;
+    uint8_t *bytes;
+  } U_ICUDATA_ENTRY_POINT = { 0.0, NULL };
+}
 
-  virtual uint16_t Handle(DcmDataset& dicom,
-                          const std::string& remoteIp,
-                          const std::string& remoteAet,
-                          const std::string& calledAet,
-                          uint16_t originatorMessageId,
-                          const std::string& originatorAet) ORTHANC_OVERRIDE;
-};
+#  endif
+#endif
+
+
+#include "../../../../OrthancFramework/Sources/ChunkedBuffer.cpp"
+#include "../../../../OrthancFramework/Sources/Enumerations.cpp"
+#include "../../../../OrthancFramework/Sources/Logging.cpp"
+#include "../../../../OrthancFramework/Sources/OrthancException.cpp"
+#include "../../../../OrthancFramework/Sources/SystemToolbox.cpp"
+#include "../../../../OrthancFramework/Sources/Toolbox.cpp"

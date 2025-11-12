@@ -597,7 +597,7 @@ namespace Orthanc
     virtual INode* CreateSubfolder(const std::string& path) = 0;
 
   public:
-    virtual ~InternalNode()
+    virtual ~InternalNode() ORTHANC_OVERRIDE
     {
       for (Children::iterator it = children_.begin(); it != children_.end(); ++it)
       {
@@ -1221,10 +1221,10 @@ namespace Orthanc
             std::unique_ptr<DicomInstanceToStore> instance(DicomInstanceToStore::CreateFromBuffer(uncompressedFile));
             instance->SetOrigin(DicomInstanceOrigin::FromWebDav());
 
-            std::string publicId;
-
             try
             {
+              std::string publicId;
+              
               context_.Store(publicId, *instance, StoreInstanceMode_Default);
             }
             catch (OrthancException& e)
@@ -1256,7 +1256,7 @@ namespace Orthanc
             success = true;
           }
         }
-        catch (OrthancException& e)
+        catch (const OrthancException&)
         {
         }
       }

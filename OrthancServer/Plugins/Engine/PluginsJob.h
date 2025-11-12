@@ -47,7 +47,7 @@ namespace Orthanc
 
     explicit PluginsJob(const _OrthancPluginCreateJob2& parameters);
 
-    virtual ~PluginsJob();
+    virtual ~PluginsJob() ORTHANC_OVERRIDE;
 
     virtual void Start() ORTHANC_OVERRIDE
     {

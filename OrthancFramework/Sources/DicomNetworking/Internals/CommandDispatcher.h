@@ -62,9 +62,9 @@ namespace Orthanc
                         unsigned int maximumPduLength,
                         IApplicationEntityFilter* filter);
 
-      virtual ~CommandDispatcher();
+      virtual ~CommandDispatcher() ORTHANC_OVERRIDE;
 
-      virtual bool Step();
+      virtual bool Step() ORTHANC_OVERRIDE;
     };
 
     CommandDispatcher* AcceptAssociation(const DicomServer& server, 

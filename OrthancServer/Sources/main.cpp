@@ -47,6 +47,7 @@
 #include "ServerContext.h"
 #include "ServerEnumerations.h"
 #include "ServerJobs/StorageCommitmentScpJob.h"
+#include "ServerJobs/DicomRetrieveScuBaseJob.h"
 #include "ServerToolbox.h"
 #include "StorageCommitmentReports.h"
 
@@ -86,7 +87,9 @@ public:
   virtual uint16_t Handle(DcmDataset& dicom,
                           const std::string& remoteIp,
                           const std::string& remoteAet,
-                          const std::string& calledAet) ORTHANC_OVERRIDE 
+                          const std::string& calledAet,
+                          uint16_t originatorMessageId,
+                          const std::string& originatorAet) ORTHANC_OVERRIDE 
   {
     std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromDcmDataset(dicom));
     
@@ -97,6 +100,13 @@ public:
 
       std::string id;
       ServerContext::StoreResult result = context_.Store(id, *toStore, StoreInstanceMode_Default);
+
+      if (result.GetStatus() == StoreStatus_Success || result.GetStatus() == StoreStatus_AlreadyStored)
+      {
+        // In case this C-Store was triggered from a C-Move job, keep track of the instances that have been received
+        DicomRetrieveScuBaseJob::AddReceivedInstanceFromCStore(originatorMessageId, originatorAet, id);
+      }
+
       return result.GetCStoreStatusCode();
     }
 
@@ -2042,7 +2052,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-          SystemToolbox::WriteFile(configurationSample, target);
+          SystemToolbox::WriteFile(configurationSample, SystemToolbox::PathFromUtf8(target));
         }
         return 0;
       }
@@ -2093,7 +2103,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-          SystemToolbox::WriteFile(s, target);
+          SystemToolbox::WriteFile(s, SystemToolbox::PathFromUtf8(target));
         }
         return 0;
       }
@@ -2127,7 +2137,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-          SystemToolbox::WriteFile(cheatsheet, target);
+          SystemToolbox::WriteFile(cheatsheet, SystemToolbox::PathFromUtf8(target));
         }
         return 0;
       }

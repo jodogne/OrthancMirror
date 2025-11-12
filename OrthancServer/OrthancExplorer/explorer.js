@@ -173,8 +173,8 @@ function GetAuthorizationTokensFromUrl() {
 
 var authorizationTokens = GetAuthorizationTokensFromUrl();
 
-/* Copy the authoziation toekn from the url search parameters into HTTP headers in every request to the Rest API.  
-Thanks to this behaviour, you may specify a ?token=xxx in your url and this will be passed 
+/* Copy the authoziation token from the url search parameters into HTTP headers in every request to the REST API.
+Thanks to this behaviour, you may specify a ?token=xxx in your url and this will be passed
 as the "token" header in every request to the API allowing you to use the authorization plugin */
 $.ajaxSetup(
   {

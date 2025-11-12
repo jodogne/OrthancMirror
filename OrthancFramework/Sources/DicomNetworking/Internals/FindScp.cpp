@@ -112,13 +112,13 @@ static void HandleExistentButEmptyReferencedStudyOrPatientSequenceAttributes(Dcm
   // in case the sequence attribute contains exactly one item with an empty
   // ReferencedSOPClassUID and an empty ReferencedSOPInstanceUID, remove the item
   if( dataset->findAndGetElement( sequenceTagKey, sequenceAttribute ).good() &&
-      ( (DcmSequenceOfItems*)sequenceAttribute )->card() == 1 &&
-      ( (DcmSequenceOfItems*)sequenceAttribute )->getItem(0)->findAndGetElement( DCM_ReferencedSOPClassUID, referencedSOPClassUIDAttribute ).good() &&
+      ( reinterpret_cast<DcmSequenceOfItems*>(sequenceAttribute) )->card() == 1 &&
+      ( reinterpret_cast<DcmSequenceOfItems*>(sequenceAttribute) )->getItem(0)->findAndGetElement( DCM_ReferencedSOPClassUID, referencedSOPClassUIDAttribute ).good() &&
       referencedSOPClassUIDAttribute->getLength() == 0 &&
-      ( (DcmSequenceOfItems*)sequenceAttribute )->getItem(0)->findAndGetElement( DCM_ReferencedSOPInstanceUID, referencedSOPInstanceUIDAttribute, OFFalse ).good() &&
+      ( reinterpret_cast<DcmSequenceOfItems*>(sequenceAttribute) )->getItem(0)->findAndGetElement( DCM_ReferencedSOPInstanceUID, referencedSOPInstanceUIDAttribute, OFFalse ).good() &&
       referencedSOPInstanceUIDAttribute->getLength() == 0 )
   {
-    DcmItem *item = ((DcmSequenceOfItems*)sequenceAttribute)->remove( ((DcmSequenceOfItems*)sequenceAttribute)->getItem(0) );
+    DcmItem *item = (reinterpret_cast<DcmSequenceOfItems*>(sequenceAttribute))->remove( (reinterpret_cast<DcmSequenceOfItems*>(sequenceAttribute))->getItem(0) );
     delete item;
   }
 }

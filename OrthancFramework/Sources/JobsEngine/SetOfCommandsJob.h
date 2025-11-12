@@ -71,7 +71,7 @@ namespace Orthanc
     SetOfCommandsJob(ICommandUnserializer* unserializer  /* takes ownership */,
                      const Json::Value& source);
 
-    virtual ~SetOfCommandsJob();
+    virtual ~SetOfCommandsJob() ORTHANC_OVERRIDE;
 
     size_t GetPosition() const;
 
@@ -79,7 +79,7 @@ namespace Orthanc
 
     const std::string& GetDescription() const;
 
-    void Reserve(size_t size);
+    virtual void Reserve(size_t size);
 
     size_t GetCommandsCount() const;
 

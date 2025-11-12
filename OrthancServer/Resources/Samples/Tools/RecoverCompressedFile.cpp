@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
   if (arguments.size() != 2 && arguments.size() != 3)
   {
     fprintf(stderr, "Maintenance tool to recover a DICOM file that was compressed by Orthanc.\n\n");
-    fprintf(stderr, "Usage: %s <input> [output]\n", Orthanc::SystemToolbox::PathToUtf8(arguments[0]).c_str());
+    fprintf(stderr, "Usage: %s <input> [output]\n", arguments[0].c_str());
     fprintf(stderr, "If \"output\" is not given, the data will be output to stdout\n");
     return -1;
   }

@@ -1274,10 +1274,12 @@ TEST_F(OrthancJobsSerialization, DicomAssociationParameters)
 TEST_F(OrthancJobsSerialization, DicomMoveScuJob)
 {
   Json::Value command = Json::objectValue;
-  command["0008,0005"]["Type"] = "String";
-  command["0008,0005"]["Content"] = "ISO_IR 100";
-  command["0010,0020"]["Type"] = "String";
-  command["0010,0020"]["Content"] = "1234";
+  command["Query"]["0008,0005"]["Type"] = "String";
+  command["Query"]["0008,0005"]["Content"] = "ISO_IR 100";
+  command["Query"]["0010,0020"]["Type"] = "String";
+  command["Query"]["0010,0020"]["Content"] = "1234";
+  command["DimseErrorStatus"] = 0;
+  command["ReceivedInstancesIds"] = Json::arrayValue;
 
   Json::Value query = Json::objectValue;
   query["0010,0020"] = "456";

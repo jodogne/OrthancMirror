@@ -238,7 +238,7 @@ namespace Orthanc
       ResetAnswers();
     }
 
-    virtual ~Transaction()
+    virtual ~Transaction() ORTHANC_OVERRIDE
     {
       assert(that_.activeTransaction_ != NULL);    
       that_.activeTransaction_ = NULL;

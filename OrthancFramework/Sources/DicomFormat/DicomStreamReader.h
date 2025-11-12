@@ -89,7 +89,7 @@ namespace Orthanc
     
     bool IsLittleEndian() const;
     
-    void HandlePreamble(IVisitor& visitor,
+    void HandlePreamble(const IVisitor& visitor,
                         const std::string& block);
     
     void HandleMetaHeader(IVisitor& visitor,

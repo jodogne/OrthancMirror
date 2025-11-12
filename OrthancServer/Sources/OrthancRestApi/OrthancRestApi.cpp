@@ -72,7 +72,7 @@ namespace Orthanc
 
 
   void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
-                                            DicomInstanceToStore& instance,
+                                            const DicomInstanceToStore& instance,
                                             StoreStatus status,
                                             const std::string& instanceId) const
   {
@@ -186,10 +186,10 @@ namespace Orthanc
           std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromBuffer(content));
           toStore->SetOrigin(DicomInstanceOrigin::FromRest(call));
 
-          std::string publicId;
-
           try
           {
+            std::string publicId;
+
             ServerContext::StoreResult result = context.Store(publicId, *toStore, StoreInstanceMode_Default);
 
             Json::Value info;
