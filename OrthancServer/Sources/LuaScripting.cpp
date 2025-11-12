@@ -1034,7 +1034,7 @@ namespace Orthanc
     return true;
   }
 
-  bool LuaScripting::FilterIncomingCStoreInstance(uint16_t& dimseStatus,
+  bool LuaScripting::FilterIncomingCStoreInstance(uint16_t& /*dimseStatus*/,
                                                   const DicomInstanceToStore& instance,
                                                   const Json::Value& simplified)
   {

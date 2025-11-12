@@ -375,8 +375,8 @@ namespace Orthanc
   };
 
 
-  bool JobsRegistry::PriorityComparator::operator() (JobHandler* const& a,
-                                                     JobHandler* const& b) const
+  bool JobsRegistry::PriorityComparator::operator() (const JobHandler* const& a,
+                                                     const JobHandler* const& b) const
   {
     return a->GetPriority() < b->GetPriority();
   }
@@ -404,7 +404,7 @@ namespace Orthanc
     return false;
   }
 
-  bool JobsRegistry::IsCompletedJob(JobHandler& job) const
+  bool JobsRegistry::IsCompletedJob(const JobHandler& job) const
   {
     for (CompletedJobs::const_iterator it = completedJobs_.begin();
          it != completedJobs_.end(); ++it)
@@ -918,12 +918,7 @@ namespace Orthanc
         {
           // Success, try and retrieve the status of the job
           JobsIndex::const_iterator it = jobsIndex_.find(id);
-          if (it == jobsIndex_.end())
-          {
-            // Should not happen
-            state = JobState_Failure;
-          }
-          else
+          if (it != jobsIndex_.end())
           {
             const JobStatus& status = it->second->GetLastStatus();
             successContent = status.GetPublicContent();
@@ -1597,7 +1592,7 @@ namespace Orthanc
     for (JobsIndex::const_iterator it = jobsIndex_.begin();
          it != jobsIndex_.end(); ++it)
     {
-      JobHandler& job = *it->second;
+      const JobHandler& job = *it->second;
 
       switch (job.GetState())
       {

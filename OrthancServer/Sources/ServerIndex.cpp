@@ -236,7 +236,7 @@ namespace Orthanc
     {
     }
 
-    virtual ITransactionContext* Create()
+    virtual ITransactionContext* Create() ORTHANC_OVERRIDE
     {
       // There can be concurrent calls to this method, which is not an
       // issue because we simply create an object

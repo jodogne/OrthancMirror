@@ -53,7 +53,7 @@ namespace Orthanc
                             const _OrthancPluginRegisterDatabaseBackendV4& database,
                             const std::string& serverIdentifier);
 
-    virtual ~OrthancPluginDatabaseV4();
+    virtual ~OrthancPluginDatabaseV4() ORTHANC_OVERRIDE;
 
     const _OrthancPluginRegisterDatabaseBackendV4& GetDefinition() const
     {

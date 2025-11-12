@@ -44,7 +44,7 @@ namespace Orthanc
   public:
     PluginMemoryBuffer64();
 
-    virtual ~PluginMemoryBuffer64()
+    virtual ~PluginMemoryBuffer64() ORTHANC_OVERRIDE
     {
       Clear();
     }

@@ -85,12 +85,12 @@ namespace Orthanc
         }
       }
 
-      virtual unsigned int GetSubOperationCount() const
+      virtual unsigned int GetSubOperationCount() const ORTHANC_OVERRIDE
       {
         return instances_.size();
       }
 
-      virtual Status DoNext()
+      virtual Status DoNext() ORTHANC_OVERRIDE
       {
         if (position_ >= instances_.size())
         {
@@ -169,12 +169,12 @@ namespace Orthanc
         }
       }
 
-      virtual unsigned int GetSubOperationCount() const
+      virtual unsigned int GetSubOperationCount() const ORTHANC_OVERRIDE
       {
         return countInstances_;
       }
 
-      virtual Status DoNext()
+      virtual Status DoNext() ORTHANC_OVERRIDE
       {
         if (position_ >= countInstances_)
         {

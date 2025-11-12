@@ -187,7 +187,6 @@ namespace Orthanc
                                request.GetOrthancIdentifiers(), ResourceType_Series, request.GetLevel());
       }
       else if (request.GetMetadataConstraintsCount() == 0 &&
-               request.GetOrdering().empty() &&
                !request.GetOrthancIdentifiers().HasPatientId() &&
                !request.GetOrthancIdentifiers().HasStudyId() &&
                !request.GetOrthancIdentifiers().HasSeriesId() &&

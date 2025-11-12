@@ -36,7 +36,9 @@
 uint16_t StoreRequestHandler::Handle(DcmDataset& dicom,
                                      const std::string& remoteIp,
                                      const std::string& remoteAet,
-                                     const std::string& calledAet)
+                                     const std::string& calledAet,
+                                     uint16_t originatorMessageId,
+                                     const std::string& originatorAet)
 {
   std::string buffer;
   std::string errorMessage;

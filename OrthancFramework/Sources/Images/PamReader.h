@@ -73,7 +73,7 @@ namespace Orthanc
     */
     explicit PamReader(bool enforceAligned);
 
-    virtual ~PamReader();
+    virtual ~PamReader() ORTHANC_OVERRIDE;
 
 #if ORTHANC_SANDBOXED == 0
     void ReadFromFile(const boost::filesystem::path& filename);
