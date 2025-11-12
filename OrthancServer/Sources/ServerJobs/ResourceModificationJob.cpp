@@ -719,7 +719,7 @@ namespace Orthanc
       }
 
       // and we must make sure that we overwite them with the modified resources
-      if (IsKeepSource() && !GetContext().IsOverwriteInstances())
+      if (!GetContext().IsOverwriteInstances())
       {
         throw OrthancException(ErrorCode_BadRequest,
                               "When keeping StudyInstanceUID, SeriesInstanceUID and SOPInstanceUID tag, you must have the 'OverwriteInstances' Orthanc configuration set to true in order to replace the modified resources");

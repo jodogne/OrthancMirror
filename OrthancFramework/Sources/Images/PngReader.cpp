@@ -102,9 +102,9 @@ namespace Orthanc
       }
 
       endInfo_ = png_create_info_struct(png_);
-      if (!info_)
+      if (!endInfo_)
       {
-        png_destroy_read_struct(&png_, &info_, NULL);
+        png_destroy_read_struct(&png_, &endInfo_, NULL);
         throw OrthancException(ErrorCode_NotEnoughMemory);
       }
     }
