@@ -10414,9 +10414,10 @@ extern "C"
    * @param queueId A unique identifier identifying both the plugin and the queue.
    * @param origin The position from where the value is dequeued (back for LIFO, front for FIFO).
    * @return 0 if success, other value if error.
-   * @deprecated This function should not be used anymore because two consumers may consume the same
-   * value.  Use OrthancPluginReserveQueueValue and OrthancPluginAcknowledgeQueueValue instead.
-   **/ 
+   * @deprecated This function should not be used anymore because there is a risk of loosing
+   * a value if the consumer plugin crashes before it has processed the value. Use
+   * OrthancPluginReserveQueueValue() and OrthancPluginAcknowledgeQueueValue() if possible.
+   **/
   ORTHANC_PLUGIN_SINCE_SDK("1.12.8")
   ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginDequeueValue(
     OrthancPluginContext*         context,
@@ -10442,7 +10443,7 @@ extern "C"
   } _OrthancPluginGetQueueSize;
 
   /**
-   * @brief Get the number of elements in a queue.
+   * @brief Get the number of elements that are currently stored in a queue.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param queueId A unique identifier identifying both the plugin and the queue.
@@ -10721,11 +10722,11 @@ extern "C"
   } _OrthancPluginReserveQueueValue;
 
   /**
-   * @brief Reserve a value from a queue which means the message is not
-   *        available for other consumers.
+   * @brief Reserve a value from a queue, which means that the message is not
+   *        available to other consumers.
    *        The value is either:
-   *        - removed from the queue when one calls OrthancPluginAcknowledgeQueueValue 
-   *        - or made available again for consumers after the releaseTimeout has expired
+   *        - removed from the queue when one calls OrthancPluginAcknowledgeQueueValue()
+   *        - or made available again for consumers after the releaseTimeout has expired.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param found Pointer to a Boolean that is set to "true" iff. a value has been dequeued.
@@ -10733,10 +10734,11 @@ extern "C"
    * It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param queueId A unique identifier identifying both the plugin and the queue.
    * @param origin The position from where the value is dequeued (back for LIFO, front for FIFO).
-   * @param releaseTimeout Timeout in seconds.  If the value is not acknowledge within this
-   *                       timeout, the value is automatically released and made available for further
-   *                       calls to OrthancPluginDequeueValue or OrthancPluginReserveQueueValue
-   * @param valueId An opaque id to use in OrthancPluginAcknowledgeQueueValue
+   * @param releaseTimeout Timeout in seconds. If the value is not acknowledged before this delay expires,
+   *                       the value is automatically released and made available for further calls to
+   *                       OrthancPluginDequeueValue() or OrthancPluginReserveQueueValue()
+   * @param valueId An opaque identifier for this value, to be subsequently provided to
+   * OrthancPluginAcknowledgeQueueValue().
    * @return 0 if success, other value if error.
    **/
   ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
@@ -10767,11 +10769,12 @@ extern "C"
   } _OrthancPluginAcknowledgeQueueValue;
 
   /**
-   * @brief Acknowledge that a queue value has been consumed and definitely removes it from the queue.
+   * @brief Acknowledge that a queue value has been properly consumed by the plugin
+   * and can be definitely removed from the queue.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param queueId A unique identifier identifying both the plugin and the queue.
-   * @param valueId An opaque id obtained from OrthancPluginReserveQueueValue
+   * @param valueId The opaque identifier for the value obtained from OrthancPluginReserveQueueValue().
    * @return 0 if success, other value if error.
    **/
   ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
@@ -10785,7 +10788,7 @@ extern "C"
     params.valueId = valueId;
 
     return context->InvokeService(context, _OrthancPluginService_AcknowledgeQueueValue, &params);
-  }  
+  }
 
 #ifdef  __cplusplus
 }
