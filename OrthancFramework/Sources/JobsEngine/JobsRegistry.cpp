@@ -918,12 +918,7 @@ namespace Orthanc
         {
           // Success, try and retrieve the status of the job
           JobsIndex::const_iterator it = jobsIndex_.find(id);
-          if (it == jobsIndex_.end())
-          {
-            // Should not happen
-            state = JobState_Failure;
-          }
-          else
+          if (it != jobsIndex_.end())
           {
             const JobStatus& status = it->second->GetLastStatus();
             successContent = status.GetPublicContent();
