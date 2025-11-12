@@ -64,7 +64,8 @@ General
   https://discourse.orthanc-server.org/t/instances-id-content-api-results-are-different-in-docker-swarm-replicas-of-orthanc/4582
 * Allow saving PrivateTags in ExtraMainDicomTags.
   Note: they can actually be stored but they then appear as "Unknown Tag & Data" in the responses.
-  If we try to add the PrivateCreator in the ExtraMainDicomTags, then, the DICOMWeb plugin fails to initialize because the private tags are not known.
+  If we try to add the PrivateCreator in the ExtraMainDicomTags, then, the DICOMweb plugin fails
+  to initialize because the private tags are not known.
 * Support hashed passwords in RegisteredUsers.  E.g:
   "RegisteredUsers": { 
     "admin": {
@@ -266,7 +267,7 @@ Performance
 * (3) Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
 
 * Long-shot & not sure it is even feasible at all: try to reduce memory usage by implementing streaming
-  when receiving DICOM instances from the Rest API or from DICOM and store files directly to disk as they
+  when receiving DICOM instances from the REST API or from DICOM and store files directly to disk as they
   are received.  Note that this would likely require rewriting large parts of Orthanc.  Note sure that 
   would be compatible with Transcoding.
   Use case: receiving 10 1GB instances in parallel can consume up to 20 GB

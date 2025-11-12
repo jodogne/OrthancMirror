@@ -136,7 +136,7 @@ namespace Orthanc
     static void GetEnvironmentVariables(std::map<std::string, std::string>& env);
 
     static boost::filesystem::path InterpretRelativePath(const boost::filesystem::path& baseDirectory,
-                                                         const std::string& relativePath);
+                                                         const boost::filesystem::path& relativePath);
 
     static void ReadFileRange(std::string& content,
                               const boost::filesystem::path& path,

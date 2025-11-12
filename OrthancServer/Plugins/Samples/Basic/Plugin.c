@@ -239,7 +239,7 @@ OrthancPluginErrorCode CallbackStabilizeStudy(OrthancPluginRestOutput* output,
   else
   {
     const char* studyId = request->groups[0];
-    int32_t statusHasChanged = 0;
+    uint8_t statusHasChanged = 0;
 
     if (strcmp(request->groups[1], "stabilize") == 0)
     {
