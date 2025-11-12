@@ -26,7 +26,6 @@ syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
 uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:419
-unusedFunction
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
@@ -59,12 +58,14 @@ throwInNoexceptFunction:../../OrthancFramework/Sources/MallocMemoryBuffer.h:50
 throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:620
 throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:632
 throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:676
-throwInNoexceptFunction:../../OrthancFramework/Sources/JobsEngine/JobsRegistry.cpp:1301
+throwInNoexceptFunction:../../OrthancFramework/Sources/JobsEngine/JobsRegistry.cpp:1296
 throwInNoexceptFunction:../../OrthancServer/Sources/LuaScripting.cpp:830
 throwInNoexceptFunction:../../OrthancServer/Sources/StorageCommitmentReports.cpp:187
 throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:218
 throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:376
 throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:496
+rethrowNoCurrentException:../../OrthancFramework/UnitTestsSources/FromDcmtkTests.cpp
+rethrowNoCurrentException:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp
 EOF
 
 # TODO: re-enable nullPointerOutOfMemory
