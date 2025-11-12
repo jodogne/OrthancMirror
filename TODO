@@ -329,32 +329,6 @@ SDK
   can not cross the C/C++ frontier safely -> we need a OrthancPluginRegisterStorageArea3 with a return value.
   Ex: install DelayedDeletion + S3 storage.  Right now, the second plugin to load is just ignored with an error
   message in the logs.
-* Queues: There is currently a risk of loosing messages from the Queues:
-    message = orthanc.DequeueValue("instances-to-process", orthanc.QueueOrigin.FRONT)
-    # consider Orthanc is interrupted here (hard shutdown)
-    proccess(message)
-  The message will never be processed ...
-  We should have an acknowledge/commit mechanism e.g:
-    message, messageId = orthanc.DequeueValue2("instances-to-process", orthanc.QueueOrigin.FRONT, 5) # where 5 is an "acknowledge timeout"
-    # At this point, the message is still in the queue but will not be visible for other consumers.
-    # If the message is not acknowledged within 5 seconds, it will get back into the queue.
-    process(message)
-    orthanc.AcknowledgeQueueMessage("instances-to-process", messageId)
-    # This requires adding a new "timeout" column in the DB with the reservation_expiration timestamp.
-
-  Note by SJ: Introducing an acknowledgement would greatly complexify
-  the SDK and the core of Orthanc. I would favor another approach by
-  introducing 2 functions in the SDK:
-  - OrthancPluginQueuePeekFront(context, found, target, queueId): Same behavior as
-    OrthancPluginDequeueValue(), but limited to the back of the queue, and doesn't modify the queue
-  - OrthancPluginQueuePopFront(context, target): Remove the front element from the queue
-  As long as OrthancPluginQueuePopFront() is not called, no message would be lost.
-  Note that we cannot propose "OrthancPluginQueuePeekBack()" or
-  "OrthancPluginQueuePeek(..., OrthancPluginQueueOrigin_Back)" (i.e., LIFO stacks), as a
-  concurrent call to "OrthancPluginEnqueueValue()" would alter the back of the queue.
-
-  Note by AM: With PeekFront: 2 consumers on 2 Orthanc instances might consume the same message no ?
-
 * Add OrthancPluginSetStableStatus2() which would take an additional OrthancPluginResourceType
   argument to avoid possible ambiguity about the resource of interest
 
