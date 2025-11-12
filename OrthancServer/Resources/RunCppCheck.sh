@@ -54,6 +54,19 @@ constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3053
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:114
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:425
 knownConditionTrueFalse:../../OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp:345
+throwInNoexceptFunction:../../OrthancFramework/Sources/Cache/MemoryStringCache.cpp:121
+throwInNoexceptFunction:../../OrthancFramework/Sources/Cache/MemoryCache.cpp:91
+throwInNoexceptFunction:../../OrthancFramework/Sources/Cache/MemoryObjectCache.cpp:99
+throwInNoexceptFunction:../../OrthancFramework/Sources/MallocMemoryBuffer.h:50
+throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:620
+throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:632
+throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:676
+throwInNoexceptFunction:../../OrthancFramework/Sources/JobsEngine/JobsRegistry.cpp:1301
+throwInNoexceptFunction:../../OrthancServer/Sources/LuaScripting.cpp:830
+throwInNoexceptFunction:../../OrthancServer/Sources/StorageCommitmentReports.cpp:187
+throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:218
+throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:376
+throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:496
 
 EOF
 
