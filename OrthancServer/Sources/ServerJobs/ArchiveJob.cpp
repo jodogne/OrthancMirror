@@ -209,7 +209,7 @@ namespace Orthanc
 
     virtual ~ThreadedInstanceLoader() ORTHANC_OVERRIDE
     {
-      Clear();
+      ThreadedInstanceLoader::Clear();
     }
 
     virtual void Clear() ORTHANC_OVERRIDE
