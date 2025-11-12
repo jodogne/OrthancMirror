@@ -838,7 +838,6 @@ namespace Orthanc
 
       
     void ApplyInternal(HierarchicalZipWriter& writer,
-                       ServerContext& context,
                        InstanceLoader& instanceLoader,
                        size_t index,
                        DicomDirWriter* dicomDir,
@@ -889,7 +888,6 @@ namespace Orthanc
 
     // "media" flavor (with DICOMDIR)
     void Apply(HierarchicalZipWriter& writer,
-               ServerContext& context,
                InstanceLoader& instanceLoader,
                size_t index,
                DicomDirWriter& dicomDir,
@@ -897,18 +895,17 @@ namespace Orthanc
                bool transcode,
                DicomTransferSyntax transferSyntax) const
     {
-      ApplyInternal(writer, context, instanceLoader, index, &dicomDir, dicomDirFolder, transcode, transferSyntax);
+      ApplyInternal(writer, instanceLoader, index, &dicomDir, dicomDirFolder, transcode, transferSyntax);
     }
 
     // "archive" flavor (without DICOMDIR)
     void Apply(HierarchicalZipWriter& writer,
-               ServerContext& context,
                InstanceLoader& instanceLoader,
                size_t index,
                bool transcode,
                DicomTransferSyntax transferSyntax) const
     {
-      ApplyInternal(writer, context, instanceLoader, index, NULL, "", transcode, transferSyntax);
+      ApplyInternal(writer, instanceLoader, index, NULL, "", transcode, transferSyntax);
     }
       
     void AddOpenDirectory(const std::string& filename)
@@ -1238,13 +1235,13 @@ namespace Orthanc
         if (isMedia_)
         {
           assert(dicomDir_.get() != NULL);
-          commands_.Apply(*zip_, context_, instanceLoader_, index, *dicomDir_,
+          commands_.Apply(*zip_, instanceLoader_, index, *dicomDir_,
                           MEDIA_IMAGES_FOLDER, transcode, transferSyntax);
         }
         else
         {
           assert(dicomDir_.get() == NULL);
-          commands_.Apply(*zip_, context_, instanceLoader_, index, transcode, transferSyntax);
+          commands_.Apply(*zip_, instanceLoader_, index, transcode, transferSyntax);
         }
       }
     }
