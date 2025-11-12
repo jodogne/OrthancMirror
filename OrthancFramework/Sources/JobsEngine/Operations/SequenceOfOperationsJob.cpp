@@ -460,7 +460,7 @@ namespace Orthanc
     done_(false)
   {
     std::string jobType;
-    GetJobType(jobType);
+    SequenceOfOperationsJob::GetJobType(jobType);
     
     if (SerializationToolbox::ReadString(serialized, TYPE) != jobType ||
         !serialized.isMember(OPERATIONS) ||

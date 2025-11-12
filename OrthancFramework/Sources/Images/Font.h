@@ -33,6 +33,11 @@
 #include <map>
 #include <boost/noncopyable.hpp>
 
+#if ORTHANC_SANDBOXED == 0
+#  include <boost/filesystem.hpp>
+#endif
+
+
 namespace Orthanc
 {
   class ORTHANC_PUBLIC Font : public boost::noncopyable
@@ -74,7 +79,7 @@ namespace Orthanc
     void LoadFromMemory(const std::string& font);
 
 #if ORTHANC_SANDBOXED == 0
-    void LoadFromFile(const std::string& path);
+    void LoadFromFile(const boost::filesystem::path& path);
 #endif
 
     const std::string& GetName() const;

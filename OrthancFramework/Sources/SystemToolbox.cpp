@@ -268,36 +268,6 @@ namespace Orthanc
     }
   }
 
-  void SystemToolbox::ReadFile(std::string &content, 
-                               const std::string& path, 
-                               bool log) 
-  {
-    ReadFile(content, PathFromUtf8(path), log);
-  }
-
-  void SystemToolbox::ReadFile(std::string& content, const boost::filesystem::path& path)
-  { 
-    ReadFile(content, path, true /* log */);
-  }
-
-
-  void SystemToolbox::ReadFile(std::string &content, const std::string &path)
-  {
-    ReadFile(content, PathFromUtf8(path), true /* log */);
-  }
-
-  void SystemToolbox::ReadFile(std::string &content, const char* path) 
-  { 
-    ReadFile(content, std::string(path)); 
-   }
-
-  bool SystemToolbox::ReadHeader(std::string& header, 
-                                 const std::string& path, 
-                                 size_t headerSize)
-  {
-    return ReadHeader(header, PathFromUtf8(path), headerSize);
-  }
-
 
   bool SystemToolbox::ReadHeader(std::string& header,
                                  const boost::filesystem::path& path,
@@ -355,18 +325,9 @@ namespace Orthanc
   }
 
   
-
-  void SystemToolbox::WriteFile(const void* content,
-                                size_t size,
-                                const std::string& path,
-                                bool callFsync)
-  {
-    WriteFile(content, size, PathFromUtf8(path), callFsync);
-  }
-
   void SystemToolbox::WriteFile(const void *content, 
                                 size_t size, 
-                                const boost::filesystem::path &path, 
+                                const boost::filesystem::path& path,
                                 bool callFsync)
   {
     try
@@ -432,35 +393,7 @@ namespace Orthanc
   }
 
 
-  void SystemToolbox::WriteFile(const void *content, size_t size, const std::string &path)
-  {
-    WriteFile(content, size, path, false /* don't automatically call fsync */);
-  }
-
-
   void SystemToolbox::WriteFile(const std::string& content,
-                                const std::string& path,
-                                bool callFsync)
-  {
-    WriteFile(content.size() > 0 ? content.c_str() : NULL,
-              content.size(), path, callFsync);
-  }
-
-  void SystemToolbox::WriteFile(const std::string &content, 
-                                const boost::filesystem::path& path, 
-                                bool callFsync) 
-  { 
-    WriteFile(content.size() > 0 ? content.c_str() : NULL, 
-              content.size(), path, callFsync); 
-  }
-
-  void SystemToolbox::WriteFile(const std::string &content, const std::string &path)
-  {
-    WriteFile(content, path, false /* don't automatically call fsync */);
-  }
-
-  
-  void SystemToolbox::WriteFile(const std::string &content, 
                                 const boost::filesystem::path& path) 
   { 
     WriteFile(content.size() > 0 ? content.c_str() : NULL, 
@@ -468,7 +401,7 @@ namespace Orthanc
   }
 
 
-  void SystemToolbox::RemoveFile(const std::string& path)
+  void SystemToolbox::RemoveFile(const boost::filesystem::path& path)
   {
     if (boost::filesystem::exists(path))
     {
@@ -483,10 +416,6 @@ namespace Orthanc
     }
   }
 
-  uint64_t SystemToolbox::GetFileSize(const std::string &path) 
-  {
-    return GetFileSize(PathFromUtf8(path));
-  }
 
   uint64_t SystemToolbox::GetFileSize(const boost::filesystem::path& path)
   {
@@ -503,6 +432,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InexistentFile);
     }
   }
+
 
 #if ORTHANC_ENABLE_MD5 == 1
   void SystemToolbox::ComputeStreamMD5(std::string& result,
@@ -528,13 +458,6 @@ namespace Orthanc
   }
   
 
-  void SystemToolbox::ComputeFileMD5(std::string& result, 
-                                     const std::string& path) 
-  { 
-    return ComputeFileMD5(result, PathFromUtf8(path));
-  }
-
-
   void SystemToolbox::ComputeFileMD5(std::string& result,
                                      const boost::filesystem::path& path)
   {
@@ -549,12 +472,9 @@ namespace Orthanc
     ComputeStreamMD5(result, fileStream);
   }
 
-  bool SystemToolbox::CompareFilesMD5(const std::string &path1, const std::string &path2) 
-  { 
-    return CompareFilesMD5(PathFromUtf8(path1), PathFromUtf8(path2));
-  }
 
-  bool SystemToolbox::CompareFilesMD5(const boost::filesystem::path& path1, const boost::filesystem::path &path2)
+  bool SystemToolbox::CompareFilesMD5(const boost::filesystem::path& path1,
+                                      const boost::filesystem::path& path2)
   {
     if (GetFileSize(path1) != GetFileSize(path2))
     {
@@ -573,11 +493,6 @@ namespace Orthanc
 #endif
 
 
-  void SystemToolbox::MakeDirectory(const std::string& path)
-  {
-    MakeDirectory(PathFromUtf8(path));
-  }
-
   void SystemToolbox::MakeDirectory(const boost::filesystem::path& path)
   {
     if (boost::filesystem::exists(path))
@@ -594,12 +509,6 @@ namespace Orthanc
         throw OrthancException(ErrorCode_MakeDirectory);
       }
     }
-  }
-
-
-  bool SystemToolbox::IsExistingFile(const std::string& path)
-  {
-    return boost::filesystem::exists(path);
   }
 
 
@@ -676,7 +585,7 @@ namespace Orthanc
 
 
 #ifdef _WIN32
-  std::wstring SystemToolbox::Utf8ToWString(const std::string &str)
+  std::wstring SystemToolbox::Utf8ToWString(const std::string& str)
   {
     if (str.empty())
     {
@@ -723,16 +632,16 @@ namespace Orthanc
   }
 #endif
 
-    boost::filesystem::path SystemToolbox::PathFromUtf8(const std::string &utf8)
+  boost::filesystem::path SystemToolbox::PathFromUtf8(const std::string& utf8)
   {
 #if defined(_WIN32) && !defined(__MINGW32__)  // non-ASCII paths are not supported when building with MinGW
-return boost::filesystem::path(Utf8ToWString(utf8));
+    return boost::filesystem::path(Utf8ToWString(utf8));
 #else
     return boost::filesystem::path(utf8); // POSIX: std::string is UTF-8
 #endif
   }
 
-  std::string SystemToolbox::PathToUtf8(const boost::filesystem::path &p)
+  std::string SystemToolbox::PathToUtf8(const boost::filesystem::path& p)
   {
 #if defined(_WIN32) && !defined(__MINGW32__)  // non-ASCII paths are not supported when building with MinGW
     return WStringToUtf8(p.wstring());
@@ -741,17 +650,18 @@ return boost::filesystem::path(Utf8ToWString(utf8));
 #endif
   }
 
-  std::string SystemToolbox::GetPathToExecutable()
+
+  boost::filesystem::path SystemToolbox::GetPathToExecutable()
   {
-    boost::filesystem::path p(GetPathToExecutableInternal());
-    return boost::filesystem::absolute(p).string();
+    boost::filesystem::path p(PathFromUtf8(GetPathToExecutableInternal()));
+    return boost::filesystem::absolute(p);
   }
 
 
-  std::string SystemToolbox::GetDirectoryOfExecutable()
+  boost::filesystem::path SystemToolbox::GetDirectoryOfExecutable()
   {
-    boost::filesystem::path p(GetPathToExecutableInternal());
-    return boost::filesystem::absolute(p.parent_path()).string();
+    boost::filesystem::path p(PathFromUtf8(GetPathToExecutableInternal()));
+    return boost::filesystem::absolute(p.parent_path());
   }
 
 
@@ -837,18 +747,6 @@ return boost::filesystem::path(Utf8ToWString(utf8));
   }
 
 
-  bool SystemToolbox::IsRegularFile(const std::string& path)
-  { 
-    return IsRegularFile(PathFromUtf8(path));
-  }
-
-
-  FILE *SystemToolbox::OpenFile(const std::string &path, 
-                                FileMode mode)
-  {
-    return OpenFile(PathFromUtf8(path), mode);
-  }
-  
   FILE* SystemToolbox::OpenFile(const boost::filesystem::path& path,
                                 FileMode mode)
   {
@@ -987,11 +885,6 @@ return boost::filesystem::path(Utf8ToWString(utf8));
     }
 
     return false;
-  }
-
-  MimeType SystemToolbox::AutodetectMimeType(const std::string &path) 
-  { 
-    return AutodetectMimeType(PathFromUtf8(path));
   }
 
 
@@ -1136,38 +1029,26 @@ return boost::filesystem::path(Utf8ToWString(utf8));
 
 
   boost::filesystem::path SystemToolbox::InterpretRelativePath(const boost::filesystem::path& baseDirectory,
-                                                               const std::string& relativePath)
+                                                               const boost::filesystem::path& relativePath)
   {
-    boost::filesystem::path relative = SystemToolbox::PathFromUtf8(relativePath);
-
     /**
        The following lines should be equivalent to this one: 
 
-       return (base / relative);
+       return (baseDirectory / relativePath);
 
        However, for some unknown reason, some versions of Boost do not
        make the proper path resolution when "baseDirectory" is an
        absolute path. So, a hack is used below.
     **/
 
-    if (relative.is_absolute())
+    if (relativePath.is_absolute())
     {
-      return relative;
+      return relativePath;
     }
     else
     {
-      return baseDirectory / relative;
+      return baseDirectory / relativePath;
     }
-  }
-
-
-  void SystemToolbox::ReadFileRange(std::string &content, 
-                                    const std::string &path,
-                                    uint64_t start, // Inclusive
-                                    uint64_t end, // Exclusive
-                                    bool throwIfOverflow)
-  {
-    ReadFileRange(content, SystemToolbox::PathFromUtf8(path), start, end, throwIfOverflow);
   }
 
 

@@ -1466,7 +1466,7 @@ TEST(DicomStreamReader, DISABLED_Tutu3)
           
           {
             std::string dicom;
-            SystemToolbox::ReadFile(dicom, path);
+            SystemToolbox::ReadFile(dicom, current->path());
             
             ParsedDicomFile f(dicom);
             f.ExtractDicomSummary(m2, 256);

@@ -29,6 +29,7 @@
 #include <dcmtk/dcmnet/dimse.h>
 #include <algorithm>
 #include "../../../OrthancFramework/Sources/Logging.h"
+#include <boost/thread/mutex.hpp>
 
 static const char* const LOCAL_AET = "LocalAet";
 static const char* const QUERY = "Query";
@@ -36,8 +37,106 @@ static const char* const QUERY_FORMAT = "QueryFormat";  // New in 1.9.5
 static const char* const REMOTE = "Remote";
 static const char* const TIMEOUT = "Timeout";
 
+static std::map<std::string, Orthanc::SetOfCommandsJob::ICommand*> messagesRegistry; 
+static uint16_t messageRegistryCurrentId = 1000;
+static boost::mutex messageRegistryMutex;
+
 namespace Orthanc
 {
+  std::string GetKey(const std::string& aet, uint16_t messageId)
+  {
+    return aet + "-" + boost::lexical_cast<std::string>(messageId);
+  }
+
+  uint16_t DicomRetrieveScuBaseJob::GetMessageId(const std::string& localAet)
+  {
+    assert(currentCommand_ != NULL);
+    boost::mutex::scoped_lock lock(messageRegistryMutex);
+    
+    // Each resource retrieval (command) has its own messageId.  
+    // We start at 1000 to clearly differentiate them from other messages.  We can actually use ANY value between 0 & 65535.
+    messageRegistryCurrentId = std::max(1000, (messageRegistryCurrentId + 1) % 0xFFFF);
+    messagesRegistry[GetKey(localAet, messageRegistryCurrentId)] = currentCommand_;
+    
+    return messageRegistryCurrentId;
+  }
+
+  void DicomRetrieveScuBaseJob::AddReceivedInstanceFromCStore(uint16_t originatorMessageId, 
+                                                              const std::string& originatorAet, 
+                                                              const std::string& instanceId)
+  {
+    boost::mutex::scoped_lock lock(messageRegistryMutex);
+
+    std::string key = GetKey(originatorAet, originatorMessageId);
+
+    if (messagesRegistry.find(key) != messagesRegistry.end())
+    {
+      dynamic_cast<DicomRetrieveScuBaseJob::Command*>(messagesRegistry[key])->AddReceivedInstance(instanceId);
+    }
+  }
+
+  DicomRetrieveScuBaseJob::Command::~Command()
+  {
+    // remove the command from the messageRegistry
+    boost::mutex::scoped_lock lock(messageRegistryMutex);
+
+    for (std::map<std::string, Orthanc::SetOfCommandsJob::ICommand*>::const_iterator it = messagesRegistry.begin();
+         it != messagesRegistry.end(); ++it)
+    {
+      if (it->second == this)
+      {
+        messagesRegistry.erase(it->first);
+        return;
+      }
+    }
+  }
+
+  bool DicomRetrieveScuBaseJob::Command::Execute(const std::string &jobId)
+  {
+    try
+    {
+      that_.currentCommand_ = this;
+      that_.Retrieve(*findAnswer_); // here
+    }
+    catch (OrthancException& e)
+    {
+      dimseErrorStatus_ = e.GetDimseErrorStatus();
+      throw e;
+    }
+    return true;
+  }
+
+  void DicomRetrieveScuBaseJob::Command::Serialize(Json::Value &target) const
+  {
+    findAnswer_->Serialize(target["Query"]);
+    target["DimseErrorStatus"] = dimseErrorStatus_;
+    SerializationToolbox::WriteListOfStrings(target, receivedInstancesIds_, "ReceivedInstancesIds");
+  }
+
+  SetOfCommandsJob::ICommand* DicomRetrieveScuBaseJob::Unserializer::Unserialize(const Json::Value &source) const
+  {
+    DicomMap findAnswer;
+
+    if (!source.isMember("Query")) // old format before 1.12.10, just in case we need to read old jobs after an upgrade
+    {
+      findAnswer.Unserialize(source);
+      return new DicomRetrieveScuBaseJob::Command(that_, findAnswer);
+    }
+
+    findAnswer.Unserialize(source["Query"]);
+
+    std::unique_ptr<DicomRetrieveScuBaseJob::Command> command(new DicomRetrieveScuBaseJob::Command(that_, findAnswer));
+    command->SetDimseErrorStatus(static_cast<uint16_t>(source["DimseErrorStatus"].asUInt()));
+
+    std::list<std::string> receivedInstancesIds;
+    SerializationToolbox::ReadListOfStrings(receivedInstancesIds, source, "ReceivedInstancesIds");
+    for (std::list<std::string>::const_iterator it = receivedInstancesIds.begin(); it != receivedInstancesIds.end(); ++it)
+    {
+      command->AddReceivedInstance(*it);
+    }
+
+    return command.release();
+  }
 
   static void AddToQuery(DicomFindAnswers& query,
                          const DicomMap& item)
@@ -152,6 +251,20 @@ namespace Orthanc
 
     value[QUERY] = Json::objectValue;
     query_.ToJson(value[QUERY], queryFormat_);
+
+    value["Details"] = Json::arrayValue;
+    
+    for (size_t i = 0; i < GetCommandsCount(); ++i)
+    {
+      const DicomRetrieveScuBaseJob::Command& command = dynamic_cast<const DicomRetrieveScuBaseJob::Command&>(GetCommand(i));
+
+      Json::Value v;
+      v["DimseErrorStatus"] = command.GetDimseErrorStatus();
+      query_.ToJson(v["Query"], i, DicomToJsonFormat_Short);
+      SerializationToolbox::WriteListOfStrings(v, command.GetReceivedInstancesIds(), "ReceivedInstancesIds");
+
+      value["Details"].append(v);
+    }
   }
 
 
@@ -162,7 +275,8 @@ namespace Orthanc
     nbRemainingSubOperations_(0),
     nbCompletedSubOperations_(0),
     nbFailedSubOperations_(0),
-    nbWarningSubOperations_(0)
+    nbWarningSubOperations_(0),
+    currentCommand_(NULL)
   {
   }
 
@@ -172,12 +286,13 @@ namespace Orthanc
     SetOfCommandsJob(new Unserializer(*this), serialized),
     context_(context),
     parameters_(DicomAssociationParameters::UnserializeJob(serialized)),
-    query_(true),
+    query_(false /* this is not for worklists */),
     queryFormat_(DicomToJsonFormat_Short),
     nbRemainingSubOperations_(0),
     nbCompletedSubOperations_(0),
     nbFailedSubOperations_(0),
-    nbWarningSubOperations_(0)  
+    nbWarningSubOperations_(0),
+    currentCommand_(NULL)
   {
     if (serialized.isMember(QUERY))
     {
@@ -244,5 +359,13 @@ namespace Orthanc
     }
 
     return float(nbCompletedSubOperations_ + nbFailedSubOperations_ + nbWarningSubOperations_) / float(totalOperations);
+  }
+
+  void DicomRetrieveScuBaseJob::AddReceivedInstance(const std::string& instanceId)
+  {
+    if (currentCommand_ != NULL)
+    {
+      currentCommand_->AddReceivedInstance(instanceId);
+    }
   }
 }

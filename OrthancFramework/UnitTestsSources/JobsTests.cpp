@@ -282,10 +282,10 @@ TEST(MultiThreading, SharedMessageQueueBasic)
 
 TEST(MultiThreading, SharedMessageQueueClean)
 {
-  std::set<int> s;
-
   try
   {
+    std::set<int> s;
+
     SharedMessageQueue q;
     q.Enqueue(new DynamicInteger(10, s));
     q.Enqueue(new DynamicInteger(20, s));  
@@ -733,25 +733,26 @@ TEST(JobsEngine, SubmitAndWait)
 }
 
 
-TEST(JobsEngine, DISABLED_SequenceOfOperationsJob)
+TEST(JobsEngine, SequenceOfOperationsJob)
 {
   JobsEngine engine(10);
   engine.SetThreadSleep(10);
   engine.SetWorkersCount(3);
   engine.Start();
 
-  std::string id;
-  SequenceOfOperationsJob* job = NULL;
-
   {
-    std::unique_ptr<SequenceOfOperationsJob> a(new SequenceOfOperationsJob);
-    job = a.get();
-    engine.GetRegistry().Submit(id, a.release(), 0);
+    std::string id;
+    std::unique_ptr<SequenceOfOperationsJob> seq(new SequenceOfOperationsJob);
+    engine.GetRegistry().Submit(id, seq.release(), 0);
   }
 
   boost::this_thread::sleep(boost::posix_time::milliseconds(500));
 
   {
+    SequenceOfOperationsJob* job = NULL;
+    std::unique_ptr<SequenceOfOperationsJob> seq(new SequenceOfOperationsJob);
+    job = seq.get();
+
     SequenceOfOperationsJob::Lock lock(*job);
     size_t i = lock.AddOperation(new LogJobOperation);
     size_t j = lock.AddOperation(new LogJobOperation);
@@ -1137,9 +1138,9 @@ TEST(JobsSerialization, DicomModification2)
 TEST(JobsSerialization, Registry)
 {   
   Json::Value s;
-  std::string i1, i2;
 
   {
+    std::string i1, i2;
     JobsRegistry registry(10);
     registry.Submit(i1, new DummyJob(), 10);
     registry.Submit(i2, new SequenceOfOperationsJob(), 30);

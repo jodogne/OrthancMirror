@@ -184,7 +184,7 @@ namespace Orthanc
               {
                 try
                 {
-                  rsp->DimseStatus = cbdata->handler->Handle(**imageDataSet, *cbdata->remoteIp, cbdata->remoteAET, cbdata->calledAET);
+                  rsp->DimseStatus = cbdata->handler->Handle(**imageDataSet, *cbdata->remoteIp, cbdata->remoteAET, cbdata->calledAET, req->MoveOriginatorID, req->MoveOriginatorApplicationEntityTitle);
                 }
                 catch (OrthancException& e)
                 {

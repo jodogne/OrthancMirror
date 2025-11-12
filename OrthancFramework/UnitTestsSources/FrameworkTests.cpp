@@ -499,7 +499,7 @@ TEST(Toolbox, ConvertFromLatin1)
   // This is a Latin-1 test string
   const unsigned char data[10] = { 0xe0, 0xe9, 0xea, 0xe7, 0x26, 0xc6, 0x61, 0x62, 0x63, 0x00 };
   
-  std::string s((char*) &data[0], 10);
+  std::string s(reinterpret_cast<const char*>(&data[0]), 10);
   ASSERT_EQ("&abc", Toolbox::ConvertToAscii(s));
 
   // Open in Emacs, then save with UTF-8 encoding, then "hexdump -C"
@@ -528,7 +528,7 @@ TEST(Toolbox, FixUtf8)
   // This is a Latin-1 test string: "crane" with a circumflex accent
   const unsigned char latin1[] = { 0x63, 0x72, 0xe2, 0x6e, 0x65 };
 
-  std::string s((char*) &latin1[0], sizeof(latin1) / sizeof(char));
+  std::string s(reinterpret_cast<const char*>(&latin1[0]), sizeof(latin1) / sizeof(char));
 
   ASSERT_EQ(s, Toolbox::ConvertFromUtf8(Toolbox::ConvertToUtf8(s, Encoding_Latin1, false, false), Encoding_Latin1));
   ASSERT_EQ("cre", Toolbox::ConvertToUtf8(s, Encoding_Utf8, false, false));
@@ -539,7 +539,7 @@ static int32_t GetUnicode(const uint8_t* data,
                           size_t size,
                           size_t expectedLength)
 {
-  std::string s((char*) &data[0], size);
+  std::string s(reinterpret_cast<const char*>(&data[0]), size);
   uint32_t unicode;
   size_t length;
   Toolbox::Utf8ToUnicodeCharacter(unicode, length, s, 0);
@@ -689,7 +689,7 @@ TEST(Toolbox, WriteFile)
   {
     TemporaryFile tmp;
     std::string s = "Hello";
-    SystemToolbox::WriteFile(s, tmp.GetPath(), true /* call fsync() */);
+    SystemToolbox::WriteFile(s.c_str(), s.size(), tmp.GetPath(), true /* call fsync() */);
     std::string t;
     SystemToolbox::ReadFile(t, tmp.GetPath());
     ASSERT_EQ(s, t);

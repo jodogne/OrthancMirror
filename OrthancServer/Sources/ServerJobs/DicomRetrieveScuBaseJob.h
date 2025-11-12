@@ -36,29 +36,50 @@ namespace Orthanc
   class DicomRetrieveScuBaseJob : public SetOfCommandsJob, public DicomControlUserConnection::IProgressListener
   {
   protected:
+    uint16_t GetMessageId(const std::string& localAet);
+    
     class Command : public SetOfCommandsJob::ICommand
     {
     private:
       DicomRetrieveScuBaseJob &that_;
       std::unique_ptr<DicomMap> findAnswer_;
 
+      uint16_t                dimseErrorStatus_;
+      std::list<std::string>  receivedInstancesIds_;
+
     public:
       Command(DicomRetrieveScuBaseJob &that,
               const DicomMap &findAnswer) :
       that_(that),
-      findAnswer_(findAnswer.Clone())
+      findAnswer_(findAnswer.Clone()),
+      dimseErrorStatus_(0)
       {
       }
 
-      virtual bool Execute(const std::string &jobId) ORTHANC_OVERRIDE
+      virtual ~Command() ORTHANC_OVERRIDE;
+
+      virtual bool Execute(const std::string &jobId) ORTHANC_OVERRIDE;
+
+      virtual void Serialize(Json::Value &target) const ORTHANC_OVERRIDE;
+
+      uint16_t GetDimseErrorStatus() const
       {
-        that_.Retrieve(*findAnswer_);
-        return true;
+        return dimseErrorStatus_;
       }
 
-      virtual void Serialize(Json::Value &target) const ORTHANC_OVERRIDE
+      void SetDimseErrorStatus(uint16_t dimseErrorStatus)
       {
-        findAnswer_->Serialize(target);
+        dimseErrorStatus_ = dimseErrorStatus;
+      }
+
+      void AddReceivedInstance(const std::string& instanceId)
+      {
+        receivedInstancesIds_.push_back(instanceId);
+      }
+
+      const std::list<std::string>& GetReceivedInstancesIds() const
+      {
+        return receivedInstancesIds_;
       }
     };
 
@@ -73,12 +94,7 @@ namespace Orthanc
       {
       }
 
-      virtual ICommand *Unserialize(const Json::Value &source) const ORTHANC_OVERRIDE
-      {
-        DicomMap findAnswer;
-        findAnswer.Unserialize(source);
-        return new Command(that_, findAnswer);
-      }
+      virtual ICommand *Unserialize(const Json::Value &source) const ORTHANC_OVERRIDE;
     };
 
     ServerContext &context_;
@@ -93,6 +109,8 @@ namespace Orthanc
     uint16_t nbCompletedSubOperations_;
     uint16_t nbFailedSubOperations_;
     uint16_t nbWarningSubOperations_;
+
+    Command* currentCommand_;
 
     virtual void Retrieve(const DicomMap &findAnswer) = 0;
 
@@ -145,5 +163,15 @@ namespace Orthanc
       return true;
     }
 
+    ServerContext& GetContext()
+    {
+      return context_;
+    }
+
+    void AddReceivedInstance(const std::string& instanceId);
+
+    static void AddReceivedInstanceFromCStore(uint16_t originatorMessageId, 
+                                              const std::string& originatorAet, 
+                                              const std::string& instanceId);
   };
 }

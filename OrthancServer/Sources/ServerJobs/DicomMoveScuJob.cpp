@@ -47,7 +47,9 @@ namespace Orthanc
     }
     
     connection_->SetProgressListener(this);
-    connection_->Move(targetAet_, findAnswer);
+    
+    // we use a unique message ID in order to know to which Move request a stored instance relates to.
+    connection_->Move(targetAet_, findAnswer, GetMessageId(GetParameters().GetLocalApplicationEntityTitle()));
   }
 
 

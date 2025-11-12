@@ -25,6 +25,8 @@
 
 #include "../Common/OrthancPluginCppWrapper.h"
 
+#include "../../../../OrthancFramework/Sources/SystemToolbox.h"
+
 #include <json/value.h>
 #include <boost/filesystem.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -158,11 +160,11 @@ void ServeFolder(OrthancPluginRestOutput* output,
   if (LookupFolder(folder, output, request))
   {
     const fs::path item(request->groups[1]);
-    const fs::path parent((fs::path(folder) / item).parent_path());
+    const fs::path parent((Orthanc::SystemToolbox::PathFromUtf8(folder) / item).parent_path());
 
     if (item.filename().string() == "index.html" &&
         fs::is_directory(parent) &&
-        !fs::is_regular_file(fs::path(folder) / item))
+        !fs::is_regular_file(Orthanc::SystemToolbox::PathFromUtf8(folder) / item))
     {
       // On-the-fly generation of an "index.html" 
       std::string s;
@@ -216,7 +218,7 @@ void ServeFolder(OrthancPluginRestOutput* output,
       }
 
       boost::posix_time::ptime lastModification =
-        boost::posix_time::from_time_t(fs::last_write_time(path));
+        boost::posix_time::from_time_t(fs::last_write_time(Orthanc::SystemToolbox::PathFromUtf8(path)));
       std::string t = boost::posix_time::to_iso_string(lastModification);
       OrthancPluginSetHttpHeader(OrthancPlugins::GetGlobalContext(),
                                  output, "Last-Modified", t.c_str());

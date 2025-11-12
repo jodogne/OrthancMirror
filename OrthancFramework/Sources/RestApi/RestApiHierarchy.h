@@ -97,7 +97,7 @@ namespace Orthanc
     static RestApiHierarchy& AddChild(Children& children,
                                       const std::string& name);
 
-    static void DeleteChildren(Children& children);
+    static void DeleteChildren(const Children& children);
 
     template <typename Handler>
     void RegisterInternal(const RestApiPath& path,

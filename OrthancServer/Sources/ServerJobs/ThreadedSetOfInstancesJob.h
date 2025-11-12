@@ -84,7 +84,7 @@ namespace Orthanc
                                        bool hasTrailingStep,
                                        bool defaultKeepSource);
 
-    virtual ~ThreadedSetOfInstancesJob();
+    virtual ~ThreadedSetOfInstancesJob() ORTHANC_OVERRIDE;
 
   protected:
     virtual bool HandleInstance(const std::string& instance) = 0;

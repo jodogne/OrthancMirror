@@ -106,7 +106,7 @@ namespace Orthanc
     {
     }
 
-    virtual ICommand* Unserialize(const Json::Value& source) const
+    virtual ICommand* Unserialize(const Json::Value& source) const ORTHANC_OVERRIDE
     {
       if (source.type() == Json::nullValue)
       {

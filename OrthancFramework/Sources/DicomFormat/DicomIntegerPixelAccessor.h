@@ -51,7 +51,7 @@ namespace Orthanc
                               const void* pixelData,
                               size_t size);
 
-    const DicomImageInformation GetInformation() const
+    const DicomImageInformation& GetInformation() const
     {
       return information_;
     }

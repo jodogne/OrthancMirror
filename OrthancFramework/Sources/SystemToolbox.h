@@ -46,6 +46,9 @@
 #include <stdint.h>
 #include <boost/filesystem.hpp>
 
+// Note: The use of "boost::filesystem::path" is mandatory to handle
+// non ASCII-only path on Windows
+
 namespace Orthanc
 {
   class ORTHANC_PUBLIC SystemToolbox
@@ -58,119 +61,65 @@ namespace Orthanc
     static ServerBarrierEvent ServerBarrier();
 
     static void ReadFile(std::string& content,
-                         const std::string& path,
-                         bool log);
-    
-    static void ReadFile(std::string &content, 
                          const boost::filesystem::path& path, 
                          bool log);
 
-    static void ReadFile(std::string &content, 
-                         const char* path);
-
-    static void ReadFile(std::string& content,
-                         const std::string& path);
-
-    static void ReadFile(std::string &content, 
-                         const boost::filesystem::path& path);
+    static inline void ReadFile(std::string& content,
+                                const boost::filesystem::path& path)
+    {
+      ReadFile(content, path, true /* log */);
+    }
 
     static bool ReadHeader(std::string& header,
-                           const std::string& path,
+                           const boost::filesystem::path& path,
                            size_t headerSize);
 
-   static bool ReadHeader(std::string &header, 
-                          const boost::filesystem::path& path, 
-                          size_t headerSize);
-
     static void WriteFile(const void* content,
                           size_t size,
-                          const std::string& path,
-                          bool callFsync);
-
-    static void WriteFile(const void *content, 
-                          size_t size, 
-                          const boost::filesystem::path &path, 
-                          bool callFsync);    // this variant is mandatory to handle non ASCII-only path on Windows
-
-    static void WriteFile(const void* content,
-                          size_t size,
-                          const std::string& path);
-
-    static void WriteFile(const std::string& content,
-                          const std::string& path,
+                          const boost::filesystem::path& path,
                           bool callFsync);
 
     static void WriteFile(const std::string& content,
-                          const std::string& path);
-
-    static void WriteFile(const std::string &content, 
                           const boost::filesystem::path& path);
 
-    static void WriteFile(const std::string &content, 
-                          const boost::filesystem::path& path, 
-                          bool callFsync);
+    static void RemoveFile(const boost::filesystem::path& path);
 
-    static void RemoveFile(const std::string& path);
-
-    static uint64_t GetFileSize(const std::string& path);
-
-    static uint64_t GetFileSize(const boost::filesystem::path &path);  // this variant is mandatory to handle non ASCII-only path on Windows
+    static uint64_t GetFileSize(const boost::filesystem::path& path);
 
 #if ORTHANC_ENABLE_MD5 == 1
     static void ComputeStreamMD5(std::string& result,
                                  std::istream& stream);
 
     static void ComputeFileMD5(std::string& result,
-                               const std::string& path);
+                               const boost::filesystem::path& path);
 
-    static void ComputeFileMD5(std::string &result, 
-                               const boost::filesystem::path& path);  // this variant is mandatory to handle non ASCII-only path on Windows
-
-    // returns true if file have the same MD5
-    static bool CompareFilesMD5(const std::string& path1,
-                                const std::string& path2); 
-
+    // Returns true if the two files have the same MD5
     static bool CompareFilesMD5(const boost::filesystem::path& path1, 
-                                const boost::filesystem::path& path2);  // this variant is mandatory to handle non ASCII-only path on Windows
+                                const boost::filesystem::path& path2);
 #endif
-
-    static void MakeDirectory(const std::string& path);
 
     static void MakeDirectory(const boost::filesystem::path& path);
 
-    static bool IsExistingFile(const std::string& path);
+    static boost::filesystem::path GetPathToExecutable();
 
-    static std::string GetPathToExecutable();
-
-    static std::string GetDirectoryOfExecutable();
+    static boost::filesystem::path GetDirectoryOfExecutable();
 
     static void ExecuteSystemCommand(const std::string& command,
                                      const std::vector<std::string>& arguments);
 
     static int GetProcessId();
 
-    static bool IsRegularFile(const std::string& path);
+    static bool IsRegularFile(const boost::filesystem::path& path);
 
-    static bool IsRegularFile(const boost::filesystem::path& path);  // this variant is mandatory to handle non ASCII-only path on Windows
-
-    static FILE* OpenFile(const std::string& path,
+    static FILE* OpenFile(const boost::filesystem::path& path,
                           FileMode mode);
 
-    static FILE* OpenFile(const boost::filesystem::path& path, 
-                          FileMode mode);
+    static MimeType AutodetectMimeType(const boost::filesystem::path& path);
 
-    static MimeType AutodetectMimeType(const char* path)  // used only in Unit Tests
-    { 
-      return AutodetectMimeType(std::string(path));
-    }
+    // This conversion is mandatory to handle non ASCII-only path on Windows
+    static boost::filesystem::path PathFromUtf8(const std::string& utf8);
 
-    static MimeType AutodetectMimeType(const std::string &path);
-
-    static MimeType AutodetectMimeType(const boost::filesystem::path &path);
-
-    static boost::filesystem::path PathFromUtf8(const std::string &utf8);
-
-    static std::string PathToUtf8(const boost::filesystem::path &p);
+    static std::string PathToUtf8(const boost::filesystem::path& p);
 
     static std::string GetNowIsoString(bool utc);
 
@@ -187,15 +136,9 @@ namespace Orthanc
     static void GetEnvironmentVariables(std::map<std::string, std::string>& env);
 
     static boost::filesystem::path InterpretRelativePath(const boost::filesystem::path& baseDirectory,
-                                                         const std::string& relativePath);
+                                                         const boost::filesystem::path& relativePath);
 
-    static void ReadFileRange(std::string& content,                              
-                              const std::string& path,
-                              uint64_t start,  // Inclusive
-                              uint64_t end,    // Exclusive
-                              bool throwIfOverflow);
-
-    static void ReadFileRange(std::string &content, 
+    static void ReadFileRange(std::string& content,
                               const boost::filesystem::path& path,
                               uint64_t start, // Inclusive
                               uint64_t end, // Exclusive
@@ -204,9 +147,9 @@ namespace Orthanc
     static void GetMacAddresses(std::set<std::string>& target);
 
 #ifdef _WIN32
-    static std::wstring Utf8ToWString(const std::string &str);
+    static std::wstring Utf8ToWString(const std::string& str);
 
-    static std::string WStringToUtf8(const std::wstring &wstr);
+    static std::string WStringToUtf8(const std::wstring& wstr);
 
     static std::wstring WStringFromCharPtr(const char *wstr);
 #endif

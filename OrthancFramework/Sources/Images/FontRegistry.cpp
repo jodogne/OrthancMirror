@@ -49,7 +49,7 @@ namespace Orthanc
 
 
 #if ORTHANC_SANDBOXED == 0
-  void FontRegistry::AddFromFile(const std::string& path)
+  void FontRegistry::AddFromFile(const boost::filesystem::path& path)
   {
     std::unique_ptr<Font> f(new Font);
     f->LoadFromFile(path);

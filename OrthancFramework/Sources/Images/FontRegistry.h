@@ -41,7 +41,7 @@ namespace Orthanc
     void AddFromMemory(const std::string& font);
 
 #if ORTHANC_SANDBOXED == 0
-    void AddFromFile(const std::string& path);
+    void AddFromFile(const boost::filesystem::path& path);
 #endif
 
     size_t GetSize() const;
