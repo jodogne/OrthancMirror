@@ -26,8 +26,6 @@ syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
 uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:419
-unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
-unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1173
 unusedFunction
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
@@ -67,7 +65,6 @@ throwInNoexceptFunction:../../OrthancServer/Sources/StorageCommitmentReports.cpp
 throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:218
 throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:376
 throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:496
-
 EOF
 
 # TODO: re-enable nullPointerOutOfMemory
