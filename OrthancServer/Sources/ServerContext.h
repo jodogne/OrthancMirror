@@ -319,7 +319,7 @@ namespace Orthanc
                   bool readOnly,
                   unsigned int maxConcurrentDcmtkTranscoder);
 
-    ~ServerContext();
+    ~ServerContext() ORTHANC_OVERRIDE;
 
     void SetupJobsEngine(bool unitTesting,
                          bool loadJobsFromDatabase);

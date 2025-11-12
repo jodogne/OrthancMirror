@@ -40,8 +40,7 @@ namespace Orthanc
     bool HasReachedLimit(const DicomFindAnswers& answers,
                          ResourceType level) const;
 
-    bool FilterQueryTag(std::string& value /* can be modified */,
-                        ResourceType level,
+    bool FilterQueryTag(ResourceType level,
                         const DicomTag& tag,
                         ModalityManufacturer manufacturer);
 

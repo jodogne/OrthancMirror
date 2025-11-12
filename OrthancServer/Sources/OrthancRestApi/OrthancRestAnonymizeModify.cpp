@@ -601,7 +601,7 @@ namespace Orthanc
 
 
   static void CreateDicomV1(ParsedDicomFile& dicom,
-                            RestApiPostCall& call,
+                            const RestApiPostCall& call,
                             const Json::Value& request)
   {
     // curl http://localhost:8042/tools/create-dicom -X POST -d '{"PatientName":"Hello^World"}'

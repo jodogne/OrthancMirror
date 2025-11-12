@@ -185,7 +185,7 @@ namespace Orthanc
       for (std::set<std::string>::const_iterator it = instancesToReconstruct_.begin(); it != instancesToReconstruct_.end(); ++it)
       {
         ServerContext::DicomCacheLocker locker(GetContext(), *it);
-        ParsedDicomFile& modifiedDicom = locker.GetDicom();
+        const ParsedDicomFile& modifiedDicom = locker.GetDicom();
 
         GetContext().GetIndex().ReconstructInstance(modifiedDicom, false, ResourceType_Instance /* dummy */);
       }
@@ -219,7 +219,7 @@ namespace Orthanc
     try
     {
       ServerContext::DicomCacheLocker locker(GetContext(), instance);
-      ParsedDicomFile& original = locker.GetDicom();
+      const ParsedDicomFile& original = locker.GetDicom();
 
       originalHasher.reset(new DicomInstanceHasher(original.GetHasher()));
       modified.reset(original.Clone(true));
@@ -689,7 +689,7 @@ namespace Orthanc
       }
 
       // and we must make sure that we overwite them with the modified resources
-      if (IsKeepSource() && !GetContext().IsOverwriteInstances())
+      if (!GetContext().IsOverwriteInstances())
       {
         throw OrthancException(ErrorCode_BadRequest,
                               "When keeping StudyInstanceUID, SeriesInstanceUID and SOPInstanceUID tag, you must have the 'OverwriteInstances' Orthanc configuration set to true in order to replace the modified resources");

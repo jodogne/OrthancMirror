@@ -2161,7 +2161,7 @@ namespace Orthanc
           PolygonEdge edge(v1, v2, GetPolygonNextY(points, i));
           globalEdgeTable[v1.GetY()].push_back(edge);
         }
-        else if (v1.GetY() > v2.GetY())
+        else
         {
           // Down-going edge
           PolygonEdge edge(v2, v1, yPrev);

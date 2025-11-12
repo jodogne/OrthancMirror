@@ -24,11 +24,8 @@ stlFindInsert:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
-syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:322
-uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:417
-unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
-unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1173
-unusedFunction
+syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
+uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:419
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
@@ -39,9 +36,46 @@ assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/Database
 assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3066
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:286
 assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
+variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:228
+variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
+uselessOverride:../../OrthancFramework/Sources/MultiThreading/IRunnableBySteps.h:35
+uselessOverride:../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h:76
+cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:85
+cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:108
+cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:124
+cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:140
+constParameterPointer:../../OrthancServer/Plugins/Include/orthanc/OrthancCPlugin.h
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:447
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:451
+constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3053
+knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:114
+knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:425
+knownConditionTrueFalse:../../OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp:345
+throwInNoexceptFunction:../../OrthancFramework/Sources/Cache/MemoryStringCache.cpp:121
+throwInNoexceptFunction:../../OrthancFramework/Sources/Cache/MemoryCache.cpp:91
+throwInNoexceptFunction:../../OrthancFramework/Sources/Cache/MemoryObjectCache.cpp:99
+throwInNoexceptFunction:../../OrthancFramework/Sources/MallocMemoryBuffer.h:50
+throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:620
+throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:632
+throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:676
+throwInNoexceptFunction:../../OrthancFramework/Sources/JobsEngine/JobsRegistry.cpp:1296
+throwInNoexceptFunction:../../OrthancServer/Sources/LuaScripting.cpp:830
+throwInNoexceptFunction:../../OrthancServer/Sources/StorageCommitmentReports.cpp:187
+throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:218
+throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:376
+throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:496
+rethrowNoCurrentException:../../OrthancFramework/UnitTestsSources/FromDcmtkTests.cpp
+rethrowNoCurrentException:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp
 EOF
 
-${CPPCHECK} --enable=all --quiet --std=c++11 \
+# TODO: re-enable nullPointerOutOfMemory
+
+${CPPCHECK} -j 8 --enable=all --quiet --std=c++11 \
+            --suppress=missingIncludeSystem \
+            --suppress=missingInclude \
+            --suppress=useStlAlgorithm \
+            --suppress=nullPointerOutOfMemory \
+            --check-level=exhaustive \
             --suppressions-list=/tmp/cppcheck-suppressions.txt \
             -DBOOST_HAS_DATE_TIME=1 \
             -DBOOST_HAS_FILESYSTEM_V3=1 \

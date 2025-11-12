@@ -281,7 +281,7 @@ private:
   public:
     explicit OrthancPlugins(const std::string& databaseServerIdentifier);
 
-    virtual ~OrthancPlugins();
+    virtual ~OrthancPlugins() ORTHANC_OVERRIDE;
 
     void SetServerContext(ServerContext& context);
 

@@ -96,7 +96,6 @@ namespace Orthanc
     for (size_t i = 0; i < response.GetSize(); ++i)
     {
       const FindResponse::Resource& resource = response.GetResourceByIndex(i);
-      std::string instanceId = resource.GetIdentifier();
 
       std::string strIndexInSeries;
       uint32_t indexInSeries = 0;
@@ -110,6 +109,8 @@ namespace Orthanc
 
       if (resource.LookupAttachment(fileInfo, revisionNotUsed, FileContentType_Dicom))
       {
+        std::string instanceId = resource.GetIdentifier();
+        
         allIndexInSeries.insert(indexInSeries);
         instances_.push_back(new SimpleInstanceOrdering::Instance(instanceId, indexInSeries, fileInfo));
       }

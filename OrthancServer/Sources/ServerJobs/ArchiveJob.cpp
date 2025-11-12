@@ -207,9 +207,9 @@ namespace Orthanc
       }
     }
 
-    virtual ~ThreadedInstanceLoader()
+    virtual ~ThreadedInstanceLoader() ORTHANC_OVERRIDE
     {
-      Clear();
+      ThreadedInstanceLoader::Clear();
     }
 
     virtual void Clear() ORTHANC_OVERRIDE
@@ -781,7 +781,6 @@ namespace Orthanc
       }
         
       void Apply(HierarchicalZipWriter& writer,
-                 ServerContext& context,
                  InstanceLoader& instanceLoader,
                  DicomDirWriter* dicomDir,
                  const std::string& dicomDirFolder,
@@ -814,16 +813,11 @@ namespace Orthanc
 
             writer.OpenFile(filename_.c_str());
 
-            std::unique_ptr<ParsedDicomFile> parsed;
-            
             writer.Write(content);
 
             if (dicomDir != NULL)
             {
-              if (parsed.get() == NULL)
-              {
-                parsed.reset(new ParsedDicomFile(content));
-              }
+              std::unique_ptr<ParsedDicomFile> parsed(new ParsedDicomFile(content));
 
               dicomDir->Add(dicomDirFolder, filename_, *parsed);
             }
@@ -844,7 +838,6 @@ namespace Orthanc
 
       
     void ApplyInternal(HierarchicalZipWriter& writer,
-                       ServerContext& context,
                        InstanceLoader& instanceLoader,
                        size_t index,
                        DicomDirWriter* dicomDir,
@@ -857,7 +850,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
 
-      commands_[index]->Apply(writer, context, instanceLoader, dicomDir, dicomDirFolder, transcode, transferSyntax);
+      commands_[index]->Apply(writer, instanceLoader, dicomDir, dicomDirFolder, transcode, transferSyntax);
     }
       
   public:
@@ -895,7 +888,6 @@ namespace Orthanc
 
     // "media" flavor (with DICOMDIR)
     void Apply(HierarchicalZipWriter& writer,
-               ServerContext& context,
                InstanceLoader& instanceLoader,
                size_t index,
                DicomDirWriter& dicomDir,
@@ -903,18 +895,17 @@ namespace Orthanc
                bool transcode,
                DicomTransferSyntax transferSyntax) const
     {
-      ApplyInternal(writer, context, instanceLoader, index, &dicomDir, dicomDirFolder, transcode, transferSyntax);
+      ApplyInternal(writer, instanceLoader, index, &dicomDir, dicomDirFolder, transcode, transferSyntax);
     }
 
     // "archive" flavor (without DICOMDIR)
     void Apply(HierarchicalZipWriter& writer,
-               ServerContext& context,
                InstanceLoader& instanceLoader,
                size_t index,
                bool transcode,
                DicomTransferSyntax transferSyntax) const
     {
-      ApplyInternal(writer, context, instanceLoader, index, NULL, "", transcode, transferSyntax);
+      ApplyInternal(writer, instanceLoader, index, NULL, "", transcode, transferSyntax);
     }
       
     void AddOpenDirectory(const std::string& filename)
@@ -1244,13 +1235,13 @@ namespace Orthanc
         if (isMedia_)
         {
           assert(dicomDir_.get() != NULL);
-          commands_.Apply(*zip_, context_, instanceLoader_, index, *dicomDir_,
+          commands_.Apply(*zip_, instanceLoader_, index, *dicomDir_,
                           MEDIA_IMAGES_FOLDER, transcode, transferSyntax);
         }
         else
         {
           assert(dicomDir_.get() == NULL);
-          commands_.Apply(*zip_, context_, instanceLoader_, index, transcode, transferSyntax);
+          commands_.Apply(*zip_, instanceLoader_, index, transcode, transferSyntax);
         }
       }
     }

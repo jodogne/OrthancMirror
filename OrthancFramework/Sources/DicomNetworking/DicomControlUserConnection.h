@@ -90,7 +90,8 @@ namespace Orthanc
     
     void MoveInternal(const std::string& targetAet,
                       ResourceType level,
-                      const DicomMap& fields);
+                      const DicomMap& fields,
+                      uint16_t messageId);
     
   public:
     explicit DicomControlUserConnection(const DicomAssociationParameters& params, ScuOperationFlags scuOperation);
@@ -126,26 +127,13 @@ namespace Orthanc
 
     void Move(const std::string& targetAet,
               ResourceType level,
-              const DicomMap& moveQuery);
+              const DicomMap& moveQuery,
+              uint16_t messageId = 0);
     
     void Move(const std::string& targetAet,
-              const DicomMap& moveQuery);
+              const DicomMap& moveQuery,
+              uint16_t messageId = 0);
     
-    void MovePatient(const std::string& targetAet,
-                     const std::string& patientId);
-
-    void MoveStudy(const std::string& targetAet,
-                   const std::string& studyUid);
-
-    void MoveSeries(const std::string& targetAet,
-                    const std::string& studyUid,
-                    const std::string& seriesUid);
-
-    void MoveInstance(const std::string& targetAet,
-                      const std::string& studyUid,
-                      const std::string& seriesUid,
-                      const std::string& instanceUid);
-
     void FindWorklist(DicomFindAnswers& result,
                       ParsedDicomFile& query);
   };

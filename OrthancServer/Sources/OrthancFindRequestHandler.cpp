@@ -82,8 +82,7 @@ namespace Orthanc
   }
 
 
-  bool OrthancFindRequestHandler::FilterQueryTag(std::string& value /* can be modified */,
-                                                 ResourceType level,
+  bool OrthancFindRequestHandler::FilterQueryTag(ResourceType level,
                                                  const DicomTag& tag,
                                                  ModalityManufacturer manufacturer)
   {
@@ -417,7 +416,7 @@ namespace Orthanc
         continue;
       }
 
-      if (FilterQueryTag(value, level, tag, manufacturer))
+      if (FilterQueryTag(level, tag, manufacturer))
       {
         ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
 

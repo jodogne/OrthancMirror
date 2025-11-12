@@ -25,13 +25,14 @@
 #pragma once
 
 #include "../IDynamicObject.h"
+#include "../Compatibility.h"
 
 namespace Orthanc
 {
   class IRunnableBySteps : public IDynamicObject
   {
   public:
-    virtual ~IRunnableBySteps()
+    virtual ~IRunnableBySteps() ORTHANC_OVERRIDE
     {
     }
 

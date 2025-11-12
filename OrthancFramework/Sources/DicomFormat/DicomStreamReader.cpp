@@ -156,7 +156,7 @@ namespace Orthanc
   }
 
 
-  void DicomStreamReader::HandlePreamble(IVisitor& visitor,
+  void DicomStreamReader::HandlePreamble(const IVisitor& visitor,
                                          const std::string& block)
   {
     assert(block.size() == 144u);
