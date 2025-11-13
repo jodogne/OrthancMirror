@@ -72,6 +72,7 @@ constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/DicomStore
 constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp
 constParameterCallback:../../OrthancFramework/Sources/Pkcs11.cpp
 constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3449
+unknownMacro:../../OrthancFramework/Sources/DicomParsing/DicomModification.cpp:39
 EOF
 
 # TODO: re-enable nullPointerOutOfMemory
