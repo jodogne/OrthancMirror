@@ -67,6 +67,11 @@ throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPlugin
 rethrowNoCurrentException:../../OrthancFramework/UnitTestsSources/FromDcmtkTests.cpp
 rethrowNoCurrentException:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp
 constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3046
+constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp
+constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.cpp
+constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp
+constParameterCallback:../../OrthancFramework/Sources/Pkcs11.cpp
+constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3449
 EOF
 
 # TODO: re-enable nullPointerOutOfMemory
