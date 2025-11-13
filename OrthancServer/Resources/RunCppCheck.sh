@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# note: this script was last tuned to run with cppcheck v2.17.1
 set -ex
 
 CPPCHECK=cppcheck
@@ -65,13 +65,10 @@ unknownMacro:../../OrthancFramework/Sources/DicomParsing/DicomModification.cpp:3
 EOF
 
 
-# TODO: re-enable nullPointerOutOfMemory
-
 ${CPPCHECK} -j 8 --enable=all --quiet --std=c++11 \
             --suppress=missingIncludeSystem \
             --suppress=missingInclude \
             --suppress=useStlAlgorithm \
-            --suppress=nullPointerOutOfMemory \
             --check-level=exhaustive \
             --suppressions-list=/tmp/cppcheck-suppressions.txt \
             -DBOOST_HAS_DATE_TIME=1 \

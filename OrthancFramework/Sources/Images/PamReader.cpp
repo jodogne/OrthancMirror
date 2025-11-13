@@ -207,8 +207,17 @@ namespace Orthanc
     if (enforceAligned_)
     {
       if (alignedImageBuffer_ != NULL)
+      {
         free(alignedImageBuffer_);
+      }
+
       alignedImageBuffer_ = malloc(pitch * height);
+      
+      if (alignedImageBuffer_ == NULL)
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory);
+      }
+      
       memcpy(alignedImageBuffer_, &content_[offset], pitch* height);
       content_ = "";
       AssignWritable(format, width, height, pitch, alignedImageBuffer_);
