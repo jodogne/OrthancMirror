@@ -9,18 +9,11 @@ if [ $# -ge 1 ]; then
 fi
 
 cat <<EOF > /tmp/cppcheck-suppressions.txt
-constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
-knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:322
 stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1525
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
-stlFindInsert:../../OrthancServer/Sources/Database/MainDicomTagsRegistry.cpp:65
-stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:328
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp:41
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp:191
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:361
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
@@ -29,13 +22,9 @@ uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.c
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
-assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:277
-assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1026
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
-assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3066
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:286
-assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
 variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:228
 variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
 uselessOverride:../../OrthancFramework/Sources/MultiThreading/IRunnableBySteps.h:35
@@ -74,6 +63,7 @@ constParameterCallback:../../OrthancFramework/Sources/Pkcs11.cpp
 constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3449
 unknownMacro:../../OrthancFramework/Sources/DicomParsing/DicomModification.cpp:39
 EOF
+
 
 # TODO: re-enable nullPointerOutOfMemory
 
