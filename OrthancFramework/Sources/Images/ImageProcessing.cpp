@@ -1224,7 +1224,7 @@ namespace Orthanc
     for (unsigned int y = 0; y < height; y++)
     {
       uint8_t* q = reinterpret_cast<uint8_t*>(image.GetRow(y));
-      uint8_t* a = reinterpret_cast<uint8_t*>(alpha.GetRow(y));
+      const uint8_t* a = reinterpret_cast<uint8_t*>(alpha.GetRow(y));
 
       for (unsigned int x = 0; x < width; x++)
       {

@@ -66,6 +66,7 @@ throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPlugin
 throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:496
 rethrowNoCurrentException:../../OrthancFramework/UnitTestsSources/FromDcmtkTests.cpp
 rethrowNoCurrentException:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp
+constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3046
 EOF
 
 # TODO: re-enable nullPointerOutOfMemory

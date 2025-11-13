@@ -2547,7 +2547,7 @@ namespace Orthanc
   }
 
 
-  static std::string GetAllowedMethods(_OrthancPluginChunkedRestCallback parameters)
+  static std::string GetAllowedMethods(const _OrthancPluginChunkedRestCallback& parameters)
   {
     std::string s;
 

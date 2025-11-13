@@ -275,10 +275,10 @@ namespace Orthanc
       else if (DecodePsmctRle1(psmct_, dataset))
       {
         LOG(INFO) << "The PMSCT_RLE1 decoding has succeeded";
-        Uint8* pixData = NULL;
+        const Uint8* pixData = NULL;
         if (psmct_.size() > 0)
         {
-          pixData = reinterpret_cast<Uint8*>(&psmct_[0]);
+          pixData = reinterpret_cast<const Uint8*>(&psmct_[0]);
         }
 
         slowAccessor_.reset(new DicomIntegerPixelAccessor(m, pixData, psmct_.size()));
