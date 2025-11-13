@@ -141,7 +141,7 @@ static OFCondition acceptUnknownContextsWithTransferSyntax(
   T_ASC_SC_ROLE acceptedRole)
 {
   int n, i, k;
-  DUL_PRESENTATIONCONTEXT *dpc;
+  const DUL_PRESENTATIONCONTEXT *dpc;
   T_ASC_PresentationContext pc;
 
   n = ASC_countPresentationContexts(params);
