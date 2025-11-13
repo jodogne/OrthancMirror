@@ -619,7 +619,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
     
-    boundary = boundary.substr(0, 70);
+    boundary.resize(70);
     
     contentTypeHeader = ("multipart/" + subType + "; type=" + tmp + "; boundary=" + boundary);
   }
