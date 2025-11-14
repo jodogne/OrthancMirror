@@ -25,13 +25,14 @@
 #pragma once
 
 #include "../Enumerations.h"
-
+#include <boost/shared_ptr.hpp>
 #include <json/value.h>
 #include <stdint.h>
 
 namespace Orthanc
 {
   class OrthancException;
+  class IExceptionPayload;
   
   class ORTHANC_PUBLIC JobStepResult
   {
@@ -40,16 +41,12 @@ namespace Orthanc
     unsigned int  timeout_;
     ErrorCode     error_;
     std::string   failureDetails_;
-    bool          hasDimseErrorStatus_;
-    uint16_t      dimseErrorStatus_;
-
+    Json::Value   errorPayload_;
     
     explicit JobStepResult(JobStepCode code) :
       code_(code),
       timeout_(0),
-      error_(ErrorCode_Success),
-      hasDimseErrorStatus_(false),
-      dimseErrorStatus_(0x0000)
+      error_(ErrorCode_Success)
     {
     }
 
@@ -67,7 +64,7 @@ namespace Orthanc
 
     static JobStepResult Failure(const ErrorCode& error,
                                  const char* details,
-                                 uint16_t dimseErrorStatus);
+                                 const Json::Value& errorPayload);
 
     static JobStepResult Failure(const OrthancException& exception);
 
@@ -79,8 +76,8 @@ namespace Orthanc
 
     const std::string& GetFailureDetails() const;
 
-    bool HasDimseErrorStatus() const;
+    bool HasErrorPayload() const;
 
-    uint16_t GetDimseErrorStatus() const;
+    const Json::Value& GetErrorPayload() const;
   };
 }

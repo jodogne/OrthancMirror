@@ -24,6 +24,7 @@
 
 #include "../PrecompiledHeaders.h"
 #include "DicomControlUserConnection.h"
+#include "DimseErrorPayload.h"
 
 #include "../Compatibility.h"
 #include "../DicomFormat/DicomArray.h"
@@ -393,13 +394,15 @@ namespace Orthanc
                                "C-FIND SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus) +
-                               " (unable to process - invalid query ?)");
+                               " (unable to process - invalid query ?)",
+                               MakeDimseErrorStatusPayload(response.DimseStatus));
       }
       else
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "C-FIND SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
-                               "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus));
+                               "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus),
+                               MakeDimseErrorStatusPayload(response.DimseStatus));
       }
     }
   }
@@ -522,14 +525,14 @@ namespace Orthanc
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus) +
                                " (unable to process - resource not found ?)",
-                               response.DimseStatus);
+                               MakeDimseErrorStatusPayload(response.DimseStatus)); 
       }
       else
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "C-MOVE SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus),
-                               response.DimseStatus);
+                               MakeDimseErrorStatusPayload(response.DimseStatus));
       }
     }
   }
@@ -665,7 +668,7 @@ namespace Orthanc
                                    "C-GET SCU to AET \"" +
                                    parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                    "\" has failed with DIMSE status " + DimseToHexString(rsp.msg.CGetRSP.DimseStatus),
-                                   rsp.msg.CGetRSP.DimseStatus);
+                                   MakeDimseErrorStatusPayload(rsp.msg.CGetRSP.DimseStatus));
           }
         }
         // Handle C-STORE Request

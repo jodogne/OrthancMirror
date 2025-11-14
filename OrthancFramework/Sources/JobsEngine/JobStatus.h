@@ -26,6 +26,7 @@
 
 #include "IJob.h"
 #include "../OrthancException.h"
+#include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
@@ -39,8 +40,7 @@ namespace Orthanc
     Json::Value    serialized_;
     bool           hasSerialized_;
     std::string    details_;
-    bool           hasDimseErrorStatus_;
-    uint16_t       dimseErrorStatus_;
+    Json::Value    errorPayload_;
     Json::Value    userData_;
 
     void InitInternal(const IJob& job);
@@ -51,7 +51,7 @@ namespace Orthanc
     JobStatus(ErrorCode code,
               const std::string& details,
               const IJob& job,
-              uint16_t dimseErrorStatus);
+              const Json::Value& errorPayload);
 
     JobStatus(ErrorCode code,
               const std::string& details,
@@ -109,19 +109,19 @@ namespace Orthanc
       return userData_;
     }
 
-    bool HasDimseErrorStatus() const
+    bool HasErrorPayload() const
     {
-      return hasDimseErrorStatus_;
+      return !errorPayload_.isNull();
     }
 
-    uint16_t GetDimseErrorStatus() const
+    const Json::Value& GetErrorPayload() const
     {
-      if (!hasDimseErrorStatus_)
+      if (!HasErrorPayload())
       {
         throw OrthancException(ErrorCode_BadSequenceOfCalls);
       }
 
-      return dimseErrorStatus_;
+      return errorPayload_;
     }
   };
 }

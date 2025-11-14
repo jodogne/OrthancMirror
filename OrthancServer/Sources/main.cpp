@@ -714,9 +714,9 @@ public:
         message["Details"] = exception.GetDetails();
       }
 
-      if (exception.HasDimseErrorStatus())
+      if (exception.HasPayload())
       {
-        message["DimseErrorStatus"] = exception.GetDimseErrorStatus();
+        message["ErrorPayload"] = exception.GetPayload();
       }
 
       std::string info = message.toStyledString();

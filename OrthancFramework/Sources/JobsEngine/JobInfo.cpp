@@ -196,9 +196,9 @@ namespace Orthanc
       target["UserData"] = status_.GetUserData();
     }
 
-    if (status_.HasDimseErrorStatus())
+    if (status_.HasErrorPayload())
     {
-      target["DimseErrorStatus"] = status_.GetDimseErrorStatus();
+      target["ErrorPayload"] = status_.GetErrorPayload();
     }
 
     target["Type"] = status_.GetJobType();

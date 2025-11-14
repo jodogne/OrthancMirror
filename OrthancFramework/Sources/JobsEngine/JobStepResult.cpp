@@ -32,9 +32,7 @@ namespace Orthanc
   JobStepResult::JobStepResult() :
     code_(JobStepCode_Failure),
     timeout_(0),
-    error_(ErrorCode_InternalError),
-    hasDimseErrorStatus_(false),
-    dimseErrorStatus_(0x0000)
+    error_(ErrorCode_InternalError)
   {
   }
 
@@ -72,12 +70,10 @@ namespace Orthanc
 
   JobStepResult JobStepResult::Failure(const ErrorCode& error,
                                        const char* details,
-                                       uint16_t dimseErrorStatus)
+                                       const Json::Value& errorPayload)
   {
     JobStepResult result = Failure(error, details);
-
-    result.hasDimseErrorStatus_ = true;
-    result.dimseErrorStatus_ = dimseErrorStatus;
+    result.errorPayload_ = errorPayload;
 
     return result;
   }
@@ -85,11 +81,11 @@ namespace Orthanc
 
   JobStepResult JobStepResult::Failure(const OrthancException& exception)
   {
-    if (exception.HasDimseErrorStatus())
+    if (exception.HasPayload())
     {
       return Failure(exception.GetErrorCode(),
                      exception.HasDetails() ? exception.GetDetails() : NULL,
-                     exception.GetDimseErrorStatus());
+                     exception.GetPayload());
     }
     else
     {
@@ -142,19 +138,19 @@ namespace Orthanc
     }
   }
 
-  bool JobStepResult::HasDimseErrorStatus() const
+  bool JobStepResult::HasErrorPayload() const
   {
-    return hasDimseErrorStatus_;
+    return !errorPayload_.isNull();
   }
 
-  uint16_t JobStepResult::GetDimseErrorStatus() const
+  const Json::Value& JobStepResult::GetErrorPayload() const
   {
-    if (!hasDimseErrorStatus_)
+    if (!HasErrorPayload())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    return dimseErrorStatus_;
+    return errorPayload_;
   }
 
 }

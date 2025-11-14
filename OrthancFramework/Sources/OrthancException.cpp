@@ -33,86 +33,87 @@ namespace Orthanc
   OrthancException::OrthancException(const OrthancException& other) : 
     errorCode_(other.errorCode_),
     httpStatus_(other.httpStatus_),
-    logged_(false),
-    hasDimseErrorStatus_(other.hasDimseErrorStatus_),
-    dimseErrorStatus_(other.dimseErrorStatus_)
+    logged_(false)
   {
     if (other.details_.get() != NULL)
     {
       details_.reset(new std::string(*other.details_));
+    }
+
+    // TODO: shouldn't we avoid copies of OrthancException completely ?
+    if (other.HasPayload())
+    {
+      payload_.reset(new Json::Value(other.GetPayload()));
     }
   }
 
   OrthancException::OrthancException(ErrorCode errorCode) : 
     errorCode_(errorCode),
     httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
-    logged_(false),
-    hasDimseErrorStatus_(false),
-    dimseErrorStatus_(0x0000)
+    logged_(false)
   {
   }
 
   OrthancException::OrthancException(ErrorCode errorCode,
                                      const std::string& details,
-                                     bool log) :
+                                     LogException log) :
     errorCode_(errorCode),
     httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
-    logged_(log),
-    details_(new std::string(details)),
-    hasDimseErrorStatus_(false),
-    dimseErrorStatus_(0x0000)
+    logged_(log == LogException_Yes),
+    details_(new std::string(details))
   {
 #if ORTHANC_ENABLE_LOGGING == 1
-    if (log)
+    if (log == LogException_Yes)
     {
       LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
     }
 #endif
   }
 
-  OrthancException::OrthancException(ErrorCode errorCode,
-                                     const std::string& details,
-                                     uint16_t dimseErrorStatus,
-                                     bool log) :
-    errorCode_(errorCode),
-    httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
-    logged_(log),
-    details_(new std::string(details)),
-    hasDimseErrorStatus_(true),
-    dimseErrorStatus_(dimseErrorStatus)
-  {
-#if ORTHANC_ENABLE_LOGGING == 1
-    if (log)
-    {
-      LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
-    }
-#endif
-  }
 
   OrthancException::OrthancException(ErrorCode errorCode,
                                      HttpStatus httpStatus) :
     errorCode_(errorCode),
     httpStatus_(httpStatus),
-    logged_(false),
-    hasDimseErrorStatus_(false),
-    dimseErrorStatus_(0x0000)
+    logged_(false)
   {
   }
+
+
+  OrthancException::OrthancException(ErrorCode errorCode,
+                                     const std::string& details,
+                                     const Json::Value& payload,
+                                     LogException log) :
+    errorCode_(errorCode),
+    httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
+    logged_(log == LogException_Yes),
+    details_(new std::string(details))
+  {
+    payload_.reset(new Json::Value(payload));
+
+#if ORTHANC_ENABLE_LOGGING == 1
+    if (log == LogException_Yes)
+    {
+      LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
+    }
+#endif
+  }
+
 
   OrthancException::OrthancException(ErrorCode errorCode,
                                      HttpStatus httpStatus,
                                      const std::string& details,
-                                     uint16_t dimseErrorStatus,
-                                     bool log) :
+                                     const Json::Value& payload,
+                                     LogException log) :
     errorCode_(errorCode),
     httpStatus_(httpStatus),
-    logged_(log),
-    details_(new std::string(details)),
-    hasDimseErrorStatus_(true),
-    dimseErrorStatus_(dimseErrorStatus)
+    logged_(log == LogException_Yes),
+    details_(new std::string(details))
   {
+    payload_.reset(new Json::Value(payload));
+
 #if ORTHANC_ENABLE_LOGGING == 1
-    if (log)
+    if (log == LogException_Yes)
     {
       LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
     }
@@ -122,16 +123,14 @@ namespace Orthanc
   OrthancException::OrthancException(ErrorCode errorCode,
                                      HttpStatus httpStatus,
                                      const std::string& details,
-                                     bool log) :
+                                     LogException log) :
     errorCode_(errorCode),
     httpStatus_(httpStatus),
-    logged_(log),
-    details_(new std::string(details)),
-    hasDimseErrorStatus_(false),
-    dimseErrorStatus_(0x0000)
+    logged_(log == LogException_Yes),
+    details_(new std::string(details))
   {
 #if ORTHANC_ENABLE_LOGGING == 1
-    if (log)
+    if (log == LogException_Yes)
     {
       LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
     }
@@ -170,19 +169,19 @@ namespace Orthanc
     }
   }
 
-  bool OrthancException::HasDimseErrorStatus() const
+  bool OrthancException::HasPayload() const
   {
-    return hasDimseErrorStatus_;
+    return payload_.get() != NULL;
   }
 
-  uint16_t OrthancException::GetDimseErrorStatus() const
+  const Json::Value& OrthancException::GetPayload() const
   {
-    if (!hasDimseErrorStatus_)
+    if (payload_.get() == NULL)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    return dimseErrorStatus_;
+    return *payload_;
   }
 
   bool OrthancException::HasBeenLogged() const

@@ -174,5 +174,10 @@ namespace Orthanc
     virtual void SetUserData(const Json::Value& userData) ORTHANC_OVERRIDE;
 
     virtual bool GetUserData(Json::Value& userData) const ORTHANC_OVERRIDE;
+
+    virtual bool LookupErrorPayload(Json::Value& payload) const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
   };
 }

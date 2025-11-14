@@ -27,11 +27,24 @@
 #include "Compatibility.h"  // For std::unique_ptr<>
 #include "Enumerations.h"
 #include "OrthancFramework.h"
-
+#include <json/value.h>
 #include <stdint.h>  // For uint16_t
 
 namespace Orthanc
 {
+  static const char* const ERROR_PAYLOAD_TYPE = "Type";
+
+  // From 1.12.10, we use this enumeration instead of a bool to avoid implicit
+  // conversions to bool in OrthancException constructors because any type is
+  // automaticaly casted to a bool without a single warning which led to wrong 
+  // constructor flavors being called.
+  enum ORTHANC_PUBLIC LogException
+    {
+      LogException_Yes,
+      LogException_No
+    };
+
+
   class ORTHANC_PUBLIC OrthancException
   {
   private:
@@ -47,8 +60,7 @@ namespace Orthanc
     std::unique_ptr<std::string>  details_;
     
     // New in Orthanc 1.12.10
-    bool       hasDimseErrorStatus_;
-    uint16_t   dimseErrorStatus_;
+    std::unique_ptr<Json::Value>  payload_;
     
   public:
     OrthancException(const OrthancException& other);
@@ -57,12 +69,12 @@ namespace Orthanc
 
     OrthancException(ErrorCode errorCode,
                      const std::string& details,
-                     bool log = true);
+                     LogException log = LogException_Yes);
 
     OrthancException(ErrorCode errorCode,
                      const std::string& details,
-                     uint16_t dimseErrorStatus,
-                     bool log = true);
+                     const Json::Value& payload,
+                     LogException log = LogException_Yes);
 
     OrthancException(ErrorCode errorCode,
                      HttpStatus httpStatus);
@@ -70,13 +82,14 @@ namespace Orthanc
     OrthancException(ErrorCode errorCode,
                      HttpStatus httpStatus,
                      const std::string& details,
-                     bool log = true);
+                     LogException log = LogException_Yes);
+
 
     OrthancException(ErrorCode errorCode,
                      HttpStatus httpStatus,
                      const std::string& details,
-                     uint16_t dimseErrorStatus,
-                     bool log = true);
+                     const Json::Value& payload,
+                     LogException log = LogException_Yes);
 
     ErrorCode GetErrorCode() const;
 
@@ -90,8 +103,8 @@ namespace Orthanc
 
     bool HasBeenLogged() const;
 
-    bool HasDimseErrorStatus() const;
-    
-    uint16_t GetDimseErrorStatus() const;
+    bool HasPayload() const;
+
+    const Json::Value& GetPayload() const;
   };
 }

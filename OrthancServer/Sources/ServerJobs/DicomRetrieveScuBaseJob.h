@@ -173,5 +173,8 @@ namespace Orthanc
     static void AddReceivedInstanceFromCStore(uint16_t originatorMessageId, 
                                               const std::string& originatorAet, 
                                               const std::string& instanceId);
+
+
+    virtual bool LookupErrorPayload(Json::Value& payload) const ORTHANC_OVERRIDE;
   };
 }

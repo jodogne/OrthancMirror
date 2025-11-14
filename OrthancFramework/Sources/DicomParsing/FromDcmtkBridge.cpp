@@ -1409,7 +1409,7 @@ namespace Orthanc
       }
 
       CLOG(INFO, DICOM) << "Unknown DICOM tag: \"" << name << "\"";
-      throw OrthancException(ErrorCode_UnknownDicomTag, name, false);
+      throw OrthancException(ErrorCode_UnknownDicomTag, name, LogException_No);
     }
 #endif
   }
