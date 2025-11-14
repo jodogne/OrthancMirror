@@ -24,34 +24,33 @@
 
 #include "../PrecompiledHeaders.h"
 #include "DimseErrorPayload.h"
-#include <assert.h>
+
+#include "../SerializationToolbox.h"
 
 namespace Orthanc
 {
-  static const char* const DIMSE_ERROR_PAYLOAD_TYPE = "DimseErrorPayload";
-  static const char* const DIMSE_ERROR_STATUS = "DimseErrorStatus";         // uint16_t
+  static const char* const DIMSE_ERROR_STATUS = "DimseErrorStatus";  // uint16_t
+
 
   Json::Value MakeDimseErrorStatusPayload(uint16_t dimseErrorStatus)
   {
     Json::Value payload;
-    payload[ERROR_PAYLOAD_TYPE] = DIMSE_ERROR_PAYLOAD_TYPE;
     payload[DIMSE_ERROR_STATUS] = dimseErrorStatus;
     return payload;
   }
 
-  bool IsDimseErrorStatusPayload(const Json::Value& payload)
-  {
-    assert(payload.isMember(ERROR_PAYLOAD_TYPE));
-    
-    return payload[ERROR_PAYLOAD_TYPE].asString() == DIMSE_ERROR_PAYLOAD_TYPE;
-  }
 
   uint16_t GetDimseErrorStatusFromPayload(const Json::Value& payload)
   {
-    assert(IsDimseErrorStatusPayload(payload));
-    assert(payload.isMember(DIMSE_ERROR_STATUS));
+    unsigned int status = SerializationToolbox::ReadUnsignedInteger(payload, DIMSE_ERROR_STATUS);
 
-    return static_cast<uint16_t>(payload[DIMSE_ERROR_STATUS].asUInt());
+    if (status <= 65535)
+    {
+      return static_cast<uint16_t>(status);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
   }
-
 }

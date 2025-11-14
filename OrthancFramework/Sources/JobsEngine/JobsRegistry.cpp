@@ -44,6 +44,7 @@ namespace Orthanc
   static const char* ERROR_CODE = "ErrorCode";
   static const char* ERROR_DETAILS = "ErrorDetails";
   static const char* USER_DATA = "UserData";
+  static const char* ERROR_PAYLOAD_TYPE = "ErrorPayloadType";
   static const char* ERROR_PAYLOAD = "ErrorPayload";
 
 
@@ -305,9 +306,10 @@ namespace Orthanc
           target[USER_DATA] = userData;
         }
         
-        if (lastStatus_.HasErrorPayload())
+        if (lastStatus_.GetErrorPayload().HasContent())
         {
-          target[ERROR_PAYLOAD] = lastStatus_.GetErrorPayload();
+          target[ERROR_PAYLOAD_TYPE] = lastStatus_.GetErrorPayload().GetType();
+          target[ERROR_PAYLOAD] = lastStatus_.GetErrorPayload().GetContent();
         }
 
         return true;
@@ -361,13 +363,13 @@ namespace Orthanc
         job_->SetUserData(serialized[USER_DATA]);
       }
 
-      if (serialized.isMember(ERROR_PAYLOAD))
+      lastStatus_ = JobStatus(errorCode, details, *job_);
+
+      if (serialized.isMember(ERROR_PAYLOAD_TYPE) &&
+          serialized.isMember(ERROR_PAYLOAD))
       {
-        lastStatus_ = JobStatus(errorCode, details, *job_, serialized[ERROR_PAYLOAD]);
-      }
-      else
-      {
-        lastStatus_ = JobStatus(errorCode, details, *job_);
+        const std::string type = SerializationToolbox::ReadString(serialized, ERROR_PAYLOAD_TYPE);
+        lastStatus_.GetErrorPayload().SetContent(StringToErrorPayloadType(type.c_str()), serialized[ERROR_PAYLOAD]);
       }
 
       job_->Start();
@@ -902,11 +904,12 @@ namespace Orthanc
 
             if (jobErrorPayload.HasContent())
             {
-              throw OrthancException(code, details, jobErrorPayload.GetContent());
+              throw OrthancException(code, details, jobErrorPayload.GetType(), jobErrorPayload.GetContent());
             }
-            else if (it->second->GetLastStatus().HasErrorPayload())
+            else if (it->second->GetLastStatus().GetErrorPayload().HasContent())
             {
-              throw OrthancException(code, details, it->second->GetLastStatus().GetErrorPayload());
+              throw OrthancException(code, details, it->second->GetLastStatus().GetErrorPayload().GetType(),
+                                     it->second->GetLastStatus().GetErrorPayload().GetContent());
             }
             else if (!details.empty())
             {
@@ -1481,7 +1484,8 @@ namespace Orthanc
     }
     else
     {
-      JobStatus status(code, details, *job_, errorPayload);
+      JobStatus status(code, details, *job_);
+      status.GetErrorPayload().SetContent(ErrorPayloadType_None /* TODO PAYLOAD */, errorPayload);
 
       boost::mutex::scoped_lock lock(registry_.mutex_);
       registry_.CheckInvariants();

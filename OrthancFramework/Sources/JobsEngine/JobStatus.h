@@ -25,8 +25,7 @@
 #pragma once
 
 #include "IJob.h"
-#include "../OrthancException.h"
-#include <boost/shared_ptr.hpp>
+#include "../OrthancException.h"  // For ErrorPayload
 
 namespace Orthanc
 {
@@ -40,18 +39,11 @@ namespace Orthanc
     Json::Value    serialized_;
     bool           hasSerialized_;
     std::string    details_;
-    Json::Value    errorPayload_;
     Json::Value    userData_;
+    ErrorPayload   errorPayload_;
 
-    void InitInternal(const IJob& job);
-    
   public:
     JobStatus();
-
-    JobStatus(ErrorCode code,
-              const std::string& details,
-              const IJob& job,
-              const Json::Value& errorPayload);
 
     JobStatus(ErrorCode code,
               const std::string& details,
@@ -109,18 +101,13 @@ namespace Orthanc
       return userData_;
     }
 
-    bool HasErrorPayload() const
+    ErrorPayload& GetErrorPayload()
     {
-      return !errorPayload_.isNull();
+      return errorPayload_;
     }
 
-    const Json::Value& GetErrorPayload() const
+    const ErrorPayload& GetErrorPayload() const
     {
-      if (!HasErrorPayload())
-      {
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
-      }
-
       return errorPayload_;
     }
   };

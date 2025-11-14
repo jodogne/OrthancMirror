@@ -38,7 +38,15 @@ namespace Orthanc
   {
   }
 
-  void JobStatus::InitInternal(const IJob& job)
+  
+  JobStatus::JobStatus(ErrorCode code,
+                       const std::string& details,
+                       const IJob& job) :
+    errorCode_(code),
+    progress_(job.GetProgress()),
+    publicContent_(Json::objectValue),
+    hasSerialized_(false),
+    details_(details)
   {
     if (progress_ < 0)
     {
@@ -55,33 +63,6 @@ namespace Orthanc
     job.GetUserData(userData_);
     
     hasSerialized_ = job.Serialize(serialized_);
-  }
-
-  JobStatus::JobStatus(ErrorCode code,
-                       const std::string& details,
-                       const IJob& job,
-                       const Json::Value& errorPayload) :
-    errorCode_(code),
-    progress_(job.GetProgress()),
-    publicContent_(Json::objectValue),
-    hasSerialized_(false),
-    details_(details),
-    errorPayload_(errorPayload)
-  {
-    InitInternal(job);
-  }
-
-
-  JobStatus::JobStatus(ErrorCode code,
-                       const std::string& details,
-                       const IJob& job) :
-    errorCode_(code),
-    progress_(job.GetProgress()),
-    publicContent_(Json::objectValue),
-    hasSerialized_(false),
-    details_(details)
-  {
-    InitInternal(job);
   }
 
 

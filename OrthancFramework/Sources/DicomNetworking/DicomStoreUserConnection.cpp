@@ -465,6 +465,7 @@ namespace Orthanc
                              "C-STORE SCU to AET \"" +
                              GetParameters().GetRemoteModality().GetApplicationEntityTitle() +
                              "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus),
+                             ErrorPayloadType_Dimse,
                              MakeDimseErrorStatusPayload(response.DimseStatus));
     }
   }
