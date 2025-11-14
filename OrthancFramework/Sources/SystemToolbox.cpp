@@ -229,7 +229,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_RegularFileExpected,
                              "The path does not point to a regular file: " + PathToUtf8(path),
-                             log);
+                             (log ? LogException_Yes : LogException_No));
     }
 
     try
@@ -239,7 +239,7 @@ namespace Orthanc
       if (!f.good())
       {
         throw OrthancException(ErrorCode_InexistentFile, "File not found: " + PathToUtf8(path),
-                               log);
+                               (log ? LogException_Yes : LogException_No));
       }
 
       std::streamsize size = GetStreamSize(f);

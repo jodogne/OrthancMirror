@@ -1455,7 +1455,7 @@ namespace Orthanc
           {
             throw OrthancException(static_cast<ErrorCode>(error),
                                    GetErrorDetails(),
-                                   IsLogDetails());
+                                   (IsLogDetails() ? LogException_Yes : LogException_No));
           }
           else
           {

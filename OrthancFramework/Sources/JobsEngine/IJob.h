@@ -81,5 +81,7 @@ namespace Orthanc
     virtual bool GetUserData(Json::Value& userData) const = 0;
 
     virtual void SetUserData(const Json::Value& userData) = 0;
+
+    virtual bool LookupErrorPayload(Json::Value& payload) const = 0;
   };
 }

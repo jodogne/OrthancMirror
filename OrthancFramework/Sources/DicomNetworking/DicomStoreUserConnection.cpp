@@ -24,6 +24,7 @@
 
 #include "../PrecompiledHeaders.h"
 #include "DicomStoreUserConnection.h"
+#include "DimseErrorPayload.h"
 
 #include "../DicomParsing/FromDcmtkBridge.h"
 #include "../DicomParsing/ParsedDicomFile.h"
@@ -464,7 +465,7 @@ namespace Orthanc
                              "C-STORE SCU to AET \"" +
                              GetParameters().GetRemoteModality().GetApplicationEntityTitle() +
                              "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus),
-                             response.DimseStatus);
+                             MakeDimseErrorStatusPayload(response.DimseStatus));
     }
   }
 
