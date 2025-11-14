@@ -95,11 +95,9 @@ namespace Orthanc
       return false;
     }
 
-    virtual bool LookupErrorPayload(Json::Value& payload) const ORTHANC_OVERRIDE
+    virtual void LookupErrorPayload(ErrorPayload& payload) const ORTHANC_OVERRIDE
     {
-      return false;
     }
-
   };
 }
 

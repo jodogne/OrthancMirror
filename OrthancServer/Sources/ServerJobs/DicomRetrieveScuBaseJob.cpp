@@ -374,13 +374,11 @@ namespace Orthanc
     }
   }
 
-  bool DicomRetrieveScuBaseJob::LookupErrorPayload(Json::Value& payload) const
+  void DicomRetrieveScuBaseJob::LookupErrorPayload(ErrorPayload& payload) const
   {
     Json::Value publicContent;
-
     GetPublicContent(publicContent);
-    payload = publicContent["Details"];
-    
-    return true;
+
+    payload.SetContent(ErrorPayloadType_Dimse, publicContent["Details"]);
   }
 }

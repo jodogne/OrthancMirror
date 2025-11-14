@@ -802,6 +802,12 @@ namespace Orthanc
     RetrieveMethod_SystemDefault = 65535
   };
 
+  enum ErrorPayloadType
+  {
+    ErrorPayloadType_None = 1,
+    ErrorPayloadType_Dimse = 2
+  };
+
 
   ORTHANC_PUBLIC
   const char* EnumerationToString(ErrorCode code);
