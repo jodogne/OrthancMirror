@@ -27,6 +27,7 @@
 #include "Compatibility.h"  // For std::unique_ptr<>
 #include "Enumerations.h"
 #include "OrthancFramework.h"
+
 #include <json/value.h>
 #include <stdint.h>  // For uint16_t
 
@@ -43,6 +44,36 @@ namespace Orthanc
       LogException_Yes,
       LogException_No
     };
+
+
+  class ORTHANC_PUBLIC ErrorPayload
+  {
+  private:
+    ErrorPayload& operator= (const ErrorPayload&);  // Forbidden
+
+    ErrorPayloadType              type_;
+    std::unique_ptr<Json::Value>  content_;
+
+  public:
+    ErrorPayload() :
+      type_(ErrorPayloadType_None)
+    {
+    }
+
+    explicit ErrorPayload(const ErrorPayload& other);
+
+    void SetContent(ErrorPayloadType type,
+                    const Json::Value& content);
+
+    bool HasContent() const
+    {
+      return content_.get() != NULL;
+    }
+
+    ErrorPayloadType GetType() const;
+
+    const Json::Value& GetContent() const;
+  };
 
 
   class ORTHANC_PUBLIC OrthancException

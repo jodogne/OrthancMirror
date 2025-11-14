@@ -30,6 +30,58 @@
 
 namespace Orthanc
 {
+  ErrorPayload::ErrorPayload(const ErrorPayload& other) :
+    type_(other.type_)
+  {
+    if (other.content_.get() != NULL)
+    {
+      content_.reset(new Json::Value(*other.content_));
+    }
+  }
+
+
+  void ErrorPayload::SetContent(ErrorPayloadType type,
+                                const Json::Value& content)
+  {
+    if (type == ErrorPayloadType_None ||
+        content.isNull())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      type_ = type;
+      content_.reset(new Json::Value(content));
+    }
+  }
+
+
+  ErrorPayloadType ErrorPayload::GetType() const
+  {
+    if (HasContent())
+    {
+      return type_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  const Json::Value& ErrorPayload::GetContent() const
+  {
+    if (HasContent())
+    {
+      return *content_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
   OrthancException::OrthancException(const OrthancException& other) : 
     errorCode_(other.errorCode_),
     httpStatus_(other.httpStatus_),

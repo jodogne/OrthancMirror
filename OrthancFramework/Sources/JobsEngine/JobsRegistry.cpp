@@ -897,10 +897,12 @@ namespace Orthanc
             const std::string& details = it->second->GetLastStatus().GetDetails();
             
             // Prefer the error payload from the job level if there is one since it should contain more information than the step error payload.
-            Json::Value jobErrorPayload;
-            if (it->second->GetJob().LookupErrorPayload(jobErrorPayload))
+            ErrorPayload jobErrorPayload;
+            it->second->GetJob().LookupErrorPayload(jobErrorPayload);
+
+            if (jobErrorPayload.HasContent())
             {
-              throw OrthancException(code, details, jobErrorPayload);
+              throw OrthancException(code, details, jobErrorPayload.GetContent());
             }
             else if (it->second->GetLastStatus().HasErrorPayload())
             {

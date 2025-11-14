@@ -174,7 +174,6 @@ namespace Orthanc
                                               const std::string& originatorAet, 
                                               const std::string& instanceId);
 
-
-    virtual bool LookupErrorPayload(Json::Value& payload) const ORTHANC_OVERRIDE;
+    virtual void LookupErrorPayload(ErrorPayload& payload) const ORTHANC_OVERRIDE;
   };
 }

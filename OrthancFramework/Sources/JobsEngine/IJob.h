@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "../OrthancException.h"
 #include "JobStepResult.h"
 
 #include <boost/noncopyable.hpp>
@@ -82,6 +83,6 @@ namespace Orthanc
 
     virtual void SetUserData(const Json::Value& userData) = 0;
 
-    virtual bool LookupErrorPayload(Json::Value& payload) const = 0;
+    virtual void LookupErrorPayload(ErrorPayload& payload) const = 0;
   };
 }
