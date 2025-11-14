@@ -867,6 +867,9 @@ namespace Orthanc
   const char* EnumerationToString(RetrieveMethod method);
 
   ORTHANC_PUBLIC
+  const char* EnumerationToString(ErrorPayloadType type);
+
+  ORTHANC_PUBLIC
   Encoding StringToEncoding(const char* encoding);
 
   ORTHANC_PUBLIC
@@ -899,6 +902,9 @@ namespace Orthanc
   
   ORTHANC_PUBLIC
   DicomToJsonFormat StringToDicomToJsonFormat(const std::string& format);
+
+  ORTHANC_PUBLIC
+  ErrorPayloadType StringToErrorPayloadType(const std::string& type);
   
   ORTHANC_PUBLIC
   bool LookupMimeType(MimeType& target,
@@ -921,7 +927,7 @@ namespace Orthanc
   bool IsResourceLevelAboveOrEqual(ResourceType level,
                                    ResourceType reference);
 
-ORTHANC_PUBLIC
+  ORTHANC_PUBLIC
   const char* ResourceTypeToDicomQueryRetrieveLevel(ResourceType type);
 
   ORTHANC_PUBLIC

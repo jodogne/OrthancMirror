@@ -196,9 +196,13 @@ namespace Orthanc
       target["UserData"] = status_.GetUserData();
     }
 
-    if (status_.HasErrorPayload())
+    if (status_.GetErrorPayload().HasContent())
     {
-      target["ErrorPayload"] = status_.GetErrorPayload();
+      Json::Value error;
+      error["Type"] = EnumerationToString(status_.GetErrorPayload().GetType());
+      error["Content"] = status_.GetErrorPayload().GetContent();
+
+      target["ErrorPayload"] = error;
     }
 
     target["Type"] = status_.GetJobType();

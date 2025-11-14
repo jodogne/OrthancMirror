@@ -101,7 +101,8 @@ namespace Orthanc
     }
     catch (OrthancException& e)
     {
-      if (e.HasPayload() && IsDimseErrorStatusPayload(e.GetPayload()))
+      if (e.HasPayload() &&
+          e.GetPayloadType() == ErrorPayloadType_Dimse)
       {
         dimseErrorStatus_ = GetDimseErrorStatusFromPayload(e.GetPayload());
       }

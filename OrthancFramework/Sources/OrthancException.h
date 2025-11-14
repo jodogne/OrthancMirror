@@ -33,8 +33,6 @@
 
 namespace Orthanc
 {
-  static const char* const ERROR_PAYLOAD_TYPE = "Type";
-
   // From 1.12.10, we use this enumeration instead of a bool to avoid implicit
   // conversions to bool in OrthancException constructors because any type is
   // automaticaly casted to a bool without a single warning which led to wrong 
@@ -49,8 +47,6 @@ namespace Orthanc
   class ORTHANC_PUBLIC ErrorPayload
   {
   private:
-    ErrorPayload& operator= (const ErrorPayload&);  // Forbidden
-
     ErrorPayloadType              type_;
     std::unique_ptr<Json::Value>  content_;
 
@@ -61,6 +57,10 @@ namespace Orthanc
     }
 
     explicit ErrorPayload(const ErrorPayload& other);
+
+    ErrorPayload& operator= (const ErrorPayload& other);
+
+    void ClearContent();
 
     void SetContent(ErrorPayloadType type,
                     const Json::Value& content);
@@ -91,6 +91,7 @@ namespace Orthanc
     std::unique_ptr<std::string>  details_;
     
     // New in Orthanc 1.12.10
+    ErrorPayloadType              payloadType_;
     std::unique_ptr<Json::Value>  payload_;
     
   public:
@@ -104,6 +105,7 @@ namespace Orthanc
 
     OrthancException(ErrorCode errorCode,
                      const std::string& details,
+                     ErrorPayloadType type,
                      const Json::Value& payload,
                      LogException log = LogException_Yes);
 
@@ -119,6 +121,7 @@ namespace Orthanc
     OrthancException(ErrorCode errorCode,
                      HttpStatus httpStatus,
                      const std::string& details,
+                     ErrorPayloadType type,
                      const Json::Value& payload,
                      LogException log = LogException_Yes);
 
@@ -135,6 +138,11 @@ namespace Orthanc
     bool HasBeenLogged() const;
 
     bool HasPayload() const;
+
+    ErrorPayloadType GetPayloadType() const
+    {
+      return payloadType_;
+    }
 
     const Json::Value& GetPayload() const;
   };
