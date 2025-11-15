@@ -157,48 +157,6 @@ namespace Orthanc
 
 
   OrthancException::OrthancException(ErrorCode errorCode,
-                                     const std::string& details,
-                                     ErrorPayloadType payloadType,
-                                     const Json::Value& payload,
-                                     LogException log) :
-    errorCode_(errorCode),
-    httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
-    logged_(log == LogException_Yes),
-    details_(new std::string(details))
-  {
-    payload_.SetContent(payloadType, payload);
-
-#if ORTHANC_ENABLE_LOGGING == 1
-    if (log == LogException_Yes)
-    {
-      LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
-    }
-#endif
-  }
-
-
-  OrthancException::OrthancException(ErrorCode errorCode,
-                                     HttpStatus httpStatus,
-                                     const std::string& details,
-                                     ErrorPayloadType payloadType,
-                                     const Json::Value& payload,
-                                     LogException log) :
-    errorCode_(errorCode),
-    httpStatus_(httpStatus),
-    logged_(log == LogException_Yes),
-    details_(new std::string(details))
-  {
-    payload_.SetContent(payloadType, payload);
-
-#if ORTHANC_ENABLE_LOGGING == 1
-    if (log == LogException_Yes)
-    {
-      LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
-    }
-#endif
-  }
-
-  OrthancException::OrthancException(ErrorCode errorCode,
                                      HttpStatus httpStatus,
                                      const std::string& details,
                                      LogException log) :
