@@ -24,6 +24,7 @@
 
 #include "../PrecompiledHeaders.h"
 #include "DicomControlUserConnection.h"
+#include "DimseErrorPayload.h"
 
 #include "../Compatibility.h"
 #include "../DicomFormat/DicomArray.h"
@@ -389,17 +390,19 @@ namespace Orthanc
       if (response.DimseStatus == STATUS_FIND_Failed_UnableToProcess)
       {
         throw OrthancException(ErrorCode_NetworkProtocol,
-                               HttpStatus_422_UnprocessableEntity,
                                "C-FIND SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus) +
-                               " (unable to process - invalid query ?)");
+                               " (unable to process - invalid query ?)")
+          .SetHttpStatus(HttpStatus_422_UnprocessableEntity)
+          .SetPayload(MakeDimseErrorStatusPayload(response.DimseStatus));
       }
       else
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "C-FIND SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
-                               "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus));
+                               "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus))
+          .SetPayload(MakeDimseErrorStatusPayload(response.DimseStatus));
       }
     }
   }
@@ -517,19 +520,19 @@ namespace Orthanc
       if (response.DimseStatus == STATUS_MOVE_Failed_UnableToProcess)
       {
         throw OrthancException(ErrorCode_NetworkProtocol,
-                               HttpStatus_422_UnprocessableEntity,
                                "C-MOVE SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus) +
-                               " (unable to process - resource not found ?)",
-                               response.DimseStatus);
+                               " (unable to process - resource not found ?)")
+          .SetHttpStatus(HttpStatus_422_UnprocessableEntity)
+          .SetPayload(MakeDimseErrorStatusPayload(response.DimseStatus));
       }
       else
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "C-MOVE SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
-                               "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus),
-                               response.DimseStatus);
+                               "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus))
+          .SetPayload(MakeDimseErrorStatusPayload(response.DimseStatus));
       }
     }
   }
@@ -664,8 +667,8 @@ namespace Orthanc
             throw OrthancException(ErrorCode_NetworkProtocol,
                                    "C-GET SCU to AET \"" +
                                    parameters_.GetRemoteModality().GetApplicationEntityTitle() +
-                                   "\" has failed with DIMSE status " + DimseToHexString(rsp.msg.CGetRSP.DimseStatus),
-                                   rsp.msg.CGetRSP.DimseStatus);
+                                   "\" has failed with DIMSE status " + DimseToHexString(rsp.msg.CGetRSP.DimseStatus))
+              .SetPayload(MakeDimseErrorStatusPayload(rsp.msg.CGetRSP.DimseStatus));
           }
         }
         // Handle C-STORE Request

@@ -28,10 +28,47 @@
 #include "Enumerations.h"
 #include "OrthancFramework.h"
 
+#include <json/value.h>
 #include <stdint.h>  // For uint16_t
 
 namespace Orthanc
 {
+  class ORTHANC_PUBLIC ErrorPayload
+  {
+  private:
+    ErrorPayloadType              type_;
+    std::unique_ptr<Json::Value>  content_;
+
+  public:
+    ErrorPayload() :
+      type_(ErrorPayloadType_None)
+    {
+    }
+
+    ErrorPayload(const ErrorPayload& other);
+
+    ErrorPayload& operator= (const ErrorPayload& other);
+
+    void ClearContent();
+
+    void SetContent(ErrorPayloadType type,
+                    const Json::Value& content);
+
+    bool HasContent() const
+    {
+      return content_.get() != NULL;
+    }
+
+    ErrorPayloadType GetType() const;
+
+    const Json::Value& GetContent() const;
+
+    void Format(Json::Value& target) const;
+  };
+
+
+  // TODO: Shouldn't copies of OrthancException be avoided completely
+  // (i.e., tag OrthancException as boost::noncopyable)?
   class ORTHANC_PUBLIC OrthancException
   {
   private:
@@ -47,35 +84,16 @@ namespace Orthanc
     std::unique_ptr<std::string>  details_;
     
     // New in Orthanc 1.12.10
-    bool       hasDimseErrorStatus_;
-    uint16_t   dimseErrorStatus_;
-    
+    ErrorPayload  payload_;
+
   public:
+    // WARNING: Do not add additional constructors, to prevent ambiguities in overloading
     OrthancException(const OrthancException& other);
 
     explicit OrthancException(ErrorCode errorCode);
 
     OrthancException(ErrorCode errorCode,
                      const std::string& details,
-                     bool log = true);
-
-    OrthancException(ErrorCode errorCode,
-                     const std::string& details,
-                     uint16_t dimseErrorStatus,
-                     bool log = true);
-
-    OrthancException(ErrorCode errorCode,
-                     HttpStatus httpStatus);
-
-    OrthancException(ErrorCode errorCode,
-                     HttpStatus httpStatus,
-                     const std::string& details,
-                     bool log = true);
-
-    OrthancException(ErrorCode errorCode,
-                     HttpStatus httpStatus,
-                     const std::string& details,
-                     uint16_t dimseErrorStatus,
                      bool log = true);
 
     ErrorCode GetErrorCode() const;
@@ -88,10 +106,33 @@ namespace Orthanc
 
     const char* GetDetails() const;
 
-    bool HasBeenLogged() const;
+    bool HasBeenLogged() const
+    {
+      return logged_;
+    }
 
-    bool HasDimseErrorStatus() const;
-    
-    uint16_t GetDimseErrorStatus() const;
+    OrthancException& SetHttpStatus(HttpStatus status)
+    {
+      httpStatus_ = status;
+      return *this;
+    }
+
+    OrthancException& SetPayload(const ErrorPayload& payload)
+    {
+      payload_ = payload;
+      return *this;
+    }
+
+    OrthancException& SetPayload(ErrorPayloadType type,
+                                 const Json::Value& content)
+    {
+      payload_.SetContent(type, content);
+      return *this;
+    }
+
+    const ErrorPayload& GetPayload() const
+    {
+      return payload_;
+    }
   };
 }

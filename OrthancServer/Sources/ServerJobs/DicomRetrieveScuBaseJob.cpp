@@ -24,6 +24,7 @@
 #include "DicomGetScuJob.h"
 
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/DimseErrorPayload.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../ServerContext.h"
 #include <dcmtk/dcmnet/dimse.h>
@@ -100,8 +101,13 @@ namespace Orthanc
     }
     catch (OrthancException& e)
     {
-      dimseErrorStatus_ = e.GetDimseErrorStatus();
-      throw e;
+      if (e.GetPayload().HasContent() &&
+          e.GetPayload().GetType() == ErrorPayloadType_Dimse)
+      {
+        dimseErrorStatus_ = GetDimseErrorStatusFromPayload(e.GetPayload());
+      }
+
+      throw;
     }
     return true;
   }
@@ -367,5 +373,13 @@ namespace Orthanc
     {
       currentCommand_->AddReceivedInstance(instanceId);
     }
+  }
+
+  void DicomRetrieveScuBaseJob::LookupErrorPayload(ErrorPayload& payload) const
+  {
+    Json::Value publicContent;
+    GetPublicContent(publicContent);
+
+    payload.SetContent(ErrorPayloadType_Dimse, publicContent["Details"]);
   }
 }

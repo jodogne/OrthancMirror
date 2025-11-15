@@ -151,6 +151,10 @@ namespace
     {
       return false;
     }
+
+    virtual void LookupErrorPayload(ErrorPayload& payload) const ORTHANC_OVERRIDE
+    {
+    }
   };
 
 
@@ -225,6 +229,10 @@ namespace
     virtual bool GetUserData(Json::Value& userData) const ORTHANC_OVERRIDE
     {
       return false;
+    }
+
+    virtual void LookupErrorPayload(ErrorPayload& payload) const ORTHANC_OVERRIDE
+    {
     }
   };
 

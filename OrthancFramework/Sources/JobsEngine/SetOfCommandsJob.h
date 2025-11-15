@@ -133,5 +133,8 @@ namespace Orthanc
       return false;
     }
 
+    virtual void LookupErrorPayload(ErrorPayload& payload) const ORTHANC_OVERRIDE
+    {
+    }
   };
 }

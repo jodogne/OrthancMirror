@@ -13,12 +13,11 @@ REST API
 
 * Fix: C-Get SCU jobs or HTTP responses were always successful even if the C-Get operation
   actually failed.
-* C-Store, C-Move and C-Get jobs and HTTP responses now include a new "DimseErrorStatus"
-  field (ONLY if the operation fails).
+* When an error occurs while Orthanc handles an HTTP request, it may now include a new
+  "ErrorPayload" in the HTTP response with details about the failed operation.
+  This is currently implemented for C-Store, C-Move and C-Get operations.
 * C-Move and C-Get jobs and HTTP responses now include a new "Details" field with the "DimseErrorStatus"
-  of each operation and the list of "RetrievedInstancesIds".  Note that, if you have multiple
-  resources to retrieve and one of them fails, you'll only get those details if you have set
-  "Permissive" to true to allow other operations to continue after the failure.
+  of each operation and the list of "RetrievedInstancesIds".
 
 Maintenance
 -----------

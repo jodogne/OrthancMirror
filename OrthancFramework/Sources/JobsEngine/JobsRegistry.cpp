@@ -44,7 +44,8 @@ namespace Orthanc
   static const char* ERROR_CODE = "ErrorCode";
   static const char* ERROR_DETAILS = "ErrorDetails";
   static const char* USER_DATA = "UserData";
-  static const char* DIMSE_ERROR_STATUS = "DimseErrorStatus";
+  static const char* ERROR_PAYLOAD_TYPE = "ErrorPayloadType";
+  static const char* ERROR_PAYLOAD = "ErrorPayload";
 
 
   class JobsRegistry::JobHandler : public boost::noncopyable
@@ -305,9 +306,10 @@ namespace Orthanc
           target[USER_DATA] = userData;
         }
         
-        if (lastStatus_.HasDimseErrorStatus())
+        if (lastStatus_.GetErrorPayload().HasContent())
         {
-          target[DIMSE_ERROR_STATUS] = lastStatus_.GetDimseErrorStatus();
+          target[ERROR_PAYLOAD_TYPE] = lastStatus_.GetErrorPayload().GetType();
+          target[ERROR_PAYLOAD] = lastStatus_.GetErrorPayload().GetContent();
         }
 
         return true;
@@ -361,13 +363,13 @@ namespace Orthanc
         job_->SetUserData(serialized[USER_DATA]);
       }
 
-      if (serialized.isMember(DIMSE_ERROR_STATUS))
+      lastStatus_ = JobStatus(errorCode, details, *job_);
+
+      if (serialized.isMember(ERROR_PAYLOAD_TYPE) &&
+          serialized.isMember(ERROR_PAYLOAD))
       {
-        lastStatus_ = JobStatus(errorCode, details, *job_, static_cast<uint16_t>(serialized[DIMSE_ERROR_STATUS].asUInt()));
-      }
-      else
-      {
-        lastStatus_ = JobStatus(errorCode, details, *job_);
+        const std::string type = SerializationToolbox::ReadString(serialized, ERROR_PAYLOAD_TYPE);
+        lastStatus_.GetErrorPayload().SetContent(StringToErrorPayloadType(type.c_str()), serialized[ERROR_PAYLOAD]);
       }
 
       job_->Start();
@@ -896,9 +898,17 @@ namespace Orthanc
             ErrorCode code = it->second->GetLastStatus().GetErrorCode();
             const std::string& details = it->second->GetLastStatus().GetDetails();
             
-            if (it->second->GetLastStatus().HasDimseErrorStatus())
+            // Prefer the error payload from the job level if there is one since it should contain more information than the step error payload.
+            ErrorPayload jobErrorPayload;
+            it->second->GetJob().LookupErrorPayload(jobErrorPayload);
+
+            if (jobErrorPayload.HasContent())
             {
-              throw OrthancException(code, details, it->second->GetLastStatus().GetDimseErrorStatus());
+              throw OrthancException(code, details).SetPayload(jobErrorPayload);
+            }
+            else if (it->second->GetLastStatus().GetErrorPayload().HasContent())
+            {
+              throw OrthancException(code, details).SetPayload(it->second->GetLastStatus().GetErrorPayload());
             }
             else if (!details.empty())
             {
@@ -1465,7 +1475,7 @@ namespace Orthanc
 
   void JobsRegistry::RunningJob::UpdateStatus(ErrorCode code,
                                               const std::string& details,
-                                              uint16_t dimseErrorStatus)
+                                              const ErrorPayload& errorPayload)
   {
     if (!IsValid())
     {
@@ -1473,7 +1483,8 @@ namespace Orthanc
     }
     else
     {
-      JobStatus status(code, details, *job_, dimseErrorStatus);
+      JobStatus status(code, details, *job_);
+      status.GetErrorPayload() = errorPayload;
 
       boost::mutex::scoped_lock lock(registry_.mutex_);
       registry_.CheckInvariants();
