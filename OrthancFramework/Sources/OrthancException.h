@@ -106,14 +106,6 @@ namespace Orthanc
                      const std::string& details,
                      LogException log = LogException_Yes);
 
-    OrthancException(ErrorCode errorCode,
-                     HttpStatus httpStatus);
-
-    OrthancException(ErrorCode errorCode,
-                     HttpStatus httpStatus,
-                     const std::string& details,
-                     LogException log = LogException_Yes);
-
     ErrorCode GetErrorCode() const;
 
     HttpStatus GetHttpStatus() const;
@@ -127,6 +119,12 @@ namespace Orthanc
     bool HasBeenLogged() const
     {
       return logged_;
+    }
+
+    OrthancException& SetHttpStatus(HttpStatus status)
+    {
+      httpStatus_ = status;
+      return *this;
     }
 
     OrthancException& SetPayload(const ErrorPayload& payload)

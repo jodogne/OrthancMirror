@@ -390,11 +390,11 @@ namespace Orthanc
       if (response.DimseStatus == STATUS_FIND_Failed_UnableToProcess)
       {
         throw OrthancException(ErrorCode_NetworkProtocol,
-                               HttpStatus_422_UnprocessableEntity,
                                "C-FIND SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus) +
                                " (unable to process - invalid query ?)")
+          .SetHttpStatus(HttpStatus_422_UnprocessableEntity)
           .SetPayload(ErrorPayloadType_Dimse, MakeDimseErrorStatusPayload(response.DimseStatus));
       }
       else
@@ -520,11 +520,11 @@ namespace Orthanc
       if (response.DimseStatus == STATUS_MOVE_Failed_UnableToProcess)
       {
         throw OrthancException(ErrorCode_NetworkProtocol,
-                               HttpStatus_422_UnprocessableEntity,
                                "C-MOVE SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus) +
                                " (unable to process - resource not found ?)")
+          .SetHttpStatus(HttpStatus_422_UnprocessableEntity)
           .SetPayload(ErrorPayloadType_Dimse, MakeDimseErrorStatusPayload(response.DimseStatus));
       }
       else
