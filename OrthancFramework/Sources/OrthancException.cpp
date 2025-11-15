@@ -132,14 +132,14 @@ namespace Orthanc
 
   OrthancException::OrthancException(ErrorCode errorCode,
                                      const std::string& details,
-                                     LogException log) :
+                                     bool log) :
     errorCode_(errorCode),
     httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
-    logged_(log == LogException_Yes),
+    logged_(log),
     details_(new std::string(details))
   {
 #if ORTHANC_ENABLE_LOGGING == 1
-    if (log == LogException_Yes)
+    if (log)
     {
       LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
     }

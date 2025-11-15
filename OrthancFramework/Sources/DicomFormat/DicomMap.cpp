@@ -255,7 +255,7 @@ namespace Orthanc
       
       if (existingLevelTags.find(tag) != existingLevelTags.end())
       {
-        throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined", LogException_No);
+        throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined", false);
       }
 
       if (level == ResourceType_Study) // all patients main dicom tags are also copied at study level
@@ -264,7 +264,7 @@ namespace Orthanc
         
         if (patientLevelTags.find(tag) != patientLevelTags.end())
         {
-          throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined", LogException_No);
+          throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined", false);
         }
       }
 
