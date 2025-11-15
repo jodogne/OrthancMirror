@@ -121,7 +121,7 @@ namespace Orthanc
   {
     if (origin_ == RequestOrigin_DicomProtocol)
     {
-      result = dicomRemoteAet_.c_str();
+      result = dicomRemoteAet_;
       return true;
     }
     else

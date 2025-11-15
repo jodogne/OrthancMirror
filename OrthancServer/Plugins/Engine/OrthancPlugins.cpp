@@ -1453,9 +1453,7 @@ namespace Orthanc
 
           if (HasErrorDetails())
           {
-            throw OrthancException(static_cast<ErrorCode>(error),
-                                   GetErrorDetails(),
-                                   IsLogDetails());
+            throw OrthancException(static_cast<ErrorCode>(error), GetErrorDetails(), IsLogDetails());
           }
           else
           {
@@ -2547,7 +2545,7 @@ namespace Orthanc
   }
 
 
-  static std::string GetAllowedMethods(_OrthancPluginChunkedRestCallback parameters)
+  static std::string GetAllowedMethods(const _OrthancPluginChunkedRestCallback& parameters)
   {
     std::string s;
 

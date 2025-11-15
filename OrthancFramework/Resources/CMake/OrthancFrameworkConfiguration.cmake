@@ -575,6 +575,7 @@ if (ENABLE_DCMTK)
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomControlUserConnection.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomServer.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomStoreUserConnection.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DimseErrorPayload.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/Internals/CommandDispatcher.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/Internals/FindScp.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/Internals/MoveScp.cpp

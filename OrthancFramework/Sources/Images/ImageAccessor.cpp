@@ -141,7 +141,7 @@ namespace Orthanc
 
   size_t ImageAccessor::GetSize() const
   {
-    return GetHeight() * GetPitch();
+    return static_cast<size_t>(GetHeight()) * static_cast<size_t>(GetPitch());
   }
 
   const void *ImageAccessor::GetConstBuffer() const

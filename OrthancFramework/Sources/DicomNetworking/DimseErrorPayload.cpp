@@ -23,58 +23,44 @@
 
 
 #include "../PrecompiledHeaders.h"
-#include "JobStatus.h"
+#include "DimseErrorPayload.h"
 
-#include "../OrthancException.h"
+#include "../SerializationToolbox.h"
 
 namespace Orthanc
 {
-  JobStatus::JobStatus() :
-    errorCode_(ErrorCode_InternalError),
-    progress_(0),
-    jobType_("Invalid"),
-    publicContent_(Json::objectValue),
-    hasSerialized_(false)
-  {
-  }
+  static const char* const DIMSE_ERROR_STATUS = "DimseErrorStatus";  // uint16_t
 
-  
-  JobStatus::JobStatus(ErrorCode code,
-                       const std::string& details,
-                       const IJob& job) :
-    errorCode_(code),
-    progress_(job.GetProgress()),
-    publicContent_(Json::objectValue),
-    hasSerialized_(false),
-    details_(details)
-  {
-    if (progress_ < 0)
-    {
-      progress_ = 0;
-    }
-      
-    if (progress_ > 1)
-    {
-      progress_ = 1;
-    }
 
-    job.GetJobType(jobType_);
-    job.GetPublicContent(publicContent_);
-    job.GetUserData(userData_);
-    
-    hasSerialized_ = job.Serialize(serialized_);
+  ErrorPayload MakeDimseErrorStatusPayload(uint16_t dimseErrorStatus)
+  {
+    Json::Value content;
+    content[DIMSE_ERROR_STATUS] = dimseErrorStatus;
+
+    ErrorPayload payload;
+    payload.SetContent(ErrorPayloadType_Dimse, content);
+    return payload;
   }
 
 
-  const Json::Value& JobStatus::GetSerialized() const
+  uint16_t GetDimseErrorStatusFromPayload(const ErrorPayload& payload)
   {
-    if (!hasSerialized_)
+    if (payload.GetType() == ErrorPayloadType_Dimse)
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      unsigned int status = SerializationToolbox::ReadUnsignedInteger(payload.GetContent(), DIMSE_ERROR_STATUS);
+
+      if (status <= 65535)
+      {
+        return static_cast<uint16_t>(status);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
     }
     else
     {
-      return serialized_;
+      throw OrthancException(ErrorCode_BadParameterType);
     }
   }
 }

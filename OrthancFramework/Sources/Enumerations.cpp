@@ -1192,6 +1192,19 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(ErrorPayloadType type)
+  {
+    switch (type)
+    {
+      case ErrorPayloadType_Dimse:
+        return "Dimse";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   Encoding StringToEncoding(const char* encoding)
   {
     std::string s(encoding);
@@ -1905,6 +1918,19 @@ namespace Orthanc
     else if (format == "Simplify")
     {
       return DicomToJsonFormat_Human;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  ErrorPayloadType StringToErrorPayloadType(const std::string& type)
+  {
+    if (type == "Dimse")
+    {
+      return ErrorPayloadType_Dimse;
     }
     else
     {
