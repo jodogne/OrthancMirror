@@ -1793,3 +1793,64 @@ TEST(Toolbox, IsVersionAbove)
   ASSERT_FALSE(Toolbox::IsVersionAbove("18.19.20", 18, 20, 0));
   ASSERT_FALSE(Toolbox::IsVersionAbove("18.19.20", 19, 0, 0));
 }
+
+
+TEST(OrthancException, ErrorPayload)
+{
+  ErrorPayload b;
+
+  {
+    ErrorPayload a;
+    ASSERT_THROW(a.SetContent(ErrorPayloadType_None, ""), OrthancException);
+    ASSERT_FALSE(a.HasContent());
+    ASSERT_THROW(a.GetType(), OrthancException);
+    ASSERT_THROW(a.GetContent(), OrthancException);
+
+    {
+      ErrorPayload c(a);
+      ASSERT_FALSE(c.HasContent());
+      ASSERT_THROW(c.GetType(), OrthancException);
+      ASSERT_THROW(c.GetContent(), OrthancException);
+    }
+
+    b = a;
+  }
+
+  ASSERT_FALSE(b.HasContent());
+  ASSERT_THROW(b.GetType(), OrthancException);
+  ASSERT_THROW(b.GetContent(), OrthancException);
+
+  {
+    ErrorPayload a;
+    a.SetContent(ErrorPayloadType_Dimse, "Hello");
+    ASSERT_TRUE(a.HasContent());
+    ASSERT_EQ(ErrorPayloadType_Dimse, a.GetType());
+    ASSERT_TRUE(a.GetContent().isString());
+    ASSERT_EQ("Hello", a.GetContent().asString());
+
+    {
+      ErrorPayload c(a);
+      ASSERT_TRUE(c.HasContent());
+      ASSERT_EQ(ErrorPayloadType_Dimse, c.GetType());
+      ASSERT_TRUE(c.GetContent().isString());
+      ASSERT_EQ("Hello", c.GetContent().asString());
+
+      c = ErrorPayload();
+      ASSERT_FALSE(c.HasContent());
+      ASSERT_THROW(c.GetType(), OrthancException);
+      ASSERT_THROW(c.GetContent(), OrthancException);
+    }
+
+    b = a;
+
+    a.ClearContent();
+    ASSERT_FALSE(a.HasContent());
+    ASSERT_THROW(a.GetType(), OrthancException);
+    ASSERT_THROW(a.GetContent(), OrthancException);
+  }
+
+  ASSERT_TRUE(b.HasContent());
+  ASSERT_EQ(ErrorPayloadType_Dimse, b.GetType());
+  ASSERT_TRUE(b.GetContent().isString());
+  ASSERT_EQ("Hello", b.GetContent().asString());
+}
