@@ -107,25 +107,11 @@ namespace Orthanc
                      LogException log = LogException_Yes);
 
     OrthancException(ErrorCode errorCode,
-                     const std::string& details,
-                     ErrorPayloadType type,
-                     const Json::Value& payload,
-                     LogException log = LogException_Yes);
-
-    OrthancException(ErrorCode errorCode,
                      HttpStatus httpStatus);
 
     OrthancException(ErrorCode errorCode,
                      HttpStatus httpStatus,
                      const std::string& details,
-                     LogException log = LogException_Yes);
-
-
-    OrthancException(ErrorCode errorCode,
-                     HttpStatus httpStatus,
-                     const std::string& details,
-                     ErrorPayloadType type,
-                     const Json::Value& payload,
                      LogException log = LogException_Yes);
 
     ErrorCode GetErrorCode() const;
@@ -141,6 +127,19 @@ namespace Orthanc
     bool HasBeenLogged() const
     {
       return logged_;
+    }
+
+    OrthancException& SetPayload(const ErrorPayload& payload)
+    {
+      payload_ = payload;
+      return *this;
+    }
+
+    OrthancException& SetPayload(ErrorPayloadType type,
+                                 const Json::Value& content)
+    {
+      payload_.SetContent(type, content);
+      return *this;
     }
 
     ErrorPayload& GetPayload()

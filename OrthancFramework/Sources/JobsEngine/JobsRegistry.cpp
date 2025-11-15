@@ -904,12 +904,11 @@ namespace Orthanc
 
             if (jobErrorPayload.HasContent())
             {
-              throw OrthancException(code, details, jobErrorPayload.GetType(), jobErrorPayload.GetContent());
+              throw OrthancException(code, details).SetPayload(jobErrorPayload);
             }
             else if (it->second->GetLastStatus().GetErrorPayload().HasContent())
             {
-              throw OrthancException(code, details, it->second->GetLastStatus().GetErrorPayload().GetType(),
-                                     it->second->GetLastStatus().GetErrorPayload().GetContent());
+              throw OrthancException(code, details).SetPayload(it->second->GetLastStatus().GetErrorPayload());
             }
             else if (!details.empty())
             {

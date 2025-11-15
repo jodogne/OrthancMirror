@@ -464,9 +464,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NetworkProtocol,
                              "C-STORE SCU to AET \"" +
                              GetParameters().GetRemoteModality().GetApplicationEntityTitle() +
-                             "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus),
-                             ErrorPayloadType_Dimse,
-                             MakeDimseErrorStatusPayload(response.DimseStatus));
+                             "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus))
+        .SetPayload(ErrorPayloadType_Dimse, MakeDimseErrorStatusPayload(response.DimseStatus));
     }
   }
 
