@@ -64,6 +64,7 @@ namespace Orthanc
 
     static JobStepResult Failure(const ErrorCode& error,
                                  const char* details,
+                                 /* TODO PAYLOAD */
                                  const Json::Value& errorPayload);
 
     static JobStepResult Failure(const OrthancException& exception);

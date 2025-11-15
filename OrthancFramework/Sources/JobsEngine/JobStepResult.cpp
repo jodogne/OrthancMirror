@@ -81,11 +81,11 @@ namespace Orthanc
 
   JobStepResult JobStepResult::Failure(const OrthancException& exception)
   {
-    if (exception.HasPayload())
+    if (exception.GetPayload().HasContent())
     {
       return Failure(exception.GetErrorCode(),
                      exception.HasDetails() ? exception.GetDetails() : NULL,
-                     exception.GetPayload());
+                     exception.GetPayload().GetContent());
     }
     else
     {

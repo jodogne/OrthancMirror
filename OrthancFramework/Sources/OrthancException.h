@@ -73,9 +73,13 @@ namespace Orthanc
     ErrorPayloadType GetType() const;
 
     const Json::Value& GetContent() const;
+
+    void Format(Json::Value& target) const;
   };
 
 
+  // TODO: Shouldn't copies of OrthancException be avoided completely
+  // (i.e., tag OrthancException as boost::noncopyable)?
   class ORTHANC_PUBLIC OrthancException
   {
   private:
@@ -91,8 +95,7 @@ namespace Orthanc
     std::unique_ptr<std::string>  details_;
     
     // New in Orthanc 1.12.10
-    ErrorPayloadType              payloadType_;
-    std::unique_ptr<Json::Value>  payload_;
+    ErrorPayload  payload_;
     
   public:
     OrthancException(const OrthancException& other);
@@ -135,15 +138,19 @@ namespace Orthanc
 
     const char* GetDetails() const;
 
-    bool HasBeenLogged() const;
-
-    bool HasPayload() const;
-
-    ErrorPayloadType GetPayloadType() const
+    bool HasBeenLogged() const
     {
-      return payloadType_;
+      return logged_;
     }
 
-    const Json::Value& GetPayload() const;
+    ErrorPayload& GetPayload()
+    {
+      return payload_;
+    }
+
+    const ErrorPayload& GetPayload() const
+    {
+      return payload_;
+    }
   };
 }
