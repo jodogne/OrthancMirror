@@ -45,7 +45,7 @@ namespace Orthanc
     {
     }
 
-    explicit ErrorPayload(const ErrorPayload& other);
+    ErrorPayload(const ErrorPayload& other);
 
     ErrorPayload& operator= (const ErrorPayload& other);
 
@@ -85,7 +85,7 @@ namespace Orthanc
     
     // New in Orthanc 1.12.10
     ErrorPayload  payload_;
-    
+
   public:
     OrthancException(const OrthancException& other);
 
@@ -127,11 +127,6 @@ namespace Orthanc
     {
       payload_.SetContent(type, content);
       return *this;
-    }
-
-    ErrorPayload& GetPayload()
-    {
-      return payload_;
     }
 
     const ErrorPayload& GetPayload() const
