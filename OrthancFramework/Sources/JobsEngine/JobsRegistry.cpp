@@ -1475,7 +1475,7 @@ namespace Orthanc
 
   void JobsRegistry::RunningJob::UpdateStatus(ErrorCode code,
                                               const std::string& details,
-                                              const Json::Value& errorPayload)
+                                              const ErrorPayload& errorPayload)
   {
     if (!IsValid())
     {
@@ -1484,7 +1484,7 @@ namespace Orthanc
     else
     {
       JobStatus status(code, details, *job_);
-      status.GetErrorPayload().SetContent(ErrorPayloadType_None /* TODO PAYLOAD */, errorPayload);
+      status.GetErrorPayload() = errorPayload;
 
       boost::mutex::scoped_lock lock(registry_.mutex_);
       registry_.CheckInvariants();

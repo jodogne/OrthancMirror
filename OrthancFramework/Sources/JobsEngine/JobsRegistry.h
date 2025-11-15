@@ -246,7 +246,7 @@ namespace Orthanc
 
       void UpdateStatus(ErrorCode code,
                         const std::string& details,
-                        const Json::Value& errorPayload);
+                        const ErrorPayload& errorPayload);
     };
   };
 }
