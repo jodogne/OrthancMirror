@@ -70,10 +70,10 @@ namespace Orthanc
 
   JobStepResult JobStepResult::Failure(const ErrorCode& error,
                                        const char* details,
-                                       const Json::Value& errorPayload)
+                                       const ErrorPayload& payload)
   {
     JobStepResult result = Failure(error, details);
-    result.errorPayload_ = errorPayload;
+    result.failurePayload_ = payload;
 
     return result;
   }
@@ -85,7 +85,7 @@ namespace Orthanc
     {
       return Failure(exception.GetErrorCode(),
                      exception.HasDetails() ? exception.GetDetails() : NULL,
-                     exception.GetPayload().GetContent());
+                     exception.GetPayload());
     }
     else
     {
@@ -137,20 +137,4 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
-
-  bool JobStepResult::HasErrorPayload() const
-  {
-    return !errorPayload_.isNull();
-  }
-
-  const Json::Value& JobStepResult::GetErrorPayload() const
-  {
-    if (!HasErrorPayload())
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-
-    return errorPayload_;
-  }
-
 }
