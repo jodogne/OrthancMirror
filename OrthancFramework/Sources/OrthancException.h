@@ -87,6 +87,7 @@ namespace Orthanc
     ErrorPayload  payload_;
 
   public:
+    // WARNING: Do not add additional constructors, to prevent ambiguities in overloading
     OrthancException(const OrthancException& other);
 
     explicit OrthancException(ErrorCode errorCode);
