@@ -35,5 +35,5 @@ namespace Orthanc
 {
   Json::Value MakeDimseErrorStatusPayload(uint16_t dimseErrorStatus);
 
-  uint16_t GetDimseErrorStatusFromPayload(const Json::Value& payload);
+  uint16_t GetDimseErrorStatusFromPayload(/* TODO PAYLOAD */ const Json::Value& payload);
 }

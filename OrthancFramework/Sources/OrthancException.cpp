@@ -104,29 +104,29 @@ namespace Orthanc
   }
 
 
+  void ErrorPayload::Format(Json::Value& target) const
+  {
+    target["Type"] = EnumerationToString(GetType());
+    target["Content"] = GetContent();
+  }
+
+
   OrthancException::OrthancException(const OrthancException& other) : 
     errorCode_(other.errorCode_),
     httpStatus_(other.httpStatus_),
     logged_(false),
-    payloadType_(ErrorPayloadType_None)
+    payload_(other.payload_)
   {
     if (other.details_.get() != NULL)
     {
       details_.reset(new std::string(*other.details_));
-    }
-
-    // TODO: shouldn't we avoid copies of OrthancException completely ?
-    if (other.HasPayload())
-    {
-      payload_.reset(new Json::Value(other.GetPayload()));
     }
   }
 
   OrthancException::OrthancException(ErrorCode errorCode) : 
     errorCode_(errorCode),
     httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
-    logged_(false),
-    payloadType_(ErrorPayloadType_None)
+    logged_(false)
   {
   }
 
@@ -136,8 +136,7 @@ namespace Orthanc
     errorCode_(errorCode),
     httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
     logged_(log == LogException_Yes),
-    details_(new std::string(details)),
-    payloadType_(ErrorPayloadType_None)
+    details_(new std::string(details))
   {
 #if ORTHANC_ENABLE_LOGGING == 1
     if (log == LogException_Yes)
@@ -152,8 +151,7 @@ namespace Orthanc
                                      HttpStatus httpStatus) :
     errorCode_(errorCode),
     httpStatus_(httpStatus),
-    logged_(false),
-    payloadType_(ErrorPayloadType_None)
+    logged_(false)
   {
   }
 
@@ -166,10 +164,9 @@ namespace Orthanc
     errorCode_(errorCode),
     httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
     logged_(log == LogException_Yes),
-    details_(new std::string(details)),
-    payloadType_(payloadType)
+    details_(new std::string(details))
   {
-    payload_.reset(new Json::Value(payload));
+    payload_.SetContent(payloadType, payload);
 
 #if ORTHANC_ENABLE_LOGGING == 1
     if (log == LogException_Yes)
@@ -189,10 +186,9 @@ namespace Orthanc
     errorCode_(errorCode),
     httpStatus_(httpStatus),
     logged_(log == LogException_Yes),
-    details_(new std::string(details)),
-    payloadType_(payloadType)
+    details_(new std::string(details))
   {
-    payload_.reset(new Json::Value(payload));
+    payload_.SetContent(payloadType, payload);
 
 #if ORTHANC_ENABLE_LOGGING == 1
     if (log == LogException_Yes)
@@ -209,8 +205,7 @@ namespace Orthanc
     errorCode_(errorCode),
     httpStatus_(httpStatus),
     logged_(log == LogException_Yes),
-    details_(new std::string(details)),
-    payloadType_(ErrorPayloadType_None)
+    details_(new std::string(details))
   {
 #if ORTHANC_ENABLE_LOGGING == 1
     if (log == LogException_Yes)
@@ -251,25 +246,4 @@ namespace Orthanc
       return details_->c_str();
     }
   }
-
-  bool OrthancException::HasPayload() const
-  {
-    return payload_.get() != NULL;
-  }
-
-  const Json::Value& OrthancException::GetPayload() const
-  {
-    if (payload_.get() == NULL)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-
-    return *payload_;
-  }
-
-  bool OrthancException::HasBeenLogged() const
-  {
-    return logged_;
-  }
-
 }
