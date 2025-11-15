@@ -228,8 +228,7 @@ namespace Orthanc
     if (!IsRegularFile(path))
     {
       throw OrthancException(ErrorCode_RegularFileExpected,
-                             "The path does not point to a regular file: " + PathToUtf8(path),
-                             log);
+                             "The path does not point to a regular file: " + PathToUtf8(path), log);
     }
 
     try
@@ -238,8 +237,7 @@ namespace Orthanc
       f.open(path, std::ifstream::in | std::ifstream::binary);
       if (!f.good())
       {
-        throw OrthancException(ErrorCode_InexistentFile, "File not found: " + PathToUtf8(path),
-                               log);
+        throw OrthancException(ErrorCode_InexistentFile, "File not found: " + PathToUtf8(path), log);
       }
 
       std::streamsize size = GetStreamSize(f);

@@ -22,59 +22,18 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
-#include "JobStatus.h"
+#pragma once
+
+#if ORTHANC_ENABLE_DCMTK_NETWORKING != 1
+#  error The macro ORTHANC_ENABLE_DCMTK_NETWORKING must be set to 1
+#endif
 
 #include "../OrthancException.h"
 
+
 namespace Orthanc
 {
-  JobStatus::JobStatus() :
-    errorCode_(ErrorCode_InternalError),
-    progress_(0),
-    jobType_("Invalid"),
-    publicContent_(Json::objectValue),
-    hasSerialized_(false)
-  {
-  }
+  ErrorPayload MakeDimseErrorStatusPayload(uint16_t dimseErrorStatus);
 
-  
-  JobStatus::JobStatus(ErrorCode code,
-                       const std::string& details,
-                       const IJob& job) :
-    errorCode_(code),
-    progress_(job.GetProgress()),
-    publicContent_(Json::objectValue),
-    hasSerialized_(false),
-    details_(details)
-  {
-    if (progress_ < 0)
-    {
-      progress_ = 0;
-    }
-      
-    if (progress_ > 1)
-    {
-      progress_ = 1;
-    }
-
-    job.GetJobType(jobType_);
-    job.GetPublicContent(publicContent_);
-    job.GetUserData(userData_);
-    
-    hasSerialized_ = job.Serialize(serialized_);
-  }
-
-
-  const Json::Value& JobStatus::GetSerialized() const
-  {
-    if (!hasSerialized_)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      return serialized_;
-    }
-  }
+  uint16_t GetDimseErrorStatusFromPayload(const ErrorPayload& payload);
 }
