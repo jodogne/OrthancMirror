@@ -32,25 +32,35 @@ namespace Orthanc
   static const char* const DIMSE_ERROR_STATUS = "DimseErrorStatus";  // uint16_t
 
 
-  Json::Value MakeDimseErrorStatusPayload(uint16_t dimseErrorStatus)
+  ErrorPayload MakeDimseErrorStatusPayload(uint16_t dimseErrorStatus)
   {
-    Json::Value payload;
-    payload[DIMSE_ERROR_STATUS] = dimseErrorStatus;
+    Json::Value content;
+    content[DIMSE_ERROR_STATUS] = dimseErrorStatus;
+
+    ErrorPayload payload;
+    payload.SetContent(ErrorPayloadType_Dimse, content);
     return payload;
   }
 
 
-  uint16_t GetDimseErrorStatusFromPayload(const Json::Value& payload)
+  uint16_t GetDimseErrorStatusFromPayload(const ErrorPayload& payload)
   {
-    unsigned int status = SerializationToolbox::ReadUnsignedInteger(payload, DIMSE_ERROR_STATUS);
-
-    if (status <= 65535)
+    if (payload.GetType() == ErrorPayloadType_Dimse)
     {
-      return static_cast<uint16_t>(status);
+      unsigned int status = SerializationToolbox::ReadUnsignedInteger(payload.GetContent(), DIMSE_ERROR_STATUS);
+
+      if (status <= 65535)
+      {
+        return static_cast<uint16_t>(status);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
     }
     else
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadParameterType);
     }
   }
 }

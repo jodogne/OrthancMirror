@@ -114,7 +114,7 @@ namespace Orthanc
   OrthancException::OrthancException(const OrthancException& other) : 
     errorCode_(other.errorCode_),
     httpStatus_(other.httpStatus_),
-    logged_(false),
+    logged_(other.logged_),
     payload_(other.payload_)
   {
     if (other.details_.get() != NULL)

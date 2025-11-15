@@ -395,14 +395,14 @@ namespace Orthanc
                                "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus) +
                                " (unable to process - invalid query ?)")
           .SetHttpStatus(HttpStatus_422_UnprocessableEntity)
-          .SetPayload(ErrorPayloadType_Dimse, MakeDimseErrorStatusPayload(response.DimseStatus));
+          .SetPayload(MakeDimseErrorStatusPayload(response.DimseStatus));
       }
       else
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "C-FIND SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus))
-          .SetPayload(ErrorPayloadType_Dimse, MakeDimseErrorStatusPayload(response.DimseStatus));
+          .SetPayload(MakeDimseErrorStatusPayload(response.DimseStatus));
       }
     }
   }
@@ -525,14 +525,14 @@ namespace Orthanc
                                "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus) +
                                " (unable to process - resource not found ?)")
           .SetHttpStatus(HttpStatus_422_UnprocessableEntity)
-          .SetPayload(ErrorPayloadType_Dimse, MakeDimseErrorStatusPayload(response.DimseStatus));
+          .SetPayload(MakeDimseErrorStatusPayload(response.DimseStatus));
       }
       else
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "C-MOVE SCU to AET \"" +
                                parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                "\" has failed with DIMSE status " + DimseToHexString(response.DimseStatus))
-          .SetPayload(ErrorPayloadType_Dimse, MakeDimseErrorStatusPayload(response.DimseStatus));
+          .SetPayload(MakeDimseErrorStatusPayload(response.DimseStatus));
       }
     }
   }
@@ -668,7 +668,7 @@ namespace Orthanc
                                    "C-GET SCU to AET \"" +
                                    parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                    "\" has failed with DIMSE status " + DimseToHexString(rsp.msg.CGetRSP.DimseStatus))
-              .SetPayload(ErrorPayloadType_Dimse, MakeDimseErrorStatusPayload(rsp.msg.CGetRSP.DimseStatus));
+              .SetPayload(MakeDimseErrorStatusPayload(rsp.msg.CGetRSP.DimseStatus));
           }
         }
         // Handle C-STORE Request
