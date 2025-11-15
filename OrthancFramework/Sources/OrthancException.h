@@ -33,17 +33,6 @@
 
 namespace Orthanc
 {
-  // From 1.12.10, we use this enumeration instead of a bool to avoid implicit
-  // conversions to bool in OrthancException constructors because any type is
-  // automaticaly casted to a bool without a single warning which led to wrong 
-  // constructor flavors being called.
-  enum ORTHANC_PUBLIC LogException
-    {
-      LogException_Yes,
-      LogException_No
-    };
-
-
   class ORTHANC_PUBLIC ErrorPayload
   {
   private:
@@ -104,7 +93,7 @@ namespace Orthanc
 
     OrthancException(ErrorCode errorCode,
                      const std::string& details,
-                     LogException log = LogException_Yes);
+                     bool log = true);
 
     ErrorCode GetErrorCode() const;
 

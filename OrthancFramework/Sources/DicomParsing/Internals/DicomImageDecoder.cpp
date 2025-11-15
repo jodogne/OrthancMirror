@@ -966,12 +966,12 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NotImplemented,
                              "The built-in DCMTK decoder cannot decode some DICOM instance "
-                             "whose transfer syntax is: " + std::string(GetTransferSyntaxUid(s)), LogException_No);
+                             "whose transfer syntax is: " + std::string(GetTransferSyntaxUid(s)), false);
     }
     else
     {
       throw OrthancException(ErrorCode_NotImplemented,
-                             "The built-in DCMTK decoder cannot decode some DICOM instance", LogException_No);
+                             "The built-in DCMTK decoder cannot decode some DICOM instance", false);
     }
   }
 
