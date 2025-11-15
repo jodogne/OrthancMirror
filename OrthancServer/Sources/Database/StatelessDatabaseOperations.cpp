@@ -2718,12 +2718,14 @@ namespace Orthanc
             if (transaction.HasReachedMaxStorageSize(maximumStorageSize_, instanceSize))
             {
               storeStatus_ = StoreStatus_StorageFull;
-              throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage, "Maximum storage size reached"); // throw to cancel the transaction
+              throw OrthancException(ErrorCode_FullStorage, "Maximum storage size reached") // throw to cancel the transaction
+                .SetHttpStatus(HttpStatus_507_InsufficientStorage);
             }
             if (transaction.HasReachedMaxPatientCount(maximumPatientCount_, hashPatient_))
             {
               storeStatus_ = StoreStatus_StorageFull;
-              throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage, "Maximum patient count reached");  // throw to cancel the transaction
+              throw OrthancException(ErrorCode_FullStorage, "Maximum patient count reached")  // throw to cancel the transaction
+                .SetHttpStatus(HttpStatus_507_InsufficientStorage);
             }
           }
           else
@@ -3015,7 +3017,7 @@ namespace Orthanc
         int64_t resourceId;
         if (!transaction.LookupResource(resourceId, resourceType, publicId_))
         {
-          throw OrthancException(ErrorCode_InexistentItem, HttpStatus_404_NotFound);
+          throw OrthancException(ErrorCode_InexistentItem).SetHttpStatus(HttpStatus_404_NotFound);
         }
         else
         {

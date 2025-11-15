@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# note: this script was last tuned to run with cppcheck v2.17.1
 set -ex
 
 CPPCHECK=cppcheck
@@ -9,18 +9,11 @@ if [ $# -ge 1 ]; then
 fi
 
 cat <<EOF > /tmp/cppcheck-suppressions.txt
-constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
-knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:322
 stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1525
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
-stlFindInsert:../../OrthancServer/Sources/Database/MainDicomTagsRegistry.cpp:65
-stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:328
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp:41
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp:191
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:361
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
@@ -29,13 +22,9 @@ uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.c
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
-assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:277
-assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1026
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
-assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3066
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:286
-assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
 variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:228
 variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
 uselessOverride:../../OrthancFramework/Sources/MultiThreading/IRunnableBySteps.h:35
@@ -66,15 +55,20 @@ throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPlugin
 throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:496
 rethrowNoCurrentException:../../OrthancFramework/UnitTestsSources/FromDcmtkTests.cpp
 rethrowNoCurrentException:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp
+constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3046
+constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp
+constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.cpp
+constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp
+constParameterCallback:../../OrthancFramework/Sources/Pkcs11.cpp
+constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3449
+unknownMacro:../../OrthancFramework/Sources/DicomParsing/DicomModification.cpp:39
 EOF
 
-# TODO: re-enable nullPointerOutOfMemory
 
 ${CPPCHECK} -j 8 --enable=all --quiet --std=c++11 \
             --suppress=missingIncludeSystem \
             --suppress=missingInclude \
             --suppress=useStlAlgorithm \
-            --suppress=nullPointerOutOfMemory \
             --check-level=exhaustive \
             --suppressions-list=/tmp/cppcheck-suppressions.txt \
             -DBOOST_HAS_DATE_TIME=1 \

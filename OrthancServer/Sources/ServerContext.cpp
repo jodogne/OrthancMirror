@@ -855,11 +855,11 @@ namespace Orthanc
 
           case StoreStatus_Failure:
             LOG(ERROR) << "Unknown store failure while storing instance " << resultPublicId;
-            throw OrthancException(ErrorCode_InternalError, HttpStatus_500_InternalServerError);
+            throw OrthancException(ErrorCode_InternalError).SetHttpStatus(HttpStatus_500_InternalServerError);
 
           case StoreStatus_StorageFull:
             LOG(ERROR) << "Storage full while storing instance " << resultPublicId;
-            throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage);
+            throw OrthancException(ErrorCode_FullStorage).SetHttpStatus(HttpStatus_507_InsufficientStorage);
 
           default:
             // This should never happen

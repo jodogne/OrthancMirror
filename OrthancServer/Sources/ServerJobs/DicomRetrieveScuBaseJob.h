@@ -173,5 +173,7 @@ namespace Orthanc
     static void AddReceivedInstanceFromCStore(uint16_t originatorMessageId, 
                                               const std::string& originatorAet, 
                                               const std::string& instanceId);
+
+    virtual void LookupErrorPayload(ErrorPayload& payload) const ORTHANC_OVERRIDE;
   };
 }

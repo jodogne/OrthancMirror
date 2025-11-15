@@ -30,12 +30,92 @@
 
 namespace Orthanc
 {
+  ErrorPayload::ErrorPayload(const ErrorPayload& other) :
+    type_(other.type_)
+  {
+    if (other.content_.get() != NULL)
+    {
+      content_.reset(new Json::Value(*other.content_));
+    }
+  }
+
+
+  ErrorPayload& ErrorPayload::operator= (const ErrorPayload& other)
+  {
+    if (other.HasContent())
+    {
+      SetContent(other.GetType(), other.GetContent());
+    }
+    else
+    {
+      ClearContent();
+    }
+
+    return *this;
+  }
+
+
+  void ErrorPayload::ClearContent()
+  {
+    type_ = ErrorPayloadType_None;
+    content_.reset(NULL);
+  }
+
+
+  void ErrorPayload::SetContent(ErrorPayloadType type,
+                                const Json::Value& content)
+  {
+    if (type == ErrorPayloadType_None ||
+        content.isNull())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      type_ = type;
+      content_.reset(new Json::Value(content));
+    }
+  }
+
+
+  ErrorPayloadType ErrorPayload::GetType() const
+  {
+    if (HasContent())
+    {
+      return type_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  const Json::Value& ErrorPayload::GetContent() const
+  {
+    if (HasContent())
+    {
+      return *content_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  void ErrorPayload::Format(Json::Value& target) const
+  {
+    target["Type"] = EnumerationToString(GetType());
+    target["Content"] = GetContent();
+  }
+
+
   OrthancException::OrthancException(const OrthancException& other) : 
     errorCode_(other.errorCode_),
     httpStatus_(other.httpStatus_),
-    logged_(false),
-    hasDimseErrorStatus_(other.hasDimseErrorStatus_),
-    dimseErrorStatus_(other.dimseErrorStatus_)
+    logged_(other.logged_),
+    payload_(other.payload_)
   {
     if (other.details_.get() != NULL)
     {
@@ -46,9 +126,7 @@ namespace Orthanc
   OrthancException::OrthancException(ErrorCode errorCode) : 
     errorCode_(errorCode),
     httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
-    logged_(false),
-    hasDimseErrorStatus_(false),
-    dimseErrorStatus_(0x0000)
+    logged_(false)
   {
   }
 
@@ -58,9 +136,7 @@ namespace Orthanc
     errorCode_(errorCode),
     httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
     logged_(log),
-    details_(new std::string(details)),
-    hasDimseErrorStatus_(false),
-    dimseErrorStatus_(0x0000)
+    details_(new std::string(details))
   {
 #if ORTHANC_ENABLE_LOGGING == 1
     if (log)
@@ -70,73 +146,6 @@ namespace Orthanc
 #endif
   }
 
-  OrthancException::OrthancException(ErrorCode errorCode,
-                                     const std::string& details,
-                                     uint16_t dimseErrorStatus,
-                                     bool log) :
-    errorCode_(errorCode),
-    httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
-    logged_(log),
-    details_(new std::string(details)),
-    hasDimseErrorStatus_(true),
-    dimseErrorStatus_(dimseErrorStatus)
-  {
-#if ORTHANC_ENABLE_LOGGING == 1
-    if (log)
-    {
-      LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
-    }
-#endif
-  }
-
-  OrthancException::OrthancException(ErrorCode errorCode,
-                                     HttpStatus httpStatus) :
-    errorCode_(errorCode),
-    httpStatus_(httpStatus),
-    logged_(false),
-    hasDimseErrorStatus_(false),
-    dimseErrorStatus_(0x0000)
-  {
-  }
-
-  OrthancException::OrthancException(ErrorCode errorCode,
-                                     HttpStatus httpStatus,
-                                     const std::string& details,
-                                     uint16_t dimseErrorStatus,
-                                     bool log) :
-    errorCode_(errorCode),
-    httpStatus_(httpStatus),
-    logged_(log),
-    details_(new std::string(details)),
-    hasDimseErrorStatus_(true),
-    dimseErrorStatus_(dimseErrorStatus)
-  {
-#if ORTHANC_ENABLE_LOGGING == 1
-    if (log)
-    {
-      LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
-    }
-#endif
-  }
-
-  OrthancException::OrthancException(ErrorCode errorCode,
-                                     HttpStatus httpStatus,
-                                     const std::string& details,
-                                     bool log) :
-    errorCode_(errorCode),
-    httpStatus_(httpStatus),
-    logged_(log),
-    details_(new std::string(details)),
-    hasDimseErrorStatus_(false),
-    dimseErrorStatus_(0x0000)
-  {
-#if ORTHANC_ENABLE_LOGGING == 1
-    if (log)
-    {
-      LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
-    }
-#endif
-  }
 
   ErrorCode OrthancException::GetErrorCode() const
   {
@@ -169,25 +178,4 @@ namespace Orthanc
       return details_->c_str();
     }
   }
-
-  bool OrthancException::HasDimseErrorStatus() const
-  {
-    return hasDimseErrorStatus_;
-  }
-
-  uint16_t OrthancException::GetDimseErrorStatus() const
-  {
-    if (!hasDimseErrorStatus_)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-
-    return dimseErrorStatus_;
-  }
-
-  bool OrthancException::HasBeenLogged() const
-  {
-    return logged_;
-  }
-
 }

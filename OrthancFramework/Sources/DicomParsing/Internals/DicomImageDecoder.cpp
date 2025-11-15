@@ -275,10 +275,10 @@ namespace Orthanc
       else if (DecodePsmctRle1(psmct_, dataset))
       {
         LOG(INFO) << "The PMSCT_RLE1 decoding has succeeded";
-        Uint8* pixData = NULL;
+        const Uint8* pixData = NULL;
         if (psmct_.size() > 0)
         {
-          pixData = reinterpret_cast<Uint8*>(&psmct_[0]);
+          pixData = reinterpret_cast<const Uint8*>(&psmct_[0]);
         }
 
         slowAccessor_.reset(new DicomIntegerPixelAccessor(m, pixData, psmct_.size()));
@@ -966,12 +966,12 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NotImplemented,
                              "The built-in DCMTK decoder cannot decode some DICOM instance "
-                             "whose transfer syntax is: " + std::string(GetTransferSyntaxUid(s)), false /* don't log here*/);
+                             "whose transfer syntax is: " + std::string(GetTransferSyntaxUid(s)), false);
     }
     else
     {
       throw OrthancException(ErrorCode_NotImplemented,
-                             "The built-in DCMTK decoder cannot decode some DICOM instance", false /* don't log here*/);
+                             "The built-in DCMTK decoder cannot decode some DICOM instance", false);
     }
   }
 
