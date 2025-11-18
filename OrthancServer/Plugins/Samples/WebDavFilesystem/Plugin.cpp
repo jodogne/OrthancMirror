@@ -23,6 +23,8 @@
 
 #include "../Common/OrthancPluginCppWrapper.h"
 
+#include "../../../../OrthancFramework/Sources/Compatibility.h"
+
 #include <boost/thread/mutex.hpp>
 
 
@@ -69,12 +71,12 @@ public:
     return content_;
   }
 
-  virtual bool IsFolder() const
+  virtual bool IsFolder() const ORTHANC_OVERRIDE
   {
     return false;
   }
     
-  virtual Resource* LookupPath(const std::vector<std::string>& path)
+  virtual Resource* LookupPath(const std::vector<std::string>& path) ORTHANC_OVERRIDE
   {
     if (path.empty())
     {
@@ -96,7 +98,7 @@ private:
   Content content_;
 
 public:
-  virtual ~Folder()
+  virtual ~Folder() ORTHANC_OVERRIDE
   {
     for (Content::iterator it = content_.begin(); it != content_.end(); ++it)
     {
@@ -105,12 +107,12 @@ public:
     }
   }
 
-  virtual bool IsFolder() const
+  virtual bool IsFolder() const ORTHANC_OVERRIDE
   {
     return true;
   }
 
-  virtual Resource* LookupPath(const std::vector<std::string>& path)
+  virtual Resource* LookupPath(const std::vector<std::string>& path) ORTHANC_OVERRIDE
   {
     if (path.empty())
     {
@@ -242,7 +244,7 @@ public:
   {
     boost::mutex::scoped_lock lock(mutex_);
     
-    Resource* resource = root_->LookupPath(path);
+    const Resource* resource = root_->LookupPath(path);
     return (resource != NULL &&
             resource->IsFolder());
   }
