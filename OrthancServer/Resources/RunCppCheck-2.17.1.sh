@@ -23,7 +23,6 @@ constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:447
 constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:451
 constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3046
 constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3053
-constParameterPointer:../../OrthancServer/Plugins/Include/orthanc/OrthancCPlugin.h:2181
 cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:108
 cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:124
 cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:140
