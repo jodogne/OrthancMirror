@@ -221,6 +221,19 @@ namespace OrthancPlugins
   }
 
 
+  MemoryBuffer::~MemoryBuffer()
+  {
+    try
+    {
+      Clear();
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS&)
+    {
+      // Don't throw exceptions in destructors
+    }
+  }
+
+
   void MemoryBuffer::Clear()
   {
     if (buffer_.data != NULL)
@@ -649,6 +662,19 @@ namespace OrthancPlugins
   {
     Clear();
     Check(OrthancPluginWorklistGetDicomQuery(GetGlobalContext(), &buffer_, query));
+  }
+
+
+  OrthancString::~OrthancString()
+  {
+    try
+    {
+      Clear();
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS&)
+    {
+      // Don't throw exceptions in destructors
+    }
   }
 
 
@@ -1300,6 +1326,20 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
     }
   }
+
+
+  OrthancImage::~OrthancImage()
+  {
+    try
+    {
+      Clear();
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS&)
+    {
+      // Don't throw exceptions in destructors
+    }
+  }
+
 
   void OrthancImage::UncompressPngImage(const void* data,
                                         size_t size)

@@ -26,6 +26,7 @@
 #include "MemoryObjectCache.h"
 
 #include "../Compatibility.h"
+#include "../Logging.h"
 
 namespace Orthanc
 {
@@ -96,7 +97,16 @@ namespace Orthanc
 
   MemoryObjectCache::~MemoryObjectCache()
   {
-    Recycle(0);
+    try
+    {
+      Recycle(0);
+    }
+    catch (OrthancException& e)
+    {
+      // Don't throw exceptions in destructors
+      LOG(ERROR) << "Exception in destructor: " << e.What();
+    }
+
     assert(content_.IsEmpty());
   }
 

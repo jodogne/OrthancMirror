@@ -41,7 +41,7 @@ assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModification
 assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
 EOF
 
-${CPPCHECK} --enable=all --quiet --std=c++11 \
+${CPPCHECK} -j8 --enable=all --quiet --std=c++11 \
             --suppressions-list=/tmp/cppcheck-suppressions.txt \
             -DBOOST_HAS_DATE_TIME=1 \
             -DBOOST_HAS_FILESYSTEM_V3=1 \
