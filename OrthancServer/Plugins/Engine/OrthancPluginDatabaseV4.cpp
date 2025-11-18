@@ -2058,7 +2058,7 @@ namespace Orthanc
                                    QueueOrigin origin,
                                    uint32_t releaseTimeout) ORTHANC_OVERRIDE
     {
-      if (database_.GetDatabaseCapabilities().HasExtendedQueuesSupport())
+      if (database_.GetDatabaseCapabilities().HasReserveQueueValueSupport())
       {
         DatabasePluginMessages::TransactionRequest request;
         request.mutable_reserve_queue_value()->set_queue_id(queueId);
@@ -2103,7 +2103,7 @@ namespace Orthanc
                                        uint64_t valueId) ORTHANC_OVERRIDE
     {
 
-      if (database_.GetDatabaseCapabilities().HasExtendedQueuesSupport())
+      if (database_.GetDatabaseCapabilities().HasReserveQueueValueSupport())
       {
         DatabasePluginMessages::TransactionRequest request;
         request.mutable_acknowledge_queue_value()->set_queue_id(queueId);
@@ -2210,7 +2210,7 @@ namespace Orthanc
       dbCapabilities_.SetHasFindSupport(systemInfo.supports_find());
       dbCapabilities_.SetKeyValueStoresSupport(systemInfo.supports_key_value_stores());
       dbCapabilities_.SetQueuesSupport(systemInfo.supports_queues());
-      dbCapabilities_.SetExtendedQueuesSupport(systemInfo.supports_extended_queues());
+      dbCapabilities_.SetReserveQueueValueSupport(systemInfo.supports_reserve_queue_value());
       dbCapabilities_.SetAttachmentCustomDataSupport(systemInfo.has_attachment_custom_data());
     }
 

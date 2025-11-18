@@ -3228,10 +3228,10 @@ namespace Orthanc
     return db_.GetDatabaseCapabilities().HasQueuesSupport();
   }
 
-  bool StatelessDatabaseOperations::HasExtendedQueuesSupport()
+  bool StatelessDatabaseOperations::HasReserveQueueValueSupport()
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
-    return db_.GetDatabaseCapabilities().HasExtendedQueuesSupport();
+    return db_.GetDatabaseCapabilities().HasReserveQueueValueSupport();
   }
 
   void StatelessDatabaseOperations::ExecuteCount(uint64_t& count,

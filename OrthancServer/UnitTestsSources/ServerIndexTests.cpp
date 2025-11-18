@@ -1319,7 +1319,7 @@ TEST(SQLiteDatabaseWrapper, Queues)
   db.Close();
 }
 
-TEST(SQLiteDatabaseWrapper, QueuesExtended)
+TEST(SQLiteDatabaseWrapper, ReserveQueueValue)
 {
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();

@@ -10770,11 +10770,11 @@ extern "C"
 
   /**
    * @brief Acknowledge that a queue value has been properly consumed by the plugin
-   * and can be definitely removed from the queue.
+   * and can be permanently removed from the queue.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param queueId A unique identifier identifying both the plugin and the queue.
-   * @param valueId The opaque identifier for the value obtained from OrthancPluginReserveQueueValue().
+   * @param valueId The opaque identifier for the value provided by OrthancPluginReserveQueueValue().
    * @return 0 if success, other value if error.
    **/
   ORTHANC_PLUGIN_SINCE_SDK("1.12.10")

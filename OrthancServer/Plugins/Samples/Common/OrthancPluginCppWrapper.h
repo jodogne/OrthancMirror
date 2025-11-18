@@ -143,9 +143,9 @@
 #endif
 
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 10)
-#  define HAS_ORTHANC_PLUGIN_EXTENDED_QUEUES   1
+#  define HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE   1
 #else
-#  define HAS_ORTHANC_PLUGIN_EXTENDED_QUEUES   0
+#  define HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE   0
 #endif
 
 
@@ -1723,7 +1723,7 @@ void GetGetArguments(GetArguments& result, const OrthancPluginHttpRequest* reque
 
     bool DequeueInternal(std::string& value, OrthancPluginQueueOrigin origin);
 
-#if HAS_ORTHANC_PLUGIN_EXTENDED_QUEUES == 1
+#if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
     bool ReserveInternal(std::string& value, uint64_t& valueId, OrthancPluginQueueOrigin origin, uint32_t releaseTimeout);
 #endif
 
@@ -1746,14 +1746,14 @@ void GetGetArguments(GetArguments& result, const OrthancPluginHttpRequest* reque
       Enqueue(value.empty() ? NULL : value.c_str(), value.size());
     }
 
-    // Use ReserveBack instead
+    // Use ReserveBack() instead
     ORTHANC_PLUGIN_DEPRECATED
     bool DequeueBack(std::string& value)
     {
       return DequeueInternal(value, OrthancPluginQueueOrigin_Back);
     }
 
-    // Use ReserveFront instead
+    // Use ReserveFront() instead
     ORTHANC_PLUGIN_DEPRECATED
     bool DequeueFront(std::string& value)
     {
@@ -1762,11 +1762,15 @@ void GetGetArguments(GetArguments& result, const OrthancPluginHttpRequest* reque
 
     uint64_t GetSize();
 
-#if HAS_ORTHANC_PLUGIN_EXTENDED_QUEUES == 1
+#if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
     bool ReserveBack(std::string& value, uint64_t& valueId, uint32_t releaseTimeout);
+#endif
     
+#if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
     bool ReserveFront(std::string& value, uint64_t& valueId, uint32_t releaseTimeout);
+#endif
 
+#if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
     void Acknowledge(uint64_t valueId);
 #endif
   };

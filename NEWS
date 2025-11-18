@@ -21,6 +21,15 @@ REST API
 * C-Move and C-Get jobs and HTTP responses now include a new "Details" field with the "DimseErrorStatus"
   of each operation and the list of "RetrievedInstancesIds".
 
+Plugin SDK
+----------
+
+* New primitives for handling queues to ensure that no messages are lost if
+  Orthanc is stopped while a plugin is processing a message:
+  - OrthancPluginReserveQueueValue() is a replacement for OrthancPluginDequeueValue(). This flavour
+    does not directly remove the value from the queue but reserves it for a certain duration.
+  - OrthancPluginAcknowledgeQueueValue() removes a reserved value from a queue.
+
 Maintenance
 -----------
 
@@ -52,16 +61,6 @@ Maintenance
 * Upgraded dependencies for static builds:
   - civetweb 1.16, including patch for CVE-2025-55763
   - SQLite 3.50.4
-
-Plugin SDK
-----------
-
-* New primitives for handling queues:
-  - OrthancPluginReserveQueueValue is a replacement for OrthancPluginDequeueValue.  This flavour
-    does not directly remove the value from the queue but reserves it for a certain duration.
-  - OrthancPluginAcknowledgeQueueValue removes a reserved value from a queue.
-  - With these 2 primitives, one can ensure not to loose any message in case Orthanc is stopped
-    while handling a message.
 
 
 Version 1.12.9 (2025-08-11)

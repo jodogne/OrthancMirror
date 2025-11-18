@@ -637,7 +637,7 @@ namespace Orthanc
 
     bool HasQueuesSupport();
 
-    bool HasExtendedQueuesSupport();
+    bool HasReserveQueueValueSupport();
 
     void GetExportedResources(Json::Value& target,
                               int64_t since,

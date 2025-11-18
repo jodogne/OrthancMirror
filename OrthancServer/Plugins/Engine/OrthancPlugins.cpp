@@ -4723,9 +4723,9 @@ namespace Orthanc
     }
   }
 
-  static void CheckExtendedQueuesSupport(ServerContext& context)
+  static void CheckReserveQueueValueSupport(ServerContext& context)
   {
-    if (!context.GetIndex().HasExtendedQueuesSupport())
+    if (!context.GetIndex().HasReserveQueueValueSupport())
     {
       throw OrthancException(ErrorCode_NotImplemented, "The database engine does not support queues (extended)");
     }
@@ -4772,7 +4772,7 @@ namespace Orthanc
   {
     PImpl::ServerContextReference lock(*pimpl_);
 
-    CheckExtendedQueuesSupport(lock.GetContext());
+    CheckReserveQueueValueSupport(lock.GetContext());
 
     std::string value;
     uint64_t valueId;
@@ -4793,7 +4793,7 @@ namespace Orthanc
   {
     PImpl::ServerContextReference lock(*pimpl_);
 
-    CheckExtendedQueuesSupport(lock.GetContext());
+    CheckReserveQueueValueSupport(lock.GetContext());
 
     lock.GetContext().GetIndex().AcknowledgeQueueValue(parameters.queueId, parameters.valueId);
   }
