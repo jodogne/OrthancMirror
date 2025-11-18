@@ -1,4 +1,5 @@
 #!/bin/bash
+# Note: This script is tuned to run with cppcheck v2.1
 
 set -ex
 
@@ -25,7 +26,6 @@ syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
-uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:417
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
 unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1173
 unusedFunction

@@ -1,4 +1,5 @@
 #!/bin/bash
+# Note: This script is tuned to run with cppcheck v2.17.0
 
 set -ex
 
