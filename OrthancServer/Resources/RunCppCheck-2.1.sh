@@ -28,7 +28,6 @@ syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
 unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1173
-unusedFunction
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
@@ -41,8 +40,13 @@ assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModification
 assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
 EOF
 
+CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.1/
+mkdir -p ${CPPCHECK_BUILD_DIR}
+
 ${CPPCHECK} -j8 --enable=all --quiet --std=c++11 \
+            --cppcheck-build-dir=${CPPCHECK_BUILD_DIR} \
             --suppressions-list=/tmp/cppcheck-suppressions.txt \
+            --suppress=unusedFunction \
             -DBOOST_HAS_DATE_TIME=1 \
             -DBOOST_HAS_FILESYSTEM_V3=1 \
             -DBOOST_HAS_REGEX=1 \

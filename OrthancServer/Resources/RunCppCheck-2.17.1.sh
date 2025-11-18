@@ -53,7 +53,7 @@ variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:228
 variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
 EOF
 
-CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir/
+CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.7.1/
 mkdir -p ${CPPCHECK_BUILD_DIR}
 
 ${CPPCHECK} -j8 --enable=all --quiet --std=c++11 \
