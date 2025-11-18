@@ -369,7 +369,7 @@ namespace Orthanc
           serialized.isMember(ERROR_PAYLOAD))
       {
         const std::string type = SerializationToolbox::ReadString(serialized, ERROR_PAYLOAD_TYPE);
-        lastStatus_.GetErrorPayload().SetContent(StringToErrorPayloadType(type.c_str()), serialized[ERROR_PAYLOAD]);
+        lastStatus_.GetErrorPayload().SetContent(StringToErrorPayloadType(type), serialized[ERROR_PAYLOAD]);
       }
 
       job_->Start();
