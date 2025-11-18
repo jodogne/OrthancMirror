@@ -191,12 +191,6 @@ namespace Orthanc
   }
 
 
-  void SetOfInstancesJob::Start()
-  {
-    SetOfCommandsJob::Start();
-  }
-
-
   void SetOfInstancesJob::Reset()
   {
     SetOfCommandsJob::Reset();

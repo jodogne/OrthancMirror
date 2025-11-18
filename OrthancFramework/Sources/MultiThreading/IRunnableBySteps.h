@@ -32,10 +32,6 @@ namespace Orthanc
   class IRunnableBySteps : public IDynamicObject
   {
   public:
-    virtual ~IRunnableBySteps() ORTHANC_OVERRIDE
-    {
-    }
-
     // Must return "true" if the runnable wishes to continue. Must
     // return "false" if the runnable has not finished its job.
     virtual bool Step() = 0;
