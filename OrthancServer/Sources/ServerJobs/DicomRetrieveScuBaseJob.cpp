@@ -380,6 +380,6 @@ namespace Orthanc
     Json::Value publicContent;
     GetPublicContent(publicContent);
 
-    payload.SetContent(ErrorPayloadType_Dimse, publicContent["Details"]);
+    payload.SetContent(ErrorPayloadType_RetrieveJob, publicContent["Details"]);
   }
 }
