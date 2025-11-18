@@ -1,0 +1,12 @@
+diff -ruN zlib-1.3.1-orig/zlib.h zlib-1.3.1/zlib.h
+--- zlib-1.3.1-orig/zlib.h	2025-11-18 10:09:54.402921485 +0100
++++ zlib-1.3.1/zlib.h	2025-11-18 10:10:33.743470112 +0100
+@@ -31,7 +31,7 @@
+ #ifndef ZLIB_H
+ #define ZLIB_H
+ 
+-#include "zconf.h"
++#include <zconf.h>
+ 
+ #ifdef __cplusplus
+ extern "C" {

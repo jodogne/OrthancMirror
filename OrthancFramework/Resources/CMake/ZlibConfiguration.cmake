@@ -27,6 +27,14 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_ZLIB)
 
   DownloadPackage(${ZLIB_MD5} ${ZLIB_URL} "${ZLIB_SOURCES_DIR}")
 
+  # fix https://github.com/madler/zlib/issues/1044
+  execute_process(
+    COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/zlib-1.3.1-zconf.patch
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    RESULT_VARIABLE Failure
+    )
+
   include_directories(
     ${ZLIB_SOURCES_DIR}
     )
