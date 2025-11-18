@@ -213,10 +213,7 @@ namespace OrthancPlugins
   public:
     MemoryBuffer();
 
-    ~MemoryBuffer()
-    {
-      Clear();
-    }
+    ~MemoryBuffer();
 
     OrthancPluginMemoryBuffer* operator*()
     {
@@ -371,10 +368,7 @@ namespace OrthancPlugins
     {
     }
 
-    ~OrthancString()
-    {
-      Clear();
-    }
+    ~OrthancString();
 
     // This transfers ownership, warning: The string must have been
     // allocated by the Orthanc core
@@ -491,10 +485,7 @@ namespace OrthancPlugins
                  uint32_t                  pitch,
                  void*                     buffer);
 
-    ~OrthancImage()
-    {
-      Clear();
-    }
+    ~OrthancImage();
 
     void UncompressPngImage(const void* data,
                             size_t size);

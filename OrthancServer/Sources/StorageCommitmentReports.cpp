@@ -24,6 +24,7 @@
 #include "PrecompiledHeadersServer.h"
 #include "StorageCommitmentReports.h"
 
+#include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
 
 namespace Orthanc
@@ -184,10 +185,18 @@ namespace Orthanc
     while (!content_.IsEmpty())
     {
       Report* report = NULL;
-      content_.RemoveOldest(report);
 
-      assert(report != NULL);
-      delete report;
+      try
+      {
+        content_.RemoveOldest(report);
+        assert(report != NULL);
+        delete report;
+      }
+      catch (OrthancException& e)
+      {
+        // Don't throw exceptions in destructors
+        LOG(ERROR) << "Exception in destructor: " << e.What();
+      }
     }
   }
 

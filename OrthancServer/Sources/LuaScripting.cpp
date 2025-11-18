@@ -827,7 +827,16 @@ namespace Orthanc
     if (state_ == State_Running)
     {
       LOG(ERROR) << "INTERNAL ERROR: LuaScripting::Stop() should be invoked manually to avoid mess in the destruction order!";
-      Stop();
+
+      try
+      {
+        Stop();
+      }
+      catch (OrthancException& e)
+      {
+        // Don't throw exceptions in destructors
+        LOG(ERROR) << "Exception in destructor: " << e.What();
+      }
     }
   }
 

@@ -37,7 +37,7 @@ assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModification
 assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
 EOF
 
-${CPPCHECK} --enable=all --std=gnu++11 --library=boost \
+${CPPCHECK} -j8 --enable=all --std=gnu++11 --library=boost \
             --suppressions-list=/tmp/cppcheck-suppressions.txt \
             -I/usr/include/ \
             -I/usr/include/jsoncpp/ \

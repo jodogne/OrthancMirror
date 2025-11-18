@@ -19,7 +19,6 @@ syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
-uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:419
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
@@ -41,19 +40,6 @@ constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3053
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:114
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:425
 knownConditionTrueFalse:../../OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp:345
-throwInNoexceptFunction:../../OrthancFramework/Sources/Cache/MemoryStringCache.cpp:121
-throwInNoexceptFunction:../../OrthancFramework/Sources/Cache/MemoryCache.cpp:91
-throwInNoexceptFunction:../../OrthancFramework/Sources/Cache/MemoryObjectCache.cpp:99
-throwInNoexceptFunction:../../OrthancFramework/Sources/MallocMemoryBuffer.h:50
-throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:620
-throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:632
-throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:676
-throwInNoexceptFunction:../../OrthancFramework/Sources/JobsEngine/JobsRegistry.cpp:1296
-throwInNoexceptFunction:../../OrthancServer/Sources/LuaScripting.cpp:830
-throwInNoexceptFunction:../../OrthancServer/Sources/StorageCommitmentReports.cpp:187
-throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:218
-throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:376
-throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:496
 rethrowNoCurrentException:../../OrthancFramework/UnitTestsSources/FromDcmtkTests.cpp
 rethrowNoCurrentException:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp
 constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3046
@@ -65,8 +51,12 @@ constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginC
 unknownMacro:../../OrthancFramework/Sources/DicomParsing/DicomModification.cpp:39
 EOF
 
+CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir/
+mkdir -p ${CPPCHECK_BUILD_DIR}
 
-${CPPCHECK} -j 8 --enable=all --quiet --std=c++11 \
+${CPPCHECK} -j8 --enable=all --quiet --std=c++11 \
+            --cppcheck-build-dir=${CPPCHECK_BUILD_DIR} \
+            --suppress=unusedFunction \
             --suppress=missingIncludeSystem \
             --suppress=missingInclude \
             --suppress=useStlAlgorithm \
@@ -126,11 +116,29 @@ ${CPPCHECK} -j 8 --enable=all --quiet --std=c++11 \
             ../../OrthancServer/Sources \
             ../../OrthancServer/UnitTestsSources \
             ../../OrthancServer/Plugins/Samples/Common \
-            ../../OrthancServer/Plugins/Samples/ConnectivityChecks \
-            ../../OrthancServer/Plugins/Samples/DelayedDeletion \
-            ../../OrthancServer/Plugins/Samples/Housekeeper \
-            ../../OrthancServer/Plugins/Samples/ModalityWorklists \
-            ../../OrthancServer/Plugins/Samples/MultitenantDicom \
-            ../../OrthancServer/Plugins/Samples/AdoptDicomInstance \
+            \
+            ../../OrthancServer/Plugins/Samples/AdoptDicomInstance/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/AutomatedJpeg2kCompression/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp \
+            ../../OrthancServer/Plugins/Samples/ConnectivityChecks/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/CppSkeleton/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/CustomImageDecoder/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/DelayedDeletion/LargeDeleteJob.cpp \
+            ../../OrthancServer/Plugins/Samples/DelayedDeletion/PendingDeletionsDatabase.cpp \
+            ../../OrthancServer/Plugins/Samples/DelayedDeletion/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/Housekeeper/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/ModalityWorklists/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/DicomFilter.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/FindRequestHandler.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/MoveRequestHandler.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/MultitenantDicomServer.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/PluginToolbox.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/StoreRequestHandler.cpp \
+            ../../OrthancServer/Plugins/Samples/Sanitizer/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/StorageArea/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/StorageCommitmentScp/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/WebDavFilesystem/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/WebSkeleton/Framework/Plugin.cpp \
             \
             2>&1
