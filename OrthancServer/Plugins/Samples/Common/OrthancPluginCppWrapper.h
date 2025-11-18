@@ -1765,7 +1765,7 @@ void GetGetArguments(GetArguments& result, const OrthancPluginHttpRequest* reque
 #if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
     bool ReserveBack(std::string& value, uint64_t& valueId, uint32_t releaseTimeout);
 #endif
-    
+
 #if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
     bool ReserveFront(std::string& value, uint64_t& valueId, uint32_t releaseTimeout);
 #endif

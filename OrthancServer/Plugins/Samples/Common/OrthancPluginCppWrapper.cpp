@@ -4647,8 +4647,11 @@ namespace OrthancPlugins
     uint8_t found = false;
     OrthancPlugins::MemoryBuffer valueBuffer;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     OrthancPluginErrorCode code = OrthancPluginDequeueValue(OrthancPlugins::GetGlobalContext(), &found,
                                                             *valueBuffer, queueId_.c_str(), origin);
+#pragma GCC diagnostic pop
 
     if (code != OrthancPluginErrorCode_Success)
     {
