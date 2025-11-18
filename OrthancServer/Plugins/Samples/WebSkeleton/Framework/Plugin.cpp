@@ -194,8 +194,8 @@ static OrthancPluginErrorCode ServeFolder(OrthancPluginRestOutput* output,
   }
   else
   {
-    std::string s = "Unknown static resource in plugin: " + std::string(request->groups[0]);
-    OrthancPluginLogError(context, s.c_str());
+    const std::string t = "Unknown static resource in plugin: " + std::string(request->groups[0]);
+    OrthancPluginLogError(context, t.c_str());
     OrthancPluginSendHttpStatusCode(context, output, 404);
   }
 

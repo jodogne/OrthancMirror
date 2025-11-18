@@ -1562,7 +1562,7 @@ static std::string DecodeFromSpecification(const std::string& s)
 
     if (components.size() != 2)
     {
-      throw;
+      throw OrthancException(ErrorCode_InternalError);
     }
 
     int a = boost::lexical_cast<int>(components[0]);
@@ -1571,7 +1571,7 @@ static std::string DecodeFromSpecification(const std::string& s)
         b < 0 || b > 15 ||
         (a == 0 && b == 0))
     {
-      throw;
+      throw OrthancException(ErrorCode_InternalError);
     }
 
     result[i] = static_cast<uint8_t>(a * 16 + b);

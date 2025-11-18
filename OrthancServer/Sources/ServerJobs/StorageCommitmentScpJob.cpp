@@ -187,7 +187,6 @@ namespace Orthanc
     explicit Unserializer(StorageCommitmentScpJob& that) :
       that_(that)
     {
-      that_.ready_ = false;
     }
 
     virtual ICommand* Unserialize(const Json::Value& source) const ORTHANC_OVERRIDE
@@ -420,9 +419,9 @@ namespace Orthanc
                                                    const Json::Value& serialized) :
     SetOfCommandsJob(new Unserializer(*this), serialized),
     context_(context),
+    ready_(false),
     transactionUid_(SerializationToolbox::ReadString(serialized, TRANSACTION_UID)),
     calledAet_(SerializationToolbox::ReadString(serialized, CALLED_AET))
-    // "ready_" is initialized by the unserializer
   {
     if (serialized.type() != Json::objectValue ||
         !serialized.isMember(REMOTE_MODALITY))

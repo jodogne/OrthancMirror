@@ -25,6 +25,8 @@
 #include "../PrecompiledHeaders.h"
 #include "MemoryStringCache.h"
 
+#include "../Logging.h"
+
 namespace Orthanc
 {
   class MemoryStringCache::StringValue : public ICacheable
@@ -118,7 +120,16 @@ namespace Orthanc
 
   MemoryStringCache::~MemoryStringCache()
   {
-    Recycle(0);
+    try
+    {
+      Recycle(0);
+    }
+    catch (OrthancException& e)
+    {
+      // Don't throw exceptions in destructors
+      LOG(ERROR) << "Exception in destructor: " << e.What();
+    }
+
     assert(content_.IsEmpty());
   }
 

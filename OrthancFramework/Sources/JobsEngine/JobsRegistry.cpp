@@ -369,7 +369,7 @@ namespace Orthanc
           serialized.isMember(ERROR_PAYLOAD))
       {
         const std::string type = SerializationToolbox::ReadString(serialized, ERROR_PAYLOAD_TYPE);
-        lastStatus_.GetErrorPayload().SetContent(StringToErrorPayloadType(type.c_str()), serialized[ERROR_PAYLOAD]);
+        lastStatus_.GetErrorPayload().SetContent(StringToErrorPayloadType(type), serialized[ERROR_PAYLOAD]);
       }
 
       job_->Start();
@@ -1300,27 +1300,35 @@ namespace Orthanc
     {
       boost::mutex::scoped_lock lock(registry_.mutex_);
 
-      switch (targetState_)
+      try
       {
-        case JobState_Failure:
-          registry_.MarkRunningAsCompleted
-            (*handler_, canceled_ ? CompletedReason_Canceled : CompletedReason_Failure);
-          break;
+        switch (targetState_)
+        {
+          case JobState_Failure:
+            registry_.MarkRunningAsCompleted
+              (*handler_, canceled_ ? CompletedReason_Canceled : CompletedReason_Failure);
+            break;
 
-        case JobState_Success:
-          registry_.MarkRunningAsCompleted(*handler_, CompletedReason_Success);
-          break;
+          case JobState_Success:
+            registry_.MarkRunningAsCompleted(*handler_, CompletedReason_Success);
+            break;
 
-        case JobState_Paused:
-          registry_.MarkRunningAsPaused(*handler_);
-          break;
+          case JobState_Paused:
+            registry_.MarkRunningAsPaused(*handler_);
+            break;
 
-        case JobState_Retry:
-          registry_.MarkRunningAsRetry(*handler_, targetRetryTimeout_);
-          break;
+          case JobState_Retry:
+            registry_.MarkRunningAsRetry(*handler_, targetRetryTimeout_);
+            break;
 
-        default:
-          assert(0);
+          default:
+            assert(0);
+        }
+      }
+      catch (OrthancException& e)
+      {
+        // Don't throw exceptions in destructors
+        LOG(ERROR) << "Exception in destructor: " << e.What();
       }
     }
   }

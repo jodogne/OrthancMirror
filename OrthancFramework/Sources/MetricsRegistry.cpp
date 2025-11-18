@@ -27,6 +27,7 @@
 
 #include "ChunkedBuffer.h"
 #include "Compatibility.h"
+#include "Logging.h"
 #include "OrthancException.h"
 
 #include <boost/math/special_functions/round.hpp>
@@ -617,7 +618,15 @@ namespace Orthanc
 
   MetricsRegistry::ActiveCounter::~ActiveCounter()
   {
-    metrics_.Add(-1);
+    try
+    {
+      metrics_.Add(-1);
+    }
+    catch (OrthancException& e)
+    {
+      // Don't throw exceptions in destructors
+      LOG(ERROR) << "Exception in destructor: " << e.What();
+    }
   }
 
 
@@ -629,7 +638,15 @@ namespace Orthanc
 
   MetricsRegistry::AvailableResourcesDecounter::~AvailableResourcesDecounter()
   {
-    metrics_.Add(1);
+    try
+    {
+      metrics_.Add(1);
+    }
+    catch (OrthancException& e)
+    {
+      // Don't throw exceptions in destructors
+      LOG(ERROR) << "Exception in destructor: " << e.What();
+    }
   }
 
 
@@ -673,7 +690,16 @@ namespace Orthanc
     if (active_)
     {
       boost::posix_time::time_duration diff = GetNow() - start_;
-      registry_.SetIntegerValue(name_, static_cast<int64_t>(diff.total_milliseconds()), policy_);
+
+      try
+      {
+        registry_.SetIntegerValue(name_, static_cast<int64_t>(diff.total_milliseconds()), policy_);
+      }
+      catch (OrthancException& e)
+      {
+        // Don't throw exceptions in destructors
+        LOG(ERROR) << "Exception in destructor: " << e.What();
+      }
     }
   }
 }

@@ -73,8 +73,6 @@ namespace Orthanc
 
     bool IsFailedInstance(const std::string& instance) const;
 
-    virtual void Start() ORTHANC_OVERRIDE;
-
     virtual void Reset() ORTHANC_OVERRIDE;
 
     virtual void GetPublicContent(Json::Value& target) const ORTHANC_OVERRIDE;

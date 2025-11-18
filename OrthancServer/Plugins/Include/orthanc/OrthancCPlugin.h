@@ -2180,7 +2180,7 @@ extern "C"
    **/
   ORTHANC_PLUGIN_SINCE_SDK("1.4.0")
   ORTHANC_PLUGIN_INLINE int32_t  OrthancPluginCheckVersionAdvanced(
-    OrthancPluginContext* context,
+    const OrthancPluginContext* context,
     int32_t expectedMajor,
     int32_t expectedMinor,
     int32_t expectedRevision)
@@ -2295,7 +2295,7 @@ extern "C"
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE int32_t  OrthancPluginCheckVersion(
-    OrthancPluginContext* context)
+    const OrthancPluginContext* context)
   {
     return OrthancPluginCheckVersionAdvanced(
       context,
