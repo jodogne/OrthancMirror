@@ -59,7 +59,7 @@ namespace Orthanc
       bool hasAttachmentCustomDataSupport_;
       bool hasKeyValueStoresSupport_;
       bool hasQueuesSupport_;
-      bool hasExtendedQueuesSupport_;
+      bool hasReserveQueueValueSupport_;
 
     public:
       Capabilities() :
@@ -74,7 +74,7 @@ namespace Orthanc
         hasAttachmentCustomDataSupport_(false),
         hasKeyValueStoresSupport_(false),
         hasQueuesSupport_(false),
-        hasExtendedQueuesSupport_(false)
+        hasReserveQueueValueSupport_(false)
       {
       }
 
@@ -188,14 +188,14 @@ namespace Orthanc
         return hasQueuesSupport_;
       }
 
-      void SetExtendedQueuesSupport(bool value)
+      void SetReserveQueueValueSupport(bool value)
       {
-        hasExtendedQueuesSupport_ = value;
+        hasReserveQueueValueSupport_ = value;
       }
 
-      bool HasExtendedQueuesSupport() const
+      bool HasReserveQueueValueSupport() const
       {
-        return hasExtendedQueuesSupport_;
+        return hasReserveQueueValueSupport_;
       }
 
     };
@@ -484,8 +484,8 @@ namespace Orthanc
       virtual uint64_t GetQueueSize(const std::string& queueId) = 0;
 
       // New in Orthanc 1.12.10
-      virtual bool ReserveQueueValue(std::string& value,
-                                     uint64_t& valueId, 
+      virtual bool ReserveQueueValue(std::string& value /* out */,
+                                     uint64_t& valueId /* out */, 
                                      const std::string& queueId,
                                      QueueOrigin origin,
                                      uint32_t releaseTimeout) = 0;

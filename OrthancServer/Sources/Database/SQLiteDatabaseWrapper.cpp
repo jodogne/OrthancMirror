@@ -2652,8 +2652,8 @@ namespace Orthanc
     dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
     dbCapabilities_.SetKeyValueStoresSupport(true);
     dbCapabilities_.SetQueuesSupport(true);
-    dbCapabilities_.SetExtendedQueuesSupport(true);
     dbCapabilities_.SetAttachmentCustomDataSupport(true);
+    dbCapabilities_.SetReserveQueueValueSupport(true);
     db_.Open(path);
   }
 
@@ -2670,8 +2670,8 @@ namespace Orthanc
     dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
     dbCapabilities_.SetKeyValueStoresSupport(true);
     dbCapabilities_.SetQueuesSupport(true);
-    dbCapabilities_.SetExtendedQueuesSupport(true);
     dbCapabilities_.SetAttachmentCustomDataSupport(true);
+    dbCapabilities_.SetReserveQueueValueSupport(true);
     db_.OpenInMemory();
   }
 

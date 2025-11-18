@@ -97,9 +97,9 @@ namespace Orthanc
     static const char* const HAS_EXTENDED_CHANGES = "HasExtendedChanges";
     static const char* const HAS_KEY_VALUE_STORES = "HasKeyValueStores";
     static const char* const HAS_QUEUES = "HasQueues";
-    static const char* const HAS_EXTENDED_QUEUES = "HasExtendedQueues";
     static const char* const HAS_EXTENDED_FIND = "HasExtendedFind";
     static const char* const READ_ONLY = "ReadOnly";
+    static const char* const HAS_RESERVE_QUEUE_VALUE = "HasReserveQueueValue";
 
     if (call.IsDocumentation())
     {
@@ -148,7 +148,9 @@ namespace Orthanc
         .SetAnswerField(HAS_LABELS, RestApiCallDocumentation::Type_Boolean,
                         "Whether the database back-end supports labels (new in Orthanc 1.12.0)")
         .SetAnswerField(CAPABILITIES, RestApiCallDocumentation::Type_JsonObject,
-                        "Whether the back-end supports optional features like 'HasExtendedChanges', 'HasExtendedFind' (new in Orthanc 1.12.5) ")
+                        "Whether the database back-end supports optional features like 'HasExtendedChanges', 'HasExtendedFind' "
+                        "(new in Orthanc 1.12.5), 'HasKeyValueStores', 'HasQueues' (new in Orthanc 1.12.8), "
+                        "and 'HasReserveQueueValue' (new in Orthanc 1.12.10)")
         .SetAnswerField(READ_ONLY, RestApiCallDocumentation::Type_Boolean,
                         "Whether Orthanc is running in read only mode (new in Orthanc 1.12.5)")
         .SetHttpGetSample("https://orthanc.uclouvain.be/demo/system", true);
@@ -214,7 +216,7 @@ namespace Orthanc
     result[CAPABILITIES][HAS_EXTENDED_FIND] = OrthancRestApi::GetIndex(call).HasFindSupport();
     result[CAPABILITIES][HAS_KEY_VALUE_STORES] = OrthancRestApi::GetIndex(call).HasKeyValueStoresSupport();
     result[CAPABILITIES][HAS_QUEUES] = OrthancRestApi::GetIndex(call).HasQueuesSupport();
-    result[CAPABILITIES][HAS_EXTENDED_QUEUES] = OrthancRestApi::GetIndex(call).HasExtendedQueuesSupport();
+    result[CAPABILITIES][HAS_RESERVE_QUEUE_VALUE] = OrthancRestApi::GetIndex(call).HasReserveQueueValueSupport();
     
     call.GetOutput().AnswerJson(result);
   }
