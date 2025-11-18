@@ -22,7 +22,6 @@ constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp:
 constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:447
 constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:451
 constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3046
-constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3053
 cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:108
 cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:124
 cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:140
@@ -41,19 +40,15 @@ knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:22
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2299
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2300
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:322
-stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1525
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
-unknownMacro:../../OrthancFramework/Sources/DicomParsing/DicomModification.cpp:39
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
-uselessOverride:../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h:76
-uselessOverride:../../OrthancFramework/Sources/MultiThreading/IRunnableBySteps.h:35
 variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:228
 variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
 EOF
@@ -107,6 +102,7 @@ ${CPPCHECK} -j8 --enable=all --quiet --std=c++11 \
             -DORTHANC_SANDBOXED=0 \
             -DORTHANC_SQLITE_VERSION=3027001 \
             -DORTHANC_UNIT_TESTS_LINK_FRAMEWORK=1 \
+            -DORTHANC_VERSION="\"mainline\"" \
             -DPUGIXML_VERSION=150 \
             -DUNIT_TESTS_WITH_HTTP_CONNEXIONS=1 \
             -D__BYTE_ORDER=__LITTLE_ENDIAN \
