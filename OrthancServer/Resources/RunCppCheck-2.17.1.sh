@@ -1,5 +1,6 @@
 #!/bin/bash
-# note: this script was last tuned to run with cppcheck v2.17.1
+# Note: This script is tuned to run with cppcheck v2.17.1
+
 set -ex
 
 CPPCHECK=cppcheck
