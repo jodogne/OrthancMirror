@@ -51,6 +51,7 @@ Maintenance
   - civetweb 1.16, including patch for CVE-2025-55763
   - SQLite 3.50.4
   - libpng 1.6.50
+  - curl 8.17.0
 
 
 Version 1.12.9 (2025-08-11)
