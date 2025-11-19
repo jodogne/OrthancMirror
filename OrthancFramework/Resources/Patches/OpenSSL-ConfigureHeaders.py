@@ -145,18 +145,18 @@ for base in [ 'include/openssl',
     directory = os.path.join(sys.argv[1], base)
     for source in os.listdir(directory):
         if source.endswith('.h.in'):
-            target = re.sub('\.h\.in$', '.h', source)
+            target = re.sub(r'\.h\.in$', '.h', source)
                             
             with open(os.path.join(directory, source), 'r') as f:
                 with open(os.path.join(directory, target), 'w') as g:
                     CURRENT_HEADER = source
-                    g.write(re.sub('{-(.*?)-}.*?$', Parse, f.read(),
+                    g.write(re.sub(r'{-(.*?)-}.*?$', Parse, f.read(),
                                    flags = re.MULTILINE | re.DOTALL))
 
 
 with open(os.path.join(sys.argv[1], 'providers/common/der/orthanc_oids_gen.c'), 'w') as f:
     for (header, content) in OIDS.items():
-        f.write('#include "prov/%s"\n' % re.sub('\.h\.in$', '.h', header))
+        f.write('#include "prov/%s"\n' % re.sub(r'\.h\.in$', '.h', header))
 
     f.write('\n')
         

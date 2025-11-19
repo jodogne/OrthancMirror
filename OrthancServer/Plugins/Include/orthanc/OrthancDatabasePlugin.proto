@@ -175,6 +175,7 @@ message GetSystemInformation {
     bool supports_key_value_stores = 10;  // New in Orthanc 1.12.8
     bool supports_queues = 11;            // New in Orthanc 1.12.8
     bool has_attachment_custom_data = 12; // New in Orthanc 1.12.8
+    bool supports_reserve_queue_value = 13;   // New in Orthanc 1.12.10
   }
 }
 
@@ -339,7 +340,8 @@ enum TransactionOperation {
   OPERATION_GET_QUEUE_SIZE = 59;              // New in Orthanc 1.12.8
   OPERATION_GET_ATTACHMENT_CUSTOM_DATA = 60;  // New in Orthanc 1.12.8
   OPERATION_SET_ATTACHMENT_CUSTOM_DATA = 61;  // New in Orthanc 1.12.8
-
+  OPERATION_RESERVE_QUEUE_VALUE = 62;         // New in Orthanc 1.12.10
+  OPERATION_ACKNOWLEDGE_QUEUE_VALUE = 63;     // New in Orthanc 1.12.10
 }
 
 message Rollback {
@@ -1095,6 +1097,30 @@ message SetAttachmentCustomData {
   }
 }
 
+message ReserveQueueValue {
+  message Request {
+    string queue_id = 1;
+    QueueOrigin origin = 2;
+    uint32 release_timeout = 3;
+  }
+
+  message Response {
+    bool found = 1;
+    bytes value = 2;
+    uint64 value_id = 3;
+  }
+}
+
+message AcknowledgeQueueValue {
+  message Request {
+    string queue_id = 1;
+    uint64 value_id = 2;
+  }
+
+  message Response {
+  }
+}
+
 
 message TransactionRequest {
   sfixed64              transaction = 1;
@@ -1162,6 +1188,8 @@ message TransactionRequest {
   GetQueueSize.Request                    get_queue_size = 159;
   GetAttachmentCustomData.Request         get_attachment_custom_data = 160;
   SetAttachmentCustomData.Request         set_attachment_custom_data = 161;
+  ReserveQueueValue.Request               reserve_queue_value = 162;
+  AcknowledgeQueueValue.Request           acknowledge_queue_value = 163;
 }
 
 message TransactionResponse {
@@ -1227,6 +1255,8 @@ message TransactionResponse {
   GetQueueSize.Response                    get_queue_size = 159;
   GetAttachmentCustomData.Response         get_attachment_custom_data = 160;
   SetAttachmentCustomData.Response         set_attachment_custom_data = 161;
+  ReserveQueueValue.Response               reserve_queue_value = 162;
+  AcknowledgeQueueValue.Response           acknowledge_queue_value = 163;
 }
 
 enum RequestType {
