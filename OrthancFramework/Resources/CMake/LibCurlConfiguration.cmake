@@ -126,76 +126,48 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
 
     include(${CURL_SOURCES_DIR}/CMake/Macros.cmake)
 
-    # WARNING: Do *not* reorder the "check_include_file_concat_curl()" below!
-    check_include_file_concat_curl("stdio.h"          HAVE_STDIO_H)
-    check_include_file_concat_curl("inttypes.h"       HAVE_INTTYPES_H)
-    check_include_file_concat_curl("sys/filio.h"      HAVE_SYS_FILIO_H)
-    check_include_file_concat_curl("sys/ioctl.h"      HAVE_SYS_IOCTL_H)
-    check_include_file_concat_curl("sys/param.h"      HAVE_SYS_PARAM_H)
-    check_include_file_concat_curl("sys/poll.h"       HAVE_SYS_POLL_H)
-    check_include_file_concat_curl("sys/resource.h"   HAVE_SYS_RESOURCE_H)
+    # Detect headers
+
+    # Use check_include_file_concat_curl() for headers required by subsequent
+    # check_include_file_concat_curl() or check_symbol_exists() detections.
+    # Order for these is significant.
+    check_include_file("sys/eventfd.h"    HAVE_SYS_EVENTFD_H)
+    check_include_file("sys/filio.h"      HAVE_SYS_FILIO_H)
+    check_include_file("sys/ioctl.h"      HAVE_SYS_IOCTL_H)
+    check_include_file("sys/param.h"      HAVE_SYS_PARAM_H)
+    check_include_file("sys/poll.h"       HAVE_SYS_POLL_H)
+    check_include_file("sys/resource.h"   HAVE_SYS_RESOURCE_H)
     check_include_file_concat_curl("sys/select.h"     HAVE_SYS_SELECT_H)
-    check_include_file_concat_curl("sys/socket.h"     HAVE_SYS_SOCKET_H)
-    check_include_file_concat_curl("sys/sockio.h"     HAVE_SYS_SOCKIO_H)
-    check_include_file_concat_curl("sys/stat.h"       HAVE_SYS_STAT_H)
-    check_include_file_concat_curl("sys/time.h"       HAVE_SYS_TIME_H)
+    check_include_file("sys/sockio.h"     HAVE_SYS_SOCKIO_H)
     check_include_file_concat_curl("sys/types.h"      HAVE_SYS_TYPES_H)
-    check_include_file_concat_curl("sys/uio.h"        HAVE_SYS_UIO_H)
-    check_include_file_concat_curl("sys/un.h"         HAVE_SYS_UN_H)
-    check_include_file_concat_curl("sys/utime.h"      HAVE_SYS_UTIME_H)
-    check_include_file_concat_curl("sys/xattr.h"      HAVE_SYS_XATTR_H)
-    check_include_file_concat_curl("alloca.h"         HAVE_ALLOCA_H)
+    check_include_file("sys/un.h"         HAVE_SYS_UN_H)
+    check_include_file_concat_curl("sys/utime.h"      HAVE_SYS_UTIME_H)  # sys/types.h (AmigaOS)
+
     check_include_file_concat_curl("arpa/inet.h"      HAVE_ARPA_INET_H)
-    check_include_file_concat_curl("arpa/tftp.h"      HAVE_ARPA_TFTP_H)
-    check_include_file_concat_curl("assert.h"         HAVE_ASSERT_H)
-    check_include_file_concat_curl("crypto.h"         HAVE_CRYPTO_H)
-    check_include_file_concat_curl("des.h"            HAVE_DES_H)
-    check_include_file_concat_curl("err.h"            HAVE_ERR_H)
-    check_include_file_concat_curl("errno.h"          HAVE_ERRNO_H)
-    check_include_file_concat_curl("fcntl.h"          HAVE_FCNTL_H)
-    check_include_file_concat_curl("idn2.h"           HAVE_IDN2_H)
+    check_include_file("dirent.h"         HAVE_DIRENT_H)
+    check_include_file("fcntl.h"          HAVE_FCNTL_H)
     check_include_file_concat_curl("ifaddrs.h"        HAVE_IFADDRS_H)
-    check_include_file_concat_curl("io.h"             HAVE_IO_H)
-    check_include_file_concat_curl("krb.h"            HAVE_KRB_H)
+    check_include_file("io.h"             HAVE_IO_H)
     check_include_file_concat_curl("libgen.h"         HAVE_LIBGEN_H)
-    check_include_file_concat_curl("limits.h"         HAVE_LIMITS_H)
-    check_include_file_concat_curl("locale.h"         HAVE_LOCALE_H)
-    check_include_file_concat_curl("net/if.h"         HAVE_NET_IF_H)
+    check_include_file("linux/tcp.h"      HAVE_LINUX_TCP_H)
+    check_include_file("locale.h"         HAVE_LOCALE_H)
+    check_include_file_concat_curl("net/if.h"         HAVE_NET_IF_H)  # sys/select.h (e.g. MS-DOS/Watt-32)
     check_include_file_concat_curl("netdb.h"          HAVE_NETDB_H)
     check_include_file_concat_curl("netinet/in.h"     HAVE_NETINET_IN_H)
-    check_include_file_concat_curl("netinet/tcp.h"    HAVE_NETINET_TCP_H)
-
-    check_include_file_concat_curl("pem.h"            HAVE_PEM_H)
-    check_include_file_concat_curl("poll.h"           HAVE_POLL_H)
-    check_include_file_concat_curl("pwd.h"            HAVE_PWD_H)
-    check_include_file_concat_curl("rsa.h"            HAVE_RSA_H)
-    check_include_file_concat_curl("setjmp.h"         HAVE_SETJMP_H)
-    check_include_file_concat_curl("sgtty.h"          HAVE_SGTTY_H)
-    check_include_file_concat_curl("signal.h"         HAVE_SIGNAL_H)
-    check_include_file_concat_curl("ssl.h"            HAVE_SSL_H)
-    check_include_file_concat_curl("stdbool.h"        HAVE_STDBOOL_H)
-    check_include_file_concat_curl("stdint.h"         HAVE_STDINT_H)
-    check_include_file_concat_curl("stdio.h"          HAVE_STDIO_H)
-    check_include_file_concat_curl("stdlib.h"         HAVE_STDLIB_H)
-    check_include_file_concat_curl("string.h"         HAVE_STRING_H)
-    check_include_file_concat_curl("strings.h"        HAVE_STRINGS_H)
-    check_include_file_concat_curl("stropts.h"        HAVE_STROPTS_H)
-    check_include_file_concat_curl("termio.h"         HAVE_TERMIO_H)
-    check_include_file_concat_curl("termios.h"        HAVE_TERMIOS_H)
-    check_include_file_concat_curl("time.h"           HAVE_TIME_H)
+    check_include_file("netinet/in6.h"    HAVE_NETINET_IN6_H)
+    check_include_file_concat_curl("netinet/tcp.h"    HAVE_NETINET_TCP_H)  # sys/types.h (e.g. Cygwin) netinet/in.h
+    check_include_file_concat_curl("netinet/udp.h"    HAVE_NETINET_UDP_H)  # sys/types.h (e.g. Cygwin)
+    check_include_file("poll.h"           HAVE_POLL_H)
+    check_include_file("pwd.h"            HAVE_PWD_H)
+    check_include_file("stdatomic.h"      HAVE_STDATOMIC_H)
+    check_include_file("stdbool.h"        HAVE_STDBOOL_H)
+    check_include_file("stdint.h"         HAVE_STDINT_H)
+    check_include_file("strings.h"        HAVE_STRINGS_H)
+    check_include_file("stropts.h"        HAVE_STROPTS_H)
+    check_include_file("termio.h"         HAVE_TERMIO_H)
+    check_include_file("termios.h"        HAVE_TERMIOS_H)
     check_include_file_concat_curl("unistd.h"         HAVE_UNISTD_H)
-    check_include_file_concat_curl("utime.h"          HAVE_UTIME_H)
-    check_include_file_concat_curl("x509.h"           HAVE_X509_H)
-
-    check_include_file_concat_curl("process.h"        HAVE_PROCESS_H)
-    check_include_file_concat_curl("stddef.h"         HAVE_STDDEF_H)
-    check_include_file_concat_curl("dlfcn.h"          HAVE_DLFCN_H)
-    check_include_file_concat_curl("malloc.h"         HAVE_MALLOC_H)
-    check_include_file_concat_curl("memory.h"         HAVE_MEMORY_H)
-    check_include_file_concat_curl("netinet/if_ether.h" HAVE_NETINET_IF_ETHER_H)
-    check_include_file_concat_curl("stdint.h"        HAVE_STDINT_H)
-    check_include_file_concat_curl("sockio.h"        HAVE_SOCKIO_H)
-    check_include_file_concat_curl("sys/utsname.h"   HAVE_SYS_UTSNAME_H)
+    check_include_file("utime.h"          HAVE_UTIME_H)
 
     check_type_size("size_t"  SIZEOF_SIZE_T)
     check_type_size("ssize_t"  SIZEOF_SSIZE_T)
@@ -209,96 +181,71 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
     check_type_size("off_t"  SIZEOF_OFF_T)
     check_type_size("socklen_t" CURL_SIZEOF_CURL_SOCKLEN_T)
 
-    check_symbol_exists(basename      "${CURL_INCLUDES}" HAVE_BASENAME)
-    check_symbol_exists(socket        "${CURL_INCLUDES}" HAVE_SOCKET)
-    # poll on macOS is unreliable, it first did not exist, then was broken until
-    # fixed in 10.9 only to break again in 10.12.
-    if(NOT APPLE)
-      check_symbol_exists(poll        "${CURL_INCLUDES}" HAVE_POLL)
+    check_function_exists("accept4"       HAVE_ACCEPT4)
+    check_function_exists("fnmatch"       HAVE_FNMATCH)
+    check_symbol_exists("basename"        "${CURL_INCLUDES};string.h" HAVE_BASENAME)  # libgen.h unistd.h
+    check_symbol_exists("opendir"         "dirent.h" HAVE_OPENDIR)
+    check_function_exists("poll"          HAVE_POLL)  # poll.h
+    check_symbol_exists("socket"          "${CURL_INCLUDES}" HAVE_SOCKET)  # winsock2.h sys/socket.h
+    check_symbol_exists("socketpair"      "${CURL_INCLUDES}" HAVE_SOCKETPAIR)  # sys/socket.h
+    check_symbol_exists("recv"            "${CURL_INCLUDES}" HAVE_RECV)  # proto/bsdsocket.h sys/types.h sys/socket.h
+    check_symbol_exists("send"            "${CURL_INCLUDES}" HAVE_SEND)  # proto/bsdsocket.h sys/types.h sys/socket.h
+    check_function_exists("sendmsg"       HAVE_SENDMSG)
+    check_function_exists("sendmmsg"      HAVE_SENDMMSG)
+    check_symbol_exists("select"          "${CURL_INCLUDES}" HAVE_SELECT)  # proto/bsdsocket.h sys/select.h sys/socket.h
+    check_symbol_exists("strdup"          "string.h" HAVE_STRDUP)
+    check_symbol_exists("memrchr"         "string.h" HAVE_MEMRCHR)
+    check_symbol_exists("alarm"           "unistd.h" HAVE_ALARM)
+    check_symbol_exists("fcntl"           "fcntl.h" HAVE_FCNTL)
+    check_function_exists("getppid"       HAVE_GETPPID)
+    check_function_exists("utimes"        HAVE_UTIMES)
+
+    check_function_exists("gettimeofday"  HAVE_GETTIMEOFDAY)  # sys/time.h
+    check_symbol_exists("closesocket"     "${CURL_INCLUDES}" HAVE_CLOSESOCKET)  # winsock2.h
+    check_symbol_exists("sigsetjmp"       "setjmp.h" HAVE_SIGSETJMP)
+    check_function_exists("getpass_r"     HAVE_GETPASS_R)
+    check_function_exists("getpwuid"      HAVE_GETPWUID)
+    check_function_exists("getpwuid_r"    HAVE_GETPWUID_R)
+    check_function_exists("geteuid"       HAVE_GETEUID)
+    check_function_exists("utime"         HAVE_UTIME)
+    check_symbol_exists("gmtime_r"        "stdlib.h;time.h" HAVE_GMTIME_R)
+
+    check_symbol_exists("gethostbyname_r" "netdb.h" HAVE_GETHOSTBYNAME_R)
+    check_symbol_exists("gethostname"     "${CURL_INCLUDES}" HAVE_GETHOSTNAME)  # winsock2.h unistd.h proto/bsdsocket.h
+
+    check_symbol_exists("signal"          "signal.h" HAVE_SIGNAL)
+    check_symbol_exists("strerror_r"      "stdlib.h;string.h" HAVE_STRERROR_R)
+    check_symbol_exists("sigaction"       "signal.h" HAVE_SIGACTION)
+    check_symbol_exists("siginterrupt"    "signal.h" HAVE_SIGINTERRUPT)
+    check_symbol_exists("getaddrinfo"     "${CURL_INCLUDES};stdlib.h;string.h" HAVE_GETADDRINFO)  # ws2tcpip.h sys/socket.h netdb.h
+    check_symbol_exists("getifaddrs"      "${CURL_INCLUDES};stdlib.h" HAVE_GETIFADDRS)  # ifaddrs.h
+    check_symbol_exists("freeaddrinfo"    "${CURL_INCLUDES}" HAVE_FREEADDRINFO)  # ws2tcpip.h sys/socket.h netdb.h
+    check_function_exists("pipe"          HAVE_PIPE)
+    check_function_exists("pipe2"         HAVE_PIPE2)
+    check_function_exists("eventfd"       HAVE_EVENTFD)
+    check_symbol_exists("ftruncate"       "unistd.h" HAVE_FTRUNCATE)
+    check_symbol_exists("getpeername"     "${CURL_INCLUDES}" HAVE_GETPEERNAME)  # winsock2.h unistd.h proto/bsdsocket.h
+    check_symbol_exists("getsockname"     "${CURL_INCLUDES}" HAVE_GETSOCKNAME)  # winsock2.h unistd.h proto/bsdsocket.h
+    check_function_exists("getrlimit"       HAVE_GETRLIMIT)
+    check_function_exists("setlocale"       HAVE_SETLOCALE)
+    check_function_exists("setrlimit"       HAVE_SETRLIMIT)
+
+    if(WIN32)
+      # include wincrypt.h as a workaround for mingw-w64 __MINGW64_VERSION_MAJOR <= 5 header bug */
+      check_symbol_exists("if_nametoindex"  "winsock2.h;wincrypt.h;iphlpapi.h" HAVE_IF_NAMETOINDEX)  # Windows Vista+ non-UWP */
+    else()
+      check_function_exists("if_nametoindex"  HAVE_IF_NAMETOINDEX)  # net/if.h
+      check_function_exists("realpath"        HAVE_REALPATH)
+      check_function_exists("sched_yield"     HAVE_SCHED_YIELD)
+      check_symbol_exists("strcasecmp"      "string.h" HAVE_STRCASECMP)
+      check_symbol_exists("stricmp"         "string.h" HAVE_STRICMP)
+      check_symbol_exists("strcmpi"         "string.h" HAVE_STRCMPI)
     endif()
-    check_symbol_exists(select        "${CURL_INCLUDES}" HAVE_SELECT)
-    check_symbol_exists(strdup        "${CURL_INCLUDES}" HAVE_STRDUP)
-    check_symbol_exists(strstr        "${CURL_INCLUDES}" HAVE_STRSTR)
-    check_symbol_exists(strtok_r      "${CURL_INCLUDES}" HAVE_STRTOK_R)
-    check_symbol_exists(strftime      "${CURL_INCLUDES}" HAVE_STRFTIME)
-    check_symbol_exists(uname         "${CURL_INCLUDES}" HAVE_UNAME)
-    check_symbol_exists(strcasecmp    "${CURL_INCLUDES}" HAVE_STRCASECMP)
-    check_symbol_exists(stricmp       "${CURL_INCLUDES}" HAVE_STRICMP)
-    check_symbol_exists(strcmpi       "${CURL_INCLUDES}" HAVE_STRCMPI)
-    check_symbol_exists(strncmpi      "${CURL_INCLUDES}" HAVE_STRNCMPI)
-    check_symbol_exists(alarm         "${CURL_INCLUDES}" HAVE_ALARM)
-    if(NOT HAVE_STRNCMPI)
-      set(HAVE_STRCMPI)
-    endif(NOT HAVE_STRNCMPI)
-
-    check_symbol_exists(gethostbyaddr "${CURL_INCLUDES}" HAVE_GETHOSTBYADDR)
-    check_symbol_exists(gethostbyaddr_r "${CURL_INCLUDES}" HAVE_GETHOSTBYADDR_R)
-    check_symbol_exists(gettimeofday  "${CURL_INCLUDES}" HAVE_GETTIMEOFDAY)
-    check_symbol_exists(inet_addr     "${CURL_INCLUDES}" HAVE_INET_ADDR)
-    check_symbol_exists(inet_ntoa     "${CURL_INCLUDES}" HAVE_INET_NTOA)
-    check_symbol_exists(inet_ntoa_r   "${CURL_INCLUDES}" HAVE_INET_NTOA_R)
-    check_symbol_exists(tcsetattr     "${CURL_INCLUDES}" HAVE_TCSETATTR)
-    check_symbol_exists(tcgetattr     "${CURL_INCLUDES}" HAVE_TCGETATTR)
-    check_symbol_exists(perror        "${CURL_INCLUDES}" HAVE_PERROR)
-    check_symbol_exists(closesocket   "${CURL_INCLUDES}" HAVE_CLOSESOCKET)
-    check_symbol_exists(setvbuf       "${CURL_INCLUDES}" HAVE_SETVBUF)
-    check_symbol_exists(sigsetjmp     "${CURL_INCLUDES}" HAVE_SIGSETJMP)
-    check_symbol_exists(getpass_r     "${CURL_INCLUDES}" HAVE_GETPASS_R)
-    check_symbol_exists(strlcat       "${CURL_INCLUDES}" HAVE_STRLCAT)
-    check_symbol_exists(getpwuid      "${CURL_INCLUDES}" HAVE_GETPWUID)
-    check_symbol_exists(geteuid       "${CURL_INCLUDES}" HAVE_GETEUID)
-    check_symbol_exists(utime         "${CURL_INCLUDES}" HAVE_UTIME)
-    check_symbol_exists(gmtime_r      "${CURL_INCLUDES}" HAVE_GMTIME_R)
-    check_symbol_exists(localtime_r   "${CURL_INCLUDES}" HAVE_LOCALTIME_R)
-
-    check_symbol_exists(gethostbyname   "${CURL_INCLUDES}" HAVE_GETHOSTBYNAME)
-    check_symbol_exists(gethostbyname_r "${CURL_INCLUDES}" HAVE_GETHOSTBYNAME_R)
-
-    check_symbol_exists(signal        "${CURL_INCLUDES}" HAVE_SIGNAL_FUNC)
-    check_symbol_exists(SIGALRM       "${CURL_INCLUDES}" HAVE_SIGNAL_MACRO)
-    if(HAVE_SIGNAL_FUNC AND HAVE_SIGNAL_MACRO)
-      set(HAVE_SIGNAL 1)
-    endif(HAVE_SIGNAL_FUNC AND HAVE_SIGNAL_MACRO)
-    check_symbol_exists(uname          "${CURL_INCLUDES}" HAVE_UNAME)
-    check_symbol_exists(strtoll        "${CURL_INCLUDES}" HAVE_STRTOLL)
-    check_symbol_exists(_strtoi64      "${CURL_INCLUDES}" HAVE__STRTOI64)
-    check_symbol_exists(strerror_r     "${CURL_INCLUDES}" HAVE_STRERROR_R)
-    check_symbol_exists(siginterrupt   "${CURL_INCLUDES}" HAVE_SIGINTERRUPT)
-    check_symbol_exists(perror         "${CURL_INCLUDES}" HAVE_PERROR)
-    check_symbol_exists(fork           "${CURL_INCLUDES}" HAVE_FORK)
-    check_symbol_exists(getaddrinfo    "${CURL_INCLUDES}" HAVE_GETADDRINFO)
-    check_symbol_exists(freeaddrinfo   "${CURL_INCLUDES}" HAVE_FREEADDRINFO)
-    check_symbol_exists(freeifaddrs    "${CURL_INCLUDES}" HAVE_FREEIFADDRS)
-    check_symbol_exists(pipe           "${CURL_INCLUDES}" HAVE_PIPE)
-    check_symbol_exists(ftruncate      "${CURL_INCLUDES}" HAVE_FTRUNCATE)
-    check_symbol_exists(getprotobyname "${CURL_INCLUDES}" HAVE_GETPROTOBYNAME)
-    check_symbol_exists(getrlimit      "${CURL_INCLUDES}" HAVE_GETRLIMIT)
-    check_symbol_exists(setlocale      "${CURL_INCLUDES}" HAVE_SETLOCALE)
-    check_symbol_exists(setmode        "${CURL_INCLUDES}" HAVE_SETMODE)
-    check_symbol_exists(setrlimit      "${CURL_INCLUDES}" HAVE_SETRLIMIT)
-    check_symbol_exists(fcntl          "${CURL_INCLUDES}" HAVE_FCNTL)
-    check_symbol_exists(ioctl          "${CURL_INCLUDES}" HAVE_IOCTL)
-    check_symbol_exists(setsockopt     "${CURL_INCLUDES}" HAVE_SETSOCKOPT)
-
-    if(HAVE_SIZEOF_LONG_LONG)
-      set(HAVE_LONGLONG 1)
-      set(HAVE_LL 1)
-    endif(HAVE_SIZEOF_LONG_LONG)
-
-    check_function_exists(mach_absolute_time HAVE_MACH_ABSOLUTE_TIME)
-    check_function_exists(gethostname HAVE_GETHOSTNAME)
-
-    check_include_file_concat_curl("pthread.h" HAVE_PTHREAD_H)
-    check_symbol_exists(recv "sys/socket.h" HAVE_RECV)
-    check_symbol_exists(send "sys/socket.h" HAVE_SEND)
-
     check_struct_has_member("struct sockaddr_un" sun_path "sys/un.h" USE_UNIX_SOCKETS)
 
     list(APPEND CMAKE_REQUIRED_INCLUDES "${CURL_SOURCES_DIR}/include")
     set(CMAKE_EXTRA_INCLUDE_FILES "curl/system.h")
     check_type_size("curl_off_t"  SIZEOF_CURL_OFF_T)
-
-    add_definitions(-DHAVE_GLIBC_STRERROR_R=1)
 
     include(${CURL_SOURCES_DIR}/CMake/OtherTests.cmake)
 
@@ -311,30 +258,20 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
         HAVE_IOCTL_FIONBIO
         HAVE_IOCTL_SIOCGIFADDR
         HAVE_SETSOCKOPT_SO_NONBLOCK
-        HAVE_SOCKADDR_IN6_SIN6_SCOPE_ID
-        TIME_WITH_SYS_TIME
-        HAVE_O_NONBLOCK
-        HAVE_GETHOSTBYADDR_R_5
-        HAVE_GETHOSTBYADDR_R_7
-        HAVE_GETHOSTBYADDR_R_8
-        HAVE_GETHOSTBYADDR_R_5_REENTRANT
-        HAVE_GETHOSTBYADDR_R_7_REENTRANT
-        HAVE_GETHOSTBYADDR_R_8_REENTRANT
         HAVE_GETHOSTBYNAME_R_3
         HAVE_GETHOSTBYNAME_R_5
         HAVE_GETHOSTBYNAME_R_6
+        HAVE_BOOL_T
+        STDC_HEADERS
+        HAVE_ATOMIC
+        HAVE_SOCKADDR_IN6_SIN6_SCOPE_ID
         HAVE_GETHOSTBYNAME_R_3_REENTRANT
         HAVE_GETHOSTBYNAME_R_5_REENTRANT
         HAVE_GETHOSTBYNAME_R_6_REENTRANT
-        HAVE_SOCKLEN_T
-        HAVE_IN_ADDR_T
-        HAVE_BOOL_T
-        STDC_HEADERS
-        RETSIGTYPE_TEST
-        HAVE_INET_NTOA_R_DECL
-        HAVE_INET_NTOA_R_DECL_REENTRANT
         HAVE_GETADDRINFO
         HAVE_FILE_OFFSET_BITS
+        HAVE_GLIBC_STRERROR_R
+        HAVE_POSIX_STRERROR_R
         )
       curl_internal_test(${CURL_TEST})
     endforeach(CURL_TEST)
