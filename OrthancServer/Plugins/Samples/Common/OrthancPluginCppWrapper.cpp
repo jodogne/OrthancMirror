@@ -364,6 +364,8 @@ namespace OrthancPlugins
     }
   }
 
+
+#if (HAS_ORTHANC_PLUGIN_PEERS == 1) || (HAS_ORTHANC_PLUGIN_HTTP_CLIENT == 1) || (HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1)
   static void DecodeHttpHeaders(HttpHeaders& target,
                                 const MemoryBuffer& source)
   {
@@ -391,6 +393,8 @@ namespace OrthancPlugins
       }
     }
   }
+#endif
+
 
   // helper class to convert std::map of headers to the plugin SDK C structure
   class PluginHttpHeaders
