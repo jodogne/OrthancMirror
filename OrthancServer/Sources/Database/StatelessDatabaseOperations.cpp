@@ -3586,7 +3586,8 @@ namespace Orthanc
                                                       QueueOrigin origin,
                                                       uint32_t releaseTimeout)
   {
-    if (queueId.empty())
+    if (queueId.empty() ||
+        releaseTimeout == 0)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }

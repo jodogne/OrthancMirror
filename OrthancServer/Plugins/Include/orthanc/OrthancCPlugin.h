@@ -10736,7 +10736,8 @@ extern "C"
    * @param origin The position from where the value is dequeued (back for LIFO, front for FIFO).
    * @param releaseTimeout Timeout in seconds. If the value is not acknowledged before this delay expires,
    *                       the value is automatically released and made available for further calls to
-   *                       OrthancPluginDequeueValue() or OrthancPluginReserveQueueValue()
+   *                       OrthancPluginDequeueValue() or OrthancPluginReserveQueueValue().
+   *                       This value cannot be equal to 0 second.
    * @param valueId An opaque identifier for this value, to be subsequently provided to
    * OrthancPluginAcknowledgeQueueValue().
    * @return 0 if success, other value if error.
