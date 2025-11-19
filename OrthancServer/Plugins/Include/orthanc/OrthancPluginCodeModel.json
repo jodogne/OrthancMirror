@@ -2234,7 +2234,7 @@
                     "value": 2002
                 },
                 {
-                    "documentation": "The TCP port of the HTTP server is privileged or already in use",
+                    "documentation": "The TCP port of the HTTP server is privileged or already in use or one of the HTTP bind addresses does not exist",
                     "key": "HttpPortInUse",
                     "value": 2003
                 },
