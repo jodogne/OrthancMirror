@@ -2286,6 +2286,16 @@ namespace Orthanc
       s.Run();
     }
 
+
+    static int64_t GetSecondsSinceEpoch()
+    {
+      // https://www.boost.org/doc/libs/1_69_0/doc/html/date_time/examples.html#date_time.examples.seconds_since_epoch
+      static const boost::posix_time::ptime EPOCH(boost::gregorian::date(1970, 1, 1));
+      const boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
+      return (now - EPOCH).total_seconds();
+    }
+
+
     // New in Orthanc 1.12.8 (but deprecated, you should use ReserveQueueValue() instead)
     virtual bool DequeueValue(std::string& value,
                               const std::string& queueId,
@@ -2306,14 +2316,17 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
       }
 
+      // "reservedUntil <= ?" indicates that the reservation has expired
       const std::string sql = ("WITH RowToDelete AS (SELECT id FROM Queues WHERE queueId=? AND "
-                               "(reservedUntil IS NULL OR reservedUntil < datetime('now')) ORDER BY id " + order + " LIMIT 1) "
+                               "(reservedUntil IS NULL OR reservedUntil <= ?) ORDER BY id " + order + " LIMIT 1) "
                                "DELETE FROM Queues WHERE id IN (SELECT id FROM RowToDelete) "
                                "RETURNING value");
 
       SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
 
       s.BindString(0, queueId);
+      s.BindInt64(1, GetSecondsSinceEpoch() /* now */);
+
       if (!s.Step())
       {
         // No value found
@@ -2330,6 +2343,7 @@ namespace Orthanc
       }    
     }
 
+
     // New in Orthanc 1.12.8
     virtual uint64_t GetQueueSize(const std::string& queueId) ORTHANC_OVERRIDE
     {
@@ -2338,6 +2352,7 @@ namespace Orthanc
       s.Step();
       return s.ColumnInt64(0);
     }
+
 
     // New in Orthanc 1.12.10
     virtual bool ReserveQueueValue(std::string& value,
@@ -2361,17 +2376,20 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
       }
 
-      std::string sql = ("WITH RowToUpdate AS (SELECT id FROM Queues WHERE queueId=? AND "
-                         "(reservedUntil IS NULL OR reservedUntil < datetime('now')) ORDER BY id " + order + " LIMIT 1) "
-                         "UPDATE Queues SET reservedUntil = datetime('now', ?) WHERE id IN (SELECT id FROM RowToUpdate) "
-                         "RETURNING id, value");
+      // "reservedUntil <= ?" indicates that the reservation has expired
+      const std::string sql = ("WITH RowToUpdate AS (SELECT id FROM Queues WHERE queueId=? AND "
+                               "(reservedUntil IS NULL OR reservedUntil <= ?) ORDER BY id " + order + " LIMIT 1) "
+                               "UPDATE Queues SET reservedUntil = ? WHERE id IN (SELECT id FROM RowToUpdate) "
+                               "RETURNING id, value");
 
       SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
 
       s.BindString(0, queueId);
-      std::string timeout = "+" + boost::lexical_cast<std::string>(releaseTimeout) + " seconds";
 
-      s.BindString(1, timeout);
+      const int64_t now = GetSecondsSinceEpoch();
+      s.BindInt64(1, now);
+      s.BindInt64(2, now + releaseTimeout /* reservedUntil */);
+
       if (!s.Step())
       {
         // No value found
@@ -2392,13 +2410,23 @@ namespace Orthanc
 
 
     // New in Orthanc 1.12.10
-    virtual void AcknowledgeQueueValue(const std::string& /* queueId */,
-                                        uint64_t valueId) ORTHANC_OVERRIDE
+    virtual void AcknowledgeQueueValue(const std::string& queueId,
+                                       uint64_t valueId) ORTHANC_OVERRIDE
     {
+      // "? < reservedUntil" indicates that the reservation is still valid
       SQLite::Statement s(db_, SQLITE_FROM_HERE,
-                          "DELETE FROM Queues WHERE id = ?");
-      s.BindInt64(0, static_cast<int64_t>(valueId));
+                          "DELETE FROM Queues WHERE queueId=? AND id=? AND "
+                          "reservedUntil IS NOT NULL AND ? < reservedUntil");
+      s.BindString(0, queueId);
+      s.BindInt64(1, static_cast<int64_t>(valueId));
+      s.BindInt64(2, GetSecondsSinceEpoch() /* now */);
       s.Run();
+
+      if (db_.GetLastChangeCount() == 0)
+      {
+        // This occurs if the acknowledgment occurs after the reservation has expired
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
     }
   };
 

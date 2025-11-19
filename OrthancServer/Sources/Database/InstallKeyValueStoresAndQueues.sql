@@ -30,7 +30,7 @@ CREATE TABLE Queues (
        id INTEGER PRIMARY KEY AUTOINCREMENT,
        queueId TEXT NOT NULL,
        value BLOB NOT NULL
-       --- reservedUntil TIMESTAMP DEFAULT NULL  -- added in AddTimeoutToQueues.sql
+       --- reservedUntil INTEGER DEFAULT NULL  -- added in AddTimeoutToQueues.sql
 );
 
 CREATE INDEX QueuesIndex ON Queues (queueId, id);
