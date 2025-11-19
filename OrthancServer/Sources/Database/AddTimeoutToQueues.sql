@@ -19,5 +19,8 @@
 -- along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
+-- "reservedUntil" is interpreted exclusively, as the number of seconds
+-- since the Epoch. The reservation is valid as long as "now() < reservedUntil",
+-- and it expires as soon as "reservedUntil <= now()".
 ALTER TABLE Queues
-ADD COLUMN reservedUntil TIMESTAMP DEFAULT NULL;
+ADD COLUMN reservedUntil INTEGER DEFAULT NULL;

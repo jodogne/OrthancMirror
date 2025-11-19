@@ -1353,6 +1353,7 @@ TEST(SQLiteDatabaseWrapper, ReserveQueueValue)
 
     op.AcknowledgeQueueValue("test", valueId1);
     ASSERT_EQ(2u, op.GetQueueSize("test"));
+    ASSERT_THROW(op.AcknowledgeQueueValue("test", valueId1), OrthancException);  // Cannot acknowledge twice
     op.AcknowledgeQueueValue("test", valueId2);
     op.AcknowledgeQueueValue("test", valueId0);
     ASSERT_EQ(0u, op.GetQueueSize("test"));
@@ -1375,16 +1376,18 @@ TEST(SQLiteDatabaseWrapper, ReserveQueueValue)
     ASSERT_EQ("g", s);
     op.AcknowledgeQueueValue("test", valueId0);
 
+    // "DequeueValue()" must ignore the reserved values
+    ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Front));
+    ASSERT_EQ("f", s);
+
     SystemToolbox::USleep(2000000); // the granularity being the second, we might have to wait up to 2 seconds
 
-    // "d", "f" and "h" remains
+    // "d" and "h" remain
     ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Front, 1));  
     ASSERT_EQ("d", s);
-    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Front, 1));  
-    ASSERT_EQ("f", s);
     ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 1));  
     ASSERT_EQ("h", s);
-    
+
     // the queue is empty at this point since "f" has been reserved already
     ASSERT_FALSE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 1));  
   }
