@@ -92,43 +92,43 @@ CURRENT_HEADER = ''
 def Parse(match):
     s = ''
     
-    for t in re.findall('generate_stack_macros\("(.+?)"\)', match.group(1)):
+    for t in re.findall(r'generate_stack_macros\("(.+?)"\)', match.group(1)):
         s += (GENERATE_STACK_MACROS
               .replace('${nametype}', t)
               .replace('${realtype}', t)
               .replace('${plaintype}', t))
         
-    for t in re.findall('generate_const_stack_macros\("(.+?)"\)', match.group(1)):
+    for t in re.findall(r'generate_const_stack_macros\("(.+?)"\)', match.group(1)):
         s += (GENERATE_STACK_MACROS
               .replace('${nametype}', t)
               .replace('${realtype}', 'const %s' % t)
               .replace('${plaintype}', t))
 
-    for t in re.findall('generate_stack_string_macros\(\)', match.group(1)):
+    for t in re.findall(r'generate_stack_string_macros\(\)', match.group(1)):
         s += (GENERATE_STACK_MACROS
               .replace('${nametype}', 'OPENSSL_STRING')
               .replace('${realtype}', 'char')
               .replace('${plaintype}', 'char'))
 
-    for t in re.findall('generate_stack_const_string_macros\(\)', match.group(1)):
+    for t in re.findall(r'generate_stack_const_string_macros\(\)', match.group(1)):
         s += (GENERATE_STACK_MACROS
               .replace('${nametype}', 'OPENSSL_CSTRING')
               .replace('${realtype}', 'const char')
               .replace('${plaintype}', 'char'))
 
-    for t in re.findall('generate_stack_block_macros\(\)', match.group(1)):
+    for t in re.findall(r'generate_stack_block_macros\(\)', match.group(1)):
         s += (GENERATE_STACK_MACROS
               .replace('${nametype}', 'OPENSSL_BLOCK')
               .replace('${realtype}', 'void')
               .replace('${plaintype}', 'void'))
         
-    for t in re.findall('generate_lhash_macros\("(.+?)"\)', match.group(1)):
+    for t in re.findall(r'generate_lhash_macros\("(.+?)"\)', match.group(1)):
         s += GENERATE_LHASH_MACROS.replace('${type}', t)
 
-    for t in re.findall('\$config{rc4_int}', match.group(1)):
+    for t in re.findall(r'\$config{rc4_int}', match.group(1)):
         s += 'unsigned int'
 
-    for t in re.findall('oids_to_c::process_leaves\(.+?\)', match.group(1), re.MULTILINE | re.DOTALL):
+    for t in re.findall(r'oids_to_c::process_leaves\(.+?\)', match.group(1), re.MULTILINE | re.DOTALL):
         if not CURRENT_HEADER in OIDS:
             raise Exception('Unknown header: %s' % CURRENT_HEADER)
 
