@@ -1746,15 +1746,19 @@ void GetGetArguments(GetArguments& result, const OrthancPluginHttpRequest* reque
       Enqueue(value.empty() ? NULL : value.c_str(), value.size());
     }
 
+#if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
     // Use ReserveBack() instead
     ORTHANC_PLUGIN_DEPRECATED
+#endif
     bool DequeueBack(std::string& value)
     {
       return DequeueInternal(value, OrthancPluginQueueOrigin_Back);
     }
 
+#if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
     // Use ReserveFront() instead
     ORTHANC_PLUGIN_DEPRECATED
+#endif
     bool DequeueFront(std::string& value)
     {
       return DequeueInternal(value, OrthancPluginQueueOrigin_Front);
