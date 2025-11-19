@@ -249,6 +249,10 @@ private:
 
     void ApplyGetQueueSize(const _OrthancPluginGetQueueSize& parameters);
 
+    void ApplyReserveQueueValue(const _OrthancPluginReserveQueueValue& parameters);
+
+    void ApplyAknowledgeQueueValue(const _OrthancPluginAcknowledgeQueueValue& parameters);
+
     void ApplySetStableStatus(const _OrthancPluginSetStableStatus& parameters);
 
     void ApplyEmitAuditLog(const _OrthancPluginEmitAuditLog& parameters);
