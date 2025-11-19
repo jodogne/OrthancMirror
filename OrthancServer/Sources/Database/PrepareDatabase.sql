@@ -152,9 +152,9 @@ ${INSTALL_DELETED_FILES}
 -- new in Orthanc 1.12.8 ------------------------- equivalent to InstallKeyValueStoresAndQueues.sql
 ${INSTALL_KEY_VALUE_STORES_AND_QUEUES}
 
--- new in Orthanc 1.12.10 ------------------------ equivalent to AddTimeoutToQueues.sql
-${INSTALL_DICOM_IDENTIFIERS_INDEX_3}  -- This greatly speeds up the database
-${ADD_TIMEOUT_TO_QUEUES}
+-- new in Orthanc 1.12.10 ------------------------ reservation in queues + speedup the database
+${ADD_TIMEOUT_TO_QUEUES}              -- equivalent to AddTimeoutToQueues.sql
+${INSTALL_DICOM_IDENTIFIERS_INDEX_3}  -- equivalent to InstallDicomIdentifiersIndex3.sql
 
 
 -- Track the fact that the "revision" column exists in the "Metadata" and "AttachedFiles"
