@@ -2769,6 +2769,7 @@ namespace Orthanc
         InjectEmbeddedScript(query, "${INSTALL_DELETED_FILES}", ServerResources::INSTALL_DELETED_FILES);
         InjectEmbeddedScript(query, "${INSTALL_KEY_VALUE_STORES_AND_QUEUES}", ServerResources::INSTALL_KEY_VALUE_STORES_AND_QUEUES);
         InjectEmbeddedScript(query, "${ADD_TIMEOUT_TO_QUEUES}", ServerResources::ADD_TIMEOUT_TO_QUEUES);
+        InjectEmbeddedScript(query, "${INSTALL_DICOM_IDENTIFIERS_INDEX_3}", ServerResources::INSTALL_DICOM_IDENTIFIERS_INDEX_3);
 
         db_.Execute(query);
       }
@@ -2833,6 +2834,13 @@ namespace Orthanc
         {
           LOG(INFO) << "Installing the \"KeyValueStores\" and \"Queues\" tables";
           ExecuteEmbeddedScript(db_, ServerResources::INSTALL_KEY_VALUE_STORES_AND_QUEUES);
+        }
+
+        // New in Orthanc 1.12.10
+        if (!db_.DoesIndexExist("DicomIdentifiersIndex3"))
+        {
+          LOG(INFO) << "Installing the \"DicomIdentifiersIndex3\" index";
+          ExecuteEmbeddedScript(db_, ServerResources::INSTALL_DICOM_IDENTIFIERS_INDEX_3);
         }
 
         // New in Orthanc 1.12.10

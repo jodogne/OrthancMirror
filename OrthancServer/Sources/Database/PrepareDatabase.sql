@@ -110,8 +110,6 @@ CREATE INDEX DicomIdentifiersIndex1 ON DicomIdentifiers(id);
 -- CREATE INDEX DicomIdentifiersIndex2 ON DicomIdentifiers(tagGroup, tagElement);  -- disabled in 1.12.10
 CREATE INDEX DicomIdentifiersIndexValues ON DicomIdentifiers(value COLLATE BINARY);
 
-CREATE INDEX DicomIdentifiersIndexGroupElementValue ON DicomIdentifiers(tagGroup, tagElement, value); -- added in 1.12.10
-
 CREATE INDEX ChangesIndex ON Changes(internalId);
 
 
@@ -154,7 +152,8 @@ ${INSTALL_DELETED_FILES}
 -- new in Orthanc 1.12.8 ------------------------- equivalent to InstallKeyValueStoresAndQueues.sql
 ${INSTALL_KEY_VALUE_STORES_AND_QUEUES}
 
--- new in Orthanc 1.12.10 ------------------------- equivalent to AddTimeoutToQueues.sql
+-- new in Orthanc 1.12.10 ------------------------ equivalent to AddTimeoutToQueues.sql
+${INSTALL_DICOM_IDENTIFIERS_INDEX_3}  -- This greatly speeds up the database
 ${ADD_TIMEOUT_TO_QUEUES}
 
 
