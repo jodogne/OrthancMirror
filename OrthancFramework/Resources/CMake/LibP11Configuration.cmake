@@ -45,7 +45,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBP11)
       RESULT_VARIABLE Failure
       )
 
-    if (FirstRun)
+    if (Failure)
       message(FATAL_ERROR "Error while patching libp11")
     endif()
   endif()
