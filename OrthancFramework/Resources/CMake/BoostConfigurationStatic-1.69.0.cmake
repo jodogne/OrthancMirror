@@ -45,15 +45,17 @@ if (BOOST_STATIC)
   ## Patching boost
   ## 
 
-  execute_process(
-    COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${CMAKE_CURRENT_LIST_DIR}/../Patches/boost-${BOOST_VERSION}-linux-standard-base.patch
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    RESULT_VARIABLE Failure
-    )
+  if (FirstRun)
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/boost-${BOOST_VERSION}-linux-standard-base.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
+      )
 
-  if (FirstRun AND Failure)
-    message(FATAL_ERROR "Error while patching a file")
+    if (Failure)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
   endif()
 
 
@@ -199,10 +201,12 @@ if (BOOST_STATIC)
       -DBOOST_HAS_FILESYSTEM_V3=1
       )
     list(APPEND BOOST_SOURCES
-      ${BOOST_NAME}/libs/filesystem/src/codecvt_error_category.cpp
-      ${BOOST_NAME}/libs/filesystem/src/operations.cpp
-      ${BOOST_NAME}/libs/filesystem/src/path.cpp
-      ${BOOST_NAME}/libs/filesystem/src/path_traits.cpp
+      ${BOOST_SOURCES_DIR}/libs/filesystem/src/codecvt_error_category.cpp
+      ${BOOST_SOURCES_DIR}/libs/filesystem/src/operations.cpp
+      ${BOOST_SOURCES_DIR}/libs/filesystem/src/path.cpp
+      ${BOOST_SOURCES_DIR}/libs/filesystem/src/path_traits.cpp
+      ${BOOST_SOURCES_DIR}/libs/filesystem/src/portability.cpp
+      ${BOOST_SOURCES_DIR}/libs/filesystem/src/unique_path.cpp
       )
 
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR
@@ -214,13 +218,13 @@ if (BOOST_STATIC)
 
     elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
       list(APPEND BOOST_SOURCES
-        ${BOOST_NAME}/libs/filesystem/src/windows_file_codecvt.cpp
+        ${BOOST_SOURCES_DIR}/libs/filesystem/src/windows_file_codecvt.cpp
         )
     endif()
   endif()
 
   list(APPEND BOOST_SOURCES
-    ${BOOST_NAME}/libs/iostreams/src/file_descriptor.cpp
+    ${BOOST_SOURCES_DIR}/libs/iostreams/src/file_descriptor.cpp
     )
   
 
