@@ -43,6 +43,16 @@
 #include <boost/lexical_cast.hpp>
 
 
+/**
+ * WARNING: Do not use the RETURNING clause in the SQLite statements
+ * of this file. Indeed, "the RETURNING syntax has been supported by
+ * SQLite since version 3.35.0 (2021-03-12)". However, versions of
+ * SQLite < 3.35.0 are still widely used (e.g. Ubuntu 22.04 LTS, which
+ * is supported until 2030, comes with SQLite 3.31.1).
+ * https://sqlite.org/lang_returning.html
+ **/
+
+
 namespace Orthanc
 {  
   static std::string JoinRequestedMetadata(const FindRequest::ChildrenSpecification& childrenSpec)
@@ -2317,26 +2327,35 @@ namespace Orthanc
       }
 
       // "reservedUntil <= ?" indicates that the reservation has expired
-      const std::string sql = ("WITH RowToDelete AS (SELECT id FROM Queues WHERE queueId=? AND "
-                               "(reservedUntil IS NULL OR reservedUntil <= ?) ORDER BY id " + order + " LIMIT 1) "
-                               "DELETE FROM Queues WHERE id IN (SELECT id FROM RowToDelete) "
-                               "RETURNING value");
+      const std::string sql = ("SELECT id, value FROM Queues WHERE queueId=? AND "
+                               "(reservedUntil IS NULL OR reservedUntil <= ?) ORDER BY id " + order + " LIMIT 1");
 
-      SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
+      SQLite::Statement s1(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
 
-      s.BindString(0, queueId);
-      s.BindInt64(1, GetSecondsSinceEpoch() /* now */);
+      s1.BindString(0, queueId);
+      s1.BindInt64(1, GetSecondsSinceEpoch() /* now */);
 
-      if (!s.Step())
+      if (!s1.Step())
       {
         // No value found
         return false;
       }
       else
       {
-        if (!s.ColumnBlobAsString(0, &value))
+        if (!s1.ColumnBlobAsString(1, &value))
         {
           throw OrthancException(ErrorCode_NotEnoughMemory);
+        }
+
+        SQLite::Statement s2(db_, SQLITE_FROM_HERE, "DELETE FROM Queues WHERE queueId=? AND id=?");
+        s2.BindString(0, queueId);
+        s2.BindInt64(1, s1.ColumnInt64(0));
+        s2.Run();
+
+        if (db_.GetLastChangeCount() != 1)
+        {
+          // This occurs if the acknowledgment occurs after the reservation has expired
+          throw OrthancException(ErrorCode_UnknownResource);
         }
 
         return true;
@@ -2426,6 +2445,10 @@ namespace Orthanc
       {
         // This occurs if the acknowledgment occurs after the reservation has expired
         throw OrthancException(ErrorCode_UnknownResource);
+      }
+      else if (db_.GetLastChangeCount() > 1)
+      {
+        throw OrthancException(ErrorCode_InternalError);
       }
     }
   };
