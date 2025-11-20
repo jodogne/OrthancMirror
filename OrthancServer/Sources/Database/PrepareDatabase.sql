@@ -108,7 +108,7 @@ CREATE INDEX MainDicomTagsIndex1 ON MainDicomTags(id);
 -- The 3 following indexes were added in Orthanc 0.8.5 (database v5)
 CREATE INDEX DicomIdentifiersIndex1 ON DicomIdentifiers(id);
 -- CREATE INDEX DicomIdentifiersIndex2 ON DicomIdentifiers(tagGroup, tagElement);  -- disabled in 1.12.10
-CREATE INDEX DicomIdentifiersIndexValues ON DicomIdentifiers(value COLLATE BINARY);
+-- CREATE INDEX DicomIdentifiersIndexValues ON DicomIdentifiers(value COLLATE BINARY);  - temporarily disabled for testing
 
 CREATE INDEX ChangesIndex ON Changes(internalId);
 
