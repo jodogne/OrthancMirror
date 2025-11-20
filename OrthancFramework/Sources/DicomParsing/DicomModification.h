@@ -31,7 +31,6 @@
 
 namespace Orthanc
 {
-  class DicomPixelMasker;
 
   class ORTHANC_PUBLIC DicomModification : public boost::noncopyable
   {
@@ -54,6 +53,16 @@ namespace Orthanc
                          const std::string& sourceIdentifier,
                          ResourceType level,
                          const DicomMap& sourceDicom) = 0;                       
+    };
+
+    class ORTHANC_PUBLIC IDicomModifier : public boost::noncopyable
+    {
+    public:
+      virtual ~IDicomModifier()
+      {
+      }
+
+      virtual bool Apply(ParsedDicomFile& dicom) = 0;                       
     };
 
   private:
@@ -156,8 +165,8 @@ namespace Orthanc
     ListOfPaths          removeSequences_;       // Must *never* be a path whose prefix is empty
     SequenceReplacements sequenceReplacements_;  // Must *never* be a path whose prefix is empty
 
-    // New in Orthanc 1.X.X
-    std::unique_ptr<DicomPixelMasker>     pixelMasker_;    // TODO-PIXEL-ANON: check ownership & serialization
+    // New in Orthanc 1.12.10
+    std::unique_ptr<IDicomModifier>     dicomModifier_;    // TODO-PIXEL-ANON: check ownership & serialization
 
     std::string MapDicomIdentifier(const std::string& original,
                                    ResourceType level);
