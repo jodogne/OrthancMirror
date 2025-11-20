@@ -2096,7 +2096,7 @@ namespace Orthanc
     const std::string originalSopInstanceUid = IDicomTranscoder::GetSopInstanceUid(dicomFile->GetDcmtkObject());  
     std::string forceModifiedSopInstanceUid;
 
-    // do we need to transcode before ?
+    // do we need to transcode before applying e.g custom pixels modifications ?
     DicomTransferSyntax currentTransferSyntax;
     if (modification.RequiresUncompressedTransferSyntax() && 
         dicomFile->LookupTransferSyntax(currentTransferSyntax) &&
@@ -2133,12 +2133,11 @@ namespace Orthanc
         }
       }
 
-      if (!transcode) // if we had to change the TS for the modification, we need to restore the original TS afterwards
+      if (!transcode) // if we had to change the TS for the modification, we will need to restore the original TS afterwards
       {
         transcode = true;
         targetSyntax = currentTransferSyntax;
       }
-      
     }
 
     modification.Apply(*dicomFile);

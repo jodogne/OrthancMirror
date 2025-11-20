@@ -10705,6 +10705,20 @@ extern "C"
     return context->InvokeService(context, _OrthancPluginService_RegisterAuditLogHandler, &params);
   }
 
+  // TODO-PIXEL-ANON: cleanup (or implement ;-) )
+  // ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterCustomModifier(
+  //   OrthancPluginContext*                  context,
+  //   OrthancPluginCustomModifierFactory     factory,    // signature like CreateCustomModifier(void* output, 
+  //                                                      //                                     const void* request, uint64_t requestSize // the full json request or only the "CustomModifier part" ?
+  //                                                      //                                     const char* resourceId, ResourceLevel ..  // that would allow the plugin e.g. to detect the areas to clear by e.g: detecting the patient face ...
+  //                                                      // )
+  //                                                      // Creates a CustomModifier from: 
+  //                                                      // - either a request payload 
+  //                                                      // - or, from a serialized modification job (the job would serialize its creation request.  This way, we don't need to implement serialize/unserialize in the CustomModifier)
+  //   OrthancPluginApplyCustomModifier       apply,      // signature like OrthancPluginDicomInstance* ApplyCustomModifier(void* modifier, OrthancPluginDicomInstance* source)
+  //   OrthancPluginFreeCustomModifier        free,       // signature like void FreeCustomModifier(void* modifier)
+  // )
+  
 
 #ifdef  __cplusplus
 }

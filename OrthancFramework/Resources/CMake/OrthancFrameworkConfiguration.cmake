@@ -549,7 +549,6 @@ if (ENABLE_DCMTK)
   set(ORTHANC_DICOM_SOURCES_INTERNAL
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomFindAnswers.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DicomModification.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DicomPixelMasker.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DicomWebJsonVisitor.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/FromDcmtkBridge.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/ParsedDicomCache.cpp

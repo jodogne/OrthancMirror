@@ -31,7 +31,6 @@
 #include "../SerializationToolbox.h"
 #include "FromDcmtkBridge.h"
 #include "ITagVisitor.h"
-#include "DicomPixelMasker.h"
 
 #include <memory>   // For std::unique_ptr
 
@@ -1016,14 +1015,13 @@ namespace Orthanc
       }
     }
 
-    // (0.1) New in Orthanc 1.X.X: Apply pixel modifications
-    // This is done before modifying any tags because the pixelMasker has filters on the Orthanc ids ->
+    // (0.1) New in Orthanc 1.12.10: Apply custom modifications (e.g. pixels masking)
+    // This is done before modifying any tags because the dicomModifier_ might have filters on the Orthanc ids ->
     // the DICOM UID tags must not be modified before.
-    if (pixelMasker_ != NULL)
+    if (dicomModifier_ != NULL)
     {
-      pixelMasker_->Apply(toModify);
+      dicomModifier_->Apply(toModify);
     }
-
 
     // (0.2) Create a summary of the source file, if a custom generator
     // is provided
@@ -1334,12 +1332,13 @@ namespace Orthanc
       privateCreator_ = SerializationToolbox::ReadString(request, "PrivateCreator");
     }
 
-    // New in Orthanc 1.X.X
-    if (request.isMember("MaskPixelData") && request["MaskPixelData"].isObject())
-    {
-      pixelMasker_.reset(new DicomPixelMasker());
-      pixelMasker_->ParseRequest(request);
-    }
+    // TODO-PIXEL-ANON: remove
+    // // New in Orthanc 1.X.X
+    // if (request.isMember("MaskPixelData") && request["MaskPixelData"].isObject())
+    // {
+    //   pixelMasker_.reset(new DicomPixelMasker());
+    //   pixelMasker_->ParseRequest(request);
+    // }
 
     if (!force)
     {
@@ -1461,12 +1460,13 @@ namespace Orthanc
       privateCreator_ = SerializationToolbox::ReadString(request, "PrivateCreator");
     }
 
-    // New in Orthanc 1.X.X
-    if (request.isMember("MaskPixelData") && request["MaskPixelData"].isObject())
-    {
-      pixelMasker_.reset(new DicomPixelMasker());
-      pixelMasker_->ParseRequest(request);
-    }
+    // TODO-PIXEL-ANON: remove
+    // // New in Orthanc 1.X.X
+    // if (request.isMember("MaskPixelData") && request["MaskPixelData"].isObject())
+    // {
+    //   pixelMasker_.reset(new DicomPixelMasker());
+    //   pixelMasker_->ParseRequest(request);
+    // }
   }
 
   void DicomModification::SetDicomIdentifierGenerator(DicomModification::IDicomIdentifierGenerator &generator)
@@ -1931,6 +1931,6 @@ namespace Orthanc
 
   bool DicomModification::RequiresUncompressedTransferSyntax() const
   {
-    return pixelMasker_ != NULL;
+    return dicomModifier_ != NULL;
   }
 }
