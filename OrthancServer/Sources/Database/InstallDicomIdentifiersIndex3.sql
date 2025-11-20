@@ -20,3 +20,7 @@
 
 
 CREATE INDEX DicomIdentifiersIndex3 ON DicomIdentifiers(tagGroup, tagElement, value);
+
+-- remove these 2 old indexes that are now redundant.
+DROP INDEX IF EXISTS DicomIdentifiersIndex2;
+DROP INDEX IF EXISTS DicomIdentifiersIndexValues;
