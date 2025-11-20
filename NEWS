@@ -43,6 +43,7 @@ Maintenance
   - Reading a DCMTK dictionary ("ExternalDictionaries" configuration)
   - Using a "TemporaryDirectory" to save zip file or to export DICOMDIR
   - The "SslCertificate" and other related configurations
+* Optimized indexes for /tools/lookup in the built-in SQLite database
 * Fix: DicomGetScu jobs are now saved in DB.
 * Fix: When the configuration option "MaximumStorageCacheSize" was set to 0, the default value (128)
        was actually applied. From now on, a value of 0 really means that the storage cache is disabled.
