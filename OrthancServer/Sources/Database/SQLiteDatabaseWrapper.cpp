@@ -2306,10 +2306,11 @@ namespace Orthanc
     }
 
 
-    // New in Orthanc 1.12.8 (but deprecated, you should use ReserveQueueValue() instead)
-    virtual bool DequeueValue(std::string& value,
-                              const std::string& queueId,
-                              QueueOrigin origin) ORTHANC_OVERRIDE
+    static bool SelectValueFromQueue(uint64_t& valueId /* out */,
+                                     std::string& value /* out */,
+                                     SQLite::Connection& db,
+                                     const std::string& queueId,
+                                     QueueOrigin origin)
     {
       std::string order;
       switch (origin)
@@ -2330,27 +2331,49 @@ namespace Orthanc
       const std::string sql = ("SELECT id, value FROM Queues WHERE queueId=? AND "
                                "(reservedUntil IS NULL OR reservedUntil <= ?) ORDER BY id " + order + " LIMIT 1");
 
-      SQLite::Statement s1(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
+      SQLite::Statement s(db, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
 
-      s1.BindString(0, queueId);
-      s1.BindInt64(1, GetSecondsSinceEpoch() /* now */);
+      s.BindString(0, queueId);
+      s.BindInt64(1, GetSecondsSinceEpoch() /* now */);
 
-      if (!s1.Step())
+      if (!s.Step())
       {
         // No value found
         return false;
       }
       else
       {
-        if (!s1.ColumnBlobAsString(1, &value))
+        int64_t id = s.ColumnInt64(0);
+        if (id < 0)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        valueId = static_cast<uint64_t>(id);
+
+        if (!s.ColumnBlobAsString(1, &value))
         {
           throw OrthancException(ErrorCode_NotEnoughMemory);
         }
 
-        SQLite::Statement s2(db_, SQLITE_FROM_HERE, "DELETE FROM Queues WHERE queueId=? AND id=?");
-        s2.BindString(0, queueId);
-        s2.BindInt64(1, s1.ColumnInt64(0));
-        s2.Run();
+        return true;
+      }
+    }
+
+
+    // New in Orthanc 1.12.8 (but deprecated, you should use ReserveQueueValue() instead)
+    virtual bool DequeueValue(std::string& value,
+                              const std::string& queueId,
+                              QueueOrigin origin) ORTHANC_OVERRIDE
+    {
+      uint64_t valueId;
+
+      if (SelectValueFromQueue(valueId, value, db_, queueId, origin))
+      {
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM Queues WHERE queueId=? AND id=?");
+        s.BindString(0, queueId);  // Providing "queueId" is just a safeguard
+        s.BindInt64(1, valueId);
+        s.Run();
 
         if (db_.GetLastChangeCount() != 1)
         {
@@ -2359,7 +2382,11 @@ namespace Orthanc
         }
 
         return true;
-      }    
+      }
+      else
+      {
+        return false;
+      }
     }
 
 
@@ -2380,50 +2407,31 @@ namespace Orthanc
                                    QueueOrigin origin,
                                    uint32_t releaseTimeout) ORTHANC_OVERRIDE
     {
-      std::string order;
-      switch (origin)
+      if (SelectValueFromQueue(valueId, value, db_, queueId, origin))
       {
-        case QueueOrigin_Back:
-          order = "DESC";
-          break;
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "UPDATE Queues SET reservedUntil=? WHERE queueId=? AND id=?");
 
-        case QueueOrigin_Front:
-          order = "ASC";
-          break;
+        const int64_t reservedUntil = GetSecondsSinceEpoch() /* now */ + releaseTimeout;
+        s.BindInt64(0, reservedUntil);
+        s.BindString(1, queueId);  // Providing "queueId" is just a safeguard
+        s.BindInt64(2, valueId);
+        s.Run();
 
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
-
-      // "reservedUntil <= ?" indicates that the reservation has expired
-      const std::string sql = ("WITH RowToUpdate AS (SELECT id FROM Queues WHERE queueId=? AND "
-                               "(reservedUntil IS NULL OR reservedUntil <= ?) ORDER BY id " + order + " LIMIT 1) "
-                               "UPDATE Queues SET reservedUntil = ? WHERE id IN (SELECT id FROM RowToUpdate) "
-                               "RETURNING id, value");
-
-      SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
-
-      s.BindString(0, queueId);
-
-      const int64_t now = GetSecondsSinceEpoch();
-      s.BindInt64(1, now);
-      s.BindInt64(2, now + releaseTimeout /* reservedUntil */);
-
-      if (!s.Step())
-      {
-        // No value found
-        return false;
-      }
-      else
-      {
-        valueId = static_cast<uint64_t>(s.ColumnInt64(0));
-
-        if (!s.ColumnBlobAsString(1, &value))
+        if (db_.GetLastChangeCount() == 0)
         {
-          throw OrthancException(ErrorCode_NotEnoughMemory);
+          // This occurs if the acknowledgment occurs after the reservation has expired
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else if (db_.GetLastChangeCount() > 1)
+        {
+          throw OrthancException(ErrorCode_InternalError);
         }
 
         return true;
+      }
+      else
+      {
+        return false;
       }
     }
 
@@ -2436,7 +2444,7 @@ namespace Orthanc
       SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "DELETE FROM Queues WHERE queueId=? AND id=? AND "
                           "reservedUntil IS NOT NULL AND ? < reservedUntil");
-      s.BindString(0, queueId);
+      s.BindString(0, queueId);  // Providing "queueId" is just a safeguard
       s.BindInt64(1, static_cast<int64_t>(valueId));
       s.BindInt64(2, GetSecondsSinceEpoch() /* now */);
       s.Run();
