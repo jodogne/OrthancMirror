@@ -471,7 +471,7 @@ namespace Orthanc
 
     if (previous == uidMap_.end())
     {
-      if (identifierGenerator_ == NULL)
+      if (identifierGenerator_.get() == NULL)
       {
         mapped = FromDcmtkBridge::GenerateUniqueIdentifier(level);
       }
@@ -541,9 +541,8 @@ namespace Orthanc
     keepSeriesInstanceUid_(false),
     keepSopInstanceUid_(false),
     updateReferencedRelationships_(true),
-    isAnonymization_(false),
-    //privateCreator_("PrivateCreator"),
-    identifierGenerator_(NULL)
+    isAnonymization_(false)
+    //privateCreator_("PrivateCreator")
   {
   }
 
@@ -964,6 +963,11 @@ namespace Orthanc
     assert(ResourceType_Patient + 1 == ResourceType_Study &&
            ResourceType_Study + 1 == ResourceType_Series &&
            ResourceType_Series + 1 == ResourceType_Instance);
+
+    if (toModify.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
 
     if (IsRemoved(DICOM_TAG_PATIENT_ID) ||
         IsRemoved(DICOM_TAG_STUDY_INSTANCE_UID) ||
@@ -1469,9 +1473,16 @@ namespace Orthanc
     // }
   }
 
-  void DicomModification::SetDicomIdentifierGenerator(DicomModification::IDicomIdentifierGenerator &generator)
+  void DicomModification::SetDicomIdentifierGenerator(DicomModification::IDicomIdentifierGenerator* generator)
   {
-    identifierGenerator_ = &generator;
+    if (generator == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else
+    {
+      identifierGenerator_.reset(generator);
+    }
   }
 
 
@@ -1651,8 +1662,7 @@ namespace Orthanc
   }
 
   
-  DicomModification::DicomModification(const Json::Value& serialized) :
-    identifierGenerator_(NULL)
+  DicomModification::DicomModification(const Json::Value& serialized)
   {
     removePrivateTags_ = SerializationToolbox::ReadBoolean(serialized, REMOVE_PRIVATE_TAGS);
     level_ = StringToResourceType(SerializationToolbox::ReadString(serialized, LEVEL).c_str());

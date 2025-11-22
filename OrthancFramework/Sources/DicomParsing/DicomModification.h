@@ -158,7 +158,7 @@ namespace Orthanc
     DicomMap currentSource_;
     std::string privateCreator_;
 
-    IDicomIdentifierGenerator* identifierGenerator_;
+    std::unique_ptr<IDicomIdentifierGenerator> identifierGenerator_;
 
     // New in Orthanc 1.9.4
     SetOfTags            uids_;
@@ -265,7 +265,7 @@ namespace Orthanc
     void ParseAnonymizationRequest(bool& patientNameOverridden /* out */,
                                    const Json::Value& request);
 
-    void SetDicomIdentifierGenerator(IDicomIdentifierGenerator& generator);
+    void SetDicomIdentifierGenerator(IDicomIdentifierGenerator* generator /* takes ownership */);
 
     void Serialize(Json::Value& value) const;
 
