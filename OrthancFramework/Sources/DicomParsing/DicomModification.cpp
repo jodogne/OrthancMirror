@@ -958,7 +958,7 @@ namespace Orthanc
     }        
   }
 
-  void DicomModification::Apply(ParsedDicomFile& toModify)
+  void DicomModification::Apply(std::unique_ptr<ParsedDicomFile>& toModify)
   {
     // Check the request
     assert(ResourceType_Patient + 1 == ResourceType_Study &&
@@ -1027,7 +1027,7 @@ namespace Orthanc
     // is provided
     if (identifierGenerator_ != NULL)
     {
-      toModify.ExtractDicomSummary(currentSource_, ORTHANC_MAXIMUM_TAG_LENGTH);
+      toModify->ExtractDicomSummary(currentSource_, ORTHANC_MAXIMUM_TAG_LENGTH);
     }
 
     // (1) Make sure the relationships are updated with the ids that we force too
@@ -1038,7 +1038,7 @@ namespace Orthanc
       {
         std::string original;
         std::string replacement = GetReplacementAsString(DICOM_TAG_STUDY_INSTANCE_UID);
-        const_cast<const ParsedDicomFile&>(toModify).GetTagValue(original, DICOM_TAG_STUDY_INSTANCE_UID);
+        const_cast<const ParsedDicomFile&>(*toModify).GetTagValue(original, DICOM_TAG_STUDY_INSTANCE_UID);
         RegisterMappedDicomIdentifier(original, replacement, ResourceType_Study);
       }
 
@@ -1046,7 +1046,7 @@ namespace Orthanc
       {
         std::string original;
         std::string replacement = GetReplacementAsString(DICOM_TAG_SERIES_INSTANCE_UID);
-        const_cast<const ParsedDicomFile&>(toModify).GetTagValue(original, DICOM_TAG_SERIES_INSTANCE_UID);
+        const_cast<const ParsedDicomFile&>(*toModify).GetTagValue(original, DICOM_TAG_SERIES_INSTANCE_UID);
         RegisterMappedDicomIdentifier(original, replacement, ResourceType_Series);
       }
 
@@ -1054,7 +1054,7 @@ namespace Orthanc
       {
         std::string original;
         std::string replacement = GetReplacementAsString(DICOM_TAG_SOP_INSTANCE_UID);
-        const_cast<const ParsedDicomFile&>(toModify).GetTagValue(original, DICOM_TAG_SOP_INSTANCE_UID);
+        const_cast<const ParsedDicomFile&>(*toModify).GetTagValue(original, DICOM_TAG_SOP_INSTANCE_UID);
         RegisterMappedDicomIdentifier(original, replacement, ResourceType_Instance);
       }
     }
@@ -1063,21 +1063,21 @@ namespace Orthanc
     // (2) Remove the private tags, if need be
     if (removePrivateTags_)
     {
-      toModify.RemovePrivateTags(privateTagsToKeep_);
+      toModify->RemovePrivateTags(privateTagsToKeep_);
     }
 
     // (3) Clear the tags specified by the user
     for (SetOfTags::const_iterator it = clearings_.begin(); 
          it != clearings_.end(); ++it)
     {
-      toModify.Clear(*it, true /* only clear if the tag exists in the original file */);
+      toModify->Clear(*it, true /* only clear if the tag exists in the original file */);
     }
 
     // (4) Remove the tags specified by the user
     for (SetOfTags::const_iterator it = removals_.begin(); 
          it != removals_.end(); ++it)
     {
-      toModify.Remove(*it);
+      toModify->Remove(*it);
     }
 
     // (5) Replace the tags
@@ -1085,7 +1085,7 @@ namespace Orthanc
          it != replacements_.end(); ++it)
     {
       assert(it->second != NULL);
-      toModify.Replace(it->first, *it->second, true /* decode data URI scheme */,
+      toModify->Replace(it->first, *it->second, true /* decode data URI scheme */,
                        DicomReplaceMode_InsertIfAbsent, privateCreator_);
     }
 
@@ -1099,7 +1099,7 @@ namespace Orthanc
       }
       else
       {
-        MapDicomTags(toModify, ResourceType_Study);
+        MapDicomTags(*toModify, ResourceType_Study);
       }
     }
 
@@ -1112,7 +1112,7 @@ namespace Orthanc
       }
       else
       {
-        MapDicomTags(toModify, ResourceType_Series);
+        MapDicomTags(*toModify, ResourceType_Series);
       }
     }
 
@@ -1125,7 +1125,7 @@ namespace Orthanc
       }
       else
       {
-        MapDicomTags(toModify, ResourceType_Instance);
+        MapDicomTags(*toModify, ResourceType_Instance);
       }
     }
 
@@ -1136,11 +1136,11 @@ namespace Orthanc
 
       if (updateReferencedRelationships_)
       {
-        const_cast<const ParsedDicomFile&>(toModify).Apply(visitor);
+        const_cast<const ParsedDicomFile&>(*toModify).Apply(visitor);
       }
       else
       {
-        visitor.RemoveRelationships(toModify);
+        visitor.RemoveRelationships(*toModify);
       }
     }
 
@@ -1149,7 +1149,7 @@ namespace Orthanc
          it != removeSequences_.end(); ++it)
     {
       assert(it->GetPrefixLength() > 0);
-      toModify.RemovePath(*it);
+      toModify->RemovePath(*it);
     }
 
     for (SequenceReplacements::const_iterator it = sequenceReplacements_.begin();
@@ -1157,8 +1157,8 @@ namespace Orthanc
     {
       assert(*it != NULL);
       assert((*it)->GetPath().GetPrefixLength() > 0);
-      toModify.ReplacePath((*it)->GetPath(), (*it)->GetValue(), true /* decode data URI scheme */,
-                           DicomReplaceMode_InsertIfAbsent, privateCreator_);
+      toModify->ReplacePath((*it)->GetPath(), (*it)->GetValue(), true /* decode data URI scheme */,
+                            DicomReplaceMode_InsertIfAbsent, privateCreator_);
     }
 
   }

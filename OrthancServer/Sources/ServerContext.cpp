@@ -2140,7 +2140,7 @@ namespace Orthanc
       }
     }
 
-    modification.Apply(*dicomFile);
+    modification.Apply(dicomFile);
 
     if (transcode)
     {
