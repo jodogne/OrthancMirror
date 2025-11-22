@@ -62,7 +62,9 @@ namespace Orthanc
       {
       }
 
-      virtual bool Apply(ParsedDicomFile& dicom) = 0;                       
+      // It is allowed for the implementation to replace "dicom" by a
+      // brand new ParsedDicomFile instance
+      virtual void Apply(std::unique_ptr<ParsedDicomFile>& dicom) = 0;
     };
 
   private:
@@ -249,7 +251,8 @@ namespace Orthanc
 
     void SetupAnonymization(DicomVersion version);
 
-    void Apply(ParsedDicomFile& toModify);
+    // The "toModify" might be replaced by a new object
+    void Apply(std::unique_ptr<ParsedDicomFile>& toModify);
 
     void SetAllowManualIdentifiers(bool check);
 
