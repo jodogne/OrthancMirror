@@ -3228,6 +3228,12 @@ namespace Orthanc
     return db_.GetDatabaseCapabilities().HasQueuesSupport();
   }
 
+  bool StatelessDatabaseOperations::HasReserveQueueValueSupport()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.GetDatabaseCapabilities().HasReserveQueueValueSupport();
+  }
+
   void StatelessDatabaseOperations::ExecuteCount(uint64_t& count,
                                                  const FindRequest& request)
   {
@@ -3572,6 +3578,93 @@ namespace Orthanc
     operations.Apply(*this, size, queueId);
 
     return size;
+  }
+
+  bool StatelessDatabaseOperations::ReserveQueueValue(std::string& value,
+                                                      uint64_t& valueId,
+                                                      const std::string& queueId,
+                                                      QueueOrigin origin,
+                                                      uint32_t releaseTimeout)
+  {
+    if (queueId.empty() ||
+        releaseTimeout == 0)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string& queueId_;
+      uint64_t& valueId_;
+      std::string& value_;
+      QueueOrigin origin_;
+      uint32_t releaseTimeout_;
+      bool found_;
+
+    public:
+      Operations(std::string& value,
+                 uint64_t& valueId,
+                 const std::string& queueId,
+                 QueueOrigin origin,
+                 uint32_t releaseTimeout) :
+        queueId_(queueId),
+        valueId_(valueId),
+        value_(value),
+        origin_(origin),
+        releaseTimeout_(releaseTimeout),
+        found_(false)
+      {
+      }
+
+      bool HasFound()
+      {
+        return found_;
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        found_ = transaction.ReserveQueueValue(value_, valueId_, queueId_, origin_, releaseTimeout_);
+      }
+    };
+
+    Operations operations(value, valueId, queueId, origin, releaseTimeout);
+    Apply(operations);
+
+    return operations.HasFound();
+  }
+
+
+  void StatelessDatabaseOperations::AcknowledgeQueueValue(const std::string& queueId,
+                                                          uint64_t valueId)
+  {
+    if (queueId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string& queueId_;
+      uint64_t valueId_;
+
+    public:
+      Operations(const std::string& queueId,
+                 uint64_t valueId) :
+        queueId_(queueId),
+        valueId_(valueId)
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        transaction.AcknowledgeQueueValue(queueId_, valueId_);
+      }
+    };
+
+    Operations operations(queueId, valueId);
+    Apply(operations);
   }
 
 

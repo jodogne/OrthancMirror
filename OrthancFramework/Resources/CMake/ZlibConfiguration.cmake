@@ -25,7 +25,27 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_ZLIB)
   SET(ZLIB_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/zlib-1.3.1.tar.gz")
   SET(ZLIB_MD5 "9855b6d802d7fe5b7bd5b196a2271655")
 
+  if (IS_DIRECTORY "${ZLIB_SOURCES_DIR}")
+    set(FirstRun OFF)
+  else()
+    set(FirstRun ON)
+  endif()
+
   DownloadPackage(${ZLIB_MD5} ${ZLIB_URL} "${ZLIB_SOURCES_DIR}")
+
+  if (FirstRun)
+    # fix https://github.com/madler/zlib/issues/1044
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/zlib-1.3.1-zconf.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
+      )
+
+    if (Failure)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
+  endif()
 
   include_directories(
     ${ZLIB_SOURCES_DIR}

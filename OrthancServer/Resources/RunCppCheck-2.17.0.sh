@@ -1,4 +1,5 @@
 #!/bin/bash
+# Note: This script is tuned to run with cppcheck v2.17.0
 
 set -ex
 
@@ -36,7 +37,11 @@ assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModification
 assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
 EOF
 
-${CPPCHECK} --enable=all --std=gnu++11 --library=boost \
+CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.7.0/
+mkdir -p ${CPPCHECK_BUILD_DIR}
+
+${CPPCHECK} -j8 --enable=all --std=gnu++11 --library=boost \
+            --cppcheck-build-dir=${CPPCHECK_BUILD_DIR} \
             --suppressions-list=/tmp/cppcheck-suppressions.txt \
             -I/usr/include/ \
             -I/usr/include/jsoncpp/ \

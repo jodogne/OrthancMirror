@@ -109,15 +109,17 @@ if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
   SET(DCMTK_ENABLE_CHARSET_CONVERSION "iconv" CACHE STRING "")
   SET(HAVE_SYS_GETTID 0 CACHE INTERNAL "")
 
-  execute_process(
-    COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${CMAKE_CURRENT_LIST_DIR}/../Patches/dcmtk-3.6.2-linux-standard-base.patch
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    RESULT_VARIABLE Failure
-    )
+  if (FirstRun)
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/dcmtk-3.6.2-linux-standard-base.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
+      )
 
-  if (FirstRun AND Failure)
-    message(FATAL_ERROR "Error while patching a file")
+    if (Failure)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
   endif()
 endif()
 
@@ -182,16 +184,18 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     )
 
   if (CMAKE_COMPILER_IS_GNUCXX)
-    # This is a patch for DCMTK 3.6.0 and MinGW64
-    execute_process(
-      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${CMAKE_CURRENT_LIST_DIR}/../Patches/dcmtk-3.6.0-mingw64.patch
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      RESULT_VARIABLE Failure
-      )
+    if (FirstRun)
+      # This is a patch for DCMTK 3.6.0 and MinGW64
+      execute_process(
+        COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+        ${CMAKE_CURRENT_LIST_DIR}/../Patches/dcmtk-3.6.0-mingw64.patch
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        RESULT_VARIABLE Failure
+        )
 
-    if (Failure AND FirstRun)
-      message(FATAL_ERROR "Error while patching a file")
+      if (Failure)
+        message(FATAL_ERROR "Error while patching a file")
+      endif()
     endif()
   endif()
 endif()

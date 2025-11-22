@@ -19,18 +19,8 @@
 -- along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-CREATE TABLE KeyValueStores(
-       storeId TEXT NOT NULL,
-       key TEXT NOT NULL,
-       value BLOB NOT NULL,
-       PRIMARY KEY(storeId, key)  -- Prevents duplicates
-       );
+CREATE INDEX DicomIdentifiersIndex3 ON DicomIdentifiers(tagGroup, tagElement, value);
 
-CREATE TABLE Queues (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
-       queueId TEXT NOT NULL,
-       value BLOB NOT NULL
-       --- reservedUntil INTEGER DEFAULT NULL  -- added in AddTimeoutToQueues.sql
-);
-
-CREATE INDEX QueuesIndex ON Queues (queueId, id);
+-- remove these 2 old indexes that are now redundant.
+DROP INDEX IF EXISTS DicomIdentifiersIndex2;
+DROP INDEX IF EXISTS DicomIdentifiersIndexValues;

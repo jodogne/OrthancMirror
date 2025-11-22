@@ -1,0 +1,147 @@
+#!/bin/bash
+# Note: This script is tuned to run with cppcheck v2.17.1
+
+set -ex
+
+CPPCHECK=cppcheck
+
+if [ $# -ge 1 ]; then
+    CPPCHECK=$1
+fi
+
+cat <<EOF > /tmp/cppcheck-suppressions.txt
+assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
+assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
+assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:286
+constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.cpp:50
+constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp:112
+constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp:113
+constParameterCallback:../../OrthancFramework/Sources/Pkcs11.cpp:125
+constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3489
+constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp:47
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:447
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:451
+constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3046
+cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:108
+cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:124
+cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:140
+cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:85
+knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:114
+knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:425
+knownConditionTrueFalse:../../OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp:345
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2291
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2292
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2293
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2294
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2295
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2296
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2297
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2298
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2299
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2300
+nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:322
+stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
+stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
+syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
+syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
+syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
+syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
+useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
+variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:228
+variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
+EOF
+
+CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.7.1/
+mkdir -p ${CPPCHECK_BUILD_DIR}
+
+${CPPCHECK} -j8 --enable=all --quiet --std=c++11 \
+            --cppcheck-build-dir=${CPPCHECK_BUILD_DIR} \
+            --suppress=unusedFunction \
+            --suppress=missingIncludeSystem \
+            --suppress=missingInclude \
+            --suppress=useStlAlgorithm \
+            --check-level=exhaustive \
+            --suppressions-list=/tmp/cppcheck-suppressions.txt \
+            -DBOOST_HAS_DATE_TIME=1 \
+            -DBOOST_HAS_FILESYSTEM_V3=1 \
+            -DBOOST_HAS_REGEX=1 \
+            -DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=1 \
+            -DCIVETWEB_HAS_WEBDAV_WRITING=1 \
+            -DDCMTK_VERSION_NUMBER=365 \
+            -DHAVE_MALLOPT=1 \
+            -DHAVE_MALLOC_TRIM=1 \
+            -DMONGOOSE_USE_CALLBACKS=1 \
+            -DJSONCPP_VERSION_MAJOR=1 \
+            -DJSONCPP_VERSION_MINOR=0 \
+            -DORTHANC_BUILDING_FRAMEWORK_LIBRARY=0 \
+            -DORTHANC_BUILD_UNIT_TESTS=1 \
+            -DORTHANC_ENABLE_BASE64=1 \
+            -DORTHANC_ENABLE_CIVETWEB=1 \
+            -DORTHANC_ENABLE_CURL=1 \
+            -DORTHANC_ENABLE_DCMTK=1 \
+            -DORTHANC_ENABLE_DCMTK_JPEG=1 \
+            -DORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS=1 \
+            -DORTHANC_ENABLE_DCMTK_NETWORKING=1 \
+            -DORTHANC_ENABLE_DCMTK_TRANSCODING=1 \
+            -DORTHANC_ENABLE_JPEG=1 \
+            -DORTHANC_ENABLE_LOCALE=1 \
+            -DORTHANC_ENABLE_LOGGING=1 \
+            -DORTHANC_ENABLE_LOGGING_STDIO=1 \
+            -DORTHANC_ENABLE_LUA=1 \
+            -DORTHANC_ENABLE_MD5=1 \
+            -DORTHANC_ENABLE_MONGOOSE=0 \
+            -DORTHANC_ENABLE_PKCS11=1 \
+            -DORTHANC_ENABLE_PLUGINS=1 \
+            -DORTHANC_ENABLE_PNG=1 \
+            -DORTHANC_ENABLE_PUGIXML=1 \
+            -DORTHANC_ENABLE_SQLITE=1 \
+            -DORTHANC_ENABLE_SSL=1 \
+            -DORTHANC_ENABLE_ZLIB=1 \
+            -DORTHANC_SANDBOXED=0 \
+            -DORTHANC_SQLITE_VERSION=3027001 \
+            -DORTHANC_UNIT_TESTS_LINK_FRAMEWORK=1 \
+            -DORTHANC_VERSION="\"mainline\"" \
+            -DPUGIXML_VERSION=150 \
+            -DUNIT_TESTS_WITH_HTTP_CONNEXIONS=1 \
+            -D__BYTE_ORDER=__LITTLE_ENDIAN \
+            -D__GNUC__ \
+            -D__cplusplus=201103 \
+            -D__linux__ \
+            -UNDEBUG \
+            -DHAS_ORTHANC_EXCEPTION=1 \
+            \
+            ../../OrthancFramework/Sources \
+            ../../OrthancFramework/UnitTestsSources \
+            ../../OrthancServer/Plugins/Engine \
+            ../../OrthancServer/Plugins/Include \
+            ../../OrthancServer/Sources \
+            ../../OrthancServer/UnitTestsSources \
+            ../../OrthancServer/Plugins/Samples/Common \
+            \
+            ../../OrthancServer/Plugins/Samples/AdoptDicomInstance/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/AutomatedJpeg2kCompression/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp \
+            ../../OrthancServer/Plugins/Samples/ConnectivityChecks/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/CppSkeleton/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/CustomImageDecoder/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/DelayedDeletion/LargeDeleteJob.cpp \
+            ../../OrthancServer/Plugins/Samples/DelayedDeletion/PendingDeletionsDatabase.cpp \
+            ../../OrthancServer/Plugins/Samples/DelayedDeletion/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/Housekeeper/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/ModalityWorklists/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/DicomFilter.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/FindRequestHandler.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/MoveRequestHandler.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/MultitenantDicomServer.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/PluginToolbox.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/StoreRequestHandler.cpp \
+            ../../OrthancServer/Plugins/Samples/Sanitizer/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/StorageArea/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/StorageCommitmentScp/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/WebDavFilesystem/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/WebSkeleton/Framework/Plugin.cpp \
+            \
+            2>&1

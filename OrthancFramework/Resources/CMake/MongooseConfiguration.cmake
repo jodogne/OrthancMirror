@@ -50,16 +50,18 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
     set(MONGOOSE_PATCH ${CMAKE_CURRENT_LIST_DIR}/../Patches/mongoose-3.8-patch.diff)
   endif()
 
-  # Patch mongoose
-  execute_process(
-    COMMAND ${PATCH_EXECUTABLE} -N mongoose.c 
-    INPUT_FILE ${MONGOOSE_PATCH}
-    WORKING_DIRECTORY ${MONGOOSE_SOURCES_DIR}
-    RESULT_VARIABLE Failure
-    )
+  if (FirstRun)
+    # Patch mongoose
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -N mongoose.c
+      INPUT_FILE ${MONGOOSE_PATCH}
+      WORKING_DIRECTORY ${MONGOOSE_SOURCES_DIR}
+      RESULT_VARIABLE Failure
+      )
 
-  if (Failure AND FirstRun)
-    message(FATAL_ERROR "Error while patching a file")
+    if (Failure)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
   endif()
 
   include_directories(

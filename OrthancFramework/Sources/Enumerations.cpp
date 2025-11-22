@@ -1199,6 +1199,9 @@ namespace Orthanc
       case ErrorPayloadType_Dimse:
         return "Dimse";
 
+      case ErrorPayloadType_RetrieveJob:
+        return "RetrieveJob";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1931,6 +1934,10 @@ namespace Orthanc
     if (type == "Dimse")
     {
       return ErrorPayloadType_Dimse;
+    }
+    else if (type == "RetrieveJob")
+    {
+      return ErrorPayloadType_RetrieveJob;
     }
     else
     {

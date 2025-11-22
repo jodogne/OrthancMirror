@@ -37,15 +37,17 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBP11)
 
   DownloadPackage(${LIBP11_MD5} ${LIBP11_URL} "${LIBP11_SOURCES_DIR}")
 
-  # Apply the patches
-  execute_process(
-    COMMAND ${PATCH_EXECUTABLE} -p0 -N -i ${CMAKE_CURRENT_LIST_DIR}/../Patches/libp11-0.4.0.patch
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    RESULT_VARIABLE Failure
-    )
+  if (FirstRun)
+    # Apply the patches
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i ${CMAKE_CURRENT_LIST_DIR}/../Patches/libp11-0.4.0.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
+      )
 
-  if (Failure AND FirstRun)
-    message(FATAL_ERROR "Error while patching libp11")
+    if (Failure)
+      message(FATAL_ERROR "Error while patching libp11")
+    endif()
   endif()
 
   # This command MUST be after applying the patch

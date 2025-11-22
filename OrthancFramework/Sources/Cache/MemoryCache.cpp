@@ -88,9 +88,19 @@ namespace Orthanc
       while (!index_.IsEmpty())
       {
         Page* element = NULL;
-        index_.RemoveOldest(element);
-        assert(element != NULL);
-        delete element;
+
+        try
+        {
+          index_.RemoveOldest(element);
+
+          assert(element != NULL);
+          delete element;
+        }
+        catch (OrthancException& e)
+        {
+          // Don't throw exceptions in destructors
+          LOG(ERROR) << "Exception in destructor: " << e.What();
+        }
       }
     }
 

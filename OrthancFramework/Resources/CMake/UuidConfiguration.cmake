@@ -41,15 +41,17 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     ## WebAssembly (used in Stone)
     ## 
 
-    execute_process(
-      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${CMAKE_CURRENT_LIST_DIR}/../Patches/e2fsprogs-1.44.5.patch
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      RESULT_VARIABLE Failure
-      )
+    if (FirstRun)
+      execute_process(
+        COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+        ${CMAKE_CURRENT_LIST_DIR}/../Patches/e2fsprogs-1.44.5.patch
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        RESULT_VARIABLE Failure
+        )
 
-    if (FirstRun AND Failure)
-      message(FATAL_ERROR "Error while patching a file")
+      if (Failure)
+        message(FATAL_ERROR "Error while patching a file")
+      endif()
     endif()
 
 

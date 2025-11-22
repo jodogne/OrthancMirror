@@ -25,6 +25,7 @@
 #include "PrecompiledHeaders.h"
 #include "MallocMemoryBuffer.h"
 
+#include "Logging.h"
 #include "OrthancException.h"
 
 #include <string.h>
@@ -37,6 +38,20 @@ namespace Orthanc
     size_(0),
     free_(NULL)
   {
+  }
+
+
+  MallocMemoryBuffer::~MallocMemoryBuffer()
+  {
+    try
+    {
+      Clear();
+    }
+    catch (OrthancException& e)
+    {
+      // Don't throw exceptions in destructors
+      LOG(ERROR) << "Exception in destructor: " << e.What();
+    }
   }
 
 

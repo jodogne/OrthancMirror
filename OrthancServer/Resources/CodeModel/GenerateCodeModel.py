@@ -475,7 +475,7 @@ for node in tu.cursor.get_children():
         # Check that the first argument is the Orthanc context
         if (len(args) == 0 or
             args[0].type.kind != clang.cindex.TypeKind.POINTER or
-            args[0].type.get_pointee().spelling != 'OrthancPluginContext'):
+            not args[0].type.get_pointee().spelling in [ 'OrthancPluginContext', 'const OrthancPluginContext' ]):
             print('[INFO] Not in the Orthanc SDK: %s()' % node.spelling)
             continue
 

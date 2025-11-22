@@ -1,0 +1,12 @@
+diff -urEb curl-8.17.0-orig/CMake/Macros.cmake curl-8.17.0/CMake/Macros.cmake
+--- curl-8.17.0-orig/CMake/Macros.cmake	2025-11-19 10:41:00.404885652 +0100
++++ curl-8.17.0/CMake/Macros.cmake	2025-11-19 10:42:01.556360886 +0100
+@@ -50,7 +50,7 @@
+     message(STATUS "Performing Test ${_curl_test}")
+     try_compile(${_curl_test}
+       ${PROJECT_BINARY_DIR}
+-      "${CMAKE_CURRENT_SOURCE_DIR}/CMake/CurlTests.c"
++      "${CURL_SOURCES_DIR}/CMake/CurlTests.c"
+       CMAKE_FLAGS
+         "-DCOMPILE_DEFINITIONS:STRING=-D${_curl_test} ${CURL_TEST_DEFINES} ${CMAKE_REQUIRED_FLAGS} ${_cmake_required_definitions}"
+         "${_curl_test_add_libraries}"

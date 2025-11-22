@@ -45,10 +45,7 @@ namespace Orthanc
   public:
     MallocMemoryBuffer();
 
-    virtual ~MallocMemoryBuffer() ORTHANC_OVERRIDE
-    {
-      Clear();
-    }
+    virtual ~MallocMemoryBuffer() ORTHANC_OVERRIDE;
 
     void Clear();
 

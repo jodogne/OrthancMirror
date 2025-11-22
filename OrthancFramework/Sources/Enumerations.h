@@ -805,7 +805,8 @@ namespace Orthanc
   enum ErrorPayloadType
   {
     ErrorPayloadType_None = 1,
-    ErrorPayloadType_Dimse = 2
+    ErrorPayloadType_Dimse = 2,
+    ErrorPayloadType_RetrieveJob = 3,
   };
 
 
