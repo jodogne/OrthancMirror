@@ -19,6 +19,15 @@ REST API
 * C-Move and C-Get jobs and HTTP responses now include a new "Details" field with the "DimseErrorStatus"
   of each operation and the list of "RetrievedInstancesIds".
 
+Plugin SDK
+----------
+
+* New primitives for handling queues to ensure that no messages are lost if
+  Orthanc is stopped while a plugin is processing a message:
+  - OrthancPluginReserveQueueValue() is a replacement for OrthancPluginDequeueValue(). This flavour
+    does not directly remove the value from the queue but reserves it for a certain duration.
+  - OrthancPluginAcknowledgeQueueValue() removes a reserved value from a queue.
+
 Maintenance
 -----------
 
@@ -34,6 +43,7 @@ Maintenance
   - Reading a DCMTK dictionary ("ExternalDictionaries" configuration)
   - Using a "TemporaryDirectory" to save zip file or to export DICOMDIR
   - The "SslCertificate" and other related configurations
+* Optimized indexes for /tools/lookup in the built-in SQLite database
 * Fix: DicomGetScu jobs are now saved in DB.
 * Fix: When the configuration option "MaximumStorageCacheSize" was set to 0, the default value (128)
        was actually applied. From now on, a value of 0 really means that the storage cache is disabled.
@@ -50,29 +60,8 @@ Maintenance
 * Upgraded dependencies for static builds:
   - civetweb 1.16, including patch for CVE-2025-55763
   - SQLite 3.50.4
-
-Plugins
--------
-
-* Worklists plugin:
-  - The Worklists plugin now provides a REST API to:
-    - create worklists through POST at /worklists/create
-    - list the worklists through GET at /worklists
-    - view a single worklist through GET at /worklists/{uuid}
-    - modify a worklist through PUT at /worklists/{uuid}
-    - delete a worklist through DELETE at /worklists/{uuid}
-    All details are available in the Orthanc book:
-    https://orthanc.uclouvain.be/book/plugins/worklists-plugin.html
-  - New configuration options:
-    - "SaveInOrthancDatabase" to store the worklists in the Orthanc DB (provided that you are using SQLite or PostgreSQL).
-    - "DeleteWorklistsOnStableStudy" to delete the worklist once its related study has been received and is stable.
-    - "SetStudyInstanceUidIfMissing" to add a StudyInstanceUID if the REST API request does not include one.
-    - "DeleteWorklistsDelay" to delete a worklist N hours after it has been created
-      (only available if using the "SaveInOrthancDatabase" mode).
-    - "HousekeepingInterval" to define the delay between 2 executions of the Worklist Housekeeping thread
-      that deletes the worklists when required.
-  - Note: the previous "Database" configuration has now been renamed in "Directory" to better differentiate
-    the "File" or "DB modes.
+  - libpng 1.6.50
+  - curl 8.17.0
 
 
 Version 1.12.9 (2025-08-11)
@@ -366,7 +355,7 @@ Maintenance
   an outgoing SCU connection if "DicomTlsRemoteCertificateRequired" is set to "false"
 * Fix C-Find queries not returning computed tags such as ModalitiesInStudy,
   NumberOfStudyRelatedSeries,... in very specific use cases
-* Fix C-Find queries not returning private tags in the modality worklist plugin
+* Fix C-Find queries not returning private tags in the sample modality worklist plugin
 * Fix an extremely rare error when 2 threads are trying to create the same folder
   in the File Storage at the same time
 * Fix crashes if handling very large images
@@ -625,7 +614,7 @@ Maintenance
 * Fix decoding of YBR_FULL RLE images for which the "Planar Configuration" 
   tag (0028,0006) equals 1
 * Made Orthanc more resilient to common spelling errors in SpecificCharacterSet
-* Modality worklists plugin: Allow searching on private tags (exact match only)
+* Sample Modality worklists plugin: Allow searching on private tags (exact match only)
 * Fix orphan files remaining in storage when working with MaximumStorageSize
   (https://discourse.orthanc-server.org/t/issue-with-deleting-incoming-dicoms-when-maximumstoragesize-is-reached/3510)
 * When deleting a resource, the "LastUpdate" metadata of its parents are now updated

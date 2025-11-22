@@ -221,6 +221,19 @@ namespace OrthancPlugins
   }
 
 
+  MemoryBuffer::~MemoryBuffer()
+  {
+    try
+    {
+      Clear();
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS&)
+    {
+      // Don't throw exceptions in destructors
+    }
+  }
+
+
   void MemoryBuffer::Clear()
   {
     if (buffer_.data != NULL)
@@ -351,6 +364,8 @@ namespace OrthancPlugins
     }
   }
 
+
+#if (HAS_ORTHANC_PLUGIN_PEERS == 1) || (HAS_ORTHANC_PLUGIN_HTTP_CLIENT == 1) || (HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1)
   static void DecodeHttpHeaders(HttpHeaders& target,
                                 const MemoryBuffer& source)
   {
@@ -378,6 +393,8 @@ namespace OrthancPlugins
       }
     }
   }
+#endif
+
 
   // helper class to convert std::map of headers to the plugin SDK C structure
   class PluginHttpHeaders
@@ -649,6 +666,19 @@ namespace OrthancPlugins
   {
     Clear();
     Check(OrthancPluginWorklistGetDicomQuery(GetGlobalContext(), &buffer_, query));
+  }
+
+
+  OrthancString::~OrthancString()
+  {
+    try
+    {
+      Clear();
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS&)
+    {
+      // Don't throw exceptions in destructors
+    }
   }
 
 
@@ -1300,6 +1330,20 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
     }
   }
+
+
+  OrthancImage::~OrthancImage()
+  {
+    try
+    {
+      Clear();
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS&)
+    {
+      // Don't throw exceptions in destructors
+    }
+  }
+
 
   void OrthancImage::UncompressPngImage(const void* data,
                                         size_t size)
@@ -4607,8 +4651,11 @@ namespace OrthancPlugins
     uint8_t found = false;
     OrthancPlugins::MemoryBuffer valueBuffer;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     OrthancPluginErrorCode code = OrthancPluginDequeueValue(OrthancPlugins::GetGlobalContext(), &found,
                                                             *valueBuffer, queueId_.c_str(), origin);
+#pragma GCC diagnostic pop
 
     if (code != OrthancPluginErrorCode_Success)
     {
@@ -4641,6 +4688,56 @@ namespace OrthancPlugins
     {
       return size;
     }
+  }
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
+  bool Queue::ReserveInternal(std::string& value, uint64_t& valueId, OrthancPluginQueueOrigin origin, uint32_t releaseTimeout)
+  {
+    uint8_t found = false;
+    OrthancPlugins::MemoryBuffer valueBuffer;
+
+    OrthancPluginErrorCode code = OrthancPluginReserveQueueValue(OrthancPlugins::GetGlobalContext(), &found,
+                                                                 *valueBuffer, &valueId, queueId_.c_str(), origin, releaseTimeout);
+
+    if (code != OrthancPluginErrorCode_Success)
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+    }
+    else if (found)
+    {
+      valueBuffer.ToString(value);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
+  bool Queue::ReserveBack(std::string& value, uint64_t& valueId, uint32_t releaseTimeout)
+  {
+    return ReserveInternal(value, valueId, OrthancPluginQueueOrigin_Back, releaseTimeout);
+  }
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
+  bool Queue::ReserveFront(std::string& value, uint64_t& valueId, uint32_t releaseTimeout)
+  {
+    return ReserveInternal(value, valueId, OrthancPluginQueueOrigin_Front, releaseTimeout);
+  }
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
+  void Queue::Acknowledge(uint64_t valueId)
+  {
+    OrthancPluginAcknowledgeQueueValue(OrthancPlugins::GetGlobalContext(), queueId_.c_str(), valueId);
   }
 #endif
 }

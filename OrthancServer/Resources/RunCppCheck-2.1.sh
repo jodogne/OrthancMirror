@@ -1,5 +1,6 @@
 #!/bin/bash
-# note: this script was last tuned to run with cppcheck v2.17.1
+# Note: This script is tuned to run with cppcheck v2.1
+
 set -ex
 
 CPPCHECK=cppcheck
@@ -9,68 +10,43 @@ if [ $# -ge 1 ]; then
 fi
 
 cat <<EOF > /tmp/cppcheck-suppressions.txt
+constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
+knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:322
-stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1525
+stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1535
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
+stlFindInsert:../../OrthancServer/Sources/Database/MainDicomTagsRegistry.cpp:65
+stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:328
+stlFindInsert:../../OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp:41
+stlFindInsert:../../OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp:191
+stlFindInsert:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:361
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
-uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:419
+unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
+unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1173
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
+assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:277
+assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1026
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
+assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3068
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:286
-variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:228
-variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
-uselessOverride:../../OrthancFramework/Sources/MultiThreading/IRunnableBySteps.h:35
-uselessOverride:../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h:76
-cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:85
-cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:108
-cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:124
-cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:140
-constParameterPointer:../../OrthancServer/Plugins/Include/orthanc/OrthancCPlugin.h
-constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:447
-constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:451
-constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3053
-knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:114
-knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:425
-knownConditionTrueFalse:../../OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp:345
-throwInNoexceptFunction:../../OrthancFramework/Sources/Cache/MemoryStringCache.cpp:121
-throwInNoexceptFunction:../../OrthancFramework/Sources/Cache/MemoryCache.cpp:91
-throwInNoexceptFunction:../../OrthancFramework/Sources/Cache/MemoryObjectCache.cpp:99
-throwInNoexceptFunction:../../OrthancFramework/Sources/MallocMemoryBuffer.h:50
-throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:620
-throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:632
-throwInNoexceptFunction:../../OrthancFramework/Sources/MetricsRegistry.cpp:676
-throwInNoexceptFunction:../../OrthancFramework/Sources/JobsEngine/JobsRegistry.cpp:1296
-throwInNoexceptFunction:../../OrthancServer/Sources/LuaScripting.cpp:830
-throwInNoexceptFunction:../../OrthancServer/Sources/StorageCommitmentReports.cpp:187
-throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:218
-throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:376
-throwInNoexceptFunction:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h:496
-rethrowNoCurrentException:../../OrthancFramework/UnitTestsSources/FromDcmtkTests.cpp
-rethrowNoCurrentException:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp
-constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3046
-constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp
-constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.cpp
-constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp
-constParameterCallback:../../OrthancFramework/Sources/Pkcs11.cpp
-constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3449
-unknownMacro:../../OrthancFramework/Sources/DicomParsing/DicomModification.cpp:39
+assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
 EOF
 
+CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.1/
+mkdir -p ${CPPCHECK_BUILD_DIR}
 
-${CPPCHECK} -j 8 --enable=all --quiet --std=c++11 \
-            --suppress=missingIncludeSystem \
-            --suppress=missingInclude \
-            --suppress=useStlAlgorithm \
-            --check-level=exhaustive \
+${CPPCHECK} -j8 --enable=all --quiet --std=c++11 \
+            --cppcheck-build-dir=${CPPCHECK_BUILD_DIR} \
             --suppressions-list=/tmp/cppcheck-suppressions.txt \
+            --suppress=unusedFunction \
             -DBOOST_HAS_DATE_TIME=1 \
             -DBOOST_HAS_FILESYSTEM_V3=1 \
             -DBOOST_HAS_REGEX=1 \

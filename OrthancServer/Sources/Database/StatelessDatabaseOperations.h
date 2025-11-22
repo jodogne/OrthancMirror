@@ -485,6 +485,21 @@ namespace Orthanc
         return transaction_.DequeueValue(value, queueId, origin);
       }
 
+      bool ReserveQueueValue(std::string& value,
+                             uint64_t& valueId,
+                             const std::string& queueId,
+                             QueueOrigin origin,
+                             uint32_t releaseTimeout)
+      {
+        return transaction_.ReserveQueueValue(value, valueId, queueId, origin, releaseTimeout);
+      }
+
+      void AcknowledgeQueueValue(const std::string& queueId,
+                                 uint64_t valueId)
+      {
+        return transaction_.AcknowledgeQueueValue(queueId, valueId);
+      }
+
       void SetAttachmentCustomData(const std::string& attachmentUuid,
                                       const void* customData,
                                       size_t customDataSize)
@@ -621,6 +636,8 @@ namespace Orthanc
     bool HasKeyValueStoresSupport();
 
     bool HasQueuesSupport();
+
+    bool HasReserveQueueValueSupport();
 
     void GetExportedResources(Json::Value& target,
                               int64_t since,
@@ -840,6 +857,15 @@ namespace Orthanc
                       QueueOrigin origin);
     
     uint64_t GetQueueSize(const std::string& queueId);
+
+    bool ReserveQueueValue(std::string& value,
+                           uint64_t& valueId,
+                           const std::string& queueId,
+                           QueueOrigin origin,
+                           uint32_t releaseTimeout);
+
+    void AcknowledgeQueueValue(const std::string& queueId,
+                               uint64_t valueId);
 
     class KeysValuesIterator : public boost::noncopyable
     {

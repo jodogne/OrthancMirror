@@ -1696,15 +1696,20 @@ namespace Orthanc
   {
     DcmDataset* dcmDataset = GetDcmtkObjectConst().getDataset();
 
-    if (!this->HasTag(DICOM_TAG_PIXEL_DATA) && !DicomImageDecoder::IsPsmctRle1(*dcmDataset))
+    if (dcmDataset == NULL)
     {
-      throw OrthancException(ErrorCode_BadRequest, "Cannot extract a frame from a DIOCM file that does not have pixel data.");
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    if (!this->HasTag(DICOM_TAG_PIXEL_DATA) &&
+        !DicomImageDecoder::IsPsmctRle1(*dcmDataset))
+    {
+      throw OrthancException(ErrorCode_BadRequest, "Cannot extract a frame from a DICOM file that does not have pixel data.");
     }
 
     if (pimpl_->frameIndex_.get() == NULL)
     {
-      assert(pimpl_->file_ != NULL && dcmDataset != NULL);
-
+      assert(pimpl_->file_ != NULL);
       pimpl_->frameIndex_.reset(new DicomFrameIndex(*dcmDataset));
     }
 

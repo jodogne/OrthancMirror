@@ -1319,6 +1319,82 @@ TEST(SQLiteDatabaseWrapper, Queues)
   db.Close();
 }
 
+TEST(SQLiteDatabaseWrapper, ReserveQueueValue)
+{
+  SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
+  db.Open();
+
+  {
+    StatelessDatabaseOperations op(db, false);
+    op.SetTransactionContextFactory(new DummyTransactionContextFactory);
+
+    ASSERT_EQ(0u, op.GetQueueSize("test"));
+    op.EnqueueValue("test", "a");
+    ASSERT_EQ(1u, op.GetQueueSize("test"));
+    op.EnqueueValue("test", "b");
+    ASSERT_EQ(2u, op.GetQueueSize("test"));
+    op.EnqueueValue("test", "c");
+    ASSERT_EQ(3u, op.GetQueueSize("test"));
+
+    std::string s;
+    uint64_t valueId0, valueId1, valueId2, valueId3;
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 100));  
+    ASSERT_EQ("c", s);
+    ASSERT_EQ(3u, op.GetQueueSize("test"));  // the reserved values are still counted !
+    
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId1, "test", QueueOrigin_Back, 100));  
+    ASSERT_EQ("b", s);
+    
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId2, "test", QueueOrigin_Back, 100));  
+    ASSERT_EQ("a", s);
+    ASSERT_EQ(3u, op.GetQueueSize("test"));
+
+    ASSERT_FALSE(op.ReserveQueueValue(s, valueId3, "test", QueueOrigin_Back, 100));
+
+    op.AcknowledgeQueueValue("test", valueId1);
+    ASSERT_EQ(2u, op.GetQueueSize("test"));
+    ASSERT_THROW(op.AcknowledgeQueueValue("test", valueId1), OrthancException);  // Cannot acknowledge twice
+    op.AcknowledgeQueueValue("test", valueId2);
+    op.AcknowledgeQueueValue("test", valueId0);
+    ASSERT_EQ(0u, op.GetQueueSize("test"));
+
+    op.EnqueueValue("test", "d");
+    op.EnqueueValue("test", "e");
+    op.EnqueueValue("test", "f");
+    op.EnqueueValue("test", "g");
+    op.EnqueueValue("test", "h");
+
+    // reserve 2 values front and back and acknowledge only "e" & "f"
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Front, 1));  
+    ASSERT_EQ("d", s);
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Front, 1));  
+    ASSERT_EQ("e", s);
+    op.AcknowledgeQueueValue("test", valueId0);
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 1));  
+    ASSERT_EQ("h", s);
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 1));  
+    ASSERT_EQ("g", s);
+    op.AcknowledgeQueueValue("test", valueId0);
+
+    // "DequeueValue()" must ignore the reserved values
+    ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Front));
+    ASSERT_EQ("f", s);
+
+    SystemToolbox::USleep(2000000); // the granularity being the second, we might have to wait up to 2 seconds
+
+    // "d" and "h" remain
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Front, 1));  
+    ASSERT_EQ("d", s);
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 1));  
+    ASSERT_EQ("h", s);
+
+    // the queue is empty at this point since "f" has been reserved already
+    ASSERT_FALSE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 1));  
+  }
+
+  db.Close();
+}
+
 
 TEST_F(DatabaseWrapperTest, BinaryCustomData)
 {

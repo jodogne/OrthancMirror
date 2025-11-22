@@ -38,7 +38,6 @@
 #include "../Sources/OrthancException.h"
 #include "../Sources/RestApi/RestApiHierarchy.h"
 #include "../Sources/WebServiceParameters.h"
-#include "../Sources/MetricsRegistry.h"
 
 #include <ctype.h>
 #include <boost/lexical_cast.hpp>
@@ -1316,7 +1315,7 @@ namespace
       {
         if (b[i] != ('0' + i % 7))
         {
-          throw;
+          throw OrthancException(ErrorCode_InternalError);
         }
       }
       
@@ -1388,6 +1387,7 @@ TEST(HttpClient, DISABLED_Issue156_Crash)
 #endif
 
 
+#if ORTHANC_SANDBOXED != 1
 TEST(HttpServer, GetRelativePathToRoot)
 {
   ASSERT_THROW(HttpServer::GetRelativePathToRoot(""), OrthancException);
@@ -1397,3 +1397,4 @@ TEST(HttpServer, GetRelativePathToRoot)
   ASSERT_EQ("./../../", HttpServer::GetRelativePathToRoot("/a/b/system"));
   ASSERT_EQ("../../../", HttpServer::GetRelativePathToRoot("/a/b/system/"));
 }
+#endif
