@@ -2720,32 +2720,39 @@ namespace OrthancPlugins
 
         return;
       }
-      else if (state == "Running")
+      else if (state == "Running" || state == "Pending" || state == "Paused" || state == "Retry")
       {
         continue;
       }
-      else if (!status.isMember("ErrorCode") ||
-               status["ErrorCode"].type() != Json::intValue)
+      else if (state == "Failure")
       {
-        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_InternalError);
-      }
-      else
-      {
-        if (!status.isMember("ErrorDescription") ||
-            status["ErrorDescription"].type() != Json::stringValue)
+        if (!status.isMember("ErrorCode") ||
+                status["ErrorCode"].type() != Json::intValue)
         {
-          ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(status["ErrorCode"].asInt());
+          ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_InternalError);
         }
         else
         {
-#if HAS_ORTHANC_EXCEPTION == 1
-          throw Orthanc::OrthancException(static_cast<Orthanc::ErrorCode>(status["ErrorCode"].asInt()),
-                                          status["ErrorDescription"].asString());
-#else
-          ORTHANC_PLUGINS_LOG_ERROR("Exception while executing the job: " + status["ErrorDescription"].asString());
-          ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(status["ErrorCode"].asInt());          
-#endif
+          if (!status.isMember("ErrorDescription") ||
+              status["ErrorDescription"].type() != Json::stringValue)
+          {
+            ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(status["ErrorCode"].asInt());
+          }
+          else
+          {
+  #if HAS_ORTHANC_EXCEPTION == 1
+            throw Orthanc::OrthancException(static_cast<Orthanc::ErrorCode>(status["ErrorCode"].asInt()),
+                                            status["ErrorDescription"].asString());
+  #else
+            ORTHANC_PLUGINS_LOG_ERROR("Exception while executing the job: " + status["ErrorDescription"].asString());
+            ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(status["ErrorCode"].asInt());          
+  #endif
+          }
         }
+      }
+      else
+      {
+        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_InternalError);
       }
     }
   }
