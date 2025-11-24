@@ -181,6 +181,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
     check_type_size("off_t"  SIZEOF_OFF_T)
     check_type_size("socklen_t" CURL_SIZEOF_CURL_SOCKLEN_T)
 
+    if (SIZEOF_LONG_LONG)
+      set(HAVE_LONGLONG 1)
+    endif()
+
     check_function_exists("accept4"       HAVE_ACCEPT4)
     check_function_exists("fnmatch"       HAVE_FNMATCH)
     check_symbol_exists("basename"        "${CURL_INCLUDES};string.h" HAVE_BASENAME)  # libgen.h unistd.h
