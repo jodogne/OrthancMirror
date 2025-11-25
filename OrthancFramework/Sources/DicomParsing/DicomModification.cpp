@@ -1336,14 +1336,6 @@ namespace Orthanc
       privateCreator_ = SerializationToolbox::ReadString(request, "PrivateCreator");
     }
 
-    // TODO-PIXEL-ANON: remove
-    // // New in Orthanc 1.X.X
-    // if (request.isMember("MaskPixelData") && request["MaskPixelData"].isObject())
-    // {
-    //   pixelMasker_.reset(new DicomPixelMasker());
-    //   pixelMasker_->ParseRequest(request);
-    // }
-
     if (!force)
     {
       /**
@@ -1463,14 +1455,6 @@ namespace Orthanc
     {
       privateCreator_ = SerializationToolbox::ReadString(request, "PrivateCreator");
     }
-
-    // TODO-PIXEL-ANON: remove
-    // // New in Orthanc 1.X.X
-    // if (request.isMember("MaskPixelData") && request["MaskPixelData"].isObject())
-    // {
-    //   pixelMasker_.reset(new DicomPixelMasker());
-    //   pixelMasker_->ParseRequest(request);
-    // }
   }
 
   void DicomModification::SetDicomIdentifierGenerator(DicomModification::IDicomIdentifierGenerator* generator)
