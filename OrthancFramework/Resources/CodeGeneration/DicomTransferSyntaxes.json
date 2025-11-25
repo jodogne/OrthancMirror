@@ -5,8 +5,7 @@
     "Value" : "LittleEndianImplicit",
     "Retired" : false,
     "DCMTK" : "EXS_LittleEndianImplicit",
-    "GDCM" : "gdcm::TransferSyntax::ImplicitVRLittleEndian",
-    "Raw": true, "Lossless": true
+    "GDCM" : "gdcm::TransferSyntax::ImplicitVRLittleEndian"
   },
   
   {
@@ -15,8 +14,7 @@
     "Value" : "LittleEndianExplicit",
     "Retired" : false,
     "DCMTK" : "EXS_LittleEndianExplicit",
-    "GDCM" : "gdcm::TransferSyntax::ExplicitVRLittleEndian",
-    "Raw": true, "Lossless": true
+    "GDCM" : "gdcm::TransferSyntax::ExplicitVRLittleEndian"
   },
   
   {
@@ -24,8 +22,7 @@
     "Name" : "Deflated Explicit VR Little Endian",
     "Value" : "DeflatedLittleEndianExplicit",
     "Retired" : false,
-    "DCMTK" : "EXS_DeflatedLittleEndianExplicit",
-    "Raw": false, "Lossless": true
+    "DCMTK" : "EXS_DeflatedLittleEndianExplicit"
   },
   
   {
@@ -33,8 +30,7 @@
     "Name" : "Explicit VR Big Endian",
     "Value" : "BigEndianExplicit",
     "Retired" : false,
-    "DCMTK" : "EXS_BigEndianExplicit",
-    "Raw": true, "Lossless": true
+    "DCMTK" : "EXS_BigEndianExplicit"
   },
   
   {
@@ -45,8 +41,7 @@
     "Note" : "Default Transfer Syntax for Lossy JPEG 8-bit Image Compression",
     "DCMTK" : "EXS_JPEGProcess1",
     "DCMTK360" : "EXS_JPEGProcess1TransferSyntax",
-    "GDCM" : "gdcm::TransferSyntax::JPEGBaselineProcess1",
-    "Raw": false, "Lossless": false
+    "GDCM" : "gdcm::TransferSyntax::JPEGBaselineProcess1"
   },
   
   {
@@ -57,8 +52,7 @@
     "Note" : "Default Transfer Syntax for Lossy JPEG (lossy, 8/12 bit), 12-bit Image Compression (Process 4 only)",
     "DCMTK" : "EXS_JPEGProcess2_4",
     "DCMTK360" : "EXS_JPEGProcess2_4TransferSyntax",
-    "GDCM" : "gdcm::TransferSyntax::JPEGExtendedProcess2_4",
-    "Raw": false, "Lossless": false
+    "GDCM" : "gdcm::TransferSyntax::JPEGExtendedProcess2_4"
   },
 
   {
@@ -67,8 +61,7 @@
     "Value" : "JPEGProcess3_5",
     "Retired" : true,
     "DCMTK" : "EXS_JPEGProcess3_5",
-    "DCMTK360" : "EXS_JPEGProcess3_5TransferSyntax",
-    "Raw": false, "Lossless": false
+    "DCMTK360" : "EXS_JPEGProcess3_5TransferSyntax"
   },
 
   {
@@ -77,8 +70,7 @@
     "Value" : "JPEGProcess6_8",
     "Retired" : true,
     "DCMTK" : "EXS_JPEGProcess6_8",
-    "DCMTK360" : "EXS_JPEGProcess6_8TransferSyntax",
-    "Raw": false, "Lossless": false
+    "DCMTK360" : "EXS_JPEGProcess6_8TransferSyntax"
   },
 
   {
@@ -87,8 +79,7 @@
     "Value" : "JPEGProcess7_9",
     "Retired" : true,
     "DCMTK" : "EXS_JPEGProcess7_9",
-    "DCMTK360" : "EXS_JPEGProcess7_9TransferSyntax",
-    "Raw": false, "Lossless": false
+    "DCMTK360" : "EXS_JPEGProcess7_9TransferSyntax"
   },
 
   {
@@ -97,8 +88,7 @@
     "Value" : "JPEGProcess10_12",
     "Retired" : true,
     "DCMTK" : "EXS_JPEGProcess10_12",
-    "DCMTK360" : "EXS_JPEGProcess10_12TransferSyntax",
-    "Raw": false, "Lossless": false
+    "DCMTK360" : "EXS_JPEGProcess10_12TransferSyntax"
   },
 
   {
@@ -107,8 +97,7 @@
     "Value" : "JPEGProcess11_13",
     "Retired" : true,
     "DCMTK" : "EXS_JPEGProcess11_13",
-    "DCMTK360" : "EXS_JPEGProcess11_13TransferSyntax",
-    "Raw": false, "Lossless": false
+    "DCMTK360" : "EXS_JPEGProcess11_13TransferSyntax"
   },
 
   {
@@ -118,8 +107,7 @@
     "Retired" : false,
     "DCMTK" : "EXS_JPEGProcess14",
     "DCMTK360" : "EXS_JPEGProcess14TransferSyntax",
-    "GDCM" : "gdcm::TransferSyntax::JPEGLosslessProcess14",
-    "Raw": false, "Lossless": true
+    "GDCM" : "gdcm::TransferSyntax::JPEGLosslessProcess14"
   },
 
   {
@@ -128,8 +116,7 @@
     "Value" : "JPEGProcess15",
     "Retired" : true,
     "DCMTK" : "EXS_JPEGProcess15",
-    "DCMTK360" : "EXS_JPEGProcess15TransferSyntax",
-    "Raw": false, "Lossless": true
+    "DCMTK360" : "EXS_JPEGProcess15TransferSyntax"
   },
   
   {
@@ -138,8 +125,7 @@
     "Value" : "JPEGProcess16_18",
     "Retired" : true,
     "DCMTK" : "EXS_JPEGProcess16_18",
-    "DCMTK360" : "EXS_JPEGProcess16_18TransferSyntax",
-    "Raw": false, "Lossless": false
+    "DCMTK360" : "EXS_JPEGProcess16_18TransferSyntax"
   },
   
   {
@@ -148,8 +134,7 @@
     "Value" : "JPEGProcess17_19",
     "Retired" : true,
     "DCMTK" : "EXS_JPEGProcess17_19",
-    "DCMTK360" : "EXS_JPEGProcess17_19TransferSyntax",
-    "Raw": false, "Lossless": false
+    "DCMTK360" : "EXS_JPEGProcess17_19TransferSyntax"
   },
   
   {
@@ -158,8 +143,7 @@
     "Value" : "JPEGProcess20_22",
     "Retired" : true,
     "DCMTK" : "EXS_JPEGProcess20_22",
-    "DCMTK360" : "EXS_JPEGProcess20_22TransferSyntax",
-    "Raw": false, "Lossless": false
+    "DCMTK360" : "EXS_JPEGProcess20_22TransferSyntax"
   },
   
   {
@@ -168,8 +152,7 @@
     "Value" : "JPEGProcess21_23",
     "Retired" : true,
     "DCMTK" : "EXS_JPEGProcess21_23",
-    "DCMTK360" : "EXS_JPEGProcess21_23TransferSyntax",
-    "Raw": false, "Lossless": false
+    "DCMTK360" : "EXS_JPEGProcess21_23TransferSyntax"
   },
   
   {
@@ -178,8 +161,7 @@
     "Value" : "JPEGProcess24_26",
     "Retired" : true,
     "DCMTK" : "EXS_JPEGProcess24_26",
-    "DCMTK360" : "EXS_JPEGProcess24_26TransferSyntax",
-    "Raw": false, "Lossless": false
+    "DCMTK360" : "EXS_JPEGProcess24_26TransferSyntax"
   },
   
   {
@@ -188,8 +170,7 @@
     "Value" : "JPEGProcess25_27",
     "Retired" : true,
     "DCMTK" : "EXS_JPEGProcess25_27",
-    "DCMTK360" : "EXS_JPEGProcess25_27TransferSyntax",
-    "Raw": false, "Lossless": false
+    "DCMTK360" : "EXS_JPEGProcess25_27TransferSyntax"
   },
   
   {
@@ -198,8 +179,7 @@
     "Value" : "JPEGProcess28",
     "Retired" : true,
     "DCMTK" : "EXS_JPEGProcess28",
-    "DCMTK360" : "EXS_JPEGProcess28TransferSyntax",
-    "Raw": false, "Lossless": true
+    "DCMTK360" : "EXS_JPEGProcess28TransferSyntax"
   },
   
   {
@@ -208,8 +188,7 @@
     "Value" : "JPEGProcess29",
     "Retired" : true,
     "DCMTK" : "EXS_JPEGProcess29",
-    "DCMTK360" : "EXS_JPEGProcess29TransferSyntax",
-    "Raw": false, "Lossless": true
+    "DCMTK360" : "EXS_JPEGProcess29TransferSyntax"
   },
 
   {
@@ -220,8 +199,7 @@
     "Note" : "Default Transfer Syntax for Lossless JPEG Image Compression",
     "DCMTK" : "EXS_JPEGProcess14SV1",
     "DCMTK360" : "EXS_JPEGProcess14SV1TransferSyntax",
-    "GDCM" : "gdcm::TransferSyntax::JPEGLosslessProcess14_1",
-    "Raw": false, "Lossless": true
+    "GDCM" : "gdcm::TransferSyntax::JPEGLosslessProcess14_1"
   },
 
   {
@@ -230,8 +208,7 @@
     "Value" : "JPEGLSLossless",
     "Retired" : false,
     "DCMTK" : "EXS_JPEGLSLossless",
-    "GDCM" : "gdcm::TransferSyntax::JPEGLSLossless",
-    "Raw": false, "Lossless": true
+    "GDCM" : "gdcm::TransferSyntax::JPEGLSLossless"
   },
 
   {
@@ -240,8 +217,7 @@
     "Value" : "JPEGLSLossy",
     "Retired" : false,
     "DCMTK" : "EXS_JPEGLSLossy",
-    "GDCM" : "gdcm::TransferSyntax::JPEGLSNearLossless",
-    "Raw": false, "Lossless": false
+    "GDCM" : "gdcm::TransferSyntax::JPEGLSNearLossless"
   },
 
   {
@@ -250,8 +226,7 @@
     "Value" : "JPEG2000LosslessOnly",
     "Retired" : false,
     "DCMTK" : "EXS_JPEG2000LosslessOnly",
-    "GDCM" : "gdcm::TransferSyntax::JPEG2000Lossless",
-    "Raw": false, "Lossless": true
+    "GDCM" : "gdcm::TransferSyntax::JPEG2000Lossless"
   },
 
   {
@@ -260,8 +235,7 @@
     "Value" : "JPEG2000",
     "Retired" : false,
     "DCMTK" : "EXS_JPEG2000",
-    "GDCM" : "gdcm::TransferSyntax::JPEG2000",
-    "Raw": false, "Lossless": false
+    "GDCM" : "gdcm::TransferSyntax::JPEG2000"
   },
 
   {
@@ -270,8 +244,7 @@
     "Value" : "JPEG2000MulticomponentLosslessOnly",
     "Retired" : false,
     "DCMTK" : "EXS_JPEG2000MulticomponentLosslessOnly",
-    "GDCM" : "gdcm::TransferSyntax::JPEG2000Part2Lossless",
-    "Raw": false, "Lossless": true
+    "GDCM" : "gdcm::TransferSyntax::JPEG2000Part2Lossless"
   },
 
   {
@@ -280,8 +253,7 @@
     "Value" : "JPEG2000Multicomponent",
     "Retired" : false,
     "DCMTK" : "EXS_JPEG2000Multicomponent",
-    "GDCM" : "gdcm::TransferSyntax::JPEG2000Part2",
-    "Raw": false, "Lossless": false
+    "GDCM" : "gdcm::TransferSyntax::JPEG2000Part2"
   },
 
   {
@@ -289,8 +261,7 @@
     "Name" : "JPIP Referenced",
     "Value" : "JPIPReferenced",
     "Retired" : false,
-    "DCMTK" : "EXS_JPIPReferenced",
-    "Raw": false, "Lossless": true
+    "DCMTK" : "EXS_JPIPReferenced"
   },
 
   {
@@ -298,8 +269,7 @@
     "Name" : "JPIP Referenced Deflate",
     "Value" : "JPIPReferencedDeflate",
     "Retired" : false,
-    "DCMTK" : "EXS_JPIPReferencedDeflate",
-    "Raw": false, "Lossless": true
+    "DCMTK" : "EXS_JPIPReferencedDeflate"
   },
 
   {
@@ -307,8 +277,7 @@
     "Name" : "MPEG2 Main Profile / Main Level",
     "Value" : "MPEG2MainProfileAtMainLevel",
     "Retired" : false,
-    "DCMTK" : "EXS_MPEG2MainProfileAtMainLevel",
-    "Raw": false, "Lossless": false
+    "DCMTK" : "EXS_MPEG2MainProfileAtMainLevel"
   },
 
   {
@@ -316,8 +285,7 @@
     "Name" : "MPEG2 Main Profile / High Level",
     "Value" : "MPEG2MainProfileAtHighLevel",
     "Retired" : false,
-    "DCMTK" : "EXS_MPEG2MainProfileAtHighLevel",
-    "Raw": false, "Lossless": false
+    "DCMTK" : "EXS_MPEG2MainProfileAtHighLevel"
   },
 
   {
@@ -326,8 +294,7 @@
     "Value" : "MPEG4HighProfileLevel4_1",
     "Retired" : false,
     "DCMTK" : "EXS_MPEG4HighProfileLevel4_1",
-    "SinceDCMTK" : "361",
-    "Raw": false, "Lossless": false
+    "SinceDCMTK" : "361"
   },
 
   {
@@ -336,8 +303,7 @@
     "Value" : "MPEG4BDcompatibleHighProfileLevel4_1",
     "Retired" : false,
     "DCMTK" : "EXS_MPEG4BDcompatibleHighProfileLevel4_1",
-    "SinceDCMTK" : "361",
-    "Raw": false, "Lossless": false
+    "SinceDCMTK" : "361"
   },
 
   {
@@ -346,8 +312,7 @@
     "Value" : "MPEG4HighProfileLevel4_2_For2DVideo",
     "Retired" : false,
     "DCMTK" : "EXS_MPEG4HighProfileLevel4_2_For2DVideo",
-    "SinceDCMTK" : "361",
-    "Raw": false, "Lossless": false
+    "SinceDCMTK" : "361"
   },
 
   {
@@ -356,8 +321,7 @@
     "Value" : "MPEG4HighProfileLevel4_2_For3DVideo",
     "Retired" : false,
     "DCMTK" : "EXS_MPEG4HighProfileLevel4_2_For3DVideo",
-    "SinceDCMTK" : "361",
-    "Raw": false, "Lossless": false
+    "SinceDCMTK" : "361"
   },
 
   {
@@ -366,8 +330,7 @@
     "Value" : "MPEG4StereoHighProfileLevel4_2",
     "Retired" : false,
     "DCMTK" : "EXS_MPEG4StereoHighProfileLevel4_2",
-    "SinceDCMTK" : "361",
-    "Raw": false, "Lossless": false
+    "SinceDCMTK" : "361"
   },
 
   {
@@ -376,8 +339,7 @@
     "Value" : "HEVCMainProfileLevel5_1",
     "Retired" : false,
     "DCMTK" : "EXS_HEVCMainProfileLevel5_1",
-    "SinceDCMTK" : "362",
-    "Raw": false, "Lossless": false
+    "SinceDCMTK" : "362"
   },
 
   {
@@ -386,8 +348,7 @@
     "Value" : "HEVCMain10ProfileLevel5_1",
     "Retired" : false,
     "DCMTK" : "EXS_HEVCMain10ProfileLevel5_1",
-    "SinceDCMTK" : "362",
-    "Raw": false, "Lossless": false
+    "SinceDCMTK" : "362"
   },
 
   {
@@ -396,8 +357,7 @@
     "Value" : "RLELossless",
     "Retired" : false,
     "DCMTK" : "EXS_RLELossless",
-    "GDCM" : "gdcm::TransferSyntax::RLELossless",
-    "Raw": false, "Lossless": true
+    "GDCM" : "gdcm::TransferSyntax::RLELossless"
   },
 
   {
