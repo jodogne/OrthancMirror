@@ -220,7 +220,7 @@ namespace Orthanc
       modified.reset(locker.GetDicom().Clone(true));
     }
     
-    modification.Apply(*modified);
+    modification.Apply(modified);
 
     if (transcode)
     {
@@ -232,7 +232,7 @@ namespace Orthanc
       std::set<DicomTransferSyntax> s;
       s.insert(targetSyntax);
       
-      if (context.Transcode(transcoded, source, s, true, lossyQuality))
+      if (context.Transcode(transcoded, source, s, TranscodingSopInstanceUidMode_AllowNew, lossyQuality))
       {      
         call.GetOutput().AnswerBuffer(transcoded.GetBufferData(),
                                       transcoded.GetBufferSize(), MimeType_Dicom);

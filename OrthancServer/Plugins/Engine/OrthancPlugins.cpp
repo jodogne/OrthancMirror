@@ -6015,11 +6015,10 @@ namespace Orthanc
 
           IDicomTranscoder::DicomImage transcoded;
           bool success;
-          
+
           {
             PImpl::ServerContextReference lock(*pimpl_);
-            success = lock.GetContext().Transcode(
-              transcoded, source, syntaxes, true /* allow new sop */);
+            success = lock.GetContext().Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew);
           }
 
           if (success)

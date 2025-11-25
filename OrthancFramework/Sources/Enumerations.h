@@ -809,6 +809,13 @@ namespace Orthanc
     ErrorPayloadType_RetrieveJob = 3,
   };
 
+  enum TranscodingSopInstanceUidMode
+  {
+    TranscodingSopInstanceUidMode_NoChange,   // Never change the SOP Instance UID (only allows transcoding to lossless)
+    TranscodingSopInstanceUidMode_AllowNew,   // Allow transcoding to lossless and lossy (if lossy, a new SOP Instance UID is generated)
+    TranscodingSopInstanceUidMode_Preserve    // Allow transcoding to lossless and lossy (if lossy, preserve the original SOP Instance UID)
+  };
+
 
   ORTHANC_PUBLIC
   const char* EnumerationToString(ErrorCode code);
