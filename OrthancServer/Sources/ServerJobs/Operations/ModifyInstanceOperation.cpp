@@ -92,7 +92,7 @@ namespace Orthanc
 
     try
     {
-      context_.Modify(modified, *modification_, false, DicomTransferSyntax_LittleEndianExplicit /* not used */, 100 /* not used */, false /*keepSOPInstanceUidDuringLossyTranscoding*/);
+      modification_->Apply(modified);
 
       std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*modified));
       assert(origin_ == RequestOrigin_Lua);

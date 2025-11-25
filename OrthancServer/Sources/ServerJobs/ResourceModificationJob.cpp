@@ -238,7 +238,7 @@ namespace Orthanc
     {
       boost::recursive_mutex::scoped_lock lock(mutex_);  // DicomModification object is not thread safe, we must protect it from here
 
-      GetContext().Modify(modified, *modification_, transcode_, transferSyntax_, 100 /* not used */, true /* keepSOPInstanceUidDuringLossyTranscoding*/);  // TODO-PIXEL-ANON: get lossy quality from ???
+      modification_->Apply(modified);
 
       if (modification_->AreLabelsKept())
       {
@@ -252,6 +252,36 @@ namespace Orthanc
 
     const std::string modifiedUid = IDicomTranscoder::GetSopInstanceUid(modified->GetDcmtkObject());
     
+    if (transcode_)
+    {
+      std::set<DicomTransferSyntax> syntaxes;
+      syntaxes.insert(transferSyntax_);
+
+      IDicomTranscoder::DicomImage source;
+      source.AcquireParsed(*modified);  // "modified" is invalid below this point
+      
+      IDicomTranscoder::DicomImage transcoded;
+      if (GetContext().Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew))
+      {
+        modified.reset(transcoded.ReleaseAsParsedDicomFile());
+
+        // Fix the SOP instance UID in order the preserve the
+        // references between instance UIDs in the DICOM hierarchy
+        // (the UID might have changed in the case of lossy transcoding)
+        if (modified.get() == NULL ||
+            modified->GetDcmtkObject().getDataset() == NULL ||
+            !modified->GetDcmtkObject().getDataset()->putAndInsertString(
+              DCM_SOPInstanceUID, modifiedUid.c_str(), OFTrue /* replace */).good())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+      else
+      {
+        LOG(WARNING) << "Cannot transcode instance, keeping original transfer syntax: " << instance;
+        modified.reset(source.ReleaseAsParsedDicomFile());
+      }
+    }
 
     assert(modifiedUid == IDicomTranscoder::GetSopInstanceUid(modified->GetDcmtkObject()));
 
