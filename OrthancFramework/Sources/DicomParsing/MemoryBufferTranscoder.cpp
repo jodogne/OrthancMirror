@@ -28,6 +28,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "FromDcmtkBridge.h"
+#include "Internals/SopInstanceUidFixer.h"
 
 #if !defined(NDEBUG)  // For debugging
 #  include "ParsedDicomFile.h"
@@ -59,16 +60,16 @@ namespace Orthanc
   bool MemoryBufferTranscoder::Transcode(DicomImage& target,
                                          DicomImage& source,
                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                         bool allowNewSopInstanceUid,
+                                         TranscodingSopInstanceUidMode mode,
                                          unsigned int lossyQualityNotUsed)
   {
-    return Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid);
+    return Transcode(target, source, allowedSyntaxes, mode);
   }
 
   bool MemoryBufferTranscoder::Transcode(DicomImage& target,
                                          DicomImage& source,
                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                         bool allowNewSopInstanceUid)
+                                         TranscodingSopInstanceUidMode mode)
   {
     target.Clear();
     
@@ -84,6 +85,10 @@ namespace Orthanc
     const std::string sourceSopInstanceUid = GetSopInstanceUid(source.GetParsed());
 #endif
 
+    Internals::SopInstanceUidFixer fixer(mode, source);
+    const bool allowNewSopInstanceUid = (mode == TranscodingSopInstanceUidMode_AllowNew ||
+                                         mode == TranscodingSopInstanceUidMode_Preserve);
+
     std::string buffer;
     if (TranscodeBuffer(buffer, source.GetBufferData(), source.GetBufferSize(),
                         allowedSyntaxes, allowNewSopInstanceUid))
@@ -98,6 +103,7 @@ namespace Orthanc
                        allowedSyntaxes, allowNewSopInstanceUid);
 #endif
 
+      fixer.Apply(target);
       return true;
     }
     else

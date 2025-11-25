@@ -92,7 +92,7 @@ namespace Orthanc
 
     try
     {
-      modification_->Apply(*modified);
+      modification_->Apply(modified);
 
       std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*modified));
       assert(origin_ == RequestOrigin_Lua);

@@ -48,6 +48,8 @@ namespace Orthanc
 
       virtual void GetRawFrame(std::string& frame,
                                unsigned int index) const = 0;
+
+      virtual uint8_t* GetRawFrameBuffer(unsigned int index) = 0;
     };
 
     class FragmentIndex;
@@ -69,5 +71,7 @@ namespace Orthanc
                      unsigned int index) const;
 
     static unsigned int GetFramesCount(DcmDataset& dicom);
+
+    uint8_t* GetRawFrameBuffer(unsigned int index);
   };
 }

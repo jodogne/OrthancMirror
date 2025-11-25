@@ -238,7 +238,7 @@ namespace Orthanc
     {
       boost::recursive_mutex::scoped_lock lock(mutex_);  // DicomModification object is not thread safe, we must protect it from here
 
-      modification_->Apply(*modified);
+      modification_->Apply(modified);
 
       if (modification_->AreLabelsKept())
       {
@@ -261,7 +261,7 @@ namespace Orthanc
       source.AcquireParsed(*modified);  // "modified" is invalid below this point
       
       IDicomTranscoder::DicomImage transcoded;
-      if (GetContext().Transcode(transcoded, source, syntaxes, true))
+      if (GetContext().Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew))
       {
         modified.reset(transcoded.ReleaseAsParsedDicomFile());
 
