@@ -37,6 +37,7 @@ assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/Database
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
 assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3068
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:286
+assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
 EOF
 
 CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.1/
