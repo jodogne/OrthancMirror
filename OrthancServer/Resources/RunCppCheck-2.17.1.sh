@@ -17,7 +17,7 @@ constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/DicomStore
 constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp:112
 constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp:113
 constParameterCallback:../../OrthancFramework/Sources/Pkcs11.cpp:125
-constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3489
+constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3493
 constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp:47
 constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:447
 constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:451
@@ -39,7 +39,7 @@ knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:22
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2298
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2299
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2300
-nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:322
+nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
