@@ -28,6 +28,8 @@
 
 namespace Orthanc
 {
+  class DicomConnectionInfo;
+
   class IStorageCommitmentFactory : public boost::noncopyable
   {
   public:
@@ -50,7 +52,6 @@ namespace Orthanc
                                                     const std::string& transactionUid,
                                                     const std::vector<std::string>& sopClassUids,
                                                     const std::vector<std::string>& sopInstanceUids,
-                                                    const std::string& remoteAet,
-                                                    const std::string& calledAet) = 0;
+                                                    const DicomConnectionInfo& connection) = 0;
   };
 }

@@ -37,9 +37,6 @@ namespace Orthanc
 
     virtual void Handle(DicomFindAnswers& answers,
                         ParsedDicomFile& query,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet,
-                        ModalityManufacturer manufacturer) = 0;
+                        const DicomConnectionInfo& connection) = 0;
   };
 }

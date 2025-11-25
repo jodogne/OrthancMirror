@@ -34,10 +34,7 @@
 void FindRequestHandler::Handle(Orthanc::DicomFindAnswers& answers,
                                 const Orthanc::DicomMap& input,
                                 const std::list<Orthanc::DicomTag>& sequencesToReturn,
-                                const std::string& remoteIp,
-                                const std::string& remoteAet,
-                                const std::string& calledAet,
-                                Orthanc::ModalityManufacturer manufacturer)
+                                const Orthanc::DicomConnectionInfo& connection)
 {
   std::set<Orthanc::DicomTag> tags;
   input.GetTags(tags);

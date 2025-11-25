@@ -1828,14 +1828,13 @@ namespace Orthanc
                                          const std::string& transactionUid,
                                          const std::vector<std::string>& sopClassUids,
                                          const std::vector<std::string>& sopInstanceUids,
-                                         const std::string& remoteAet,
-                                         const std::string& calledAet)
+                                         const DicomConnectionInfo& connection)
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (HasPlugins())
     {
       return GetPlugins().CreateStorageCommitment(
-        jobId, transactionUid, sopClassUids, sopInstanceUids, remoteAet, calledAet);
+        jobId, transactionUid, sopClassUids, sopInstanceUids, connection);
     }
 #endif
 

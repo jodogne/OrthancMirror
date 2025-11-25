@@ -48,6 +48,7 @@
 #include "../../../../OrthancFramework/Sources/DicomFormat/DicomValue.cpp"
 #include "../../../../OrthancFramework/Sources/DicomFormat/Window.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomAssociation.cpp"
+#include "../../../../OrthancFramework/Sources/DicomNetworking/DicomConnectionInfo.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomAssociationParameters.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomFindAnswers.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomServer.cpp"

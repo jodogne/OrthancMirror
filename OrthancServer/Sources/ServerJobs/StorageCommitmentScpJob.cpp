@@ -25,6 +25,7 @@
 #include "StorageCommitmentScpJob.h"
 
 #include "../../../OrthancFramework/Sources/DicomNetworking/DicomAssociation.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/DicomConnectionInfo.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
@@ -33,10 +34,11 @@
 
 
 static const char* ANSWER = "Answer";
-static const char* CALLED_AET = "CalledAet";
+static const char* CALLED_AET = "CalledAet";            // obsolete from 1.12.10
 static const char* INDEX = "Index";
 static const char* LOOKUP = "Lookup";
-static const char* REMOTE_MODALITY = "RemoteModality";
+static const char* REMOTE_MODALITY = "RemoteModality";  // obsolete from 1.12.10
+static const char* CONNECTION = "Connection";           // new in 1.12.10
 static const char* SETUP = "Setup";
 static const char* SOP_CLASS_UIDS = "SopClassUids";
 static const char* SOP_INSTANCE_UIDS = "SopInstanceUids";
@@ -249,9 +251,8 @@ namespace Orthanc
   {
     CheckInvariants();
 
-    const std::string& remoteAet = remoteModality_.GetApplicationEntityTitle();
     lookupHandler_.reset(context_.CreateStorageCommitment(jobId, transactionUid_, sopClassUids_,
-                                                          sopInstanceUids_, remoteAet, calledAet_));
+                                                          sopInstanceUids_, *connection_));
   }
 
 
@@ -338,7 +339,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    DicomAssociationParameters parameters(calledAet_, remoteModality_);
+    DicomAssociationParameters parameters(connection_->GetCalledAet(), remoteModality_);
     DicomAssociation::ReportStorageCommitment(
       parameters, transactionUid_, sopClassUids_, sopInstanceUids_, failureReasons);
   }
@@ -346,19 +347,18 @@ namespace Orthanc
 
   StorageCommitmentScpJob::StorageCommitmentScpJob(ServerContext& context,
                                                    const std::string& transactionUid,
-                                                   const std::string& remoteAet,
-                                                   const std::string& calledAet) :
+                                                   const DicomConnectionInfo& connection) :
     context_(context),
     ready_(false),
     transactionUid_(transactionUid),
-    calledAet_(calledAet)
+    connection_(new DicomConnectionInfo(connection))
   {
     {
       OrthancConfiguration::ReaderLock lock;
-      if (!lock.GetConfiguration().LookupDicomModalityUsingAETitle(remoteModality_, remoteAet))
+      if (!lock.GetConfiguration().LookupDicomModalityUsingAETitle(remoteModality_, connection_->GetRemoteAet()))
       {
         throw OrthancException(ErrorCode_InexistentItem,
-                               "Unknown remote modality for storage commitment SCP: " + remoteAet);
+                               "Unknown remote modality for storage commitment SCP: " + connection_->GetRemoteAet());
       }
     }
 
@@ -409,8 +409,9 @@ namespace Orthanc
   {
     SetOfCommandsJob::GetPublicContent(value);
       
-    value["CalledAet"] = calledAet_;
-    value["RemoteAet"] = remoteModality_.GetApplicationEntityTitle();
+    value["CalledAet"] = connection_->GetCalledAet();
+    value["RemoteAet"] = connection_->GetRemoteAet();
+    value["RemoteIp"] = connection_->GetRemoteIp();
     value["TransactionUid"] = transactionUid_;
   }
 
@@ -420,16 +421,35 @@ namespace Orthanc
     SetOfCommandsJob(new Unserializer(*this), serialized),
     context_(context),
     ready_(false),
-    transactionUid_(SerializationToolbox::ReadString(serialized, TRANSACTION_UID)),
-    calledAet_(SerializationToolbox::ReadString(serialized, CALLED_AET))
+    transactionUid_(SerializationToolbox::ReadString(serialized, TRANSACTION_UID))
   {
-    if (serialized.type() != Json::objectValue ||
-        !serialized.isMember(REMOTE_MODALITY))
+
+    if (serialized.isMember(CONNECTION))
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      connection_.reset(new DicomConnectionInfo(serialized[CONNECTION]));
     }
-    
-    remoteModality_ = RemoteModalityParameters(serialized[REMOTE_MODALITY]);
+    else if (serialized.isMember(REMOTE_MODALITY) && serialized[REMOTE_MODALITY].isObject()) // the job was serialized prior to 1.12.10
+    {
+      std::string calledAet = SerializationToolbox::ReadString(serialized, CALLED_AET);
+      std::string remoteAet = SerializationToolbox::ReadString(serialized[REMOTE_MODALITY], "AET");
+      std::string remoteIp = SerializationToolbox::ReadString(serialized[REMOTE_MODALITY], "Host");
+      connection_.reset(new DicomConnectionInfo(remoteIp, remoteAet, calledAet));      
+    } 
+
+    if (connection_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError, "Failed to unserialize StorageCommitmentScpJob");
+    }
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      if (!lock.GetConfiguration().LookupDicomModalityUsingAETitle(remoteModality_, connection_->GetRemoteAet()))
+      {
+        throw OrthancException(ErrorCode_InexistentItem,
+                               "Unknown remote modality for storage commitment SCP: " + connection_->GetRemoteAet());
+      }
+    }
+
     SerializationToolbox::ReadArrayOfStrings(sopClassUids_, serialized, SOP_CLASS_UIDS);
     SerializationToolbox::ReadArrayOfStrings(sopInstanceUids_, serialized, SOP_INSTANCE_UIDS);
   }
@@ -444,8 +464,15 @@ namespace Orthanc
     else
     {
       target[TRANSACTION_UID] = transactionUid_;
-      remoteModality_.Serialize(target[REMOTE_MODALITY], true /* force advanced format */);
-      target[CALLED_AET] = calledAet_;
+
+      if (connection_.get() == NULL)
+      {
+        throw (OrthancException(ErrorCode_InternalError));
+      }
+
+      target[CONNECTION] = Json::objectValue;
+      connection_->Serialize(target[CONNECTION]);
+
       SerializationToolbox::WriteArrayOfStrings(target, sopClassUids_, SOP_CLASS_UIDS);
       SerializationToolbox::WriteArrayOfStrings(target, sopInstanceUids_, SOP_INSTANCE_UIDS);
       return true;

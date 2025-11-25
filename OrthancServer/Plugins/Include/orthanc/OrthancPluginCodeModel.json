@@ -1,6 +1,68 @@
 {
     "classes": [
         {
+            "methods": [
+                {
+                    "args": [],
+                    "c_function": "OrthancPluginGetConnectionRemoteAet",
+                    "const": true,
+                    "documentation": {
+                        "args": {},
+                        "description": [
+                            "This function returns the Application Entity Title (AET) of the DICOM modality from which a DICOM connection originates."
+                        ],
+                        "return": "The pointer to the AET, NULL in case of error.",
+                        "summary": "Get the remote AET of a DICOM connection."
+                    },
+                    "return_sdk_type": "const char *",
+                    "since_sdk": [
+                        1,
+                        12,
+                        10
+                    ]
+                },
+                {
+                    "args": [],
+                    "c_function": "OrthancPluginGetConnectionRemoteIp",
+                    "const": true,
+                    "documentation": {
+                        "args": {},
+                        "description": [
+                            "This function returns the IP of the DICOM modality from which a DICOM connection originates."
+                        ],
+                        "return": "The pointer to the IP, NULL in case of error.",
+                        "summary": "Get the remote IP of a DICOM connection."
+                    },
+                    "return_sdk_type": "const char *",
+                    "since_sdk": [
+                        1,
+                        12,
+                        10
+                    ]
+                },
+                {
+                    "args": [],
+                    "c_function": "OrthancPluginGetConnectionCalledAet",
+                    "const": true,
+                    "documentation": {
+                        "args": {},
+                        "description": [
+                            "This function returns the Orthanc called AET that a DICOM modality has used in a DICOM connection."
+                        ],
+                        "return": "The pointer to the called AET, NULL in case of error.",
+                        "summary": "Get the called AET of a DICOM connection."
+                    },
+                    "return_sdk_type": "const char *",
+                    "since_sdk": [
+                        1,
+                        12,
+                        10
+                    ]
+                }
+            ],
+            "name": "OrthancPluginDicomConnection"
+        },
+        {
             "destructor": "OrthancPluginFreeDicomInstance",
             "methods": [
                 {
@@ -5529,6 +5591,7 @@
         "OrthancPluginGetImageBuffer",
         "OrthancPluginRestApiGet2",
         "OrthancPluginRegisterWorklistCallback",
+        "OrthancPluginRegisterWorklistCallback2",
         "OrthancPluginRegisterDecodeImageCallback",
         "OrthancPluginCreateImageAccessor",
         "OrthancPluginLookupDictionary",
@@ -5570,6 +5633,9 @@
         "OrthancPluginSetStableStatus",
         "OrthancPluginRegisterHttpAuthentication",
         "OrthancPluginRegisterAuditLogHandler",
-        "OrthancPluginReserveQueueValue"
+        "OrthancPluginReserveQueueValue",
+        "OrthancPluginRegisterFindCallback2",
+        "OrthancPluginRegisterMoveCallback2",
+        "OrthancPluginRegisterStorageCommitmentScpCallback2"
     ]
 }

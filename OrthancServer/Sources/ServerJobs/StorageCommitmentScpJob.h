@@ -25,6 +25,7 @@
 
 #include "../../../OrthancFramework/Sources/Compatibility.h"
 #include "../../../OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/DicomConnectionInfo.h"
 #include "../../../OrthancFramework/Sources/JobsEngine/SetOfCommandsJob.h"
 #include "IStorageCommitmentFactory.h"
 
@@ -55,7 +56,7 @@ namespace Orthanc
     bool                      ready_;
     std::string               transactionUid_;
     RemoteModalityParameters  remoteModality_;
-    std::string               calledAet_;
+    std::unique_ptr<DicomConnectionInfo>  connection_;
     std::vector<std::string>  sopClassUids_;
     std::vector<std::string>  sopInstanceUids_;
 
@@ -72,8 +73,7 @@ namespace Orthanc
   public:
     StorageCommitmentScpJob(ServerContext& context,
                             const std::string& transactionUid,
-                            const std::string& remoteAet,
-                            const std::string& calledAet);
+                            const DicomConnectionInfo& connection);
 
     StorageCommitmentScpJob(ServerContext& context,
                             const Json::Value& serialized);

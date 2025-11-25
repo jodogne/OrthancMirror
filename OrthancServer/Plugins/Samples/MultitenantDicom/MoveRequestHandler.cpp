@@ -27,6 +27,7 @@
 
 #include "../../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../../OrthancFramework/Sources/Toolbox.h"
+#include "../../../../OrthancFramework/Sources/DicomNetworking/DicomConnectionInfo.h"
 
 #include "../Common/OrthancPluginCppWrapper.h"
 
@@ -169,9 +170,7 @@ void MoveRequestHandler::LookupIdentifiers(std::set<std::string>& publicIds,
 
 Orthanc::IMoveRequestIterator* MoveRequestHandler::Handle(const std::string& targetAet,
                                                           const Orthanc::DicomMap& input,
-                                                          const std::string& originatorIp,
-                                                          const std::string& originatorAet,
-                                                          const std::string& calledAet,
+                                                          const Orthanc::DicomConnectionInfo& connection,
                                                           uint16_t originatorId)
 {
   std::set<std::string> publicIds;
@@ -221,8 +220,8 @@ Orthanc::IMoveRequestIterator* MoveRequestHandler::Handle(const std::string& tar
   }
 
   Json::Value body;
-  body["CalledAet"] = calledAet;
-  body["MoveOriginatorAet"] = originatorAet;
+  body["CalledAet"] = connection.GetCalledAet();
+  body["MoveOriginatorAet"] = connection.GetRemoteAet();
   body["MoveOriginatorID"] = originatorId;
   body["Resources"] = resources;
   body["Synchronous"] = isSynchronous_;

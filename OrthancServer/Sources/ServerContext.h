@@ -554,8 +554,7 @@ namespace Orthanc
                             const std::string& transactionUid,
                             const std::vector<std::string>& sopClassUids,
                             const std::vector<std::string>& sopInstanceUids,
-                            const std::string& remoteAet,
-                            const std::string& calledAet) ORTHANC_OVERRIDE;
+                            const DicomConnectionInfo& connection) ORTHANC_OVERRIDE;
 
     StorageCommitmentReports& GetStorageCommitmentReports()
     {

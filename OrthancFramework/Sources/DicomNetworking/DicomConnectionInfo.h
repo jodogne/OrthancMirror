@@ -1,0 +1,90 @@
+/**
+ * Orthanc - A Lightweight, RESTful DICOM Store
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ *
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program. If not, see
+ * <http://www.gnu.org/licenses/>.
+ **/
+
+
+#pragma once
+
+#include "../Compatibility.h"
+#include <json/value.h>
+#include "../Enumerations.h"
+
+namespace Orthanc
+{
+  // A set of informations about a connection.
+  // This is mainly a way to group arguments and provide getters for plugins.
+  class ORTHANC_PUBLIC DicomConnectionInfo
+  {
+  private:
+    std::string               remoteIp_;
+    std::string               remoteAet_;
+    std::string               calledAet_;
+    ModalityManufacturer      manufacturer_;
+
+  public:
+    
+    DicomConnectionInfo(const std::string& remoteIp,
+                        const std::string& remoteAet,                  
+                        const std::string& calledAet,
+                        const ModalityManufacturer& manufacturer) :
+      remoteIp_(remoteIp),
+      remoteAet_(remoteAet),
+      calledAet_(calledAet),
+      manufacturer_(manufacturer)
+    {
+    }
+
+    DicomConnectionInfo(const std::string& remoteIp,
+                        const std::string& remoteAet,                  
+                        const std::string& calledAet) :
+      remoteIp_(remoteIp),
+      remoteAet_(remoteAet),
+      calledAet_(calledAet),
+      manufacturer_(ModalityManufacturer_Generic)
+    {
+    }
+
+    DicomConnectionInfo(const Json::Value& serialized);
+
+    void Serialize(Json::Value& target) const;
+
+    const std::string& GetCalledAet() const
+    {
+      return calledAet_;
+    }
+
+    const std::string& GetRemoteAet() const
+    {
+      return remoteAet_;
+    }
+
+    const std::string& GetRemoteIp() const
+    {
+      return remoteIp_;
+    }
+
+    ModalityManufacturer GetModalityManufacturer() const
+    {
+      return manufacturer_;
+    }
+  };
+}

@@ -115,9 +115,15 @@ private:
 
     void RegisterWorklistCallback(const void* parameters);
 
+    void RegisterWorklistCallback2(const void* parameters);
+
     void RegisterFindCallback(const void* parameters);
 
+    void RegisterFindCallback2(const void* parameters);
+
     void RegisterMoveCallback(const void* parameters);
+
+    void RegisterMoveCallback2(const void* parameters);
 
     void RegisterDecodeImageCallback(const void* parameters);
 
@@ -138,6 +144,8 @@ private:
     void RegisterRefreshMetricsCallback(const void* parameters);
 
     void RegisterStorageCommitmentScpCallback(const void* parameters);
+
+    void RegisterStorageCommitmentScpCallback2(const void* parameters);
 
     void RegisterHttpAuthentication(const void* parameters);
 
@@ -173,7 +181,10 @@ private:
     
     void AccessDicomInstance2(_OrthancPluginService service,
                               const void* parameters);
-    
+
+    void AccessDicomConnection(_OrthancPluginService service,
+                               const void* parameters);
+                              
     void SendHttpStatusCode(const void* parameters);
 
     void SendHttpStatus(const void* parameters);
@@ -418,8 +429,7 @@ private:
       const std::string& transactionUid,
       const std::vector<std::string>& sopClassUids,
       const std::vector<std::string>& sopInstanceUids,
-      const std::string& remoteAet,
-      const std::string& calledAet) ORTHANC_OVERRIDE;
+      const DicomConnectionInfo& connection) ORTHANC_OVERRIDE;
 
     // New in Orthanc 1.8.1 (cf. "OrthancPluginGenerateRestApiAuthorizationToken()")
     bool IsValidAuthorizationToken(const std::string& token) const;

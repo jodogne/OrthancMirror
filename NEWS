@@ -27,6 +27,17 @@ Plugin SDK
   - OrthancPluginReserveQueueValue() is a replacement for OrthancPluginDequeueValue(). This flavour
     does not directly remove the value from the queue but reserves it for a certain duration.
   - OrthancPluginAcknowledgeQueueValue() removes a reserved value from a queue.
+* New primitives for handling SCP callbacks that accepts an OrthancPluginDicomConnection instead
+  of calledAet, remoteAet, ... :
+  - OrthancPluginRegisterFindCallback2
+  - OrthancPluginRegisterMoveCallback2
+  - OrthancPluginRegisterWorklistCallback2
+  - OrthancPluginRegisterStorageCommitmentScpCallback2
+* New accessors for OrthancPluginDicomConnection:
+  - OrthancPluginGetConnectionRemoteAet
+  - OrthancPluginGetConnectionRemoteIp
+  - OrthancPluginGetConnectionCalledAet
+
 
 Maintenance
 -----------

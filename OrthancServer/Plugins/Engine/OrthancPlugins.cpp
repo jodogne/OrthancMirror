@@ -36,6 +36,7 @@
 #include "../../../OrthancFramework/Sources/Compression/GzipCompressor.h"
 #include "../../../OrthancFramework/Sources/Compression/ZlibCompressor.h"
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/DicomConnectionInfo.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/DicomWebJsonVisitor.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.h"
@@ -1545,13 +1546,25 @@ namespace Orthanc
       class Handler : public IStorageCommitmentFactory::ILookupHandler
       {
       private:
-        _OrthancPluginRegisterStorageCommitmentScpCallback  parameters_;
+        std::unique_ptr<_OrthancPluginRegisterStorageCommitmentScpCallback>  parameters_;
+        std::unique_ptr<_OrthancPluginRegisterStorageCommitmentScpCallback2> parameters2_;
         void*    handler_;
 
       public:
         Handler(const _OrthancPluginRegisterStorageCommitmentScpCallback& parameters,
                 void* handler) :
-          parameters_(parameters),
+          parameters_(new _OrthancPluginRegisterStorageCommitmentScpCallback(parameters)),
+          handler_(handler)
+        {
+          if (handler == NULL)
+          {
+            throw OrthancException(ErrorCode_NullPointer);
+          }
+        }
+
+        Handler(const _OrthancPluginRegisterStorageCommitmentScpCallback2& parameters,
+                void* handler) :
+          parameters2_(new _OrthancPluginRegisterStorageCommitmentScpCallback2(parameters)),
           handler_(handler)
         {
           if (handler == NULL)
@@ -1563,7 +1576,14 @@ namespace Orthanc
         virtual ~Handler() ORTHANC_OVERRIDE
         {
           assert(handler_ != NULL);
-          parameters_.destructor(handler_);
+          if (parameters2_.get() != NULL)
+          {
+            parameters2_->destructor(handler_);
+          }
+          else if (parameters_.get() != NULL)
+          {
+            parameters_->destructor(handler_);
+          }
           handler_ = NULL;
         }
 
@@ -1572,10 +1592,18 @@ namespace Orthanc
           const std::string& sopInstanceUid) ORTHANC_OVERRIDE
         {
           assert(handler_ != NULL);
-          OrthancPluginStorageCommitmentFailureReason reason =
-            OrthancPluginStorageCommitmentFailureReason_Success;
-          OrthancPluginErrorCode error = parameters_.lookup(
-            &reason, handler_, sopClassUid.c_str(), sopInstanceUid.c_str());
+          OrthancPluginStorageCommitmentFailureReason reason = OrthancPluginStorageCommitmentFailureReason_Success;
+          OrthancPluginErrorCode error = OrthancPluginErrorCode_Success;
+
+          if (parameters2_.get() != NULL)
+          {
+            error = parameters2_->lookup(&reason, handler_, sopClassUid.c_str(), sopInstanceUid.c_str());
+          }
+          else if (parameters_.get() != NULL)
+          {
+            error = parameters_->lookup(&reason, handler_, sopClassUid.c_str(), sopInstanceUid.c_str());
+          }
+           
           if (error == OrthancPluginErrorCode_Success)
           {
             return Plugins::Convert(reason);
@@ -1587,11 +1615,17 @@ namespace Orthanc
         }
       };
       
-      _OrthancPluginRegisterStorageCommitmentScpCallback  parameters_;
+      std::unique_ptr<_OrthancPluginRegisterStorageCommitmentScpCallback>  parameters_;
+      std::unique_ptr<_OrthancPluginRegisterStorageCommitmentScpCallback2> parameters2_;
 
     public:
       explicit StorageCommitmentScp(const _OrthancPluginRegisterStorageCommitmentScpCallback& parameters) :
-        parameters_(parameters)
+        parameters_(new _OrthancPluginRegisterStorageCommitmentScpCallback(parameters))
+      {
+      }
+
+      explicit StorageCommitmentScp(const _OrthancPluginRegisterStorageCommitmentScpCallback2& parameters) :
+        parameters2_(new _OrthancPluginRegisterStorageCommitmentScpCallback2(parameters))
       {
       }
 
@@ -1600,8 +1634,7 @@ namespace Orthanc
         const std::string& transactionUid,
         const std::vector<std::string>& sopClassUids,
         const std::vector<std::string>& sopInstanceUids,
-        const std::string& remoteAet,
-        const std::string& calledAet) ORTHANC_OVERRIDE
+        const DicomConnectionInfo& connection) ORTHANC_OVERRIDE
       {
         const size_t n = sopClassUids.size();
         
@@ -1620,11 +1653,23 @@ namespace Orthanc
           b[i] = sopInstanceUids[i].c_str();
         }
 
+        OrthancPluginErrorCode error = OrthancPluginErrorCode_Success;
         void* handler = NULL;
-        OrthancPluginErrorCode error = parameters_.factory(
-          &handler, jobId.c_str(), transactionUid.c_str(),
-          a.empty() ? NULL : &a[0], b.empty() ? NULL : &b[0], static_cast<uint32_t>(n),
-          remoteAet.c_str(), calledAet.c_str());
+
+        if (parameters2_.get() != NULL)
+        {
+          error = parameters2_->factory(
+            &handler, jobId.c_str(), transactionUid.c_str(),
+            a.empty() ? NULL : &a[0], b.empty() ? NULL : &b[0], static_cast<uint32_t>(n),
+            reinterpret_cast<const OrthancPluginDicomConnection*>(&connection));
+        }
+        else if (parameters_.get() != NULL)
+        {
+          error = parameters_->factory(
+            &handler, jobId.c_str(), transactionUid.c_str(),
+            a.empty() ? NULL : &a[0], b.empty() ? NULL : &b[0], static_cast<uint32_t>(n),
+            connection.GetRemoteAet().c_str(), connection.GetCalledAet().c_str());
+        }
 
         if (error != OrthancPluginErrorCode_Success)
         {
@@ -1635,9 +1680,17 @@ namespace Orthanc
           // This plugin won't handle this storage commitment request
           return NULL;
         }
+        else if (parameters2_.get() != NULL)
+        {
+          return new Handler(*parameters2_, handler);
+        }
+        else if (parameters_.get() != NULL)
+        {
+          return new Handler(*parameters_, handler);
+        }
         else
         {
-          return new Handler(parameters_, handler);
+          throw OrthancException(ErrorCode_InternalError);
         }
       }
     };
@@ -1723,11 +1776,14 @@ namespace Orthanc
     OnStoredCallbacks  onStoredCallbacks_;
     OnChangeCallbacks  onChangeCallbacks_;
     OrthancPluginFindCallback  findCallback_;
+    OrthancPluginFindCallback2  findCallback2_; // New in Orthanc 1.12.10
     OrthancPluginWorklistCallback  worklistCallback_;
+    OrthancPluginWorklistCallback2  worklistCallback2_; // New in Orthanc 1.12.10
     DecodeImageCallbacks  decodeImageCallbacks_;
     TranscoderCallbacks  transcoderCallbacks_;
     JobsUnserializers  jobsUnserializers_;
-    _OrthancPluginMoveCallback moveCallbacks_;
+    std::unique_ptr<_OrthancPluginMoveCallback> moveCallbacks_;
+    std::unique_ptr<_OrthancPluginMoveCallback2> moveCallbacks2_; // New in Orthanc 1.12.10
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
     IncomingHttpRequestFilters2 incomingHttpRequestFilters2_;
     IncomingDicomInstanceFilters  incomingDicomInstanceFilters_;
@@ -1769,14 +1825,15 @@ namespace Orthanc
       contextRefCount_(0),
       context_(NULL), 
       findCallback_(NULL),
+      findCallback2_(NULL),
       worklistCallback_(NULL),
+      worklistCallback2_(NULL),
       receivedInstanceCallback_(NULL),
       httpAuthentication_(NULL),
       databaseServerIdentifier_(databaseServerIdentifier),
       maxDatabaseRetries_(0),
       hasStorageAreaCustomData_(false)
     {
-      memset(&moveCallbacks_, 0, sizeof(moveCallbacks_));
     }
   };
 
@@ -1805,10 +1862,7 @@ namespace Orthanc
 
     virtual void Handle(DicomFindAnswers& answers,
                         ParsedDicomFile& query,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet,
-                        ModalityManufacturer manufacturer) ORTHANC_OVERRIDE
+                        const DicomConnectionInfo& connection) ORTHANC_OVERRIDE
     {
       {
         static const char* LUA_CALLBACK = "IncomingWorklistRequestFilter";
@@ -1825,8 +1879,7 @@ namespace Orthanc
           Json::Value source, origin;
           query.DatasetToJson(source, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
 
-          OrthancFindRequestHandler::FormatOrigin
-            (origin, remoteIp, remoteAet, calledAet, manufacturer);
+          OrthancFindRequestHandler::FormatOrigin(origin, connection);
 
           LuaFunctionCall call(lua.GetLua(), LUA_CALLBACK);
           call.PushJson(source);
@@ -1846,13 +1899,28 @@ namespace Orthanc
       {
         boost::mutex::scoped_lock lock(that_.pimpl_->worklistCallbackMutex_);
 
-        if (that_.pimpl_->worklistCallback_)
+        if (that_.pimpl_->worklistCallback2_)
+        {
+
+          OrthancPluginErrorCode error = that_.pimpl_->worklistCallback2_
+            (reinterpret_cast<OrthancPluginWorklistAnswers*>(&answers),
+             reinterpret_cast<const OrthancPluginWorklistQuery*>(this),
+             reinterpret_cast<const OrthancPluginDicomConnection*>(&connection));
+
+          if (error != OrthancPluginErrorCode_Success)
+          {
+            Reset();
+            that_.GetErrorDictionary().LogError(error, true);
+            throw OrthancException(static_cast<ErrorCode>(error));
+          }
+        }
+        else if (that_.pimpl_->worklistCallback_)
         {
           OrthancPluginErrorCode error = that_.pimpl_->worklistCallback_
             (reinterpret_cast<OrthancPluginWorklistAnswers*>(&answers),
              reinterpret_cast<const OrthancPluginWorklistQuery*>(this),
-             remoteAet.c_str(),
-             calledAet.c_str());
+             connection.GetRemoteAet().c_str(),
+             connection.GetCalledAet().c_str());
 
           if (error != OrthancPluginErrorCode_Success)
           {
@@ -1926,10 +1994,7 @@ namespace Orthanc
     virtual void Handle(DicomFindAnswers& answers,
                         const DicomMap& input,
                         const std::list<DicomTag>& sequencesToReturn,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet,
-                        ModalityManufacturer manufacturer) ORTHANC_OVERRIDE
+                        const DicomConnectionInfo& connection) ORTHANC_OVERRIDE
     {
       DicomMap tmp;
       tmp.Assign(input);
@@ -1947,20 +2012,28 @@ namespace Orthanc
         boost::mutex::scoped_lock lock(that_.pimpl_->findCallbackMutex_);
         currentQuery_.reset(new DicomArray(tmp));
 
-        if (that_.pimpl_->findCallback_)
+        OrthancPluginErrorCode error = OrthancPluginErrorCode_Success;
+
+        if (that_.pimpl_->findCallback2_)
         {
-          OrthancPluginErrorCode error = that_.pimpl_->findCallback_
+          error = that_.pimpl_->findCallback2_
             (reinterpret_cast<OrthancPluginFindAnswers*>(&answers),
              reinterpret_cast<const OrthancPluginFindQuery*>(this),
-             remoteAet.c_str(),
-             calledAet.c_str());
+             reinterpret_cast<const OrthancPluginDicomConnection*>(&connection));
+        } else if (that_.pimpl_->findCallback_)
+        {
+          error = that_.pimpl_->findCallback_
+            (reinterpret_cast<OrthancPluginFindAnswers*>(&answers),
+             reinterpret_cast<const OrthancPluginFindQuery*>(this),
+             connection.GetRemoteAet().c_str(),
+             connection.GetCalledAet().c_str());
+        }
 
-          if (error != OrthancPluginErrorCode_Success)
-          {
-            Reset();
-            that_.GetErrorDictionary().LogError(error, true);
-            throw OrthancException(static_cast<ErrorCode>(error));
-          }
+        if (error != OrthancPluginErrorCode_Success)
+        {
+          Reset();
+          that_.GetErrorDictionary().LogError(error, true);
+          throw OrthancException(static_cast<ErrorCode>(error));
         }
 
         Reset();
@@ -2078,7 +2151,8 @@ namespace Orthanc
     };
 
 
-    _OrthancPluginMoveCallback  params_;
+    std::unique_ptr<_OrthancPluginMoveCallback>   params_;
+    std::unique_ptr<_OrthancPluginMoveCallback2>  params2_;
 
 
     static std::string ReadTag(const DicomMap& input,
@@ -2103,22 +2177,36 @@ namespace Orthanc
     explicit MoveHandler(OrthancPlugins& that)
     {
       boost::recursive_mutex::scoped_lock lock(that.pimpl_->invokeServiceMutex_);
-      params_ = that.pimpl_->moveCallbacks_;
-      
-      if (params_.callback == NULL ||
-          params_.getMoveSize == NULL ||
-          params_.applyMove == NULL ||
-          params_.freeMove == NULL)
+
+      if (that.pimpl_->moveCallbacks2_.get() != NULL)
       {
-        throw OrthancException(ErrorCode_Plugin);
+        params2_.reset(new _OrthancPluginMoveCallback2(*that.pimpl_->moveCallbacks2_));
+
+        if (params2_->callback == NULL ||
+            params2_->getMoveSize == NULL ||
+            params2_->applyMove == NULL ||
+            params2_->freeMove == NULL)
+        {
+          throw OrthancException(ErrorCode_Plugin);
+        }
+      }
+      else if (that.pimpl_->moveCallbacks_.get() != NULL)
+      {
+        params_.reset(new _OrthancPluginMoveCallback(*that.pimpl_->moveCallbacks_));
+
+        if (params_->callback == NULL ||
+            params_->getMoveSize == NULL ||
+            params_->applyMove == NULL ||
+            params_->freeMove == NULL)
+        {
+          throw OrthancException(ErrorCode_Plugin);
+        }
       }
     }
 
     virtual IMoveRequestIterator* Handle(const std::string& targetAet,
                                          const DicomMap& input,
-                                         const std::string& originatorIp,
-                                         const std::string& originatorAet,
-                                         const std::string& calledAet,
+                                         const DicomConnectionInfo& connection,
                                          uint16_t originatorId) ORTHANC_OVERRIDE
     {
       std::string levelString = ReadTag(input, DICOM_TAG_QUERY_RETRIEVE_LEVEL);
@@ -2135,16 +2223,32 @@ namespace Orthanc
         level = Plugins::Convert(StringToResourceType(levelString.c_str()));
       }
 
-      void* driver = params_.callback(level,
-                                      patientId.empty() ? NULL : patientId.c_str(),
-                                      accessionNumber.empty() ? NULL : accessionNumber.c_str(),
-                                      studyInstanceUid.empty() ? NULL : studyInstanceUid.c_str(),
-                                      seriesInstanceUid.empty() ? NULL : seriesInstanceUid.c_str(),
-                                      sopInstanceUid.empty() ? NULL : sopInstanceUid.c_str(),
-                                      originatorAet.c_str(),
-                                      calledAet.c_str(),
-                                      targetAet.c_str(),
-                                      originatorId);
+      void* driver = NULL;
+      if (params2_.get() != NULL)
+      {
+        driver = params2_->callback(level,
+                                    patientId.empty() ? NULL : patientId.c_str(),
+                                    accessionNumber.empty() ? NULL : accessionNumber.c_str(),
+                                    studyInstanceUid.empty() ? NULL : studyInstanceUid.c_str(),
+                                    seriesInstanceUid.empty() ? NULL : seriesInstanceUid.c_str(),
+                                    sopInstanceUid.empty() ? NULL : sopInstanceUid.c_str(),
+                                    reinterpret_cast<const OrthancPluginDicomConnection*>(&connection),
+                                    targetAet.c_str(),
+                                    originatorId);
+      }
+      else if (params_.get() != NULL)
+      {
+        driver = params_->callback(level,
+                                   patientId.empty() ? NULL : patientId.c_str(),
+                                   accessionNumber.empty() ? NULL : accessionNumber.c_str(),
+                                   studyInstanceUid.empty() ? NULL : studyInstanceUid.c_str(),
+                                   seriesInstanceUid.empty() ? NULL : seriesInstanceUid.c_str(),
+                                   sopInstanceUid.empty() ? NULL : sopInstanceUid.c_str(),
+                                   connection.GetRemoteAet().c_str(),
+                                   connection.GetCalledAet().c_str(),
+                                   targetAet.c_str(),
+                                   originatorId);
+      }
 
       if (driver == NULL)
       {
@@ -2152,9 +2256,18 @@ namespace Orthanc
                                "Plugin cannot create a driver for an incoming C-MOVE request");
       }
 
-      unsigned int size = params_.getMoveSize(driver);
+      if (params2_.get() != NULL)
+      {
+        unsigned int size = params2_->getMoveSize(driver);
 
-      return new Driver(driver, size, params_.applyMove, params_.freeMove);
+        return new Driver(driver, size, params2_->applyMove, params2_->freeMove);
+      }
+      else
+      {
+        unsigned int size = params_->getMoveSize(driver);
+
+        return new Driver(driver, size, params_->applyMove, params_->freeMove);
+      }
     }
   };
 
@@ -2931,7 +3044,7 @@ namespace Orthanc
 
     boost::mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
 
-    if (pimpl_->worklistCallback_ != NULL)
+    if (pimpl_->worklistCallback_ != NULL || pimpl_->worklistCallback2_ != NULL)
     {
       throw OrthancException(ErrorCode_Plugin,
                              "Can only register one plugin to handle modality worklists");
@@ -2944,6 +3057,26 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::RegisterWorklistCallback2(const void* parameters)
+  {
+    const _OrthancPluginWorklistCallback2& p = 
+      *reinterpret_cast<const _OrthancPluginWorklistCallback2*>(parameters);
+
+    boost::mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
+
+    if (pimpl_->worklistCallback_ != NULL || pimpl_->worklistCallback2_ != NULL)
+    {
+      throw OrthancException(ErrorCode_Plugin,
+                             "Can only register one plugin to handle modality worklists");
+    }
+    else
+    {
+      CLOG(INFO, PLUGINS) << "Plugin has registered a callback to handle modality worklists (v2)";
+      pimpl_->worklistCallback2_ = p.callback;
+    }
+  }
+
+
   void OrthancPlugins::RegisterFindCallback(const void* parameters)
   {
     const _OrthancPluginFindCallback& p = 
@@ -2951,7 +3084,7 @@ namespace Orthanc
 
     boost::mutex::scoped_lock lock(pimpl_->findCallbackMutex_);
 
-    if (pimpl_->findCallback_ != NULL)
+    if (pimpl_->findCallback2_ != NULL || pimpl_->findCallback_ != NULL)
     {
       throw OrthancException(ErrorCode_Plugin,
                              "Can only register one plugin to handle C-FIND requests");
@@ -2964,6 +3097,26 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::RegisterFindCallback2(const void* parameters)
+  {
+    const _OrthancPluginFindCallback2& p = 
+      *reinterpret_cast<const _OrthancPluginFindCallback2*>(parameters);
+
+    boost::mutex::scoped_lock lock(pimpl_->findCallbackMutex_);
+
+    if (pimpl_->findCallback2_ != NULL || pimpl_->findCallback_ != NULL)
+    {
+      throw OrthancException(ErrorCode_Plugin,
+                             "Can only register one plugin to handle C-FIND requests");
+    }
+    else
+    {
+      CLOG(INFO, PLUGINS) << "Plugin has registered a callback to handle C-FIND requests (v2)";
+      pimpl_->findCallback2_ = p.callback;
+    }
+  }
+
+
   void OrthancPlugins::RegisterMoveCallback(const void* parameters)
   {
     // invokeServiceMutex_ is assumed to be locked
@@ -2971,7 +3124,7 @@ namespace Orthanc
     const _OrthancPluginMoveCallback& p = 
       *reinterpret_cast<const _OrthancPluginMoveCallback*>(parameters);
 
-    if (pimpl_->moveCallbacks_.callback != NULL)
+    if (pimpl_->moveCallbacks_.get() != NULL || pimpl_->moveCallbacks2_.get() != NULL)
     {
       throw OrthancException(ErrorCode_Plugin,
                              "Can only register one plugin to handle C-MOVE requests");
@@ -2979,7 +3132,27 @@ namespace Orthanc
     else
     {
       CLOG(INFO, PLUGINS) << "Plugin has registered a callback to handle C-MOVE requests";
-      pimpl_->moveCallbacks_ = p;
+      pimpl_->moveCallbacks_.reset(new _OrthancPluginMoveCallback(p));
+    }
+  }
+
+
+  void OrthancPlugins::RegisterMoveCallback2(const void* parameters)
+  {
+    // invokeServiceMutex_ is assumed to be locked
+
+    const _OrthancPluginMoveCallback2& p = 
+      *reinterpret_cast<const _OrthancPluginMoveCallback2*>(parameters);
+
+    if (pimpl_->moveCallbacks_.get() != NULL || pimpl_->moveCallbacks2_.get() != NULL)
+    {
+      throw OrthancException(ErrorCode_Plugin,
+                             "Can only register one plugin to handle C-MOVE requests");
+    }
+    else
+    {
+      CLOG(INFO, PLUGINS) << "Plugin has registered a callback to handle C-MOVE requests (v2)";
+      pimpl_->moveCallbacks2_.reset(new _OrthancPluginMoveCallback2(p));
     }
   }
 
@@ -3102,6 +3275,18 @@ namespace Orthanc
 
     boost::mutex::scoped_lock lock(pimpl_->storageCommitmentScpMutex_);
     CLOG(INFO, PLUGINS) << "Plugin has registered a storage commitment callback";
+
+    pimpl_->storageCommitmentScpCallbacks_.push_back(new PImpl::StorageCommitmentScp(p));
+  }
+
+
+  void OrthancPlugins::RegisterStorageCommitmentScpCallback2(const void* parameters)
+  {
+    const _OrthancPluginRegisterStorageCommitmentScpCallback2& p = 
+      *reinterpret_cast<const _OrthancPluginRegisterStorageCommitmentScpCallback2*>(parameters);
+
+    boost::mutex::scoped_lock lock(pimpl_->storageCommitmentScpMutex_);
+    CLOG(INFO, PLUGINS) << "Plugin has registered a storage commitment callback (v2)";
 
     pimpl_->storageCommitmentScpCallbacks_.push_back(new PImpl::StorageCommitmentScp(p));
   }
@@ -3856,6 +4041,38 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::AccessDicomConnection(_OrthancPluginService service,
+                                             const void* parameters)
+  {
+    const _OrthancPluginAccessDicomConnection& p = 
+      *reinterpret_cast<const _OrthancPluginAccessDicomConnection*>(parameters);
+
+    if (p.connection == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    const DicomConnectionInfo& connection = *(reinterpret_cast<const DicomConnectionInfo*>(p.connection));
+
+    switch (service)
+    {
+      case _OrthancPluginService_GetConnectionCalledAet:
+        *p.resultString = connection.GetCalledAet().c_str();
+        return;
+
+      case _OrthancPluginService_GetConnectionRemoteAet:
+        *p.resultString = connection.GetRemoteAet().c_str();
+        return;
+
+      case _OrthancPluginService_GetConnectionRemoteIp:
+        *p.resultString = connection.GetRemoteIp().c_str();
+        return;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+
+    }
+  }
   void OrthancPlugins::UncompressImage(const void* parameters)
   {
     const _OrthancPluginUncompressImage& p = *reinterpret_cast<const _OrthancPluginUncompressImage*>(parameters);
@@ -5174,7 +5391,13 @@ namespace Orthanc
         AccessDicomInstance2(service, parameters);
         return true;
 
-      case _OrthancPluginService_SetGlobalProperty:
+      case _OrthancPluginService_GetConnectionRemoteAet:
+      case _OrthancPluginService_GetConnectionRemoteIp:
+      case _OrthancPluginService_GetConnectionCalledAet:
+        AccessDicomConnection(service, parameters);
+        return true;        
+      
+        case _OrthancPluginService_SetGlobalProperty:
       {
         const _OrthancPluginGlobalProperty& p = 
           *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);
@@ -6028,12 +6251,24 @@ namespace Orthanc
         RegisterWorklistCallback(parameters);
         return true;
 
+      case _OrthancPluginService_RegisterWorklistCallback2:
+        RegisterWorklistCallback2(parameters);
+        return true;
+
       case _OrthancPluginService_RegisterFindCallback:
         RegisterFindCallback(parameters);
         return true;
 
+      case _OrthancPluginService_RegisterFindCallback2:
+        RegisterFindCallback2(parameters);
+        return true;
+
       case _OrthancPluginService_RegisterMoveCallback:
         RegisterMoveCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterMoveCallback2:
+        RegisterMoveCallback2(parameters);
         return true;
 
       case _OrthancPluginService_RegisterDecodeImageCallback:
@@ -6066,6 +6301,10 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterStorageCommitmentScpCallback:
         RegisterStorageCommitmentScpCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterStorageCommitmentScpCallback2:
+        RegisterStorageCommitmentScpCallback2(parameters);
         return true;
 
       case _OrthancPluginService_RegisterHttpAuthentication:
@@ -6522,7 +6761,7 @@ namespace Orthanc
   bool OrthancPlugins::HasWorklistHandler()
   {
     boost::mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
-    return pimpl_->worklistCallback_ != NULL;
+    return pimpl_->worklistCallback_ != NULL || pimpl_->worklistCallback2_ != NULL;
   }
 
 
@@ -6542,7 +6781,7 @@ namespace Orthanc
   bool OrthancPlugins::HasFindHandler()
   {
     boost::mutex::scoped_lock lock(pimpl_->findCallbackMutex_);
-    return pimpl_->findCallback_ != NULL;
+    return pimpl_->findCallback_ != NULL || pimpl_->findCallback2_ != NULL;
   }
 
 
@@ -6562,7 +6801,7 @@ namespace Orthanc
   bool OrthancPlugins::HasMoveHandler()
   {
     boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
-    return pimpl_->moveCallbacks_.callback != NULL;
+    return pimpl_->moveCallbacks_.get() != NULL || pimpl_->moveCallbacks2_.get() != NULL;
   }
 
 
@@ -6866,8 +7105,7 @@ namespace Orthanc
     const std::string& transactionUid,
     const std::vector<std::string>& sopClassUids,
     const std::vector<std::string>& sopInstanceUids,
-    const std::string& remoteAet,
-    const std::string& calledAet)
+    const DicomConnectionInfo& connection)
   {
     boost::mutex::scoped_lock lock(pimpl_->storageCommitmentScpMutex_);
 
@@ -6877,7 +7115,7 @@ namespace Orthanc
     {
       assert(*it != NULL);
       IStorageCommitmentFactory::ILookupHandler* handler = (*it)->CreateStorageCommitment
-        (jobId, transactionUid, sopClassUids, sopInstanceUids, remoteAet, calledAet);
+        (jobId, transactionUid, sopClassUids, sopInstanceUids, connection);
 
       if (handler != NULL)
       {

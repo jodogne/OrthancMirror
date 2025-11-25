@@ -78,6 +78,7 @@
 #include "../../DicomFormat/DicomArray.h"
 #include "../../DicomParsing/FromDcmtkBridge.h"
 #include "../../DicomParsing/ToDcmtkBridge.h"
+#include "../DicomConnectionInfo.h"
 #include "../../Logging.h"
 #include "../../OrthancException.h"
 
@@ -239,10 +240,10 @@ namespace Orthanc
             {
               ParsedDicomFile query(*requestIdentifiers);
               FixWorklistQuery(query);
-
-              data.worklistHandler_->Handle(data.answers_, query,
-                                            *data.remoteIp_, *data.remoteAet_,
+              DicomConnectionInfo connection(*data.remoteIp_, *data.remoteAet_,
                                             *data.calledAet_, modality.GetManufacturer());
+
+              data.worklistHandler_->Handle(data.answers_, query, connection);
               ok = true;
             }
             else
@@ -284,10 +285,10 @@ namespace Orthanc
 
               DicomMap filtered;
               FixFindQuery(filtered, input);
+              DicomConnectionInfo connection(*data.remoteIp_, *data.remoteAet_,
+                                            *data.calledAet_, modality.GetManufacturer());
 
-              data.findHandler_->Handle(data.answers_, filtered, sequencesToReturn,
-                                        *data.remoteIp_, *data.remoteAet_,
-                                        *data.calledAet_, modality.GetManufacturer());
+              data.findHandler_->Handle(data.answers_, filtered, sequencesToReturn, connection);
               ok = true;
             }
             else

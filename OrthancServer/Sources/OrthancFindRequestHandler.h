@@ -46,10 +46,7 @@ namespace Orthanc
 
     bool ApplyLuaFilter(DicomMap& target,
                         const DicomMap& source,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet,
-                        ModalityManufacturer manufacturer);
+                        const DicomConnectionInfo& connection);
 
   public:
     explicit OrthancFindRequestHandler(ServerContext& context);
@@ -57,10 +54,7 @@ namespace Orthanc
     virtual void Handle(DicomFindAnswers& answers,
                         const DicomMap& input,
                         const std::list<DicomTag>& sequencesToReturn,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet,
-                        ModalityManufacturer manufacturer) ORTHANC_OVERRIDE;
+                        const DicomConnectionInfo& connection) ORTHANC_OVERRIDE;
 
     unsigned int GetMaxResults() const
     {
@@ -83,9 +77,6 @@ namespace Orthanc
     }
 
     static void FormatOrigin(Json::Value& origin,
-                             const std::string& remoteIp,
-                             const std::string& remoteAet,
-                             const std::string& calledAet,
-                             ModalityManufacturer manufacturer);
+                             const DicomConnectionInfo& connection);
   };
 }
