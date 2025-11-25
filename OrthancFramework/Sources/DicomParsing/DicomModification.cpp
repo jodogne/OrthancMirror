@@ -471,7 +471,7 @@ namespace Orthanc
 
     if (previous == uidMap_.end())
     {
-      if (identifierGenerator_ == NULL)
+      if (identifierGenerator_.get() == NULL)
       {
         mapped = FromDcmtkBridge::GenerateUniqueIdentifier(level);
       }
@@ -541,9 +541,8 @@ namespace Orthanc
     keepSeriesInstanceUid_(false),
     keepSopInstanceUid_(false),
     updateReferencedRelationships_(true),
-    isAnonymization_(false),
-    //privateCreator_("PrivateCreator"),
-    identifierGenerator_(NULL)
+    isAnonymization_(false)
+    //privateCreator_("PrivateCreator")
   {
   }
 
@@ -958,12 +957,17 @@ namespace Orthanc
     }        
   }
 
-  void DicomModification::Apply(ParsedDicomFile& toModify)
+  void DicomModification::Apply(std::unique_ptr<ParsedDicomFile>& toModify)
   {
     // Check the request
     assert(ResourceType_Patient + 1 == ResourceType_Study &&
            ResourceType_Study + 1 == ResourceType_Series &&
            ResourceType_Series + 1 == ResourceType_Instance);
+
+    if (toModify.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
 
     if (IsRemoved(DICOM_TAG_PATIENT_ID) ||
         IsRemoved(DICOM_TAG_STUDY_INSTANCE_UID) ||
@@ -1015,12 +1019,19 @@ namespace Orthanc
       }
     }
 
+    // (0.1) New in Orthanc 1.12.10: Apply custom modifications (e.g. pixels masking)
+    // This is done before modifying any tags because the dicomModifier_ might have filters on the Orthanc ids ->
+    // the DICOM UID tags must not be modified before.
+    if (dicomModifier_ != NULL)
+    {
+      dicomModifier_->Apply(toModify);
+    }
 
-    // (0) Create a summary of the source file, if a custom generator
+    // (0.2) Create a summary of the source file, if a custom generator
     // is provided
     if (identifierGenerator_ != NULL)
     {
-      toModify.ExtractDicomSummary(currentSource_, ORTHANC_MAXIMUM_TAG_LENGTH);
+      toModify->ExtractDicomSummary(currentSource_, ORTHANC_MAXIMUM_TAG_LENGTH);
     }
 
     // (1) Make sure the relationships are updated with the ids that we force too
@@ -1031,7 +1042,7 @@ namespace Orthanc
       {
         std::string original;
         std::string replacement = GetReplacementAsString(DICOM_TAG_STUDY_INSTANCE_UID);
-        const_cast<const ParsedDicomFile&>(toModify).GetTagValue(original, DICOM_TAG_STUDY_INSTANCE_UID);
+        const_cast<const ParsedDicomFile&>(*toModify).GetTagValue(original, DICOM_TAG_STUDY_INSTANCE_UID);
         RegisterMappedDicomIdentifier(original, replacement, ResourceType_Study);
       }
 
@@ -1039,7 +1050,7 @@ namespace Orthanc
       {
         std::string original;
         std::string replacement = GetReplacementAsString(DICOM_TAG_SERIES_INSTANCE_UID);
-        const_cast<const ParsedDicomFile&>(toModify).GetTagValue(original, DICOM_TAG_SERIES_INSTANCE_UID);
+        const_cast<const ParsedDicomFile&>(*toModify).GetTagValue(original, DICOM_TAG_SERIES_INSTANCE_UID);
         RegisterMappedDicomIdentifier(original, replacement, ResourceType_Series);
       }
 
@@ -1047,7 +1058,7 @@ namespace Orthanc
       {
         std::string original;
         std::string replacement = GetReplacementAsString(DICOM_TAG_SOP_INSTANCE_UID);
-        const_cast<const ParsedDicomFile&>(toModify).GetTagValue(original, DICOM_TAG_SOP_INSTANCE_UID);
+        const_cast<const ParsedDicomFile&>(*toModify).GetTagValue(original, DICOM_TAG_SOP_INSTANCE_UID);
         RegisterMappedDicomIdentifier(original, replacement, ResourceType_Instance);
       }
     }
@@ -1056,21 +1067,21 @@ namespace Orthanc
     // (2) Remove the private tags, if need be
     if (removePrivateTags_)
     {
-      toModify.RemovePrivateTags(privateTagsToKeep_);
+      toModify->RemovePrivateTags(privateTagsToKeep_);
     }
 
     // (3) Clear the tags specified by the user
     for (SetOfTags::const_iterator it = clearings_.begin(); 
          it != clearings_.end(); ++it)
     {
-      toModify.Clear(*it, true /* only clear if the tag exists in the original file */);
+      toModify->Clear(*it, true /* only clear if the tag exists in the original file */);
     }
 
     // (4) Remove the tags specified by the user
     for (SetOfTags::const_iterator it = removals_.begin(); 
          it != removals_.end(); ++it)
     {
-      toModify.Remove(*it);
+      toModify->Remove(*it);
     }
 
     // (5) Replace the tags
@@ -1078,7 +1089,7 @@ namespace Orthanc
          it != replacements_.end(); ++it)
     {
       assert(it->second != NULL);
-      toModify.Replace(it->first, *it->second, true /* decode data URI scheme */,
+      toModify->Replace(it->first, *it->second, true /* decode data URI scheme */,
                        DicomReplaceMode_InsertIfAbsent, privateCreator_);
     }
 
@@ -1092,7 +1103,7 @@ namespace Orthanc
       }
       else
       {
-        MapDicomTags(toModify, ResourceType_Study);
+        MapDicomTags(*toModify, ResourceType_Study);
       }
     }
 
@@ -1105,7 +1116,7 @@ namespace Orthanc
       }
       else
       {
-        MapDicomTags(toModify, ResourceType_Series);
+        MapDicomTags(*toModify, ResourceType_Series);
       }
     }
 
@@ -1118,7 +1129,7 @@ namespace Orthanc
       }
       else
       {
-        MapDicomTags(toModify, ResourceType_Instance);
+        MapDicomTags(*toModify, ResourceType_Instance);
       }
     }
 
@@ -1129,11 +1140,11 @@ namespace Orthanc
 
       if (updateReferencedRelationships_)
       {
-        const_cast<const ParsedDicomFile&>(toModify).Apply(visitor);
+        const_cast<const ParsedDicomFile&>(*toModify).Apply(visitor);
       }
       else
       {
-        visitor.RemoveRelationships(toModify);
+        visitor.RemoveRelationships(*toModify);
       }
     }
 
@@ -1142,7 +1153,7 @@ namespace Orthanc
          it != removeSequences_.end(); ++it)
     {
       assert(it->GetPrefixLength() > 0);
-      toModify.RemovePath(*it);
+      toModify->RemovePath(*it);
     }
 
     for (SequenceReplacements::const_iterator it = sequenceReplacements_.begin();
@@ -1150,9 +1161,10 @@ namespace Orthanc
     {
       assert(*it != NULL);
       assert((*it)->GetPath().GetPrefixLength() > 0);
-      toModify.ReplacePath((*it)->GetPath(), (*it)->GetValue(), true /* decode data URI scheme */,
-                           DicomReplaceMode_InsertIfAbsent, privateCreator_);
+      toModify->ReplacePath((*it)->GetPath(), (*it)->GetValue(), true /* decode data URI scheme */,
+                            DicomReplaceMode_InsertIfAbsent, privateCreator_);
     }
+
   }
 
   void DicomModification::SetAllowManualIdentifiers(bool check)
@@ -1387,7 +1399,7 @@ namespace Orthanc
   {
     if (!request.isObject())
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat, "The payload should be a JSON object.");
     }
 
     bool force = GetBooleanValue("Force", request, false);
@@ -1401,7 +1413,7 @@ namespace Orthanc
     {
       if (request["DicomVersion"].type() != Json::stringValue)
       {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat, "DicomVersion should be a string");
       }
       else
       {
@@ -1445,9 +1457,16 @@ namespace Orthanc
     }
   }
 
-  void DicomModification::SetDicomIdentifierGenerator(DicomModification::IDicomIdentifierGenerator &generator)
+  void DicomModification::SetDicomIdentifierGenerator(DicomModification::IDicomIdentifierGenerator* generator)
   {
-    identifierGenerator_ = &generator;
+    if (generator == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else
+    {
+      identifierGenerator_.reset(generator);
+    }
   }
 
 
@@ -1627,8 +1646,7 @@ namespace Orthanc
   }
 
   
-  DicomModification::DicomModification(const Json::Value& serialized) :
-    identifierGenerator_(NULL)
+  DicomModification::DicomModification(const Json::Value& serialized)
   {
     removePrivateTags_ = SerializationToolbox::ReadBoolean(serialized, REMOVE_PRIVATE_TAGS);
     level_ = StringToResourceType(SerializationToolbox::ReadString(serialized, LEVEL).c_str());
@@ -1902,6 +1920,18 @@ namespace Orthanc
     for (Replacements::const_iterator it = replacements_.begin(); it != replacements_.end(); ++it)
     {
       target.insert(it->first);
+    }
+  }
+
+  void DicomModification::SetDicomModifier(IDicomModifier* modifier)
+  {
+    if (modifier == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else
+    {
+      dicomModifier_.reset(modifier);
     }
   }
 }

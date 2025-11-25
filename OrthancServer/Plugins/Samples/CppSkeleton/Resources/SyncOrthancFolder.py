@@ -40,7 +40,7 @@ FILES = [
     ('orthanc', 'OrthancFramework/Resources/CMake/Compiler.cmake', 'CMake'),
     ('orthanc', 'OrthancFramework/Resources/CMake/DownloadOrthancFramework.cmake', 'CMake'),
     ('orthanc', 'OrthancFramework/Resources/CMake/DownloadPackage.cmake', 'CMake'),
-    ('orthanc', 'OrthancFramework/Resources/EmbedResources.py', 'CMake'),
+    ('orthanc', 'OrthancFramework/Resources/CMake/EmbedResources.py', 'CMake'),
 
     ('orthanc', 'OrthancFramework/Resources/Toolchains/LinuxStandardBaseToolchain.cmake', 'Toolchains'),
     ('orthanc', 'OrthancFramework/Resources/Toolchains/MinGW-W64-Toolchain32.cmake', 'Toolchains'),

@@ -36,6 +36,7 @@
 
 
 #include "FromDcmtkBridge.h"
+#include "Internals/SopInstanceUidFixer.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
@@ -105,11 +106,12 @@ namespace Orthanc
     return false;
   }
 
+
   bool DcmtkTranscoder::InplaceTranscode(DicomTransferSyntax& selectedSyntax /* out */,
                                          std::string& failureReason /* out */,
                                          DcmFileFormat& dicom, /* in/out */
                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                         bool allowNewSopInstanceUid,
+                                         TranscodingSopInstanceUidMode mode,
                                          unsigned int lossyQuality) 
   {
     std::vector<std::string> failureReasons;
@@ -155,6 +157,12 @@ namespace Orthanc
       return true;
     }
 
+    // The SOP Instance UID fixer has only an effect if "mode" is TranscodingSopInstanceUidMode_Preserve
+    // and if transcoding to a lossy transfer syntax
+    const Internals::SopInstanceUidFixer fixer(mode, dicom);
+
+    const bool allowNewSopInstanceUid = (mode == TranscodingSopInstanceUidMode_AllowNew ||
+                                         mode == TranscodingSopInstanceUidMode_Preserve);
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess1) != allowedSyntaxes.end())
@@ -174,6 +182,7 @@ namespace Orthanc
           
         if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess1, &parameters))
         {
+          fixer.Apply(dicom);
           selectedSyntax = DicomTransferSyntax_JPEGProcess1;
           return true;
         }
@@ -199,6 +208,7 @@ namespace Orthanc
         DJ_RPLossy parameters(lossyQuality);
         if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess2_4, &parameters))
         {
+          fixer.Apply(dicom);
           selectedSyntax = DicomTransferSyntax_JPEGProcess2_4;
           return true;
         }
@@ -215,6 +225,7 @@ namespace Orthanc
                                0 /* opt_point_transform */);
       if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess14, &parameters))
       {
+        fixer.Apply(dicom);
         selectedSyntax = DicomTransferSyntax_JPEGProcess14;
         return true;
       }
@@ -271,6 +282,7 @@ namespace Orthanc
        **/              
       if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGLSLossy, &parameters))
       {
+        fixer.Apply(dicom);
         selectedSyntax = DicomTransferSyntax_JPEGLSLossy;
         return true;
       }
@@ -316,16 +328,16 @@ namespace Orthanc
   bool DcmtkTranscoder::Transcode(DicomImage& target,
                                   DicomImage& source /* in, "GetParsed()" possibly modified */,
                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                  bool allowNewSopInstanceUid)
+                                  TranscodingSopInstanceUidMode mode)
   {
-    return Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid, defaultLossyQuality_);
+    return Transcode(target, source, allowedSyntaxes, mode, defaultLossyQuality_);
   }
 
 
   bool DcmtkTranscoder::Transcode(DicomImage& target,
                                   DicomImage& source /* in, "GetParsed()" possibly modified */,
                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                  bool allowNewSopInstanceUid,
+                                  TranscodingSopInstanceUidMode mode,
                                   unsigned int lossyQuality)
   {
     Semaphore::Locker lock(maxConcurrentExecutionsSemaphore_); // limit the number of concurrent executions
@@ -373,7 +385,7 @@ namespace Orthanc
       return true;
     }
     else if (InplaceTranscode(targetSyntax, failureReason, source.GetParsed(),
-                              allowedSyntaxes, allowNewSopInstanceUid, lossyQuality))
+                              allowedSyntaxes, mode, lossyQuality))
     {   
       // Sanity check
       DicomTransferSyntax targetSyntax2;
@@ -385,9 +397,13 @@ namespace Orthanc
         source.Clear();
         
 #if !defined(NDEBUG)
-        // Only run the sanity check in debug mode
-        CheckTranscoding(target, sourceSyntax, sourceSopInstanceUid,
-                         allowedSyntaxes, allowNewSopInstanceUid);
+        {
+          // Only run the sanity check in debug mode
+          const bool allowNewSopInstanceUid = (mode == TranscodingSopInstanceUidMode_AllowNew ||
+                                               mode == TranscodingSopInstanceUidMode_Preserve);
+          CheckTranscoding(target, sourceSyntax, sourceSopInstanceUid,
+                           allowedSyntaxes, allowNewSopInstanceUid);
+        }
 #endif
         
         return true;

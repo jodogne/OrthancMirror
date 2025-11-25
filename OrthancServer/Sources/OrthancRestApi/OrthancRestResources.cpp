@@ -432,7 +432,7 @@ namespace Orthanc
         std::set<DicomTransferSyntax> allowedSyntaxes;
         allowedSyntaxes.insert(GetTransferSyntax(call.GetArgument(GET_TRANSCODE, "")));
 
-        if (context.Transcode(targetImage, sourceImage, allowedSyntaxes, true, lossyQuality))
+        if (context.Transcode(targetImage, sourceImage, allowedSyntaxes, TranscodingSopInstanceUidMode_AllowNew, lossyQuality))
         {
           call.GetOutput().SetContentFilename(filename.c_str());
           call.GetOutput().AnswerBuffer(targetImage.GetBufferData(), targetImage.GetBufferSize(), MimeType_Dicom);

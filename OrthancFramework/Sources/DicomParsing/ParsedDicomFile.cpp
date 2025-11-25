@@ -1824,6 +1824,46 @@ namespace Orthanc
     }
   }
 
+  ImageAccessor* ParsedDicomFile::GetRawFrame(unsigned int frame)
+  {
+    E_TransferSyntax transferSyntax = GetDcmtkObjectConst().getDataset()->getCurrentXfer();
+    if (transferSyntax != EXS_LittleEndianImplicit && 
+        transferSyntax != EXS_BigEndianImplicit && 
+        transferSyntax != EXS_LittleEndianExplicit && 
+        transferSyntax != EXS_BigEndianExplicit)
+    {
+      throw OrthancException(ErrorCode_NotImplemented, "ParseDicomFile::GetRawFrame only works with uncompressed transfer syntaxes");
+    }
+
+    if (pimpl_->frameIndex_.get() == NULL)
+    {
+      assert(pimpl_->file_ != NULL &&
+             GetDcmtkObjectConst().getDataset() != NULL);
+      pimpl_->frameIndex_.reset(new DicomFrameIndex(*GetDcmtkObjectConst().getDataset()));
+    }
+
+    DicomMap m;
+    std::set<DicomTag> ignoreTagLength;
+    FromDcmtkBridge::ExtractDicomSummary(m, *GetDcmtkObjectConst().getDataset(), DicomImageInformation::GetUsefulTagLength(), ignoreTagLength);
+
+    DicomImageInformation info(m);
+    PixelFormat format;
+    
+    if (!info.ExtractPixelFormat(format, false))
+    {
+      LOG(WARNING) << "Unsupported DICOM image: " << info.GetBitsStored() 
+                   << "bpp, " << info.GetChannelCount() << " channels, " 
+                   << (info.IsSigned() ? "signed" : "unsigned")
+                   << (info.IsPlanar() ? ", planar, " : ", non-planar, ")
+                   << EnumerationToString(info.GetPhotometricInterpretation())
+                   << " photometric interpretation";
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    std::unique_ptr<ImageAccessor> img(new ImageAccessor());
+    img->AssignWritable(format, info.GetWidth(), info.GetHeight(), info.GetWidth() * GetBytesPerPixel(format), pimpl_->frameIndex_->GetRawFrameBuffer(frame));
+    return img.release();
+  }
 
   static bool HasGenericGroupLength(const DicomPath& path)
   {
