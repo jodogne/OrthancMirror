@@ -168,7 +168,7 @@ namespace Orthanc
     SequenceReplacements sequenceReplacements_;  // Must *never* be a path whose prefix is empty
 
     // New in Orthanc 1.12.10
-    std::unique_ptr<IDicomModifier>     dicomModifier_;    // TODO-PIXEL-ANON: check ownership & serialization
+    std::unique_ptr<IDicomModifier>   dicomModifier_;
 
     std::string MapDicomIdentifier(const std::string& original,
                                    ResourceType level);
@@ -286,6 +286,11 @@ namespace Orthanc
 
     bool IsAlteredTag(const DicomTag& tag) const;
 
-    bool RequiresUncompressedTransferSyntax() const;
+    bool IsAnonymization() const
+    {
+      return isAnonymization_;
+    }
+
+    void SetDicomModifier(IDicomModifier* modifier);
   };
 }
