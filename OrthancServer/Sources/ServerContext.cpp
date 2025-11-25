@@ -2098,7 +2098,7 @@ namespace Orthanc
 
     // do we need to transcode before applying e.g custom pixels modifications ?
     DicomTransferSyntax currentTransferSyntax;
-    if (modification.RequiresUncompressedTransferSyntax() && 
+    if (// modification.RequiresUncompressedTransferSyntax() &&   // TODO-PIXEL-ANON
         dicomFile->LookupTransferSyntax(currentTransferSyntax) &&
         !IsRawTransferSyntax(currentTransferSyntax))
     {

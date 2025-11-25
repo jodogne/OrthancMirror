@@ -1939,8 +1939,15 @@ namespace Orthanc
     }
   }
 
-  bool DicomModification::RequiresUncompressedTransferSyntax() const
+  void DicomModification::SetDicomModifier(IDicomModifier* modifier)
   {
-    return dicomModifier_ != NULL;
+    if (modifier == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else
+    {
+      dicomModifier_.reset(modifier);
+    }
   }
 }
