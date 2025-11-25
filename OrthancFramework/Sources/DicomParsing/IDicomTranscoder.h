@@ -56,8 +56,6 @@ namespace Orthanc
 
       void Serialize();
 
-      DcmFileFormat* ReleaseParsed();
-
     public:
       DicomImage();
       
@@ -80,6 +78,8 @@ namespace Orthanc
       void SetExternalBuffer(const std::string& buffer);
 
       DcmFileFormat& GetParsed();
+
+      DcmFileFormat* ReleaseParsed();
 
       ParsedDicomFile* ReleaseAsParsedDicomFile();
 
@@ -114,12 +114,12 @@ namespace Orthanc
     virtual bool Transcode(DicomImage& target,
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                           bool allowNewSopInstanceUid) = 0;
+                           TranscodingSopInstanceUidMode mode) = 0;
 
     virtual bool Transcode(DicomImage& target,
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                           bool allowNewSopInstanceUid,
+                           TranscodingSopInstanceUidMode mode,
                            unsigned int lossyQuality) = 0;
 
     static std::string GetSopInstanceUid(DcmFileFormat& dicom);

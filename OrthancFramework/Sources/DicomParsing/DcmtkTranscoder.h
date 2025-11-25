@@ -48,7 +48,7 @@ namespace Orthanc
                           std::string& failureReason /* out */,
                           DcmFileFormat& dicom,
                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                          bool allowNewSopInstanceUid,
+                          TranscodingSopInstanceUidMode mode,
                           unsigned int lossyQuality);
     
   public:
@@ -63,12 +63,12 @@ namespace Orthanc
     virtual bool Transcode(DicomImage& target,
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                           bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+                           TranscodingSopInstanceUidMode mode) ORTHANC_OVERRIDE;
 
     virtual bool Transcode(DicomImage& target,
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                           bool allowNewSopInstanceUid,
+                           TranscodingSopInstanceUidMode mode,
                            unsigned int lossyQuality) ORTHANC_OVERRIDE;
   };
 }

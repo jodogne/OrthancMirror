@@ -116,7 +116,7 @@ namespace Orthanc
         IDicomTranscoder::DicomImage source, transcoded;
         source.SetExternalBuffer(sourceBuffer);
 
-        if (context_.Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */, lossyQuality_))
+        if (context_.Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew, lossyQuality_))
         {
           transcodedBuffer.assign(reinterpret_cast<const char*>(transcoded.GetBufferData()), transcoded.GetBufferSize());
           return true;

@@ -581,7 +581,7 @@ namespace Orthanc
         targetSyntaxes.insert(preferredTransferSyntax);
         attemptedSyntaxes.insert(preferredTransferSyntax);
 
-        success = transcoder.Transcode(transcoded, source, targetSyntaxes, true);
+        success = transcoder.Transcode(transcoded, source, targetSyntaxes, TranscodingSopInstanceUidMode_AllowNew);
         isDestructiveCompressionAllowed = true;
       }
 
@@ -612,7 +612,7 @@ namespace Orthanc
 
         if (!targetSyntaxes.empty())
         {
-          success = transcoder.Transcode(transcoded, source, targetSyntaxes, false);
+          success = transcoder.Transcode(transcoded, source, targetSyntaxes, TranscodingSopInstanceUidMode_NoChange);
           isDestructiveCompressionAllowed = false;
         }
       }
