@@ -55,12 +55,10 @@ namespace Orthanc
 
 
   DicomConnectionInfo::DicomConnectionInfo(const Json::Value& serialized) :
-    manufacturer_(ModalityManufacturer_Generic)
+    remoteIp_(SerializationToolbox::ReadString(serialized, REMOTE_IP)),
+    remoteAet_(SerializationToolbox::ReadString(serialized, REMOTE_AET)),
+    calledAet_(SerializationToolbox::ReadString(serialized, CALLED_AET))
   {
-    calledAet_ = SerializationToolbox::ReadString(serialized, CALLED_AET);
-    remoteAet_ = SerializationToolbox::ReadString(serialized, REMOTE_AET);
-    remoteIp_ = SerializationToolbox::ReadString(serialized, REMOTE_IP);
-
     std::string manufacturer = SerializationToolbox::ReadString(serialized, MANUFACTURER);
     manufacturer_ = StringToModalityManufacturer(manufacturer);
   }
