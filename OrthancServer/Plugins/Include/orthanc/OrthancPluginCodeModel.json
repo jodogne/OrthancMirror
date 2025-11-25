@@ -47,7 +47,7 @@
                     "documentation": {
                         "args": {},
                         "description": [
-                            "This function returns the Orthanc called AET that a DICOM modality has used in a DICOM connection."
+                            "This function returns the AET that was called by the remote DICOM modality over a DICOM connection. This corresponds to one of the AETs used by Orthanc."
                         ],
                         "return": "The pointer to the called AET, NULL in case of error.",
                         "summary": "Get the called AET of a DICOM connection."
@@ -60,7 +60,12 @@
                     ]
                 }
             ],
-            "name": "OrthancPluginDicomConnection"
+            "name": "OrthancPluginDicomConnection",
+            "since_sdk": [
+                1,
+                12,
+                10
+            ]
         },
         {
             "destructor": "OrthancPluginFreeDicomInstance",
@@ -5591,7 +5596,6 @@
         "OrthancPluginGetImageBuffer",
         "OrthancPluginRestApiGet2",
         "OrthancPluginRegisterWorklistCallback",
-        "OrthancPluginRegisterWorklistCallback2",
         "OrthancPluginRegisterDecodeImageCallback",
         "OrthancPluginCreateImageAccessor",
         "OrthancPluginLookupDictionary",
@@ -5634,6 +5638,7 @@
         "OrthancPluginRegisterHttpAuthentication",
         "OrthancPluginRegisterAuditLogHandler",
         "OrthancPluginReserveQueueValue",
+        "OrthancPluginRegisterWorklistCallback2",
         "OrthancPluginRegisterFindCallback2",
         "OrthancPluginRegisterMoveCallback2",
         "OrthancPluginRegisterStorageCommitmentScpCallback2"
