@@ -63,7 +63,7 @@ namespace Orthanc
     {
     }
 
-    DicomConnectionInfo(const Json::Value& serialized);
+    explicit DicomConnectionInfo(const Json::Value& serialized);
 
     void Serialize(Json::Value& target) const;
 
