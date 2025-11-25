@@ -1584,6 +1584,11 @@ namespace Orthanc
           {
             parameters_->destructor(handler_);
           }
+          else
+          {
+            assert(0);  // Don't throw exceptions in destructors
+          }
+
           handler_ = NULL;
         }
 
@@ -1603,7 +1608,11 @@ namespace Orthanc
           {
             error = parameters_->lookup(&reason, handler_, sopClassUid.c_str(), sopInstanceUid.c_str());
           }
-           
+          else
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+
           if (error == OrthancPluginErrorCode_Success)
           {
             return Plugins::Convert(reason);
@@ -1669,6 +1678,10 @@ namespace Orthanc
             &handler, jobId.c_str(), transactionUid.c_str(),
             a.empty() ? NULL : &a[0], b.empty() ? NULL : &b[0], static_cast<uint32_t>(n),
             connection.GetRemoteAet().c_str(), connection.GetCalledAet().c_str());
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_InternalError);
         }
 
         if (error != OrthancPluginErrorCode_Success)
@@ -1929,6 +1942,10 @@ namespace Orthanc
             throw OrthancException(static_cast<ErrorCode>(error));
           }
         }
+        else
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
 
         Reset();
       }
@@ -2020,13 +2037,18 @@ namespace Orthanc
             (reinterpret_cast<OrthancPluginFindAnswers*>(&answers),
              reinterpret_cast<const OrthancPluginFindQuery*>(this),
              reinterpret_cast<const OrthancPluginDicomConnection*>(&connection));
-        } else if (that_.pimpl_->findCallback_)
+        }
+        else if (that_.pimpl_->findCallback_)
         {
           error = that_.pimpl_->findCallback_
             (reinterpret_cast<OrthancPluginFindAnswers*>(&answers),
              reinterpret_cast<const OrthancPluginFindQuery*>(this),
              connection.GetRemoteAet().c_str(),
              connection.GetCalledAet().c_str());
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_InternalError);
         }
 
         if (error != OrthancPluginErrorCode_Success)
@@ -2202,6 +2224,10 @@ namespace Orthanc
           throw OrthancException(ErrorCode_Plugin);
         }
       }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
     virtual IMoveRequestIterator* Handle(const std::string& targetAet,
@@ -2249,6 +2275,10 @@ namespace Orthanc
                                    targetAet.c_str(),
                                    originatorId);
       }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
 
       if (driver == NULL)
       {
@@ -2262,11 +2292,15 @@ namespace Orthanc
 
         return new Driver(driver, size, params2_->applyMove, params2_->freeMove);
       }
-      else
+      else if (params_.get() != NULL)
       {
         unsigned int size = params_->getMoveSize(driver);
 
         return new Driver(driver, size, params_->applyMove, params_->freeMove);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
       }
     }
   };
@@ -3044,7 +3078,8 @@ namespace Orthanc
 
     boost::mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
 
-    if (pimpl_->worklistCallback_ != NULL || pimpl_->worklistCallback2_ != NULL)
+    if (pimpl_->worklistCallback_ != NULL ||
+        pimpl_->worklistCallback2_ != NULL)
     {
       throw OrthancException(ErrorCode_Plugin,
                              "Can only register one plugin to handle modality worklists");
@@ -3064,7 +3099,8 @@ namespace Orthanc
 
     boost::mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
 
-    if (pimpl_->worklistCallback_ != NULL || pimpl_->worklistCallback2_ != NULL)
+    if (pimpl_->worklistCallback_ != NULL ||
+        pimpl_->worklistCallback2_ != NULL)
     {
       throw OrthancException(ErrorCode_Plugin,
                              "Can only register one plugin to handle modality worklists");
@@ -3084,7 +3120,8 @@ namespace Orthanc
 
     boost::mutex::scoped_lock lock(pimpl_->findCallbackMutex_);
 
-    if (pimpl_->findCallback2_ != NULL || pimpl_->findCallback_ != NULL)
+    if (pimpl_->findCallback2_ != NULL ||
+        pimpl_->findCallback_ != NULL)
     {
       throw OrthancException(ErrorCode_Plugin,
                              "Can only register one plugin to handle C-FIND requests");
@@ -3104,7 +3141,8 @@ namespace Orthanc
 
     boost::mutex::scoped_lock lock(pimpl_->findCallbackMutex_);
 
-    if (pimpl_->findCallback2_ != NULL || pimpl_->findCallback_ != NULL)
+    if (pimpl_->findCallback2_ != NULL ||
+        pimpl_->findCallback_ != NULL)
     {
       throw OrthancException(ErrorCode_Plugin,
                              "Can only register one plugin to handle C-FIND requests");
@@ -3124,7 +3162,8 @@ namespace Orthanc
     const _OrthancPluginMoveCallback& p = 
       *reinterpret_cast<const _OrthancPluginMoveCallback*>(parameters);
 
-    if (pimpl_->moveCallbacks_.get() != NULL || pimpl_->moveCallbacks2_.get() != NULL)
+    if (pimpl_->moveCallbacks_.get() != NULL ||
+        pimpl_->moveCallbacks2_.get() != NULL)
     {
       throw OrthancException(ErrorCode_Plugin,
                              "Can only register one plugin to handle C-MOVE requests");
@@ -3144,7 +3183,8 @@ namespace Orthanc
     const _OrthancPluginMoveCallback2& p = 
       *reinterpret_cast<const _OrthancPluginMoveCallback2*>(parameters);
 
-    if (pimpl_->moveCallbacks_.get() != NULL || pimpl_->moveCallbacks2_.get() != NULL)
+    if (pimpl_->moveCallbacks_.get() != NULL ||
+        pimpl_->moveCallbacks2_.get() != NULL)
     {
       throw OrthancException(ErrorCode_Plugin,
                              "Can only register one plugin to handle C-MOVE requests");
@@ -5395,9 +5435,9 @@ namespace Orthanc
       case _OrthancPluginService_GetConnectionRemoteIp:
       case _OrthancPluginService_GetConnectionCalledAet:
         AccessDicomConnection(service, parameters);
-        return true;        
-      
-        case _OrthancPluginService_SetGlobalProperty:
+        return true;
+
+      case _OrthancPluginService_SetGlobalProperty:
       {
         const _OrthancPluginGlobalProperty& p = 
           *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);

@@ -24,14 +24,13 @@
 
 #pragma once
 
+#include "DicomConnectionInfo.h"
 #include "DicomFindAnswers.h"
 
 #include <list>
 
 namespace Orthanc
 {
-  class DicomConnectionInfo;
-
   class IFindRequestHandler : public boost::noncopyable
   {
   public:

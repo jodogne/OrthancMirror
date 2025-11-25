@@ -83,7 +83,6 @@
 #include "../../Logging.h"
 #include "../../OrthancException.h"
 #include "../../Toolbox.h"
-#include "../DicomConnectionInfo.h"
 #include "FindScp.h"
 #include "GetScp.h"
 #include "MoveScp.h"

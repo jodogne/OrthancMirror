@@ -23,13 +23,13 @@
 
 #pragma once
 
+#include "../../OrthancFramework/Sources/DicomNetworking/DicomConnectionInfo.h"
+
 #include <string>
 #include <vector>
 
 namespace Orthanc
 {
-  class DicomConnectionInfo;
-
   class IStorageCommitmentFactory : public boost::noncopyable
   {
   public:

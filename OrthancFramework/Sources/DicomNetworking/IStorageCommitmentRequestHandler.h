@@ -24,14 +24,14 @@
 
 #pragma once
 
+#include "DicomConnectionInfo.h"
+
 #include <boost/noncopyable.hpp>
 #include <string>
 #include <vector>
 
 namespace Orthanc
 {
-  class DicomConnectionInfo;
-
   class IStorageCommitmentRequestHandler : public boost::noncopyable
   {
   public:

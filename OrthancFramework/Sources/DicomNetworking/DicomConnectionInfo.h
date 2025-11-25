@@ -25,8 +25,9 @@
 #pragma once
 
 #include "../Compatibility.h"
-#include <json/value.h>
 #include "../Enumerations.h"
+
+#include <json/value.h>
 
 namespace Orthanc
 {
@@ -41,9 +42,8 @@ namespace Orthanc
     ModalityManufacturer      manufacturer_;
 
   public:
-    
     DicomConnectionInfo(const std::string& remoteIp,
-                        const std::string& remoteAet,                  
+                        const std::string& remoteAet,
                         const std::string& calledAet,
                         const ModalityManufacturer& manufacturer) :
       remoteIp_(remoteIp),
@@ -54,7 +54,7 @@ namespace Orthanc
     }
 
     DicomConnectionInfo(const std::string& remoteIp,
-                        const std::string& remoteAet,                  
+                        const std::string& remoteAet,
                         const std::string& calledAet) :
       remoteIp_(remoteIp),
       remoteAet_(remoteAet),

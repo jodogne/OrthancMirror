@@ -78,7 +78,6 @@
 #include "../../DicomFormat/DicomArray.h"
 #include "../../DicomParsing/FromDcmtkBridge.h"
 #include "../../DicomParsing/ToDcmtkBridge.h"
-#include "../DicomConnectionInfo.h"
 #include "../../Logging.h"
 #include "../../OrthancException.h"
 

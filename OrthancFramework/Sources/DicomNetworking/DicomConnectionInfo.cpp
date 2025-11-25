@@ -37,7 +37,7 @@ namespace Orthanc
   static const char* const REMOTE_AET = "RemoteAet";
   static const char* const REMOTE_IP = "RemoteIp";
   static const char* const MANUFACTURER = "Manufacturer";
-  
+
   void DicomConnectionInfo::Serialize(Json::Value& target) const
   {
     if (target.type() != Json::objectValue)
@@ -62,5 +62,4 @@ namespace Orthanc
     std::string manufacturer = SerializationToolbox::ReadString(serialized, MANUFACTURER);
     manufacturer_ = StringToModalityManufacturer(manufacturer);
   }
-
 }

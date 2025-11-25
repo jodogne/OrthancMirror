@@ -2720,14 +2720,17 @@ namespace OrthancPlugins
 
         return;
       }
-      else if (state == "Running" || state == "Pending" || state == "Paused" || state == "Retry")
+      else if (state == "Running" ||
+               state == "Pending" ||
+               state == "Paused" ||
+               state == "Retry")
       {
         continue;
       }
       else if (state == "Failure")
       {
         if (!status.isMember("ErrorCode") ||
-                status["ErrorCode"].type() != Json::intValue)
+            status["ErrorCode"].type() != Json::intValue)
         {
           ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_InternalError);
         }
