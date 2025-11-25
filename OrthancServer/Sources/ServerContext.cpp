@@ -1018,7 +1018,7 @@ namespace Orthanc
         
         IDicomTranscoder::DicomImage transcoded;
         
-        if (Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
+        if (Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew /* allow new SOP instance UID */))
         {
           std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
 
@@ -1943,7 +1943,7 @@ namespace Orthanc
       source.SetExternalBuffer(buffer, size);
       allowedSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
 
-      if (Transcode(explicitTemporaryImage, source, allowedSyntaxes, true))
+      if (Transcode(explicitTemporaryImage, source, allowedSyntaxes, TranscodingSopInstanceUidMode_AllowNew))
       {
         std::unique_ptr<ParsedDicomFile> file(explicitTemporaryImage.ReleaseAsParsedDicomFile());
         return file->DecodeFrame(frameIndex);
@@ -2017,7 +2017,7 @@ namespace Orthanc
       std::set<DicomTransferSyntax> syntaxes;
       syntaxes.insert(targetSyntax);
 
-      if (Transcode(targetDicom, sourceDicom, syntaxes, true))
+      if (Transcode(targetDicom, sourceDicom, syntaxes, TranscodingSopInstanceUidMode_AllowNew))
       {
         cacheAccessor.AddTranscodedInstance(attachmentId, targetSyntax, reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
         target = std::string(reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
@@ -2033,7 +2033,7 @@ namespace Orthanc
   bool ServerContext::Transcode(DicomImage& target,
                                 DicomImage& source /* in, "GetParsed()" possibly modified */,
                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                bool allowNewSopInstanceUid)
+                                TranscodingSopInstanceUidMode mode)
   {
     unsigned int lossyQuality;
 
@@ -2042,19 +2042,19 @@ namespace Orthanc
       lossyQuality = lock.GetConfiguration().GetDicomLossyTranscodingQuality();
     }
 
-    return Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid, lossyQuality);
+    return Transcode(target, source, allowedSyntaxes, mode, lossyQuality);
   }
 
 
   bool ServerContext::Transcode(DicomImage& target,
                                 DicomImage& source /* in, "GetParsed()" possibly modified */,
                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                bool allowNewSopInstanceUid,
+                                TranscodingSopInstanceUidMode mode,
                                 unsigned int lossyQuality)
   {
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
     {
-      if (dcmtkTranscoder_->Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid, lossyQuality))
+      if (dcmtkTranscoder_->Transcode(target, source, allowedSyntaxes, mode, lossyQuality))
       {
         return true;
       }
@@ -2064,7 +2064,7 @@ namespace Orthanc
     if (HasPlugins() &&
         GetPlugins().HasCustomTranscoder())
     {
-      if (GetPlugins().Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid))  // TODO: pass lossyQuality to plugins -> needs a new plugin interface
+      if (GetPlugins().Transcode(target, source, allowedSyntaxes, mode))  // TODO: pass lossyQuality to plugins -> needs a new plugin interface
       {
         return true;
       }
@@ -2078,7 +2078,7 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      return dcmtkTranscoder_->Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid, lossyQuality);
+      return dcmtkTranscoder_->Transcode(target, source, allowedSyntaxes, mode, lossyQuality);
     }
     else
     {
@@ -2109,7 +2109,7 @@ namespace Orthanc
 
       std::set<DicomTransferSyntax> uncompressedTransferSyntax;
       uncompressedTransferSyntax.insert(DicomTransferSyntax_LittleEndianExplicit);
-      Transcode(transcoded, source, uncompressedTransferSyntax, true);
+      Transcode(transcoded, source, uncompressedTransferSyntax, TranscodingSopInstanceUidMode_AllowNew);
 
       dicomFile.reset(transcoded.ReleaseAsParsedDicomFile());
 
@@ -2154,24 +2154,19 @@ namespace Orthanc
       std::set<DicomTransferSyntax> s;
       s.insert(targetSyntax);
 
-      if (Transcode(transcoded, source, s, true, lossyQuality))
-      {      
-        dicomFile.reset(transcoded.ReleaseAsParsedDicomFile());
+      TranscodingSopInstanceUidMode mode;
+      if (keepSOPInstanceUidDuringLossyTranscoding)
+      {
+        mode = TranscodingSopInstanceUidMode_Preserve;
+      }
+      else
+      {
+        mode = TranscodingSopInstanceUidMode_AllowNew;
+      }
 
-        if (keepSOPInstanceUidDuringLossyTranscoding)
-        {
-          // Fix the SOP instance UID in order the preserve the
-          // references between instance UIDs in the DICOM hierarchy
-          // (the UID might have changed during this last transcoding step in the case of lossy transcoding)
-          if (dicomFile.get() == NULL ||
-              dicomFile->GetDcmtkObject().getDataset() == NULL ||
-              !dicomFile->GetDcmtkObject().getDataset()->putAndInsertString(
-                DCM_SOPInstanceUID, modifiedUid.c_str(), OFTrue /* replace */).good())
-          {
-            throw OrthancException(ErrorCode_InternalError);
-          }
-        }
-        return;
+      if (Transcode(transcoded, source, s, mode, lossyQuality))
+      {
+        dicomFile.reset(transcoded.ReleaseAsParsedDicomFile());
       }
       else
       {
