@@ -11,33 +11,31 @@ General
 REST API
 --------
 
-* Fix: C-Get SCU jobs or HTTP responses were always successful even if the C-Get operation
-  actually failed.
 * When an error occurs while Orthanc handles an HTTP request, it may now include a new
   "ErrorPayload" in the HTTP response with details about the failed operation.
-  This is currently implemented for C-Store, C-Move and C-Get operations.
-* C-Move and C-Get jobs and HTTP responses now include a new "Details" field with the "DimseErrorStatus"
-  of each operation and the list of "RetrievedInstancesIds".
+  This is currently implemented for C-Store, C-Move, and C-Get operations.
+* C-Move jobs, C-Get jobs, and HTTP responses now include a new "Details" field with the
+  "DimseErrorStatus" of each operation and the list of "RetrievedInstancesIds".
 
 Plugin SDK
 ----------
 
-* New primitives for handling queues to ensure that no messages are lost if
+* New primitives for handling queues to ensure that no message gets lost if
   Orthanc is stopped while a plugin is processing a message:
-  - OrthancPluginReserveQueueValue() is a replacement for OrthancPluginDequeueValue(). This flavour
+  - OrthancPluginReserveQueueValue() is a replacement for OrthancPluginDequeueValue(). This flavor
     does not directly remove the value from the queue but reserves it for a certain duration.
   - OrthancPluginAcknowledgeQueueValue() removes a reserved value from a queue.
-* New primitives for handling SCP callbacks that accepts an OrthancPluginDicomConnection instead
-  of calledAet, remoteAet, ... :
-  - OrthancPluginRegisterFindCallback2
-  - OrthancPluginRegisterMoveCallback2
-  - OrthancPluginRegisterWorklistCallback2
-  - OrthancPluginRegisterStorageCommitmentScpCallback2
-* New accessors for OrthancPluginDicomConnection:
-  - OrthancPluginGetConnectionRemoteAet
-  - OrthancPluginGetConnectionRemoteIp
-  - OrthancPluginGetConnectionCalledAet
-
+* New opaque data structure OrthancPluginDicomConnection that abstracts the parameters
+  of a DICOM connection, with the following accessors:
+  - OrthancPluginGetConnectionRemoteAet()
+  - OrthancPluginGetConnectionRemoteIp()
+  - OrthancPluginGetConnectionCalledAet()
+* More consistent callbacks for handling DICOM SCP that accept an OrthancPluginDicomConnection
+  (instead of calledAet, remoteAet,...). These callbacks can be registered using:
+  - OrthancPluginRegisterFindCallback2()
+  - OrthancPluginRegisterMoveCallback2()
+  - OrthancPluginRegisterWorklistCallback2()
+  - OrthancPluginRegisterStorageCommitmentScpCallback2()
 
 Maintenance
 -----------
@@ -47,30 +45,33 @@ Maintenance
 * Improved streaming of HTTP responses under OS pressure. In some conditions, when the OS
   was not able to send a full buffer over the network, Orthanc was not retrying
   to send the remaining part.
-  (https://discourse.orthanc-server.org/t/incomplete-zip-downloads-from-get-studies-id-media/6046)
-* Reworked all the paths handling, improving general support of non ASCII-only paths on Windows,
+  https://discourse.orthanc-server.org/t/incomplete-zip-downloads-from-get-studies-id-media/6046
+* Reworked handling of paths, improving general support of non ASCII-only paths on Windows,
   specifically for the Storage directories and for the configuration files.
   However, on Microsoft Windows, some features might still not support non ASCII-only paths:
   - Reading a DCMTK dictionary ("ExternalDictionaries" configuration)
   - Using a "TemporaryDirectory" to save zip file or to export DICOMDIR
   - The "SslCertificate" and other related configurations
 * Optimized indexes for /tools/lookup in the built-in SQLite database
-* Fix: DicomGetScu jobs are now saved in DB.
-* Fix: When the configuration option "MaximumStorageCacheSize" was set to 0, the default value (128)
-       was actually applied. From now on, a value of 0 really means that the storage cache is disabled.
-* Fix: Orthanc was unable to convert the tags into dicom+json format if the instance contained an
-       empty element in a sequence. This was preventing access to /dicom-web/../metadata routes and
-       visualization in e.g. the Stone Web viewer and OHIF.
-* Fix issue #252: Disallow colons in HTTP basic usernames
-* Fix: Decoding of LUT with less than 256 entries:
-       https://discourse.orthanc-server.org/t/cannot-preview-dicom-file/6275
-* Fix: Possible deadlocks when using ZipLoaderThreads > 1 when the HttpClient disconnects
-       while downloading the response.
-* Fix issue #227: In SQL, string literals must use 'single quotes'
-  https://stackoverflow.com/a/25141338
-* Fix: Avoid adding twice the same tag in DB for the same resource e.g. when you have added TimeZoneOffsetFromUTC
-       to the ExtraMainDicomTags at Patient level.
-       https://discourse.orthanc-server.org/t/jobs-api-the-dicommovescu-job-doesnt-seems-to-track-progress/3140/14
+* Fixes:
+  - C-Get SCU jobs or HTTP responses were always successful even if the C-Get operation
+    actually failed.
+  - "DicomGetScu" jobs are now saved in DB.
+  - When the configuration option "MaximumStorageCacheSize" was set to 0, the default value (128)
+    was actually applied. From now on, a value of 0 really means that the storage cache is disabled.
+  - Orthanc was unable to convert the tags into "dicom+json" format if the instance contained an
+    empty element in a sequence. This was preventing access to /dicom-web/../metadata routes and
+    visualization in e.g. the Stone Web viewer and OHIF.
+  - Fix issue #252: Disallow colons in HTTP basic usernames
+  - Fix decoding of LUT with less than 256 entries:
+    https://discourse.orthanc-server.org/t/cannot-preview-dicom-file/6275
+  - Fix possible deadlocks when using "ZipLoaderThreads" > 1 when the HttpClient disconnects
+    while downloading the response.
+  - Fix issue #227: In SQL, string literals must use 'single quotes'
+    https://stackoverflow.com/a/25141338
+  - Avoid adding twice the same tag in DB for the same resource, e.g. when
+    "TimeZoneOffsetFromUTC" is added to the "ExtraMainDicomTags" at Patient level.
+    https://discourse.orthanc-server.org/t/jobs-api-the-dicommovescu-job-doesnt-seems-to-track-progress/3140/14
 * Upgraded dependencies for static builds:
   - civetweb 1.16, including patch for CVE-2025-55763
   - SQLite 3.50.4
