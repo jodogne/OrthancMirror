@@ -2575,7 +2575,7 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("Remove after storage commitment")
         .SetDescription("Remove out of Orthanc, the DICOM instances that have been reported to have been properly "
-                        "received the storage commitment report whose identifier is provided in the URL. This is "
+                        "received in the storage commitment report whose identifier is provided in the URL. This is "
                         "only possible if the `Status` of the storage commitment report is `Success`. "
                         "https://orthanc.uclouvain.be/book/users/storage-commitment.html#removing-the-instances")
         .SetUriArgument("id", "Identifier of the storage commitment report");

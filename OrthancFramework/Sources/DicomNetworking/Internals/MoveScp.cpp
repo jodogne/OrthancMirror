@@ -78,6 +78,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../DicomParsing/FromDcmtkBridge.h"
 #include "../../DicomParsing/ToDcmtkBridge.h"
+#include "../DicomConnectionInfo.h"
 #include "../../Logging.h"
 #include "../../OrthancException.h"
 
@@ -188,9 +189,9 @@ namespace Orthanc
           // The line below was the implementation for Orthanc <= 1.3.2
           uint16_t messageId = GetMessageId(input);
 #endif
+          DicomConnectionInfo connection(*data.remoteIp_, *data.remoteAet_, *data.calledAet_);
 
-          data.iterator_.reset(data.handler_->Handle(data.target_, input, *data.remoteIp_, *data.remoteAet_,
-                                                     *data.calledAet_, messageId));
+          data.iterator_.reset(data.handler_->Handle(data.target_, input, connection, messageId));
 
           if (data.iterator_.get() == NULL)
           {

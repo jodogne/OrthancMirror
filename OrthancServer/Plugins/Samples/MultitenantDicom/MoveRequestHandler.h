@@ -62,8 +62,6 @@ public:
 
   virtual Orthanc::IMoveRequestIterator* Handle(const std::string& targetAet,
                                                 const Orthanc::DicomMap& input,
-                                                const std::string& originatorIp,
-                                                const std::string& originatorAet,
-                                                const std::string& calledAet,
+                                                const Orthanc::DicomConnectionInfo& connection,
                                                 uint16_t originatorId) ORTHANC_OVERRIDE;
 };

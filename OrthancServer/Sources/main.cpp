@@ -130,9 +130,7 @@ public:
   virtual void HandleRequest(const std::string& transactionUid,
                              const std::vector<std::string>& referencedSopClassUids,
                              const std::vector<std::string>& referencedSopInstanceUids,
-                             const std::string& remoteIp,
-                             const std::string& remoteAet,
-                             const std::string& calledAet) ORTHANC_OVERRIDE
+                             const DicomConnectionInfo& connection) ORTHANC_OVERRIDE
   {
     if (referencedSopClassUids.size() != referencedSopInstanceUids.size())
     {
@@ -140,7 +138,7 @@ public:
     }
     
     std::unique_ptr<StorageCommitmentScpJob> job(
-      new StorageCommitmentScpJob(context_, transactionUid, remoteAet, calledAet));
+      new StorageCommitmentScpJob(context_, transactionUid, connection));
 
     for (size_t i = 0; i < referencedSopClassUids.size(); i++)
     {
@@ -158,9 +156,7 @@ public:
                             const std::vector<std::string>& failedSopClassUids,
                             const std::vector<std::string>& failedSopInstanceUids,
                             const std::vector<StorageCommitmentFailureReason>& failureReasons,
-                            const std::string& remoteIp,
-                            const std::string& remoteAet,
-                            const std::string& calledAet) ORTHANC_OVERRIDE
+                            const DicomConnectionInfo& connection) ORTHANC_OVERRIDE
   {
     if (successSopClassUids.size() != successSopInstanceUids.size() ||
         failedSopClassUids.size() != failedSopInstanceUids.size() ||
@@ -170,7 +166,7 @@ public:
     }
     
     std::unique_ptr<StorageCommitmentReports::Report> report(
-      new StorageCommitmentReports::Report(remoteAet));
+      new StorageCommitmentReports::Report(connection.GetRemoteAet()));
 
     for (size_t i = 0; i < successSopClassUids.size(); i++)
     {

@@ -26,6 +26,7 @@
 #include "PluginEnumerations.h"
 
 #include "../../../../OrthancFramework/Sources/DicomNetworking/IFindRequestHandler.h"
+#include "../../../../OrthancFramework/Sources/DicomNetworking/DicomConnectionInfo.h"
 
 
 class FindRequestHandler : public Orthanc::IFindRequestHandler
@@ -49,8 +50,5 @@ public:
   virtual void Handle(Orthanc::DicomFindAnswers& answers,
                       const Orthanc::DicomMap& input,
                       const std::list<Orthanc::DicomTag>& sequencesToReturn,
-                      const std::string& remoteIp,
-                      const std::string& remoteAet,
-                      const std::string& calledAet,
-                      Orthanc::ModalityManufacturer manufacturer) ORTHANC_OVERRIDE;
+                      const Orthanc::DicomConnectionInfo& remoteIp) ORTHANC_OVERRIDE;
 };

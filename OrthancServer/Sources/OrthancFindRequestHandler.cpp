@@ -25,6 +25,7 @@
 #include "OrthancFindRequestHandler.h"
 
 #include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
+#include "../../OrthancFramework/Sources/DicomNetworking/DicomConnectionInfo.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
@@ -115,10 +116,7 @@ namespace Orthanc
 
   bool OrthancFindRequestHandler::ApplyLuaFilter(DicomMap& target,
                                                  const DicomMap& source,
-                                                 const std::string& remoteIp,
-                                                 const std::string& remoteAet,
-                                                 const std::string& calledAet,
-                                                 ModalityManufacturer manufacturer)
+                                                 const DicomConnectionInfo& connection)
   {
     static const char* LUA_CALLBACK = "IncomingFindRequestFilter";
     
@@ -131,7 +129,7 @@ namespace Orthanc
     else
     {
       Json::Value origin;
-      FormatOrigin(origin, remoteIp, remoteAet, calledAet, manufacturer);
+      FormatOrigin(origin, connection);
 
       LuaFunctionCall call(lock.GetLua(), LUA_CALLBACK);
       call.PushDicom(source);
@@ -272,10 +270,7 @@ namespace Orthanc
   void OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
                                          const DicomMap& input,
                                          const std::list<DicomTag>& sequencesToReturn,
-                                         const std::string& remoteIp,
-                                         const std::string& remoteAet,
-                                         const std::string& calledAet,
-                                         ModalityManufacturer manufacturer)
+                                         const DicomConnectionInfo& connection)
   {
     MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_find_scp_duration_ms");
 
@@ -291,18 +286,18 @@ namespace Orthanc
       caseSensitivePN = lock.GetConfiguration().GetBooleanParameter("CaseSensitivePN", false);
 
       RemoteModalityParameters remote;
-      if (!lock.GetConfiguration().LookupDicomModalityUsingAETitle(remote, remoteAet))
+      if (!lock.GetConfiguration().LookupDicomModalityUsingAETitle(remote, connection.GetRemoteAet()))
       {
         if (lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowFind", false))
         {
-          CLOG(INFO, DICOM) << "C-FIND: Allowing SCU request from unknown modality with AET: " << remoteAet;
+          CLOG(INFO, DICOM) << "C-FIND: Allowing SCU request from unknown modality with AET: " << connection.GetRemoteAet();
         }
         else
         {
           // This should never happen, given the test at bottom of
           // "OrthancApplicationEntityFilter::IsAllowedRequest()"
           throw OrthancException(ErrorCode_InexistentItem,
-                                 "C-FIND: Rejecting SCU request from unknown modality with AET: " + remoteAet);
+                                 "C-FIND: Rejecting SCU request from unknown modality with AET: " + connection.GetRemoteAet());
         }
       }
     }
@@ -316,7 +311,7 @@ namespace Orthanc
     DicomMap lua;
     const DicomMap* filteredInput = &input;
 
-    if (ApplyLuaFilter(lua, input, remoteIp, remoteAet, calledAet, manufacturer))
+    if (ApplyLuaFilter(lua, input, connection))
     {
       filteredInput = &lua;
     }
@@ -416,7 +411,7 @@ namespace Orthanc
         continue;
       }
 
-      if (FilterQueryTag(level, tag, manufacturer))
+      if (FilterQueryTag(level, tag, connection.GetModalityManufacturer()))
       {
         ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
 
@@ -453,15 +448,12 @@ namespace Orthanc
 
 
   void OrthancFindRequestHandler::FormatOrigin(Json::Value& origin,
-                                               const std::string& remoteIp,
-                                               const std::string& remoteAet,
-                                               const std::string& calledAet,
-                                               ModalityManufacturer manufacturer)
+                                               const DicomConnectionInfo& connection)
   {
     origin = Json::objectValue;
-    origin["RemoteIp"] = remoteIp;
-    origin["RemoteAet"] = remoteAet;
-    origin["CalledAet"] = calledAet;
-    origin["Manufacturer"] = EnumerationToString(manufacturer);
+    origin["RemoteIp"] = connection.GetRemoteIp();
+    origin["RemoteAet"] = connection.GetRemoteAet();
+    origin["CalledAet"] = connection.GetCalledAet();
+    origin["Manufacturer"] = EnumerationToString(connection.GetModalityManufacturer());
   }
 }

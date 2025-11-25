@@ -32,6 +32,8 @@
 
 namespace Orthanc
 {
+  class DicomConnectionInfo;
+
   class IMoveRequestIterator : public boost::noncopyable
   {
   public:
@@ -61,9 +63,7 @@ namespace Orthanc
 
     virtual IMoveRequestIterator* Handle(const std::string& targetAet,
                                          const DicomMap& input,
-                                         const std::string& originatorIp,
-                                         const std::string& originatorAet,
-                                         const std::string& calledAet,
+                                         const DicomConnectionInfo& connection,
                                          uint16_t originatorId) = 0;
   };
 

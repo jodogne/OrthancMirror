@@ -19,14 +19,18 @@
  *    - Possibly register a custom storage area using ::OrthancPluginRegisterStorageArea3().
  *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackendV4().
  *    - Possibly register a handler for C-Find SCP using OrthancPluginRegisterFindCallback().
+ *    - Possibly register a handler for C-Find SCP using OrthancPluginRegisterFindCallback2().
  *    - Possibly register a handler for C-Find SCP against DICOM worklists using OrthancPluginRegisterWorklistCallback().
+ *    - Possibly register a handler for C-Find SCP against DICOM worklists using OrthancPluginRegisterWorklistCallback2().
  *    - Possibly register a handler for C-Move SCP using OrthancPluginRegisterMoveCallback().
+ *    - Possibly register a handler for C-Move SCP using OrthancPluginRegisterMoveCallback2().
  *    - Possibly register a custom decoder for DICOM images using OrthancPluginRegisterDecodeImageCallback().
  *    - Possibly register a callback to filter incoming HTTP requests using OrthancPluginRegisterIncomingHttpRequestFilter2().
  *    - Possibly register a callback to unserialize jobs using OrthancPluginRegisterJobsUnserializer().
  *    - Possibly register a callback to refresh its metrics using OrthancPluginRegisterRefreshMetricsCallback().
  *    - Possibly register a callback to answer chunked HTTP transfers using ::OrthancPluginRegisterChunkedRestCallback().
  *    - Possibly register a callback for Storage Commitment SCP using ::OrthancPluginRegisterStorageCommitmentScpCallback().
+ *    - Possibly register a callback for Storage Commitment SCP using ::OrthancPluginRegisterStorageCommitmentScpCallback2().
  *    - Possibly register a callback to keep/discard/modify incoming DICOM instances using OrthancPluginRegisterReceivedInstanceCallback().
  *    - Possibly register a custom transcoder for DICOM images using OrthancPluginRegisterTranscoderCallback().
  *    - Possibly register a callback to discard instances received through DICOM C-STORE using OrthancPluginRegisterIncomingCStoreInstanceFilter().
@@ -72,6 +76,9 @@
  *
  * @defgroup DicomInstance DicomInstance
  * @brief Functions to access DICOM images that are managed by the Orthanc core.
+ *
+ * @defgroup DicomConnection DicomConnection
+ * @brief Functions to access DICOM connection parameters that are managed by the Orthanc core.
  **/
 
 
@@ -546,6 +553,10 @@ extern "C"
     _OrthancPluginService_RegisterStorageArea3 = 1020,         /* New in Orthanc 1.12.8 */
     _OrthancPluginService_RegisterHttpAuthentication = 1021,   /* New in Orthanc 1.12.9 */
     _OrthancPluginService_RegisterAuditLogHandler = 1022,      /* New in Orthanc 1.12.9 */
+    _OrthancPluginService_RegisterFindCallback2 = 1023,        /* New in Orthanc 1.12.10 */
+    _OrthancPluginService_RegisterMoveCallback2 = 1024,        /* New in Orthanc 1.12.10 */
+    _OrthancPluginService_RegisterWorklistCallback2 = 1025,    /* New in Orthanc 1.12.10 */
+    _OrthancPluginService_RegisterStorageCommitmentScpCallback2 = 1026, /* New in Orthanc 1.12.0 */
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -664,6 +675,11 @@ extern "C"
     _OrthancPluginService_SubmitJob = 9002,
     _OrthancPluginService_RegisterJobsUnserializer = 9003,
     _OrthancPluginService_CreateJob2 = 9004,  /* New in SDK 1.11.3 */
+
+    /* Access to DICOM connection */
+    _OrthancPluginService_GetConnectionRemoteAet = 10000,  /* New in SDK 1.12.10 */
+    _OrthancPluginService_GetConnectionRemoteIp = 10001,   /* New in SDK 1.12.10 */
+    _OrthancPluginService_GetConnectionCalledAet = 10002,  /* New in SDK 1.12.10 */
     
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
@@ -1384,6 +1400,23 @@ extern "C"
     _OrthancPluginDicomWebNode_t OrthancPluginDicomWebNode;
 
   
+  /**
+   * @brief Opaque structure that represents DICOM connection
+   * parameters.
+   * @ingroup DicomConnection
+   **/
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  typedef struct
+    _OrthancPluginDicomConnection_t OrthancPluginDicomConnection;
+
+
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  typedef struct
+  {
+    const OrthancPluginDicomConnection*  connection;
+    const char**                         resultString;
+  } _OrthancPluginAccessDicomConnection;
+
 
   /**
    * @brief Signature of a callback function that answers to a REST request.
@@ -1652,6 +1685,24 @@ extern "C"
     const char*                       calledAet);
 
 
+  /**
+   * @brief Callback to handle the C-Find SCP requests for worklists (v2).
+   *
+   * Signature of a callback function that is triggered when Orthanc
+   * receives a C-Find SCP request against modality worklists.
+   *
+   * @param answers The target structure where answers must be stored.
+   * @param query The worklist query.
+   * @param connection The DICOM connection from which the request originates.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  typedef OrthancPluginErrorCode (*OrthancPluginWorklistCallback2) (
+    OrthancPluginWorklistAnswers*       answers,
+    const OrthancPluginWorklistQuery*   query,
+    const OrthancPluginDicomConnection* connection);
+
 
   /**
    * @brief Callback to filter incoming HTTP requests received by Orthanc.
@@ -1749,6 +1800,25 @@ extern "C"
     const char*                   calledAet);
 
 
+    /**
+   * @brief Callback to handle incoming C-Find SCP requests (v2).
+   *
+   * Signature of a callback function that is triggered whenever
+   * Orthanc receives a C-Find SCP request not concerning modality
+   * worklists.
+   *
+   * @param answers The target structure where answers must be stored.
+   * @param query The worklist query.
+   * @param connection The DICOM connection from which the request originates.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  typedef OrthancPluginErrorCode (*OrthancPluginFindCallback2) (
+    OrthancPluginFindAnswers*             answers,
+    const OrthancPluginFindQuery*         query,
+    const OrthancPluginDicomConnection*   connection);
+
 
   /**
    * @brief Callback to handle incoming C-Move SCP requests.
@@ -1796,7 +1866,52 @@ extern "C"
     const char*                sourceAet,
     const char*                targetAet,
     uint16_t                   originatorId);
+
     
+  /**
+   * @brief Callback to handle incoming C-Move SCP requests (v2).
+   *
+   * Signature of a callback function that is triggered whenever
+   * Orthanc receives a C-Move SCP request. The callback receives the
+   * type of the resource of interest (study, series, instance...)
+   * together with the DICOM tags containing its identifiers. In turn,
+   * the plugin must create a driver object that will be responsible
+   * for driving the successive move suboperations.
+   *
+   * @param resourceType The type of the resource of interest. Note
+   * that this might be set to ResourceType_None if the
+   * QueryRetrieveLevel (0008,0052) tag was not provided by the
+   * issuer (i.e. the originator modality).
+   * @param patientId Content of the PatientID (0x0010, 0x0020) tag of the resource of interest. Might be NULL.
+   * @param accessionNumber Content of the AccessionNumber (0x0008, 0x0050) tag. Might be NULL.
+   * @param studyInstanceUid Content of the StudyInstanceUID (0x0020, 0x000d) tag. Might be NULL.
+   * @param seriesInstanceUid Content of the SeriesInstanceUID (0x0020, 0x000e) tag. Might be NULL.
+   * @param sopInstanceUid Content of the SOPInstanceUID (0x0008, 0x0018) tag. Might be NULL.
+   * @param connection The DICOM connection from which the request originates.
+   * @param targetAet The Application Entity Title (AET) of the
+   * modality that should receive the DICOM files.
+   * @param originatorId The Message ID issued by the originator modality,
+   * as found in tag (0000,0110) of the DICOM query emitted by the issuer.
+   *
+   * @return The NULL value if the plugin cannot deal with this query,
+   * or a pointer to the driver object that is responsible for
+   * handling the successive move suboperations.
+   * 
+   * @note If targetAet equals sourceAet, this is actually a query/retrieve operation.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  typedef void* (*OrthancPluginMoveCallback2) (
+    OrthancPluginResourceType  resourceType,
+    const char*                patientId,
+    const char*                accessionNumber,
+    const char*                studyInstanceUid,
+    const char*                seriesInstanceUid,
+    const char*                sopInstanceUid,
+    const OrthancPluginDicomConnection* connection,
+    const char*                targetAet,
+    uint16_t                   originatorId);
+
 
   /**
    * @brief Callback to read the size of a C-Move driver.
@@ -1804,7 +1919,7 @@ extern "C"
    * Signature of a callback function that returns the number of
    * C-Move suboperations that are to be achieved by the given C-Move
    * driver. This driver is the return value of a previous call to the
-   * OrthancPluginMoveCallback() callback.
+   * OrthancPluginMoveCallback() or OrthancPluginMoveCallback2() callback.
    *
    * @param moveDriver The C-Move driver of interest.
    * @return The number of suboperations. 
@@ -1819,7 +1934,7 @@ extern "C"
    * Signature of a callback function that applies the next C-Move
    * suboperation that os to be achieved by the given C-Move
    * driver. This driver is the return value of a previous call to the
-   * OrthancPluginMoveCallback() callback.
+   * OrthancPluginMoveCallback() or OrthancPluginMoveCallback2() callback.
    *
    * @param moveDriver The C-Move driver of interest.
    * @return 0 if success, or the error code if failure.
@@ -1834,7 +1949,7 @@ extern "C"
    * Signature of a callback function that releases the resources
    * allocated by the given C-Move driver. This driver is the return
    * value of a previous call to the OrthancPluginMoveCallback()
-   * callback.
+   * or OrthancPluginMoveCallback2() callback.
    *
    * @param moveDriver The C-Move driver of interest.
    * @ingroup DicomCallbacks
@@ -5599,6 +5714,34 @@ extern "C"
   }
 
 
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  typedef struct
+  {
+    OrthancPluginWorklistCallback2 callback;
+  } _OrthancPluginWorklistCallback2;
+
+  /**
+   * @brief Register a callback to handle modality worklists requests (v2).
+   *
+   * This function registers a callback to handle C-Find SCP requests
+   * on modality worklists.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param callback The callback.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterWorklistCallback2(
+    OrthancPluginContext*          context,
+    OrthancPluginWorklistCallback2 callback)
+  {
+    _OrthancPluginWorklistCallback2 params;
+    params.callback = callback;
+
+    return context->InvokeService(context, _OrthancPluginService_RegisterWorklistCallback2, &params);
+  }
+
   
   typedef struct
   {
@@ -8234,7 +8377,44 @@ extern "C"
     const char*         remoteAet,
     const char*         calledAet);
 
-  
+
+  /**
+   * @brief Callback executed by the storage commitment SCP (v2).
+   *
+   * Signature of a factory function that creates an object to handle
+   * one incoming storage commitment request.
+   *
+   * @remark The factory receives the list of the SOP class/instance
+   * UIDs of interest to the remote storage commitment SCU. This gives
+   * the factory the possibility to start some prefetch process
+   * upfront in the background, before the handler object is actually
+   * queried about the status of these DICOM instances.
+   *
+   * @param handler Output variable where the factory puts the handler object it created.
+   * @param jobId ID of the Orthanc job that is responsible for handling 
+   * the storage commitment request. This job will successively look for the
+   * status of all the individual queried DICOM instances.
+   * @param transactionUid UID of the storage commitment transaction
+   * provided by the storage commitment SCU. It contains the value of the
+   * (0008,1195) DICOM tag.
+   * @param sopClassUids Array of the SOP class UIDs (0008,0016) that are queried by the SCU.
+   * @param sopInstanceUids Array of the SOP instance UIDs (0008,0018) that are queried by the SCU.
+   * @param countInstances Number of DICOM instances that are queried. This is the size
+   * of the `sopClassUids` and `sopInstanceUids` arrays.
+   * @param connection The DICOM connection from which the request originates.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  typedef OrthancPluginErrorCode (*OrthancPluginStorageCommitmentFactory2) (
+    void**              handler /* out */,
+    const char*         jobId,
+    const char*         transactionUid,
+    const char* const*  sopClassUids,
+    const char* const*  sopInstanceUids,
+    uint32_t            countInstances,
+    const OrthancPluginDicomConnection* connection);
+    
   /**
    * @brief Callback to free one storage commitment SCP handler.
    * 
@@ -8280,6 +8460,16 @@ extern "C"
     OrthancPluginStorageCommitmentDestructor  destructor;
     OrthancPluginStorageCommitmentLookup      lookup;
   } _OrthancPluginRegisterStorageCommitmentScpCallback;
+
+
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  typedef struct
+  {
+    OrthancPluginStorageCommitmentFactory2    factory;
+    OrthancPluginStorageCommitmentDestructor  destructor;
+    OrthancPluginStorageCommitmentLookup      lookup;
+  } _OrthancPluginRegisterStorageCommitmentScpCallback2;
+
 
   /**
    * @brief Register a callback to handle incoming requests to the storage commitment SCP.
@@ -10789,6 +10979,205 @@ extern "C"
     params.valueId = valueId;
 
     return context->InvokeService(context, _OrthancPluginService_AcknowledgeQueueValue, &params);
+  }
+
+  /**
+   * @brief Get the remote AET of a DICOM connection.
+   *
+   * This function returns the Application Entity Title (AET) of the
+   * DICOM modality from which a DICOM connection originates.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param connection The connection of interest.
+   * @return The pointer to the AET, NULL in case of error.
+   * @ingroup DicomConnection
+   **/
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetConnectionRemoteAet(
+    OrthancPluginContext*                context,
+    const OrthancPluginDicomConnection*  connection)
+  {
+    const char* result;
+
+    _OrthancPluginAccessDicomConnection params;
+    memset(&params, 0, sizeof(params));
+    params.resultString = &result;
+    params.connection = connection;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetConnectionRemoteAet, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Get the remote IP of a DICOM connection.
+   *
+   * This function returns the IP of the
+   * DICOM modality from which a DICOM connection originates.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param connection The connection of interest.
+   * @return The pointer to the IP, NULL in case of error.
+   * @ingroup DicomConnection
+   **/
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetConnectionRemoteIp(
+    OrthancPluginContext*                context,
+    const OrthancPluginDicomConnection*  connection)
+  {
+    const char* result;
+
+    _OrthancPluginAccessDicomConnection params;
+    memset(&params, 0, sizeof(params));
+    params.resultString = &result;
+    params.connection = connection;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetConnectionRemoteIp, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Get the called AET of a DICOM connection.
+   *
+   * This function returns the Orthanc called AET that a
+   * DICOM modality has used in a DICOM connection.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param connection The connection of interest.
+   * @return The pointer to the called AET, NULL in case of error.
+   * @ingroup DicomConnection
+   **/
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetConnectionCalledAet(
+    OrthancPluginContext*                context,
+    const OrthancPluginDicomConnection*  connection)
+  {
+    const char* result;
+
+    _OrthancPluginAccessDicomConnection params;
+    memset(&params, 0, sizeof(params));
+    params.resultString = &result;
+    params.connection = connection;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetConnectionCalledAet, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  typedef struct
+  {
+    OrthancPluginFindCallback2 callback;
+  } _OrthancPluginFindCallback2;
+
+  /**
+   * @brief Register a callback to handle C-Find requests (v2).
+   *
+   * This function registers a callback to handle C-Find SCP requests
+   * that are not related to modality worklists.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param callback The callback.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterFindCallback2(
+    OrthancPluginContext*      context,
+    OrthancPluginFindCallback2  callback)
+  {
+    _OrthancPluginFindCallback2 params;
+    params.callback = callback;
+
+    return context->InvokeService(context, _OrthancPluginService_RegisterFindCallback2, &params);
+  }
+
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  typedef struct
+  {
+    OrthancPluginMoveCallback2  callback;
+    OrthancPluginGetMoveSize    getMoveSize;
+    OrthancPluginApplyMove      applyMove;
+    OrthancPluginFreeMove       freeMove;
+  } _OrthancPluginMoveCallback2;
+
+  /**
+   * @brief Register a callback to handle C-Move requests (v2).
+   *
+   * This function registers a callback to handle C-Move SCP requests.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param callback The main callback.
+   * @param getMoveSize Callback to read the number of C-Move suboperations.
+   * @param applyMove Callback to apply one C-Move suboperation.
+   * @param freeMove Callback to free the C-Move driver.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterMoveCallback2(
+    OrthancPluginContext*       context,
+    OrthancPluginMoveCallback2  callback,
+    OrthancPluginGetMoveSize    getMoveSize,
+    OrthancPluginApplyMove      applyMove,
+    OrthancPluginFreeMove       freeMove)
+  {
+    _OrthancPluginMoveCallback2 params;
+    params.callback = callback;
+    params.getMoveSize = getMoveSize;
+    params.applyMove = applyMove;
+    params.freeMove = freeMove;
+
+    return context->InvokeService(context, _OrthancPluginService_RegisterMoveCallback2, &params);
+  }
+
+  /**
+   * @brief Register a callback to handle incoming requests to the storage commitment SCP (v2).
+   *
+   * This function registers a callback to handle storage commitment SCP requests.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param factory Factory function that creates the handler object
+   * for incoming storage commitment requests.
+   * @param destructor Destructor function to destroy the handler object.
+   * @param lookup Callback function to get the status of one DICOM instance.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.10")
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterStorageCommitmentScpCallback2(
+    OrthancPluginContext*                     context,
+    OrthancPluginStorageCommitmentFactory2    factory,
+    OrthancPluginStorageCommitmentDestructor  destructor,
+    OrthancPluginStorageCommitmentLookup      lookup)
+  {
+    _OrthancPluginRegisterStorageCommitmentScpCallback2 params;
+    params.factory = factory;
+    params.destructor = destructor;
+    params.lookup = lookup;
+    return context->InvokeService(context, _OrthancPluginService_RegisterStorageCommitmentScpCallback2, &params);
   }
 
 #ifdef  __cplusplus

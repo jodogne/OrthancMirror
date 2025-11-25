@@ -25,6 +25,7 @@
 #include "OrthancMoveRequestHandler.h"
 
 #include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
+#include "../../OrthancFramework/Sources/DicomNetworking/DicomConnectionInfo.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
@@ -317,9 +318,7 @@ namespace Orthanc
 
   IMoveRequestIterator* OrthancMoveRequestHandler::Handle(const std::string& targetAet,
                                                           const DicomMap& input,
-                                                          const std::string& originatorIp,
-                                                          const std::string& originatorAet,
-                                                          const std::string& calledAet,
+                                                          const DicomConnectionInfo& connection,
                                                           uint16_t originatorId)
   {
     MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_move_scp_duration_ms");
@@ -362,7 +361,7 @@ namespace Orthanc
           LookupIdentifiers(publicIds, ResourceType_Study, input) ||
           LookupIdentifiers(publicIds, ResourceType_Patient, input))
       {
-        return CreateIterator(context_, targetAet, publicIds, originatorAet, originatorId);
+        return CreateIterator(context_, targetAet, publicIds, connection.GetRemoteAet(), originatorId);
       }
       else
       {
@@ -383,7 +382,7 @@ namespace Orthanc
 
     if (LookupIdentifiers(publicIds, level, input))
     {
-      return CreateIterator(context_, targetAet, publicIds, originatorAet, originatorId);
+      return CreateIterator(context_, targetAet, publicIds, connection.GetRemoteAet(), originatorId);
     }
     else
     {

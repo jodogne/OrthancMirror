@@ -571,6 +571,7 @@ if (ENABLE_DCMTK)
     list(APPEND ORTHANC_DICOM_SOURCES_INTERNAL
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomAssociation.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomAssociationParameters.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomConnectionInfo.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomControlUserConnection.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomServer.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomStoreUserConnection.cpp

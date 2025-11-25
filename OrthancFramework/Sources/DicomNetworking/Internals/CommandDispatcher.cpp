@@ -83,6 +83,7 @@
 #include "../../Logging.h"
 #include "../../OrthancException.h"
 #include "../../Toolbox.h"
+#include "../DicomConnectionInfo.h"
 #include "FindScp.h"
 #include "GetScp.h"
 #include "MoveScp.h"
@@ -1183,8 +1184,9 @@ namespace Orthanc
           (server_.GetStorageCommitmentRequestHandlerFactory().
            ConstructStorageCommitmentRequestHandler());
 
-        handler->HandleRequest(transactionUid, sopClassUid, sopInstanceUid,
-                               remoteIp_, remoteAet_, calledAet_);
+        DicomConnectionInfo connection(remoteIp_, remoteAet_, calledAet_);
+
+        handler->HandleRequest(transactionUid, sopClassUid, sopInstanceUid, connection);
         
         dimseStatus = 0;  // Success
       }
@@ -1335,9 +1337,11 @@ namespace Orthanc
           (server_.GetStorageCommitmentRequestHandlerFactory().
            ConstructStorageCommitmentRequestHandler());
 
+        DicomConnectionInfo connection(remoteIp_, remoteAet_, calledAet_);
+
         handler->HandleReport(transactionUid, successSopClassUid, successSopInstanceUid,
                               failedSopClassUid, failedSopInstanceUid, failureReasons,
-                              remoteIp_, remoteAet_, calledAet_);
+                              connection);
         
         dimseStatus = 0;  // Success
       }
