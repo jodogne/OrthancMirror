@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "DicomConnectionInfo.h"
 #include "../DicomFormat/DicomMap.h"
 
 #include <vector>
@@ -32,8 +33,6 @@
 
 namespace Orthanc
 {
-  class DicomConnectionInfo;
-
   class IMoveRequestIterator : public boost::noncopyable
   {
   public:

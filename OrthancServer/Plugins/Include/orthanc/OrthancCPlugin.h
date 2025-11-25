@@ -676,7 +676,7 @@ extern "C"
     _OrthancPluginService_GetConnectionRemoteAet = 10000,  /* New in SDK 1.12.10 */
     _OrthancPluginService_GetConnectionRemoteIp = 10001,   /* New in SDK 1.12.10 */
     _OrthancPluginService_GetConnectionCalledAet = 10002,  /* New in SDK 1.12.10 */
-    
+
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
 

@@ -24,10 +24,9 @@
 
 #pragma once
 
-#include <dcmtk/dcmnet/assoc.h>
-
 #include "../DicomFormat/DicomMap.h"
 
+#include <dcmtk/dcmnet/assoc.h>
 #include <string>
 
 

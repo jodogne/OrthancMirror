@@ -433,7 +433,7 @@ namespace Orthanc
       std::string calledAet = SerializationToolbox::ReadString(serialized, CALLED_AET);
       std::string remoteAet = SerializationToolbox::ReadString(serialized[REMOTE_MODALITY], "AET");
       std::string remoteIp = SerializationToolbox::ReadString(serialized[REMOTE_MODALITY], "Host");
-      connection_.reset(new DicomConnectionInfo(remoteIp, remoteAet, calledAet));      
+      connection_.reset(new DicomConnectionInfo(remoteIp, remoteAet, calledAet));
     } 
 
     if (connection_.get() == NULL)

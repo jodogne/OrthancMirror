@@ -184,7 +184,7 @@ private:
 
     void AccessDicomConnection(_OrthancPluginService service,
                                const void* parameters);
-                              
+
     void SendHttpStatusCode(const void* parameters);
 
     void SendHttpStatus(const void* parameters);
