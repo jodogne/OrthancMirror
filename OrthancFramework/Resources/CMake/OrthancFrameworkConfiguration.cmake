@@ -558,7 +558,6 @@ if (ENABLE_DCMTK)
 
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/Internals/DicomFrameIndex.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/Internals/DicomImageDecoder.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/Internals/SopInstanceUidFixer.cpp
     )
 
   if (NOT ORTHANC_SANDBOXED)
@@ -600,6 +599,7 @@ if (ENABLE_DCMTK)
     list(APPEND ORTHANC_DICOM_SOURCES_INTERNAL
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DcmtkTranscoder.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/IDicomTranscoder.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/Internals/SopInstanceUidFixer.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/MemoryBufferTranscoder.cpp
       )
   else()
