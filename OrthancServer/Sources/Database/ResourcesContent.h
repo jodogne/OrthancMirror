@@ -122,6 +122,8 @@ namespace Orthanc
     ListTags       tags_;
     ListMetadata   metadata_;
 
+    std::map<int64_t, std::set<DicomTag> > mainDicomTagsPerResource_;
+
   public:
     explicit ResourcesContent(bool isNewResource) :
       isNewResource_(isNewResource)
@@ -132,7 +134,18 @@ namespace Orthanc
                          const DicomTag& tag,
                          const std::string& value)
     {
-      tags_.push_back(TagValue(resourceId, false, tag, value));
+      // avoid adding twice the same tag for the same resource e.g, when the same tag is registered at study and patient level 
+      // https://discourse.orthanc-server.org/t/jobs-api-the-dicommovescu-job-doesnt-seems-to-track-progress/3140/14
+      if (mainDicomTagsPerResource_.find(resourceId) == mainDicomTagsPerResource_.end())
+      {
+        mainDicomTagsPerResource_[resourceId] = std::set<DicomTag>();
+      }
+
+      if (mainDicomTagsPerResource_[resourceId].find(tag) == mainDicomTagsPerResource_[resourceId].end())
+      {
+        tags_.push_back(TagValue(resourceId, false, tag, value));
+        mainDicomTagsPerResource_[resourceId].insert(tag);
+      }
     }
 
     void AddIdentifierTag(int64_t resourceId,

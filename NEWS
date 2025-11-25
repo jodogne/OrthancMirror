@@ -68,6 +68,9 @@ Maintenance
        while downloading the response.
 * Fix issue #227: In SQL, string literals must use 'single quotes'
   https://stackoverflow.com/a/25141338
+* Fix: Avoid adding twice the same tag in DB for the same resource e.g. when you have added TimeZoneOffsetFromUTC
+       to the ExtraMainDicomTags at Patient level.
+       https://discourse.orthanc-server.org/t/jobs-api-the-dicommovescu-job-doesnt-seems-to-track-progress/3140/14
 * Upgraded dependencies for static builds:
   - civetweb 1.16, including patch for CVE-2025-55763
   - SQLite 3.50.4
