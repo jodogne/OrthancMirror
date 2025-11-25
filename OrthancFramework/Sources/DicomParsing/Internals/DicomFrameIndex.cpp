@@ -227,7 +227,7 @@ namespace Orthanc
       }
     }
 
-    virtual uint8_t* GetRawFrameBuffer(unsigned int index)
+    virtual uint8_t* GetRawFrameBuffer(unsigned int index) ORTHANC_OVERRIDE
     {
       if (index >= startFragment_.size())
       {
@@ -300,11 +300,10 @@ namespace Orthanc
       }
     }
 
-    virtual uint8_t* GetRawFrameBuffer(unsigned int index)
+    virtual uint8_t* GetRawFrameBuffer(unsigned int index) ORTHANC_OVERRIDE
     {
       return pixelData_ + index * frameSize_;
     }
-
   };
 
 
@@ -337,11 +336,10 @@ namespace Orthanc
       }
     }
 
-    virtual uint8_t* GetRawFrameBuffer(unsigned int index)
+    virtual uint8_t* GetRawFrameBuffer(unsigned int index) ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_NotImplemented);
     }
-
   };
 
 
