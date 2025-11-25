@@ -24,54 +24,37 @@
 
 #pragma once
 
-#include "../../Compatibility.h"
 #include "../../Enumerations.h"
+#include "../IDicomTranscoder.h"
 
-#include <dcmtk/dcmdata/dcdatset.h>
-#include <dcmtk/dcmdata/dcfilefo.h>
-#include <vector>
-#include <stdint.h>
+#if ORTHANC_ENABLE_DCMTK != 1
+#  error The macro ORTHANC_ENABLE_DCMTK must be set to 1
+#endif
+
 #include <boost/noncopyable.hpp>
-#include <memory>
+#include <dcmtk/dcmdata/dcfilefo.h>
+
 
 namespace Orthanc
 {
-  class DicomFrameIndex
+  namespace Internals
   {
-  private:
-    class IIndex : public boost::noncopyable
+    class SopInstanceUidFixer : public boost::noncopyable
     {
+    private:
+      bool         fix_;
+      std::string  sopInstanceUid_;
+
     public:
-      virtual ~IIndex()
-      {
-      }
+      SopInstanceUidFixer(TranscodingSopInstanceUidMode mode,
+                          IDicomTranscoder::DicomImage& source);
 
-      virtual void GetRawFrame(std::string& frame,
-                               unsigned int index) const = 0;
+      SopInstanceUidFixer(TranscodingSopInstanceUidMode mode,
+                          DcmFileFormat& source);
 
-      virtual uint8_t* GetRawFrameBuffer(unsigned int index) = 0;
+      void Apply(IDicomTranscoder::DicomImage& target) const;
+
+      void Apply(DcmFileFormat& target) const;
     };
-
-    class FragmentIndex;
-    class UncompressedIndex;
-    class PsmctRle1Index;
-
-    std::unique_ptr<IIndex>  index_;
-    unsigned int             countFrames_;
-
-  public:
-    explicit DicomFrameIndex(DcmDataset& dicom);
-
-    unsigned int GetFramesCount() const
-    {
-      return countFrames_;
-    }
-
-    void GetRawFrame(std::string& frame,
-                     unsigned int index) const;
-
-    static unsigned int GetFramesCount(DcmDataset& dicom);
-
-    uint8_t* GetRawFrameBuffer(unsigned int index);
-  };
+  }
 }

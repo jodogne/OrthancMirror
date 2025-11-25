@@ -226,6 +226,28 @@ namespace Orthanc
         fragment = dynamic_cast<DcmPixelItem*>(pixelSequence_->nextInContainer(fragment));
       }
     }
+
+    virtual uint8_t* GetRawFrameBuffer(unsigned int index) ORTHANC_OVERRIDE
+    {
+      if (index >= startFragment_.size())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      if (countFragments_[index] != 1)
+      {
+        throw OrthancException(ErrorCode_NotImplemented, "GetRawFrameBuffer is currently not implemented if there are more fragments than frames.");
+      }
+
+      DcmPixelItem* fragment = startFragment_[index];
+      uint8_t* content = NULL;
+      if (!fragment->getUint8Array(content).good() ||
+          content == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+      return content;
+    }
   };
 
 
@@ -277,6 +299,11 @@ namespace Orthanc
         memcpy(&frame[0], pixelData_ + index * frameSize_, frameSize_);
       }
     }
+
+    virtual uint8_t* GetRawFrameBuffer(unsigned int index) ORTHANC_OVERRIDE
+    {
+      return pixelData_ + index * frameSize_;
+    }
   };
 
 
@@ -307,6 +334,11 @@ namespace Orthanc
       {
         memcpy(&frame[0], reinterpret_cast<const uint8_t*>(&pixelData_[0]) + index * frameSize_, frameSize_);
       }
+    }
+
+    virtual uint8_t* GetRawFrameBuffer(unsigned int index) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
     }
   };
 
@@ -409,6 +441,22 @@ namespace Orthanc
     else if (index_.get() != NULL)
     {
       return index_->GetRawFrame(frame, index);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Cannot access a raw frame");
+    }
+  }
+
+  uint8_t* DicomFrameIndex::GetRawFrameBuffer(unsigned int index)
+  {
+    if (index >= countFrames_)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else if (index_.get() != NULL)
+    {
+      return index_->GetRawFrameBuffer(index);
     }
     else
     {

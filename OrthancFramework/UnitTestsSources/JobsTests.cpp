@@ -1084,7 +1084,7 @@ TEST(JobsSerialization, DicomModification)
     modification.Remove(DICOM_TAG_SERIES_DESCRIPTION);
     modification.Replace(DICOM_TAG_PATIENT_NAME, "Test 4", true);
 
-    modification.Apply(*modified);
+    modification.Apply(modified);
 
     s = 42;
     modification.Serialize(s);
@@ -1095,7 +1095,7 @@ TEST(JobsSerialization, DicomModification)
     ASSERT_EQ(ResourceType_Series, modification.GetLevel());
     
     std::unique_ptr<ParsedDicomFile> second(source.Clone(true));
-    modification.Apply(*second);
+    modification.Apply(second);
 
     std::string t;
     ASSERT_TRUE(second->GetTagValue(t, DICOM_TAG_STUDY_DESCRIPTION));

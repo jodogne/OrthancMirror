@@ -31,6 +31,7 @@
 
 namespace Orthanc
 {
+
   class ORTHANC_PUBLIC DicomModification : public boost::noncopyable
   {
     /**
@@ -52,6 +53,18 @@ namespace Orthanc
                          const std::string& sourceIdentifier,
                          ResourceType level,
                          const DicomMap& sourceDicom) = 0;                       
+    };
+
+    class ORTHANC_PUBLIC IDicomModifier : public boost::noncopyable
+    {
+    public:
+      virtual ~IDicomModifier()
+      {
+      }
+
+      // It is allowed for the implementation to replace "dicom" by a
+      // brand new ParsedDicomFile instance
+      virtual void Apply(std::unique_ptr<ParsedDicomFile>& dicom) = 0;
     };
 
   private:
@@ -145,7 +158,7 @@ namespace Orthanc
     DicomMap currentSource_;
     std::string privateCreator_;
 
-    IDicomIdentifierGenerator* identifierGenerator_;
+    std::unique_ptr<IDicomIdentifierGenerator> identifierGenerator_;
 
     // New in Orthanc 1.9.4
     SetOfTags            uids_;
@@ -153,6 +166,9 @@ namespace Orthanc
     ListOfPaths          keepSequences_;         // Can *possibly* be a path whose prefix is empty
     ListOfPaths          removeSequences_;       // Must *never* be a path whose prefix is empty
     SequenceReplacements sequenceReplacements_;  // Must *never* be a path whose prefix is empty
+
+    // New in Orthanc 1.12.10
+    std::unique_ptr<IDicomModifier>   dicomModifier_;
 
     std::string MapDicomIdentifier(const std::string& original,
                                    ResourceType level);
@@ -235,7 +251,8 @@ namespace Orthanc
 
     void SetupAnonymization(DicomVersion version);
 
-    void Apply(ParsedDicomFile& toModify);
+    // The "toModify" might be replaced by a new object
+    void Apply(std::unique_ptr<ParsedDicomFile>& toModify);
 
     void SetAllowManualIdentifiers(bool check);
 
@@ -248,7 +265,7 @@ namespace Orthanc
     void ParseAnonymizationRequest(bool& patientNameOverridden /* out */,
                                    const Json::Value& request);
 
-    void SetDicomIdentifierGenerator(IDicomIdentifierGenerator& generator);
+    void SetDicomIdentifierGenerator(IDicomIdentifierGenerator* generator /* takes ownership */);
 
     void Serialize(Json::Value& value) const;
 
@@ -268,5 +285,12 @@ namespace Orthanc
                  bool safeForAnonymization);
 
     bool IsAlteredTag(const DicomTag& tag) const;
+
+    bool IsAnonymization() const
+    {
+      return isAnonymization_;
+    }
+
+    void SetDicomModifier(IDicomModifier* modifier);
   };
 }

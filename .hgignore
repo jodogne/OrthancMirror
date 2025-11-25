@@ -9,6 +9,7 @@ CMakeLists.txt.user
 *~
 *.cmake.orig
 .idea/
+OrthancFramework/Resources/CodeGeneration/.venv/
 
 # when opening Orthanc in VSCode, it might find a java project and create files we wan't to ignore:
 .settings/

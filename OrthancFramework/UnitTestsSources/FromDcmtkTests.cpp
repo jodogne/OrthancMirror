@@ -116,7 +116,7 @@ TEST(DicomModification, Basic)
     std::unique_ptr<ParsedDicomFile> f(o.Clone(false));
     if (i > 4)
       o.ReplacePlainString(DICOM_TAG_SERIES_INSTANCE_UID, "coucou");
-    m.Apply(*f);
+    m.Apply(f);
     f->SaveToFile(b);
   }
 }
@@ -135,26 +135,26 @@ TEST(DicomModification, Anonymization)
   ASSERT_EQ(0x1020, privateTag2.GetElement());
 
   std::string s;
-  ParsedDicomFile o(true);
-  o.ReplacePlainString(DICOM_TAG_PATIENT_NAME, "coucou");
-  ASSERT_FALSE(o.GetTagValue(s, privateTag));
-  o.Insert(privateTag, "private tag", false, "OrthancCreator");
-  ASSERT_TRUE(o.GetTagValue(s, privateTag));
+  std::unique_ptr<ParsedDicomFile> o(new ParsedDicomFile(true));
+  o->ReplacePlainString(DICOM_TAG_PATIENT_NAME, "coucou");
+  ASSERT_FALSE(o->GetTagValue(s, privateTag));
+  o->Insert(privateTag, "private tag", false, "OrthancCreator");
+  ASSERT_TRUE(o->GetTagValue(s, privateTag));
   ASSERT_STREQ("private tag", s.c_str());
 
-  ASSERT_FALSE(o.GetTagValue(s, privateTag2));
-  ASSERT_THROW(o.Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_ThrowIfAbsent, "OrthancCreator"), OrthancException);
-  ASSERT_FALSE(o.GetTagValue(s, privateTag2));
-  o.Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_IgnoreIfAbsent, "OrthancCreator");
-  ASSERT_FALSE(o.GetTagValue(s, privateTag2));
-  o.Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_InsertIfAbsent, "OrthancCreator");
-  ASSERT_TRUE(o.GetTagValue(s, privateTag2));
+  ASSERT_FALSE(o->GetTagValue(s, privateTag2));
+  ASSERT_THROW(o->Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_ThrowIfAbsent, "OrthancCreator"), OrthancException);
+  ASSERT_FALSE(o->GetTagValue(s, privateTag2));
+  o->Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_IgnoreIfAbsent, "OrthancCreator");
+  ASSERT_FALSE(o->GetTagValue(s, privateTag2));
+  o->Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_InsertIfAbsent, "OrthancCreator");
+  ASSERT_TRUE(o->GetTagValue(s, privateTag2));
   ASSERT_STREQ("hello", s.c_str());
-  o.Replace(privateTag2, std::string("hello world"), false, DicomReplaceMode_InsertIfAbsent, "OrthancCreator");
-  ASSERT_TRUE(o.GetTagValue(s, privateTag2));
+  o->Replace(privateTag2, std::string("hello world"), false, DicomReplaceMode_InsertIfAbsent, "OrthancCreator");
+  ASSERT_TRUE(o->GetTagValue(s, privateTag2));
   ASSERT_STREQ("hello world", s.c_str());
 
-  ASSERT_TRUE(o.GetTagValue(s, DICOM_TAG_PATIENT_NAME));
+  ASSERT_TRUE(o->GetTagValue(s, DICOM_TAG_PATIENT_NAME));
   ASSERT_FALSE(Toolbox::IsUuid(s));
 
   DicomModification m;
@@ -163,14 +163,14 @@ TEST(DicomModification, Anonymization)
 
   m.Apply(o);
 
-  ASSERT_TRUE(o.GetTagValue(s, DICOM_TAG_PATIENT_NAME));
+  ASSERT_TRUE(o->GetTagValue(s, DICOM_TAG_PATIENT_NAME));
   ASSERT_TRUE(Toolbox::IsUuid(s));
-  ASSERT_TRUE(o.GetTagValue(s, privateTag));
+  ASSERT_TRUE(o->GetTagValue(s, privateTag));
   ASSERT_STREQ("private tag", s.c_str());
   
   m.SetupAnonymization(DicomVersion_2008);
   m.Apply(o);
-  ASSERT_FALSE(o.GetTagValue(s, privateTag));
+  ASSERT_FALSE(o->GetTagValue(s, privateTag));
 }
 
 
@@ -2772,7 +2772,7 @@ TEST(ParsedDicomFile, DicomPath)
       modif.Replace(DicomPath(DICOM_TAG_PATIENT_NAME), "Hello1", false);
       modif.Replace(DicomPath::Parse("ReferencedImageSequence[1].ReferencedSOPClassUID"), "Hello2", false);
       modif.Replace(DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence[0].CodeValue"), "Hello3", false);
-      modif.Apply(*dicom);
+      modif.Apply(dicom);
     }
     
     Json::Value vv;
@@ -2794,7 +2794,7 @@ TEST(ParsedDicomFile, DicomPath)
       modif.Remove(DicomPath(DICOM_TAG_PATIENT_NAME));
       modif.Remove(DicomPath::Parse("ReferencedImageSequence[1].ReferencedSOPClassUID"));
       modif.Remove(DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence"));
-      modif.Apply(*dicom);
+      modif.Apply(dicom);
     }
     
     Json::Value vv;
@@ -2815,8 +2815,8 @@ TEST(ParsedDicomFile, DicomPath)
     {
       DicomModification modif;
       modif.SetupAnonymization(DicomVersion_2023b);
-      modif.Apply(*dicom1);
-      modif.Apply(*dicom2);
+      modif.Apply(dicom1);
+      modif.Apply(dicom2);
     }
 
     // Same anonymization context and same input DICOM => hence, same output DICOM    
@@ -2844,7 +2844,7 @@ TEST(ParsedDicomFile, DicomPath)
       modif.SetupAnonymization(DicomVersion_2023b);
       modif.Keep(DicomPath::Parse("ReferencedImageSequence[1].ReferencedSOPInstanceUID"));
       modif.Keep(DicomPath::Parse("RelatedSeriesSequence"));
-      modif.Apply(*dicom);
+      modif.Apply(dicom);
     }
     
     Json::Value vv;
@@ -3681,7 +3681,7 @@ TEST(Toto, DISABLED_Transcode4)
     IDicomTranscoder::DicomImage source, target;
     source.AcquireParsed(dynamic_cast<DcmFileFormat*>(toto->clone()));
 
-    if (!transcoder.Transcode(target, source, s, true))
+    if (!transcoder.Transcode(target, source, s, TranscodingSopInstanceUidMode_AllowNew))
     {
       printf("**************** CANNOT: [%s] => [%s]\n",
              GetTransferSyntaxUid(sourceSyntax), GetTransferSyntaxUid(a));

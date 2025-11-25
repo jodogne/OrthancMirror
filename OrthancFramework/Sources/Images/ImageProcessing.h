@@ -201,6 +201,8 @@ namespace Orthanc
     static void SmoothGaussian5x5(ImageAccessor& image,
                                   bool useRound /* this is expensive */);
 
+    static void MeanFilter(ImageAccessor& image, size_t horizontalAverageWidth, size_t verticalAverageWidth);
+
     static void FitSize(ImageAccessor& target,
                         const ImageAccessor& source);
 
