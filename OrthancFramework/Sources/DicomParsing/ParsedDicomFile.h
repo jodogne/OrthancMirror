@@ -318,7 +318,7 @@ namespace Orthanc
 
     // Returns an image accessor to the raw frame only if the DicomFile is in an uncompressed TS.
     // This enables modification of pixels data in place.
-    ImageAccessor* GetRawFrame(unsigned int frame);
+    ImageAccessor* GetRawFrameForInplaceModification(unsigned int frame);
 
     void InjectEmptyPixelData(ValueRepresentation vr);
 

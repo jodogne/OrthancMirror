@@ -1824,15 +1824,36 @@ namespace Orthanc
     }
   }
 
-  ImageAccessor* ParsedDicomFile::GetRawFrame(unsigned int frame)
+  ImageAccessor* ParsedDicomFile::GetRawFrameForInplaceModification(unsigned int frame)
   {
     E_TransferSyntax transferSyntax = GetDcmtkObjectConst().getDataset()->getCurrentXfer();
-    if (transferSyntax != EXS_LittleEndianImplicit && 
-        transferSyntax != EXS_BigEndianImplicit && 
-        transferSyntax != EXS_LittleEndianExplicit && 
-        transferSyntax != EXS_BigEndianExplicit)
+
+    bool ok = false;
+    switch (Toolbox::DetectEndianness())
     {
-      throw OrthancException(ErrorCode_NotImplemented, "ParseDicomFile::GetRawFrame only works with uncompressed transfer syntaxes");
+      case Endianness_Little:
+        if (transferSyntax == EXS_LittleEndianImplicit ||
+            transferSyntax == EXS_LittleEndianExplicit)
+        {
+          ok = true;
+        }
+        break;
+
+      case Endianness_Big:
+        if (transferSyntax == EXS_BigEndianImplicit ||
+            transferSyntax == EXS_BigEndianExplicit)
+        {
+          ok = true;
+        }
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    if (!ok)
+    {
+      throw OrthancException(ErrorCode_NotImplemented, "ParsedDicomFile::GetRawFrameForInplaceModification() only works with uncompressed transfer syntaxes and matching host endianness");
     }
 
     if (pimpl_->frameIndex_.get() == NULL)
