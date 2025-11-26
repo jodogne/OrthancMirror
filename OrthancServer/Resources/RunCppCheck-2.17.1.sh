@@ -42,6 +42,7 @@ knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:24
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
+stlFindInsert:../../OrthancServer/Sources/Database/ResourcesContent.h:141
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
