@@ -46,10 +46,11 @@
 #  include "../Sources/MetricsRegistry.h"
 #  include "../Sources/SystemToolbox.h"
 #  include "../Sources/TemporaryFile.h"
+
+#  include <boost/thread.hpp>
 #endif
 
 #include <ctype.h>
-#include <boost/thread.hpp>
 
 
 using namespace Orthanc;
