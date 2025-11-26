@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../OrthancFramework/Sources/DicomNetworking/DicomConnectionInfo.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/DicomConnectionInfo.h"
 
 #include <string>
 #include <vector>
