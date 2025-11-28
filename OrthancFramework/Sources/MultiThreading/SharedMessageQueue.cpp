@@ -57,11 +57,17 @@
 
 namespace Orthanc
 {
-  SharedMessageQueue::SharedMessageQueue(unsigned int maxSize) :
+  SharedMessageQueue::SharedMessageQueue() :
     isFifo_(true),
-    maxSize_(maxSize)
+    maxSize_(0)
   {
   }
+
+  // SharedMessageQueue::SharedMessageQueue(unsigned int maxSize) :
+  //   isFifo_(true),
+  //   maxSize_(maxSize)
+  // {
+  // }
 
 
   SharedMessageQueue::~SharedMessageQueue()
