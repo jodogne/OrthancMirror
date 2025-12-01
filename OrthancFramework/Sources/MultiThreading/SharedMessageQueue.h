@@ -45,9 +45,7 @@ namespace Orthanc
     boost::condition_variable emptied_;
 
   public:
-    explicit SharedMessageQueue();
-
-    // explicit SharedMessageQueue(unsigned int maxSize);
+    explicit SharedMessageQueue(unsigned int maxSize = 0);
     
     ~SharedMessageQueue();
 
