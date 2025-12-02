@@ -221,6 +221,11 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
         # Worklists plugin 0.9.0 (framework pre-1.12.10)
         set(ORTHANC_FRAMEWORK_PRE_RELEASE ON)
         set(ORTHANC_FRAMEWORK_MD5 "17a5ca9254e881ab89c93d052d4655cb")
+      elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "e0979326ac53")
+        # DICOMweb 1.22 + PG 10.0 (framework post-1.12.10)
+        # for BlockingSharedMessageQueue + fix SetCurrentThreadName from plugins
+        set(ORTHANC_FRAMEWORK_PRE_RELEASE ON)
+        set(ORTHANC_FRAMEWORK_MD5 "e66a7e996d56063b3abb790bb8f12e8d")
       endif()
     endif()
   endif()
