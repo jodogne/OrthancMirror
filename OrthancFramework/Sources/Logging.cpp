@@ -501,6 +501,7 @@ namespace
     _OrthancPluginService_LogInfo = 1,
     _OrthancPluginService_LogWarning = 2,
     _OrthancPluginService_LogError = 3,
+    _OrthancPluginService_SetCurrentThreadName = 44,
     _OrthancPluginService_LogMessage = 45,
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
@@ -671,15 +672,22 @@ namespace Orthanc
 
     void SetCurrentThreadName(const std::string& name)
     {
-      boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
-      SetCurrentThreadNameInternal(boost::this_thread::get_id(), name);
+      if (pluginContext_ == NULL)
+      {
+        boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
+        SetCurrentThreadNameInternal(boost::this_thread::get_id(), name);
+      }
+      else
+      {
+        pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_SetCurrentThreadName, name.c_str());
+      }
     }
 
     bool HasCurrentThreadName()
     {
       boost::thread::id threadId = boost::this_thread::get_id();
 
-      boost::mutex::scoped_lock lock(loggingStreamsMutex_);
+      boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
       return threadNames_.find(threadId) != threadNames_.end();
     }
 
