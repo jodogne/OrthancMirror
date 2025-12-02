@@ -31,6 +31,7 @@
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
+#include "../../../OrthancFramework/Sources/MultiThreading/BlockingSharedMessageQueue.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
@@ -133,7 +134,7 @@ namespace Orthanc
 
     virtual void GetDicom(std::string& dicom, const std::string& instanceId, const FileInfo& fileInfo) = 0;
 
-    virtual void Clear()
+    virtual void Clear(bool isAbort)
     {
     }
   };
@@ -185,11 +186,10 @@ namespace Orthanc
 
   class ArchiveJob::ThreadedInstanceLoader : public ArchiveJob::InstanceLoader
   {
-    Semaphore                           availableInstancesSemaphore_;
-    Semaphore                           bufferedInstancesSemaphore_;
+    boost::condition_variable           condInstanceAvailable_;
     std::map<std::string, boost::shared_ptr<std::string> >  availableInstances_;
     boost::mutex                        availableInstancesMutex_;
-    SharedMessageQueue                  instancesToPreload_;
+    BlockingSharedMessageQueue          instancesToPreload_;
     std::vector<boost::thread*>         threads_;
     bool                                loadersShouldStop_;
 
@@ -197,8 +197,7 @@ namespace Orthanc
   public:
     ThreadedInstanceLoader(ServerContext& context, size_t threadCount, bool transcode, DicomTransferSyntax transferSyntax, unsigned int lossyQuality)
     : InstanceLoader(context, transcode, transferSyntax, lossyQuality),
-      availableInstancesSemaphore_(0),
-      bufferedInstancesSemaphore_(3*threadCount),
+      instancesToPreload_ (3*threadCount), 
       loadersShouldStop_(false)
     {
       for (size_t i = 0; i < threadCount; i++)
@@ -209,27 +208,29 @@ namespace Orthanc
 
     virtual ~ThreadedInstanceLoader() ORTHANC_OVERRIDE
     {
-      ThreadedInstanceLoader::Clear();
+      ThreadedInstanceLoader::Clear(false);
     }
 
-    virtual void Clear() ORTHANC_OVERRIDE
+    virtual void Clear(bool isAbort) ORTHANC_OVERRIDE
     {
       if (threads_.size() > 0)
       {
-        LOG(INFO) << "Waiting for loader threads to complete";
         loadersShouldStop_ = true; // not need to protect this by a mutex.  This is the only "writer" and all loaders are "readers"
+
+        if (isAbort)
+        {
+          LOG(INFO) << "Cancelling the loader threads";
+          instancesToPreload_.Clear();
+        }
+        else
+        {
+          LOG(INFO) << "Waiting for loader threads to complete";
+        }
 
         // unlock the loaders if they are waiting on this message queue (this happens when the job completes sucessfully)
         for (size_t i = 0; i < threads_.size(); i++)
         {
           instancesToPreload_.Enqueue(NULL);
-        }
-
-        // If the consumer stops e.g. because the HttpClient disconnected, we must make sure the loader threads are not blocked waiting for room in the bufferedInstances.
-        // If the loader threads have completed their jobs, this is harmless to release the bufferedInstances since they won't be used anymore.
-        for (size_t i = 0; i < threads_.size(); i++)
-        {
-          bufferedInstancesSemaphore_.Release();
         }
 
         for (size_t i = 0; i < threads_.size(); i++)
@@ -264,9 +265,6 @@ namespace Orthanc
           return;
         }
         
-        // wait for the consumers (zip writer), no need to accumulate instances in memory if loaders are faster than writers
-        that->bufferedInstancesSemaphore_.Acquire();
-
         try
         {
           boost::shared_ptr<std::string> dicomContent(new std::string());
@@ -284,9 +282,8 @@ namespace Orthanc
           {
             boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
             that->availableInstances_[instanceToPreload->GetId()] = dicomContent;
+            that->condInstanceAvailable_.notify_one();
           }
-
-          that->availableInstancesSemaphore_.Release();
         }
         catch (OrthancException& e)
         {
@@ -294,7 +291,7 @@ namespace Orthanc
           boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
           // store a NULL result to notify that we could not read the instance
           that->availableInstances_[instanceToPreload->GetId()] = boost::shared_ptr<std::string>(); 
-          that->availableInstancesSemaphore_.Release();
+          that->condInstanceAvailable_.notify_one();
         }
         catch (...)
         {
@@ -302,7 +299,7 @@ namespace Orthanc
           boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
           // store a NULL result to notify that we could not read the instance
           that->availableInstances_[instanceToPreload->GetId()] = boost::shared_ptr<std::string>(); 
-          that->availableInstancesSemaphore_.Release();
+          that->condInstanceAvailable_.notify_one();
         }
       }
     }
@@ -314,39 +311,29 @@ namespace Orthanc
 
     virtual void GetDicom(std::string& dicom, const std::string& instanceId, const FileInfo& fileInfo) ORTHANC_OVERRIDE
     {
+      boost::mutex::scoped_lock lock(availableInstancesMutex_);
+
       while (true)
       {
-        // wait for an instance to be available but this might not be the one we are waiting for !
-        availableInstancesSemaphore_.Acquire();
-        bufferedInstancesSemaphore_.Release(); // unlock the "flow" of loaders
+        // wait for this instance to be available but this might not be the one we are waiting for !
+        while (availableInstances_.find(instanceId) == availableInstances_.end())
+        {
+          condInstanceAvailable_.wait(lock);
+        }
 
         boost::shared_ptr<std::string> dicomContent;
+
+        // this is the instance we were waiting for
+        dicomContent = availableInstances_[instanceId];
+        availableInstances_.erase(instanceId);
+
+        if (dicomContent.get() == NULL)  // there has been an error while reading the file
         {
-          boost::mutex::scoped_lock lock(availableInstancesMutex_);
-
-          if (availableInstances_.find(instanceId) != availableInstances_.end())
-          {
-            // this is the instance we were waiting for
-            dicomContent = availableInstances_[instanceId];
-            availableInstances_.erase(instanceId);
-
-            if (dicomContent.get() == NULL)  // there has been an error while reading the file
-            {
-              throw OrthancException(ErrorCode_InexistentItem);
-            }
-            dicom.swap(*dicomContent);
-
-            if (availableInstances_.size() > 0)
-            {
-              // we have just read the instance we were waiting for but there are still other instances available ->
-              // make sure the next GetDicom call does not wait !
-              availableInstancesSemaphore_.Release();
-            }
-            return;
-          }
-          // we have not found the expected instance, simply wait for the next loader thread to signal the semaphore when
-          // a new instance is available
+          throw OrthancException(ErrorCode_InexistentItem);
         }
+        dicom.swap(*dicomContent);
+
+        return;
       }
     }
   };
@@ -803,6 +790,7 @@ namespace Orthanc
 
             try
             {
+              LOG(INFO) << "Adding instance " << instanceId_ << " in zip";
               instanceLoader.GetDicom(content, instanceId_, fileInfo_);
             }
             catch (OrthancException& e)
@@ -1495,7 +1483,7 @@ namespace Orthanc
 
     if (instanceLoader_.get() != NULL)
     {
-      instanceLoader_->Clear();
+      instanceLoader_->Clear(false);
     }
 
     if (asynchronousTarget_.get() != NULL)
@@ -1567,7 +1555,7 @@ namespace Orthanc
       // clear the loader threads
       if (instanceLoader_.get() != NULL)
       {
-        instanceLoader_->Clear();
+        instanceLoader_->Clear(true);
       }
     }
   }

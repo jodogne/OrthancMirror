@@ -657,6 +657,7 @@ else()
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileBuffer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/FilesystemStorage.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MetricsRegistry.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/BlockingSharedMessageQueue.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/RunnableWorkersPool.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/Semaphore.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/SharedMessageQueue.cpp
