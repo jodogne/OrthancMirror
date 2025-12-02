@@ -43,6 +43,7 @@
 #include "../../OrthancFramework/Sources/JobsEngine/Operations/StringOperationValue.h"
 #include "../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h"
 #include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/MultiThreading/BlockingSharedMessageQueue.h"
 #include "../../OrthancFramework/Sources/MultiThreading/SharedMessageQueue.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "../../OrthancFramework/Sources/SerializationToolbox.h"
@@ -251,6 +252,12 @@ namespace
     DynamicInteger(int value, std::set<int>& target) : 
       value_(value), target_(target)
     {
+      target_.insert(value);
+    }
+
+    virtual ~DynamicInteger()
+    {
+      target_.erase(value_);
     }
 
     int GetValue() const
@@ -263,40 +270,148 @@ namespace
 
 TEST(MultiThreading, SharedMessageQueueBasic)
 {
-  std::set<int> s;
+  std::set<int> s; // keeps a copy of all DynamicInteger objects
 
-  SharedMessageQueue q;
-  ASSERT_TRUE(q.WaitEmpty(0));
-  q.Enqueue(new DynamicInteger(10, s));
-  ASSERT_FALSE(q.WaitEmpty(1));
-  q.Enqueue(new DynamicInteger(20, s));
-  q.Enqueue(new DynamicInteger(30, s));
-  q.Enqueue(new DynamicInteger(40, s));
+  {
+    SharedMessageQueue q;
+    ASSERT_TRUE(q.WaitEmpty(0));
+    q.Enqueue(new DynamicInteger(10, s));
+    ASSERT_FALSE(q.WaitEmpty(1));
+    q.Enqueue(new DynamicInteger(20, s));
+    q.Enqueue(new DynamicInteger(30, s));
+    q.Enqueue(new DynamicInteger(40, s));
 
-  std::unique_ptr<DynamicInteger> i;
-  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(10, i->GetValue());
-  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(20, i->GetValue());
-  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(30, i->GetValue());
-  ASSERT_FALSE(q.WaitEmpty(1));
-  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(40, i->GetValue());
-  ASSERT_TRUE(q.WaitEmpty(0));
-  ASSERT_EQ(NULL, q.Dequeue(1));
+    ASSERT_EQ(4, s.size());
+
+    std::unique_ptr<DynamicInteger> i;
+    i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(10, i->GetValue());
+    i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(20, i->GetValue());
+    i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(30, i->GetValue());
+    ASSERT_FALSE(q.WaitEmpty(1));
+    i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(40, i->GetValue());
+    ASSERT_TRUE(q.WaitEmpty(0));
+    ASSERT_EQ(NULL, q.Dequeue(1));
+  }
+
+  ASSERT_EQ(0, s.size());
 }
 
 
 TEST(MultiThreading, SharedMessageQueueClean)
 {
+  std::set<int> s; // keeps a copy of all DynamicInteger objects
   try
   {
-    std::set<int> s;
-
     SharedMessageQueue q;
     q.Enqueue(new DynamicInteger(10, s));
     q.Enqueue(new DynamicInteger(20, s));  
+    ASSERT_EQ(2, s.size());
     throw OrthancException(ErrorCode_InternalError);
   }
   catch (OrthancException&)
   {
+    // the SharedMessageQueue is destroyed -> make sure the elements have been deleted
+    ASSERT_EQ(0, s.size());
+  }
+}
+
+
+TEST(MultiThreading, BlockingSharedMessageQueueBasicUnlimited)
+{
+  std::set<int> s; // keeps a copy of all DynamicInteger objects
+
+  std::unique_ptr<IDynamicObject> o10(new DynamicInteger(10, s));
+  std::unique_ptr<IDynamicObject> o20(new DynamicInteger(20, s));
+  std::unique_ptr<DynamicInteger> i;
+
+  BlockingSharedMessageQueue q;
+  
+  ASSERT_TRUE(q.Enqueue(o10, 0));
+  ASSERT_TRUE(q.Enqueue(o20, 1));
+  q.Enqueue(new DynamicInteger(30, s)); 
+
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(10, i->GetValue());
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(0))); ASSERT_EQ(20, i->GetValue());
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(0))); ASSERT_EQ(30, i->GetValue());
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(NULL, i.get());
+
+  ASSERT_EQ(0, s.size());
+}
+
+
+TEST(MultiThreading, BlockingSharedMessageQueueBasicLimitedSize)
+{
+  std::set<int> s; // keeps a copy of all DynamicInteger objects
+
+  std::unique_ptr<IDynamicObject> o10(new DynamicInteger(10, s));
+  std::unique_ptr<IDynamicObject> o20(new DynamicInteger(20, s));
+  std::unique_ptr<IDynamicObject> o30(new DynamicInteger(30, s));
+  ASSERT_EQ(3, s.size());
+
+  std::unique_ptr<DynamicInteger > i;
+
+  BlockingSharedMessageQueue q(2);
+  
+  q.Enqueue(o10.release());
+  ASSERT_TRUE(q.Enqueue(o20, 1));
+  ASSERT_FALSE(q.Enqueue(o30, 1));
+
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(10, i->GetValue());
+  ASSERT_TRUE(q.Enqueue(o30, 1));
+
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(0))); ASSERT_EQ(20, i->GetValue());
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(0))); ASSERT_EQ(30, i->GetValue());
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(NULL, i.get());
+
+  // ensures all objects have been destroyed
+  ASSERT_EQ(0, s.size());
+}
+
+TEST(MultiThreading, BlockingSharedMessageQueueBasicClear)
+{
+  std::set<int> s; // keeps a copy of all DynamicInteger objects
+  
+  std::unique_ptr<IDynamicObject> o10(new DynamicInteger(10, s));
+  std::unique_ptr<IDynamicObject> o20(new DynamicInteger(20, s));
+  std::unique_ptr<IDynamicObject> o30(new DynamicInteger(30, s));
+  std::unique_ptr<IDynamicObject> o40(new DynamicInteger(40, s));
+  std::unique_ptr<DynamicInteger > i;
+
+  BlockingSharedMessageQueue q(2);
+  
+  ASSERT_TRUE(q.Enqueue(o10, 0));
+  ASSERT_TRUE(q.Enqueue(o20, 1));
+  ASSERT_EQ(2, q.GetSize());
+  ASSERT_FALSE(q.Enqueue(o30, 1));
+  ASSERT_EQ(2, q.GetSize());
+
+  q.Clear();
+  ASSERT_EQ(0, q.GetSize());
+
+  ASSERT_TRUE(q.Enqueue(o30, 1));
+
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(30, i->GetValue());
+  ASSERT_TRUE(q.Enqueue(o40, 1));
+}
+
+TEST(MultiThreading, BlockingSharedMessageQueueClean)
+{
+  std::set<int> s; // keeps a copy of all DynamicInteger objects
+  try
+  {
+    BlockingSharedMessageQueue q;
+    std::unique_ptr<IDynamicObject> o10(new DynamicInteger(10, s));
+    std::unique_ptr<IDynamicObject> o20(new DynamicInteger(20, s));
+
+    q.Enqueue(o10, 0);
+    q.Enqueue(o20, 0);
+    ASSERT_EQ(2, s.size());
+    throw OrthancException(ErrorCode_InternalError);
+  }
+  catch (OrthancException&)
+  {
+    // the BlockingSharedMessageQueue is destroyed -> make sure the elements have been deleted
+    ASSERT_EQ(0, s.size());
   }
 }
 
