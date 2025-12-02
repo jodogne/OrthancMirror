@@ -56,6 +56,8 @@ static const char* const KEY_UNCOMPRESSED_SIZE = "UncompressedSize";
 static const char* const KEY_ARCHIVE_SIZE = "ArchiveSize";
 static const char* const KEY_TRANSCODE = "Transcode";
 
+static boost::mutex loaderThreadsCounterMutex;
+static uint32_t loaderThreadsCounter = 0;
 
 namespace Orthanc
 {
@@ -251,8 +253,11 @@ namespace Orthanc
 
     static void PreloaderWorkerThread(ThreadedInstanceLoader* that)
     {
-      static uint16_t threadCounter = 0;
-      Logging::SetCurrentThreadName(std::string("ARCH-LOAD-") + boost::lexical_cast<std::string>(threadCounter++));
+      {
+        boost::mutex::scoped_lock lock(loaderThreadsCounterMutex);
+        Logging::SetCurrentThreadName(std::string("ARCH-LOAD-") + boost::lexical_cast<std::string>(loaderThreadsCounter++));
+        loaderThreadsCounter %= 1000000;
+      }
 
       LOG(INFO) << "Loader thread has started";
 
