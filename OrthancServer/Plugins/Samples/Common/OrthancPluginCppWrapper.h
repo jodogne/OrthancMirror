@@ -1017,7 +1017,7 @@ namespace OrthancPlugins
 
 
 #if HAS_ORTHANC_PLUGIN_METRICS == 1
-  inline void SetMetricsValue(char* name,
+  inline void SetMetricsValue(const char* name,
                               float value)
   {
     OrthancPluginSetMetricsValue(GetGlobalContext(), name,
