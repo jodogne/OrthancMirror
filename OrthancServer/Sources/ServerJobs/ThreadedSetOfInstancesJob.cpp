@@ -31,6 +31,10 @@
 #include <boost/lexical_cast.hpp>
 #include <cassert>
 
+static boost::mutex instanceWorkerThreadsCounterMutex;
+static uint32_t instanceWorkerThreadsCounter = 0;
+
+
 namespace Orthanc
 {
   static const char* EXIT_WORKER_MESSAGE = "exit";
@@ -244,9 +248,11 @@ namespace Orthanc
 
   void ThreadedSetOfInstancesJob::InstanceWorkerThread(ThreadedSetOfInstancesJob* that)
   {
-    static uint16_t threadCounter = 0;
-    Logging::SetCurrentThreadName(std::string("JOB-INS-WORK-") + boost::lexical_cast<std::string>(threadCounter++));
-    threadCounter %= 1000;
+    {
+      boost::mutex::scoped_lock lock(instanceWorkerThreadsCounterMutex);
+      Logging::SetCurrentThreadName(std::string("JOB-INS-WORK-") + boost::lexical_cast<std::string>(instanceWorkerThreadsCounter++));
+      instanceWorkerThreadsCounter %= 1000;
+    }
 
     while (true)
     {
