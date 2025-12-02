@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "../Compatibility.h"
 #include "../IDynamicObject.h"
 
 #include <stdint.h>
