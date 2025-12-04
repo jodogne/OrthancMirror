@@ -103,8 +103,38 @@ namespace Orthanc
 
     roomAvailable_.notify_one();
 
+    if (queue_.empty())
+    {
+      emptied_.notify_all();
+    }
+
     return message.release();
   }
+
+  bool BlockingSharedMessageQueue::WaitEmpty(int32_t millisecondsTimeout)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    
+    // Wait for the queue to become empty
+    while (!queue_.empty())
+    {
+      if (millisecondsTimeout == 0)
+      {
+        emptied_.wait(lock);
+      }
+      else
+      {
+        if (!emptied_.timed_wait
+            (lock, boost::posix_time::milliseconds(millisecondsTimeout)))
+        {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
 
   void BlockingSharedMessageQueue::Clear()
   {
@@ -124,6 +154,8 @@ namespace Orthanc
         roomAvailable_.notify_one();
       }
     }
+
+    emptied_.notify_all();
   }
 
   size_t BlockingSharedMessageQueue::GetSize()
