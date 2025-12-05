@@ -226,6 +226,11 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
         # for BlockingSharedMessageQueue + fix SetCurrentThreadName from plugins
         set(ORTHANC_FRAMEWORK_PRE_RELEASE ON)
         set(ORTHANC_FRAMEWORK_MD5 "e66a7e996d56063b3abb790bb8f12e8d")
+      elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "94c7f3784456")
+        # PixelsMasker 0.1.0 (framework post-1.12.10)
+        # for BlockingSharedMessageQueue.WaitEmpty() + fix OrthancPlugins::OrthancJob::content_ thread safety
+        set(ORTHANC_FRAMEWORK_PRE_RELEASE ON)
+        set(ORTHANC_FRAMEWORK_MD5 "c037cd2ddbe1b65b431692855483161b")
       endif()
     endif()
   endif()
