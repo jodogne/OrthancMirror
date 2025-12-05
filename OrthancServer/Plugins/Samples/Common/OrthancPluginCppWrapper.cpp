@@ -2441,6 +2441,8 @@ namespace OrthancPlugins
   {
     assert(job != NULL);
     OrthancJob& that = *reinterpret_cast<OrthancJob*>(job);
+
+    boost::mutex::scoped_lock lock(that.contentMutex_);
     return CopyStringToMemoryBuffer(target, that.content_);
   }
 #else
@@ -2450,7 +2452,10 @@ namespace OrthancPlugins
 
     try
     {
-      return reinterpret_cast<OrthancJob*>(job)->content_.c_str();
+      OrthancJob& that = *reinterpret_cast<OrthancJob*>(job);
+      boost::mutex::scoped_lock lock(that.contentMutex_);
+
+      return that.content_.c_str();
     }
     catch (...)
     {
@@ -2578,6 +2583,8 @@ namespace OrthancPlugins
 
   void OrthancJob::UpdateContent(const Json::Value& content)
   {
+    boost::mutex::scoped_lock lock(contentMutex_);
+
     if (content.type() != Json::objectValue)
     {
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_BadFileFormat);
