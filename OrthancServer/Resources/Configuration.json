@@ -695,10 +695,12 @@
   // The maximum number of results for a single C-FIND request at the
   // Patient, Study or Series level. Setting this option to "0" means
   // no limit.
+  // Note: this limit is also used in the /tools/find API route.
   "LimitFindResults" : 0,
 
   // The maximum number of results for a single C-FIND request at the
   // Instance level. Setting this option to "0" means no limit.
+  // Note: this limit is also used in the /tools/find API route.
   "LimitFindInstances" : 0,
 
   // If this option is set to "true" (default behavior until Orthanc
