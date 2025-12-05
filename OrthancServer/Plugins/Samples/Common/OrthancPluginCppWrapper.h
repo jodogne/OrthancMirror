@@ -28,6 +28,7 @@
 #include <orthanc/OrthancCPlugin.h>
 #include <boost/noncopyable.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/thread/mutex.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <json/value.h>
 #include <vector>
@@ -943,6 +944,7 @@ namespace OrthancPlugins
   {
   private:
     std::string   jobType_;
+    boost::mutex  contentMutex_;
     std::string   content_;
     bool          hasSerialized_;
     std::string   serialized_;
