@@ -1,6 +1,9 @@
 Pending changes in the mainline
 ===============================
 
+* Upgraded dependencies for static builds:
+  - boost 1.89.0
+
 
 Version 1.12.10 (2025-11-26)
 ============================
