@@ -372,5 +372,29 @@
     "Name" : "XML Encoding",
     "Value" : "XML",
     "Retired" : true
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.110",
+    "Name" : "JPEG XL Lossless",
+    "Value" : "JPEGXLLossless",
+    "DCMTK" : "EXS_JPEGXLLossless",
+    "SinceDCMTK" : "369"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.111",
+    "Name" : "JPEG XL JPEG Recompression",
+    "Value" : "JPEGXLJPEGRecompression",
+    "DCMTK" : "EXS_JPEGXLJPEGRecompression",
+    "SinceDCMTK" : "369"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.112",
+    "Name" : "JPEG XL",
+    "Value" : "JPEGXL",
+    "DCMTK" : "EXS_JPEGXL",
+    "SinceDCMTK" : "369"
   }
 ]
