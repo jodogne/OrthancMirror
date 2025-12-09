@@ -38,7 +38,7 @@ else()
     list(APPEND ORTHANC_BOOST_COMPONENTS locale)
   endif()
 
-  list(APPEND ORTHANC_BOOST_COMPONENTS filesystem thread system date_time regex iostreams)
+  list(APPEND ORTHANC_BOOST_COMPONENTS filesystem thread date_time regex iostreams)
   find_package(Boost COMPONENTS ${ORTHANC_BOOST_COMPONENTS})
 
   if (NOT Boost_FOUND)

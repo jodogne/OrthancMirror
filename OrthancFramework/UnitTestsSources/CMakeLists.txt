@@ -66,7 +66,7 @@ else()
   endif()      
   link_libraries(pugixml)
 
-  find_package(Boost COMPONENTS filesystem thread system date_time iostreams locale regex)
+  find_package(Boost COMPONENTS filesystem thread date_time iostreams locale regex)
   if (NOT Boost_FOUND)
       message(FATAL_ERROR "Unable to locate Boost on this system")
   endif()
