@@ -1,0 +1,147 @@
+======================================
+DICOM Conformance Statement of Orthanc
+======================================
+
+
+---------------------
+Echo SCP Conformance
+---------------------
+
+Orthanc supports the following SOP Classes as an SCP for C-Echo:
+
+  VerificationSOPClass      | 1.2.840.10008.1.1
+
+
+---------------------
+Store SCP Conformance
+---------------------
+
+Orthanc supports the following SOP Classes as an SCP for C-Store:
+
+  {{#store_scp}}
+  {{name}} | {{uid}}
+  {{/store_scp}}
+
+  {{#retired_store_scp}}
+  {{name}} | {{uid}}
+  {{/retired_store_scp}}
+
+  {{#draft_store_scp}}
+  {{name}} | {{uid}}
+  {{/draft_store_scp}}
+
+
+--------------------
+Find SCP Conformance
+--------------------
+
+Orthanc supports the following SOP Classes as an SCP for C-Find:
+
+  FINDPatientRootQueryRetrieveInformationModel   | 1.2.840.10008.5.1.4.1.2.1.1
+  FINDStudyRootQueryRetrieveInformationModel     | 1.2.840.10008.5.1.4.1.2.2.1
+  FINDModalityWorklistInformationModel           | 1.2.840.10008.5.1.4.31
+
+
+--------------------
+Move SCP Conformance
+--------------------
+
+Orthanc supports the following SOP Classes as an SCP for C-Move:
+
+  MOVEPatientRootQueryRetrieveInformationModel   | 1.2.840.10008.5.1.4.1.2.1.2
+  MOVEStudyRootQueryRetrieveInformationModel     | 1.2.840.10008.5.1.4.1.2.2.2
+
+
+-------------------
+Get SCP Conformance
+-------------------
+
+Orthanc supports the following SOP Classes as an SCP for C-Get:
+
+  GETPatientRootQueryRetrieveInformationModel    | 1.2.840.10008.5.1.4.1.2.1.3
+  GETStudyRootQueryRetrieveInformationModel      | 1.2.840.10008.5.1.4.1.2.2.3
+
+
+---------------------
+Echo SCU Conformance
+---------------------
+
+Orthanc supports the following SOP Classes as an SCU for C-Echo:
+
+  VerificationSOPClass      | 1.2.840.10008.1.1
+
+
+---------------------
+Store SCU Conformance
+---------------------
+
+All the SOP Classes that are listed in the "Store SCP Conformance"
+(see above) section are available as an SCU for C-Store.
+
+
+--------------------
+Find SCU Conformance
+--------------------
+
+Orthanc supports the following SOP Classes as an SCU for C-Find:
+
+  FINDPatientRootQueryRetrieveInformationModel  | 1.2.840.10008.5.1.4.1.2.1.1
+  FINDStudyRootQueryRetrieveInformationModel    | 1.2.840.10008.5.1.4.1.2.2.1
+
+
+--------------------
+Move SCU Conformance
+--------------------
+
+Orthanc supports the following SOP Classes as an SCU for C-Move:
+
+  MOVEPatientRootQueryRetrieveInformationModel  | 1.2.840.10008.5.1.4.1.2.1.2
+  MOVEStudyRootQueryRetrieveInformationModel    | 1.2.840.10008.5.1.4.1.2.2.2
+
+
+-------------------
+Get SCU Conformance
+-------------------
+
+Orthanc supports the following SOP Classes as an SCU for C-Get:
+
+  GETPatientRootQueryRetrieveInformationModel    | 1.2.840.10008.5.1.4.1.2.1.3
+  GETStudyRootQueryRetrieveInformationModel      | 1.2.840.10008.5.1.4.1.2.2.3
+
+
+-----------------
+Transfer Syntaxes
+-----------------
+
+Orthanc will accept and negotiate presentation contexts for all of the
+abovementioned supported SOP Classes using any of the following
+transfer syntaxes:
+
+  {{#transfer_syntaxes}}
+  {{name}} | {{uid}}
+  {{/transfer_syntaxes}}
+
+It is possible to disable a subset of these transfer syntaxes thanks
+to the "AcceptedTransferSyntaxes" and "*TransferSyntaxAccepted"
+options in the Orthanc configuration file.
+
+When possible, Orthanc will prefer the
+LittleEndianExplicitTransferSyntax transfer syntax
+(1.2.840.10008.1.2.1).
+
+Orthanc does not support extended negotiation.
+
+
+--------------------
+Implementation notes
+--------------------
+
+The information above about the SCP support is readily extracted from
+the function "Orthanc::Internals::AcceptAssociation()" from file
+"OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp".
+
+The information above about the SCU support is derived from the
+classes "Orthanc::DicomControlUserConnection" and
+"Orthanc::DicomStoreUserConnection" from file
+"OrthancFramework/Sources/DicomNetworking/DicomControlUserConnection.cpp" and
+"OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.cpp".
