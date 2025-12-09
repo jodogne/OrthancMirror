@@ -155,6 +155,15 @@ namespace Orthanc
       case DicomTransferSyntax_XML:
         return "1.2.840.10008.1.2.6.2";
 
+      case DicomTransferSyntax_JPEGXLLossless:
+        return "1.2.840.10008.1.2.4.110";
+
+      case DicomTransferSyntax_JPEGXLJPEGRecompression:
+        return "1.2.840.10008.1.2.4.111";
+
+      case DicomTransferSyntax_JPEGXL:
+        return "1.2.840.10008.1.2.4.112";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -290,6 +299,15 @@ namespace Orthanc
 
       case DicomTransferSyntax_XML:
         return true;
+
+      case DicomTransferSyntax_JPEGXLLossless:
+        return false;
+
+      case DicomTransferSyntax_JPEGXLJPEGRecompression:
+        return false;
+
+      case DicomTransferSyntax_JPEGXL:
+        return false;
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -552,6 +570,24 @@ namespace Orthanc
       return true;
     }
     
+    if (uid == "1.2.840.10008.1.2.4.110")
+    {
+      target = DicomTransferSyntax_JPEGXLLossless;
+      return true;
+    }
+    
+    if (uid == "1.2.840.10008.1.2.4.111")
+    {
+      target = DicomTransferSyntax_JPEGXLJPEGRecompression;
+      return true;
+    }
+    
+    if (uid == "1.2.840.10008.1.2.4.112")
+    {
+      target = DicomTransferSyntax_JPEGXL;
+      return true;
+    }
+    
     return false;
   }
 
@@ -601,5 +637,8 @@ namespace Orthanc
     target.insert(DicomTransferSyntax_RLELossless);
     target.insert(DicomTransferSyntax_RFC2557MimeEncapsulation);
     target.insert(DicomTransferSyntax_XML);
+    target.insert(DicomTransferSyntax_JPEGXLLossless);
+    target.insert(DicomTransferSyntax_JPEGXLJPEGRecompression);
+    target.insert(DicomTransferSyntax_JPEGXL);
   }
 }

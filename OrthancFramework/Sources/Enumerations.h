@@ -284,7 +284,10 @@ namespace Orthanc
     DicomTransferSyntax_HEVCMain10ProfileLevel5_1    /*!< HEVC/H.265 Main 10 Profile / Level 5.1 */,
     DicomTransferSyntax_RLELossless    /*!< RLE - Run Length Encoding (lossless) */,
     DicomTransferSyntax_RFC2557MimeEncapsulation    /*!< RFC 2557 MIME Encapsulation */,
-    DicomTransferSyntax_XML    /*!< XML Encoding */
+    DicomTransferSyntax_XML    /*!< XML Encoding */,
+    DicomTransferSyntax_JPEGXLLossless    /*!< JPEG XL Lossless */,
+    DicomTransferSyntax_JPEGXLJPEGRecompression    /*!< JPEG XL JPEG Recompression */,
+    DicomTransferSyntax_JPEGXL    /*!< JPEG XL */
   };
 
 
