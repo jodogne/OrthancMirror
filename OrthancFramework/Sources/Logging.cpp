@@ -34,7 +34,6 @@
 #  include <pthread.h>
 #endif
 
-#include "MetricsRegistry.h"
 
 /*********************************************************
  * Common section
