@@ -74,7 +74,20 @@ namespace Orthanc
       LogCategory_JOBS    = (1 << 5),
       LogCategory_LUA     = (1 << 6)
     };
-    
+
+    class ILoggingListener
+    {
+    public:
+      virtual ~ILoggingListener() {}
+
+      virtual void HandleLog(LogLevel level,
+                             LogCategory category,
+                             const std::string& pluginName,
+                             const char* file,
+                             uint32_t line,
+                             const std::string& message) = 0;
+    };
+
     ORTHANC_PUBLIC const char* EnumerationToString(LogLevel level);
 
     ORTHANC_PUBLIC LogLevel StringToLogLevel(const char* level);
@@ -96,6 +109,10 @@ namespace Orthanc
     ORTHANC_PUBLIC void SetCurrentThreadName(const std::string& name);
 
     ORTHANC_PUBLIC bool HasCurrentThreadName();
+
+    ORTHANC_PUBLIC void AddLoggingListener(ILoggingListener* listener);
+
+    ORTHANC_PUBLIC void ClearLoggingListeners();
 
     ORTHANC_PUBLIC void EnableThreadNames(bool enabled);
 
@@ -270,6 +287,7 @@ namespace Orthanc
       LogCategory                         category_;
       const char*                         file_;
       uint32_t                            line_;
+      std::stringstream                   messageStream_;
 
     public:
       InternalLogger(LogLevel level,
@@ -283,7 +301,7 @@ namespace Orthanc
       template <typename T>
         std::ostream& operator<< (const T& message)
       {
-        return (*stream_) << boost::lexical_cast<std::string>(message);
+        return messageStream_ << boost::lexical_cast<std::string>(message);
       }
     };
 

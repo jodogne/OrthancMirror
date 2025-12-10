@@ -34,6 +34,7 @@
 #  include <pthread.h>
 #endif
 
+#include "MetricsRegistry.h"
 
 /*********************************************************
  * Common section
@@ -572,7 +573,8 @@ static bool                                     hasOrthancAdvancedLogging_ = fal
 static boost::recursive_mutex                   threadNamesMutex_;
 static std::map<boost::thread::id, std::string> threadNames_;
 static bool                                     enableThreadNames_ = true;
-
+static std::list<Orthanc::Logging::ILoggingListener*> loggingListeners_;
+static boost::mutex                                   loggingListenersMutex_;
 
 
 namespace Orthanc
@@ -705,6 +707,18 @@ namespace Orthanc
 
       return threadNames_[threadId];
     }    
+
+    void AddLoggingListener(ILoggingListener* listener)
+    {
+      boost::mutex::scoped_lock lock(loggingListenersMutex_);
+      loggingListeners_.push_back(listener);
+    }
+
+    void ClearLoggingListeners()
+    {
+      boost::mutex::scoped_lock lock(loggingListenersMutex_);
+      loggingListeners_.clear();
+    }
 
     static void GetLinePrefix(std::string& prefix,
                               LogLevel level,
@@ -1048,8 +1062,15 @@ namespace Orthanc
       }
       else if (stream_ != &nullStream_)
       {
-        *stream_ << "\n";
+        *stream_ << messageStream_.str() << "\n";
         stream_->flush();
+
+        boost::mutex::scoped_lock lock(loggingListenersMutex_);
+        for (std::list<Orthanc::Logging::ILoggingListener*>::iterator it = loggingListeners_.begin(); it != loggingListeners_.end(); ++it)
+        {
+          (*it)->HandleLog(level_, category_, pluginName_, file_, line_, messageStream_.str());
+        }
+
       }
     }
       
