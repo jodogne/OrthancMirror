@@ -25,6 +25,7 @@ General
 * Toolbox::ComputeMD5() fails on files larger than 4GB
 * Logging: add more specific information to contextualize the logs.
   For a DICOM Transfer, that would be nice to include the modality in the context + a study identifier or a job id.
+  Note that the thread id greatly helps already wrt this topic.
 * (1) Accept extra DICOM tags dictionaries in the DCMTK format '.dic' (easier to use than declare
   them in the Orthanc configuration file).  Even the standard dictionaries could be 
   overridden by these custom dictionaries.

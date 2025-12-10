@@ -1042,6 +1042,37 @@ static bool WaitForExit(ServerContext& context,
   return restart;
 }
 
+// This class makes the bridge between the logging and the metrics
+// to count the number of logged errors and warnings
+class MetricsLoggingListener : public Orthanc::Logging::ILoggingListener
+{
+  MetricsRegistry& metrics_;
+public:
+  MetricsLoggingListener(MetricsRegistry& metrics)
+  : metrics_(metrics)
+  {
+  }
+
+  virtual ~MetricsLoggingListener() {};
+
+  virtual void HandleLog(Orthanc::Logging::LogLevel level,
+                         Orthanc::Logging::LogCategory category,
+                         const std::string& pluginName,
+                         const char* file,
+                         uint32_t line,
+                         const std::string& message) ORTHANC_OVERRIDE
+  {
+    if (level == Orthanc::Logging::LogLevel_ERROR)
+    {
+      metrics_.IncrementIntegerValue("orthanc_logged_errors_count", 1);
+    }
+    else if (level == Orthanc::Logging::LogLevel_WARNING)
+    {
+      metrics_.IncrementIntegerValue("orthanc_logged_warnings_count", 1);
+    }
+  }
+
+};
 
 
 static bool StartHttpServer(ServerContext& context,
@@ -1282,7 +1313,12 @@ static bool StartHttpServer(ServerContext& context,
 
     httpServer.Start();
   
+    MetricsLoggingListener loggingMetrics(context.GetMetricsRegistry());
+    Logging::AddLoggingListener(&loggingMetrics);
+
     bool restart = WaitForExit(context, restApi);
+
+    Logging::ClearLoggingListeners();
 
     httpServer.Stop();
     LOG(WARNING) << "    HTTP server has stopped";

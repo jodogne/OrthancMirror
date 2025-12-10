@@ -4,6 +4,13 @@ Pending changes in the mainline
 * Upgraded dependencies for static builds:
   - boost 1.89.0
 
+REST API
+--------
+
+* Added new metrics in "/tools/metrics-prometheus":
+  - "orthanc_logged_errors_count" 
+  - "orthanc_logged_warnings_count"
+
 
 Version 1.12.10 (2025-11-26)
 ============================
