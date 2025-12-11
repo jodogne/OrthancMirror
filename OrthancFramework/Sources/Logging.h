@@ -282,7 +282,6 @@ namespace Orthanc
     private:
       boost::mutex::scoped_lock           lock_;
       LogLevel                            level_;
-      std::unique_ptr<std::stringstream>  pluginStream_;
       std::ostream*                       stream_;
       LogCategory                         category_;
       const char*                         file_;

@@ -935,11 +935,6 @@ namespace Orthanc
           // set to "/dev/null"
           return;
         }
-        else
-        {
-          pluginStream_.reset(new std::stringstream);
-          stream_ = pluginStream_.get();
-        }
       }
       else
       {
@@ -1017,11 +1012,11 @@ namespace Orthanc
 
     InternalLogger::~InternalLogger()
     {
-      if (pluginStream_.get() != NULL)
+      if (pluginContext_ != NULL)
       {
         // We are logging through the Orthanc SDK
         
-        std::string message = pluginStream_->str();
+        std::string message = messageStream_.str();
 
         if (pluginContext_ != NULL)
         {
