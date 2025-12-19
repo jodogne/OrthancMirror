@@ -113,9 +113,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
       SET(TMP_OS "x86")
     endif()
 
+    # _GNU_SOURCE is required for accept4(), pipe2(), sendmmsg()
     set_property(
       SOURCE ${CURL_SOURCES} APPEND
-      PROPERTY COMPILE_DEFINITIONS "HAVE_CONFIG_H=1;OS=\"${TMP_OS}\""
+      PROPERTY COMPILE_DEFINITIONS "HAVE_CONFIG_H=1;OS=\"${TMP_OS}\";_GNU_SOURCE"
       )
 
     if(CMAKE_C_COMPILER_TARGET)
