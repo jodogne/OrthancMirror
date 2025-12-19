@@ -1,10 +1,8 @@
 Pending changes in the mainline
 ===============================
 
-* Upgraded dependencies for static builds:
-  - boost 1.89.0
-* Fix "LimitFindResults" and "LimitFindInstances" configurations that were not 
-  applied to C-FIND (bug introduced in 1.12.5).
+General
+-------
 
 
 REST API
@@ -13,6 +11,15 @@ REST API
 * Added new metrics in "/tools/metrics-prometheus":
   - "orthanc_logged_errors_count" 
   - "orthanc_logged_warnings_count"
+
+Maintenance
+-----------
+
+* Fix "LimitFindResults" and "LimitFindInstances" configurations that were not
+  applied to C-FIND (bug introduced in 1.12.5).
+* Upgraded dependencies for static builds:
+  - boost 1.89.0
+  - dcmtk 3.6.9
 
 
 Version 1.12.10 (2025-11-26)
