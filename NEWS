@@ -19,7 +19,10 @@ Maintenance
   applied to C-FIND (bug introduced in 1.12.5).
 * Upgraded dependencies for static builds:
   - boost 1.89.0
-  - dcmtk 3.6.9
+  - dcmtk 3.7.0
+
+NB: To maintain compatibility with Windows XP, which is not supported
+by DCMTK 3.7.0, Windows 32-bit builds still use DCMTK 3.6.9.
 
 
 Version 1.12.10 (2025-11-26)
