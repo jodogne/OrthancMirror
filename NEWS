@@ -3,6 +3,9 @@ Pending changes in the mainline
 
 * Upgraded dependencies for static builds:
   - boost 1.89.0
+* Fix "LimitFindResults" and "LimitFindInstances" configurations that were not 
+  applied to C-FIND (bug introduced in 1.12.5).
+
 
 REST API
 --------

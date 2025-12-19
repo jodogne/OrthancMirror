@@ -441,6 +441,7 @@ namespace Orthanc
     ResourceFinder finder(level, ResponseContentFlags_ID, context_.GetFindStorageAccessMode(), context_.GetIndex().HasFindSupport());
     finder.SetDatabaseLookup(lookup);
     finder.AddRequestedTags(requestedTags);
+    finder.SetDatabaseLimits(context_.GetDatabaseLimits(level));
 
     LookupVisitorV2 visitor(answers, *filteredInput, sequencesToReturn, privateCreators);
     finder.Execute(visitor, context_);
