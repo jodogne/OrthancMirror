@@ -78,8 +78,20 @@ set(USE_SYSTEM_UUID ON CACHE BOOL "Use the system version of the uuid library fr
 set(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
 
 # Parameters specific to DCMTK
+if (WIN32 AND
+    CMAKE_SIZEOF_VOID_P EQUAL 4)
+  # This is because the citrus library of DCMTK makes use of SRWLOCK
+  # and associated functions such as AcquireSRWLockShared(), which
+  # were only introduced in Windows Vista and Windows Server 2008. The
+  # Orthanc project wants to preserve compatibility with Windows XP.
+  message(STATUS "As you are targeting Windows 32bit, the default version of DCMTK is 3.6.9")
+  set(DCMTK_STATIC_VERSION_DEFAULT "3.6.9")
+else()
+  set(DCMTK_STATIC_VERSION_DEFAULT "3.7.0")
+endif()
+
 set(DCMTK_DICTIONARY_DIR "" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (only when using system version of DCMTK)")
-set(DCMTK_STATIC_VERSION "3.7.0" CACHE STRING "Version of DCMTK to be used in static builds (can be \"3.6.0\", \"3.6.2\", \"3.6.4\", \"3.6.5\", \"3.6.6\", \"3.6.7\", \"3.6.8\", \"3.6.9\", or \"3.7.0\")")
+set(DCMTK_STATIC_VERSION "${DCMTK_STATIC_VERSION_DEFAULT}" CACHE STRING "Version of DCMTK to be used in static builds (can be \"3.6.0\", \"3.6.2\", \"3.6.4\", \"3.6.5\", \"3.6.6\", \"3.6.7\", \"3.6.8\", \"3.6.9\", or \"3.7.0\")")
 set(USE_DCMTK_362_PRIVATE_DIC ON CACHE BOOL "Use the dictionary of private tags from DCMTK 3.6.2 if using DCMTK 3.6.0")
 set(USE_SYSTEM_DCMTK ON CACHE BOOL "Use the system version of DCMTK")
 set(ENABLE_DCMTK_LOG ON CACHE BOOL "Enable logging internal to DCMTK")
