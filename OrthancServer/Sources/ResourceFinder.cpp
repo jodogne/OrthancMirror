@@ -1064,7 +1064,7 @@ namespace Orthanc
         !canBeFullyPerformedInDb_)
     {
       throw OrthancException(ErrorCode_BadRequest,
-                             "nable to use 'Since' when finding resources when querying against Dicom Tags that are not in the MainDicomTags or when using CaseSenstive queries.");
+                             "Unable to use 'Since' when finding resources when querying against Dicom Tags that are not in the MainDicomTags or when using CaseSenstive queries.");
     }
 
     bool isWarning002Enabled = false;
