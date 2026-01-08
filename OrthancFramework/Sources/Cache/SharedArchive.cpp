@@ -45,9 +45,10 @@ namespace Orthanc
 
 
   SharedArchive::Accessor::Accessor(SharedArchive& that,
-                                    const std::string& id) :
-    lock_(that.mutex_)
+                                    const std::string& id)
   {
+    boost::recursive_mutex::scoped_lock lock(that.mutex_);
+
     Archive::iterator it = that.archive_.find(id);
 
     if (it == that.archive_.end())

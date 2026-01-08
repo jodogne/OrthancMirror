@@ -17,6 +17,8 @@ Maintenance
 
 * Fix "LimitFindResults" and "LimitFindInstances" configurations that were not
   applied to C-FIND (bug introduced in 1.12.5).
+* Allow executing multiple "/queries/../answers/../retrieve" in parallel
+  https://discourse.orthanc-server.org/t/synchronous-jobs-limited-to-one-at-a-time/6365
 * Upgraded dependencies for static builds:
   - boost 1.89.0
   - dcmtk 3.7.0
