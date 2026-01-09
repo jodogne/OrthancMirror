@@ -244,7 +244,8 @@ Long-term
   ScheduledProcedureStartTime & Date).
   We should first filter in SQL by StudyDate only, combine it with StudyTime into a single 
   DateTime string and filter again in C++.
-  https://discourse.orthanc-server.org/t/performin-find-within-orthanc-for-time-frames/4704
+  https://discourse.orthanc-server.org/t/performin-find-within-orthanc-for-time-frames/4704.
+  Related: Add a new variant of OrthancPluginWorklistAddAnswer that does not process the answer.
 * Worklist plugin: support MPPS
   https://github.com/orthanc-server/orthanc-setup-samples/blob/master/python-samples/worklist-with-mpps.py
 
