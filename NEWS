@@ -11,6 +11,9 @@ REST API
 * Added new metrics in "/tools/metrics-prometheus":
   - "orthanc_logged_errors_count" 
   - "orthanc_logged_warnings_count"
+* Fixed a security issue where one could hijack HTTP headers in the response
+  through the `filename` argument of "/.../file" or "/.../archive" routes.
+
 
 Maintenance
 -----------

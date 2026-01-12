@@ -37,7 +37,7 @@
 #include <vector>
 #include <stdio.h>
 #include <boost/lexical_cast.hpp>
-
+#include <boost/regex.hpp>
 
 #if ORTHANC_ENABLE_CIVETWEB == 1
 #  if !defined(CIVETWEB_HAS_DISABLE_KEEP_ALIVE)
@@ -121,10 +121,18 @@ namespace Orthanc
     return isContentCompressible_;
   }
 
+  static std::string SanitizeFileName(const char* filename)
+  {
+    const boost::regex pattern("[\r\n\"]");
+
+    return boost::regex_replace(std::string(filename), pattern, "");
+  }
+
   void HttpOutput::StateMachine::SetContentFilename(const char* filename)
   {
-    // TODO Escape double quotes
-    AddHeader("Content-Disposition", "filename=\"" + std::string(filename) + "\"");
+    std::string sanitized = SanitizeFileName(filename);  // since the filename might come from the API, we need to sanitize it to make 
+                                                         // sure it does not add extra headers in the response with e.g: 'filename=toto.dcm"\r\nSet-Cookie:evil=1"
+    AddHeader("Content-Disposition", "filename=\"" + sanitized + "\"");
   }
 
   void HttpOutput::StateMachine::SetCookie(const std::string& cookie,
