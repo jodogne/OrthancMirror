@@ -1210,10 +1210,19 @@ namespace Orthanc
 
     FindRequest request(level);
 
-    DicomTagConstraint c(tag, ConstraintType_Equal, value, true, true);
+    DicomTagConstraint c(tag, ConstraintType_Equal, value, false /* case sensitivity */, true /* mandatory */);
 
-    bool isIdentical;  // unused
-    request.GetDicomTagConstraints().AddConstraint(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Identifier));
+    bool isIdentical;
+
+    std::unique_ptr<DatabaseDicomTagConstraint> dbConstraint(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Identifier)); // first try to look in the identifier table (that is faster !)
+    
+    if (!isIdentical) // if an exact match can not be ensured because some values contained characters that are removed from the DicomIdentifier table during normalization, 
+                      // search in the MainDicomTags table instead.
+    {
+      dbConstraint.reset(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Main));
+    }
+
+    request.GetDicomTagConstraints().AddConstraint(dbConstraint.release());
 
     FindResponse response;
     ExecuteFind(response, request);
