@@ -14,7 +14,6 @@ REST API
 * Fixed a security issue where one could hijack HTTP headers in the response
   through the `filename` argument of "/.../file" or "/.../archive" routes.
 
-
 Maintenance
 -----------
 
@@ -22,6 +21,8 @@ Maintenance
   applied to C-FIND (bug introduced in 1.12.5).
 * Allow executing multiple "/queries/../answers/../retrieve" in parallel
   https://discourse.orthanc-server.org/t/synchronous-jobs-limited-to-one-at-a-time/6365
+* Fix /tools/lookup and OrthancPluginLookupPatient that were considering '1234', '_1234' and '%1234'
+  as the same PatientID.
 * Upgraded dependencies for static builds:
   - boost 1.89.0
   - dcmtk 3.7.0
