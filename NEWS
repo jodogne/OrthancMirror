@@ -13,6 +13,10 @@ REST API
   - "orthanc_logged_warnings_count"
 * Fixed a security issue where one could hijack HTTP headers in the response
   through the `filename` argument of "/.../file" or "/.../archive" routes.
+* In tools/find, filtering against "LabelsConstraint": "None" with an empty "Labels" list
+  now returns all resources that do not have any labels attached instead of returning all resources.
+  This applies to the default SQLite DB and will apply to the next PostgreSQL plugin (vXXX)
+
 
 Maintenance
 -----------
