@@ -164,15 +164,24 @@ namespace
                             const std::string& value)
     {
       assert(ServerToolbox::IsIdentifier(tag, level));
-      
-      DicomTagConstraint c(tag, type, value, true, true);
-      
-      DatabaseDicomTagConstraints lookup;
-      bool isEquivalent;  // unused
-      lookup.AddConstraint(c.ConvertToDatabaseConstraint(isEquivalent, level, DicomTagType_Identifier));
+      result.clear();
 
-      std::set<std::string> noLabel;
-      transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
+      std::vector<std::string> values;
+      values.push_back(value);
+
+      std::unique_ptr<DatabaseDicomTagConstraint> lookup(new DatabaseDicomTagConstraint(level, tag, true, type, values, true, true));
+
+      FindRequest request(level);
+      request.GetDicomTagConstraints().AddConstraint(lookup.release());
+
+      FindResponse response;
+
+      transaction_->ExecuteFind(response, request, index_->GetDatabaseCapabilities());
+
+      for (size_t i = 0; i < response.GetSize(); ++i)
+      {
+        result.push_back(response.GetResourceByIndex(i).GetIdentifier());
+      }
     }    
 
     void DoLookupIdentifier2(std::list<std::string>& result,
@@ -184,17 +193,29 @@ namespace
                              const std::string& value2)
     {
       assert(ServerToolbox::IsIdentifier(tag, level));
-      
-      DicomTagConstraint c1(tag, type1, value1, true, true);
-      DicomTagConstraint c2(tag, type2, value2, true, true);
+      result.clear();
 
-      DatabaseDicomTagConstraints lookup;
-      bool isEquivalent;  // unused
-      lookup.AddConstraint(c1.ConvertToDatabaseConstraint(isEquivalent, level, DicomTagType_Identifier));
-      lookup.AddConstraint(c2.ConvertToDatabaseConstraint(isEquivalent, level, DicomTagType_Identifier));
+      std::vector<std::string> values1, values2;
       
-      std::set<std::string> noLabel;
-      transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
+      values1.push_back(value1);
+      std::unique_ptr<DatabaseDicomTagConstraint> lookup1(new DatabaseDicomTagConstraint(level, tag, true, type1, values1, true, true));
+
+      values2.push_back(value2);
+      std::unique_ptr<DatabaseDicomTagConstraint> lookup2(new DatabaseDicomTagConstraint(level, tag, true, type2, values2, true, true));
+
+      FindRequest request(level);
+      request.GetDicomTagConstraints().AddConstraint(lookup1.release());
+      request.GetDicomTagConstraints().AddConstraint(lookup2.release());
+
+      FindResponse response;
+
+      transaction_->ExecuteFind(response, request, index_->GetDatabaseCapabilities());
+
+      for (size_t i = 0; i < response.GetSize(); ++i)
+      {
+        result.push_back(response.GetResourceByIndex(i).GetIdentifier());
+      }
+
     }
   };
 
