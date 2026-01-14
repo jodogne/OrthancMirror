@@ -958,6 +958,10 @@ namespace Orthanc
       where.push_back("(SELECT COUNT(1) FROM Labels AS selectedLabels WHERE selectedLabels.id = " + strQueryLevel +
                       ".internalId AND selectedLabels.label IN (" + Join(formattedLabels, "", ", ") + ")) " + condition);
     }
+    else if (request.GetLabelsConstraint() == LabelsConstraint_None) // from 1.12.11, 'None' with an empty labels list means "list all resources without any labels"
+    {
+      where.push_back("(SELECT COUNT(1) FROM Labels WHERE id = " + strQueryLevel + ".internalId) = 0");
+    }
 
     sql += joins + orderingJoins + Join(where, " WHERE ", " AND ");
 
@@ -968,6 +972,7 @@ namespace Orthanc
   }
 
 
+  // this function is not used in SQLite but is used in the Database plugins
   void ISqlLookupFormatter::ApplySingleLevel(std::string& sql,
                                              ISqlLookupFormatter& formatter,
                                              const DatabaseDicomTagConstraints& lookup,
@@ -1075,6 +1080,11 @@ namespace Orthanc
                                         ") AS temp "
                                  " WHERE labelsCount " + condition + ")");
     }
+    else if (labelsConstraint == LabelsConstraint_None) // from 1.12.11, 'None' with an empty labels list means "list all resources without any labels"
+    {
+      sql += (" AND (SELECT COUNT(1) FROM Labels WHERE id = internalId) = 0");
+    }
+
 
     if (limit != 0)
     {
