@@ -112,7 +112,7 @@ namespace Orthanc
      * "UnitTestsTransaction" give access to additional information
      * about the underlying SQLite database to be used in unit tests.
      **/
-    class UnitTestsTransaction : public BaseCompatibilityTransaction
+    class UnitTestsTransaction : public BaseCompatibilityTransaction  // TODO: replace by IDatabaseWrapper::ITransaction and remove all compatibility methods from the SQLiteDatabaseWrapper ?
     {
     protected:
       SQLite::Connection& db_;
@@ -144,6 +144,17 @@ namespace Orthanc
       void SetMainDicomTag(int64_t id,
                            const DicomTag& tag,
                            const std::string& value);
+
+      virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
+                                        std::list<std::string>* instancesId,
+                                        const DatabaseDicomTagConstraints& lookup,
+                                        ResourceType queryLevel,
+                                        const std::set<std::string>& labels,
+                                        LabelsConstraint labelsConstraint,
+                                        uint32_t limit) ORTHANC_OVERRIDE
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls); // this function is not supposed to be called with the SQLite engine
+      }
     };
   };
 }
