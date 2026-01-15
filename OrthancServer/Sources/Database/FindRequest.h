@@ -465,6 +465,8 @@ namespace Orthanc
 
     bool HasConstraints() const;
 
+    bool HasLabelsConstraint() const;
+
     bool IsTrivialFind(std::string& publicId /* out */) const;
   };
 }

@@ -497,7 +497,7 @@ namespace Orthanc
     };
 
 
-    // TODO-FIND: Could this interface be removed?
+    // This interface is still used by old plugins that do not implement the ExtendedFind.
     class ICompatibilityTransaction : public boost::noncopyable
     {
     public:

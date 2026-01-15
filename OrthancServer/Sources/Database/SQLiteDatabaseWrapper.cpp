@@ -441,6 +441,48 @@ namespace Orthanc
       s.Run();
     }
 
+    virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
+                                      std::list<std::string>* instancesId,
+                                      const DatabaseDicomTagConstraints& lookup,
+                                      ResourceType queryLevel,
+                                      const std::set<std::string>& labels,
+                                      LabelsConstraint labelsConstraint,
+                                      uint32_t limit) ORTHANC_OVERRIDE
+    {
+      LookupFormatter formatter;
+
+      std::string sql;
+      LookupFormatter::Apply(sql, formatter, lookup, queryLevel, labels, labelsConstraint, limit);
+
+      sql = "CREATE TEMPORARY TABLE Lookup AS " + sql;   // TODO-FIND: use a CTE (or is this method obsolete ?)
+    
+      {
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS Lookup");
+        s.Run();
+      }
+
+      {
+        SQLite::Statement statement(db_, sql);
+        formatter.Bind(statement);
+        statement.Run();
+      }
+
+      if (instancesId != NULL)
+      {
+        AnswerLookup(resourcesId, *instancesId, queryLevel);
+      }
+      else
+      {
+        resourcesId.clear();
+    
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT publicId FROM Lookup");
+        
+        while (s.Step())
+        {
+          resourcesId.push_back(s.ColumnString(0));
+        }
+      }
+    }
 
 #define C0_QUERY_ID 0
 #define C1_INTERNAL_ID 1

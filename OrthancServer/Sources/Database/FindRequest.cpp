@@ -285,11 +285,16 @@ namespace Orthanc
     }
   }
 
+  bool FindRequest::HasLabelsConstraint() const
+  {
+    return !GetLabels().empty() || GetLabelsConstraint() == LabelsConstraint_None; // from 1.12.11, 'None' with an empty labels list means "list all resources without any labels"
+  }
+
   bool FindRequest::HasConstraints() const
   {
     return (!GetDicomTagConstraints().IsEmpty() ||
             GetMetadataConstraintsCount() != 0 ||
-            !GetLabels().empty() ||
+            HasLabelsConstraint() ||
             !GetOrdering().empty());
   }
 

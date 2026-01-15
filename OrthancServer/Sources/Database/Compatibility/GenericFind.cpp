@@ -110,7 +110,7 @@ namespace Orthanc
                                   const IDatabaseWrapper::Capabilities& capabilities,
                                   const FindRequest& request)
     {
-      if (!request.GetLabels().empty() &&
+      if (request.HasLabelsConstraint() &&
           !capabilities.HasLabelsSupport())
       {
         throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support labels");
