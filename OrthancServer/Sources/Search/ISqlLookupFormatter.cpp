@@ -607,6 +607,125 @@ namespace Orthanc
   }
   
 
+  // Note: this is used only when disabling ExtendedFind in SQLite in order to validate the GenericFind compatibility layer
+  void ISqlLookupFormatter::Apply(std::string& sql,
+                                  ISqlLookupFormatter& formatter,
+                                  const DatabaseDicomTagConstraints& lookup,
+                                  ResourceType queryLevel,
+                                  const std::set<std::string>& labels,
+                                  LabelsConstraint labelsConstraint,
+                                  size_t limit)
+  {
+    // get the limit levels of the DICOM Tags lookup
+    ResourceType lowerLevel, upperLevel;
+    GetLookupLevels(lowerLevel, upperLevel, queryLevel, lookup);
+
+    assert(upperLevel <= queryLevel &&
+           queryLevel <= lowerLevel);
+
+    const bool escapeBrackets = formatter.IsEscapeBrackets();
+    
+    std::string joins, comparisons;
+
+    size_t count = 0;
+    
+    for (size_t i = 0; i < lookup.GetSize(); i++)
+    {
+      const DatabaseDicomTagConstraint& constraint = lookup.GetConstraint(i);
+
+      std::string comparison;
+      
+      if (FormatComparison(comparison, formatter, constraint, count, escapeBrackets))
+      {
+        std::string join;
+        FormatJoin(join, constraint, count);
+        joins += join;
+
+        if (!comparison.empty())
+        {
+          comparisons += " AND " + comparison;
+        }
+        
+        count ++;
+      }
+    }
+
+    sql = ("SELECT " +
+           FormatLevel(queryLevel) + ".publicId, " +
+           FormatLevel(queryLevel) + ".internalId" +
+           " FROM Resources AS " + FormatLevel(queryLevel));
+
+    for (int level = queryLevel - 1; level >= upperLevel; level--)
+    {
+      sql += (" INNER JOIN Resources " +
+              FormatLevel(static_cast<ResourceType>(level)) + " ON " +
+              FormatLevel(static_cast<ResourceType>(level)) + ".internalId=" +
+              FormatLevel(static_cast<ResourceType>(level + 1)) + ".parentId");
+    }
+      
+    for (int level = queryLevel + 1; level <= lowerLevel; level++)
+    {
+      sql += (" INNER JOIN Resources " +
+              FormatLevel(static_cast<ResourceType>(level)) + " ON " +
+              FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
+              FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
+    }
+
+    std::list<std::string> where;
+    where.push_back(FormatLevel(queryLevel) + ".resourceType = " +
+                    formatter.FormatResourceType(queryLevel) + comparisons);
+
+    if (!labels.empty())
+    {
+      /**
+       * "In SQL Server, NOT EXISTS and NOT IN predicates are the best
+       * way to search for missing values, as long as both columns in
+       * question are NOT NULL."
+       * https://explainextended.com/2009/09/15/not-in-vs-not-exists-vs-left-join-is-null-sql-server/
+       **/
+
+      std::list<std::string> formattedLabels;
+      for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+      {
+        formattedLabels.push_back(formatter.GenerateParameter(*it));
+      }
+
+      std::string condition;
+      switch (labelsConstraint)
+      {
+        case LabelsConstraint_Any:
+          condition = "> 0";
+          break;
+          
+        case LabelsConstraint_All:
+          condition = "= " + boost::lexical_cast<std::string>(labels.size());
+          break;
+          
+        case LabelsConstraint_None:
+          condition = "= 0";
+          break;
+          
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      
+      where.push_back("(SELECT COUNT(1) FROM Labels AS selectedLabels WHERE selectedLabels.id = " + FormatLevel(queryLevel) +
+                      ".internalId AND selectedLabels.label IN (" + Join(formattedLabels, "", ", ") + ")) " + condition);
+    }
+    else if (labelsConstraint == LabelsConstraint_None) // from 1.12.11, 'None' with an empty labels list means "list all resources without any labels"
+    {
+      where.push_back("(SELECT COUNT(1) FROM Labels WHERE id = " + FormatLevel(queryLevel) + ".internalId) = 0");
+    }
+
+    sql += joins + Join(where, " WHERE ", " AND ");
+
+    if (limit != 0)
+    {
+      sql += " LIMIT " + boost::lexical_cast<std::string>(limit);
+    }
+  }
+  
+  
   void ISqlLookupFormatter::Apply(std::string& sql,
                                   ISqlLookupFormatter& formatter,
                                   const FindRequest& request)

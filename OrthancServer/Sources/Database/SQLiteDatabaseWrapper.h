@@ -103,7 +103,8 @@ namespace Orthanc
     virtual bool HasIntegratedFind() const ORTHANC_OVERRIDE
     {
       return true;   // => This uses specialized SQL commands
-      //return false;   // => This uses Compatibility/GenericFind
+      // return false;   // => This uses Compatibility/GenericFind and this is useful to keep this implementation in SQLite to test the compatibility layer without using an external plugin !
+                         // hence the derivation from BaseCompatibilityTransaction
     }
 
     /**
@@ -112,7 +113,7 @@ namespace Orthanc
      * "UnitTestsTransaction" give access to additional information
      * about the underlying SQLite database to be used in unit tests.
      **/
-    class UnitTestsTransaction : public BaseCompatibilityTransaction  // TODO: replace by IDatabaseWrapper::ITransaction and remove all compatibility methods from the SQLiteDatabaseWrapper ?
+    class UnitTestsTransaction : public BaseCompatibilityTransaction  // We keep the compatibility transaction in SQLite in order to facilitate testing/development of the CompatibilityLayer (GenericFind) without using an external DB plugin
     {
     protected:
       SQLite::Connection& db_;
@@ -145,16 +146,6 @@ namespace Orthanc
                            const DicomTag& tag,
                            const std::string& value);
 
-      virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
-                                        std::list<std::string>* instancesId,
-                                        const DatabaseDicomTagConstraints& lookup,
-                                        ResourceType queryLevel,
-                                        const std::set<std::string>& labels,
-                                        LabelsConstraint labelsConstraint,
-                                        uint32_t limit) ORTHANC_OVERRIDE
-      {
-        throw OrthancException(ErrorCode_BadSequenceOfCalls); // this function is not supposed to be called with the SQLite engine
-      }
     };
   };
 }
