@@ -3159,7 +3159,9 @@ namespace Orthanc
         .SetRequestField(KEY_LABELS, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of strings specifying which labels to look for in the resources (new in Orthanc 1.12.0)", true)
         .SetRequestField(KEY_LABELS_CONSTRAINT, RestApiCallDocumentation::Type_String,
-                         "Constraint on the labels, can be `All`, `Any`, or `None` (defaults to `All`, new in Orthanc 1.12.0)", true)
+                         "Constraint on the labels, can be `All`, `Any`, or `None` (defaults to `All`, new in Orthanc 1.12.0). "
+                         "From 1.12.11: using `None` together with an empty list of labels looks for the resources "
+                         "that do not have any labels attached.", true)
         .SetRequestField(KEY_PARENT_PATIENT, RestApiCallDocumentation::Type_String,
                          "Limit the reported resources to descendants of this patient (new in Orthanc 1.12.5)", true)
         .SetRequestField(KEY_PARENT_STUDY, RestApiCallDocumentation::Type_String,
