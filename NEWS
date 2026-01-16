@@ -4,10 +4,10 @@ Pending changes in the mainline
 General
 -------
 
-TODO: re-enable ExtendedFind in SQLite
 REST API
 --------
 
+* API version upgraded to 30
 * Added new metrics in "/tools/metrics-prometheus":
   - "orthanc_logged_errors_count" 
   - "orthanc_logged_warnings_count"
