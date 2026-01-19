@@ -30,6 +30,9 @@ Maintenance
 * Upgraded dependencies for static builds:
   - boost 1.89.0
   - dcmtk 3.7.0
+* LibCurl: now enabling ipv6 when linking statically.
+  https://github.com/orthanc-server/orthanc-builder/issues/33
+  
 
 NB: To maintain compatibility with Windows XP, which is not supported
 by DCMTK 3.7.0, Windows 32-bit builds still use DCMTK 3.6.9.
