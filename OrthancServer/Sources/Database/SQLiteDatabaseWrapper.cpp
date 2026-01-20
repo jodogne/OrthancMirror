@@ -228,11 +228,6 @@ namespace Orthanc
 
   class SQLiteDatabaseWrapper::LowerWithAccents : public SQLite::IScalarFunction
   {
-  private:
-    bool hasRemainingAncestor_;
-    std::string remainingPublicId_;
-    ResourceType remainingType_;
-
   public:
     LowerWithAccents()
     {
