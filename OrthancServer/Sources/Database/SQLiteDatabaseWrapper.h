@@ -43,6 +43,7 @@ namespace Orthanc
     class SignalFileDeleted;
     class SignalResourceDeleted;
     class SignalRemainingAncestor;
+    class LowerWithAccents;
     class ReadOnlyTransaction;
     class ReadWriteTransaction;
     class LookupFormatter;

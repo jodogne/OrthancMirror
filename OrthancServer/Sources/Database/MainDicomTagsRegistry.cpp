@@ -129,19 +129,31 @@ namespace Orthanc
         }
 
         bool isEquivalentConstraint;
-        
-        // DicomIdentifiers are stored UPPERCASE -> as soon as a case senstive search happens, it is currently not possible to perform it in DB only
+        std::unique_ptr<DatabaseDicomTagConstraint> dbConstraint;
+
+        // DicomIdentifiers are stored UPPERCASE -> as soon as a case senstive search happens, 
+        // it is currently not possible to perform it in DB only on the Identifiers table 
+        // but it can be performed on the MainDicomTags table -> transform the constraint
         if (type == DicomTagType_Identifier && source.GetConstraint(i).IsCaseSensitive())
         {
-          canBeFullyPerformedInDb = false;
+          dbConstraint.reset(source.GetConstraint(i).ConvertToDatabaseConstraint(isEquivalentConstraint, level, DicomTagType_Main));
+          canBeFullyPerformedInDb = true;
         }
-
-        target.AddConstraint(source.GetConstraint(i).ConvertToDatabaseConstraint(isEquivalentConstraint, level, type));
+        else
+        {
+          dbConstraint.reset(source.GetConstraint(i).ConvertToDatabaseConstraint(isEquivalentConstraint, level, type));
+          if (!isEquivalentConstraint && type == DicomTagType_Identifier)
+          {
+            dbConstraint.reset(source.GetConstraint(i).ConvertToDatabaseConstraint(isEquivalentConstraint, level, DicomTagType_Main));
+          }
+        }
 
         if (!isEquivalentConstraint)
         {
           isEquivalentLookup = false;
         }
+
+        target.AddConstraint(dbConstraint.release());
       }
       else
       {

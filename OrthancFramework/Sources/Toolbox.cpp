@@ -1950,8 +1950,7 @@ namespace Orthanc
 #endif
   }
 
-
-  std::string Toolbox::ToUpperCaseWithAccents(const std::string& source)
+  static std::string ChangeCaseWithAccents(const std::string& source, bool toLowerCase)
   {
     bool error = (globalLocale_.get() == NULL);
 
@@ -2000,9 +1999,29 @@ namespace Orthanc
      **/
 
     std::wstring w = boost::locale::conv::utf_to_utf<wchar_t>(source, boost::locale::conv::skip);
-    w = boost::algorithm::to_upper_copy<std::wstring>(w, *globalLocale_);
+    if (toLowerCase)
+    {
+      w = boost::algorithm::to_lower_copy<std::wstring>(w, *globalLocale_);
+    }
+    else
+    {
+      w = boost::algorithm::to_upper_copy<std::wstring>(w, *globalLocale_);
+    }
     return boost::locale::conv::utf_to_utf<char>(w, boost::locale::conv::skip);
   }
+
+
+  std::string Toolbox::ToUpperCaseWithAccents(const std::string& source)
+  {
+    return ChangeCaseWithAccents(source, false);
+  }
+
+
+  std::string Toolbox::ToLowerCaseWithAccents(const std::string& source)
+  {
+    return ChangeCaseWithAccents(source, true);
+  }
+
 #endif
 
 

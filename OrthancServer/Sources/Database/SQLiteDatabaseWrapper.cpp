@@ -226,6 +226,38 @@ namespace Orthanc
   };
 
 
+  class SQLiteDatabaseWrapper::LowerWithAccents : public SQLite::IScalarFunction
+  {
+  private:
+    bool hasRemainingAncestor_;
+    std::string remainingPublicId_;
+    ResourceType remainingType_;
+
+  public:
+    LowerWithAccents()
+    {
+    }
+
+    virtual const char* GetName() const ORTHANC_OVERRIDE
+    {
+      return "lower_with_accents";
+    }
+
+    virtual unsigned int GetCardinality() const ORTHANC_OVERRIDE
+    {
+      return 1;
+    }
+
+    virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
+    {
+      std::string source = context.GetStringValue(0);
+      std::string modified = Toolbox::ToLowerCaseWithAccents(source);
+
+      context.SetStringResult(modified);
+    }
+
+  };
+
   class SQLiteDatabaseWrapper::TransactionBase :
     public SQLiteDatabaseWrapper::UnitTestsTransaction,
     public Compatibility::ICreateInstance,
@@ -2769,7 +2801,7 @@ namespace Orthanc
       signalRemainingAncestor_ = dynamic_cast<SignalRemainingAncestor*>(db_.Register(new SignalRemainingAncestor));
       db_.Register(new SignalFileDeleted(*this));
       db_.Register(new SignalResourceDeleted(*this));
-    
+      db_.Register(new LowerWithAccents());
       db_.Execute("PRAGMA ENCODING=\"UTF-8\";");
 
       // Performance tuning of SQLite with PRAGMAs

@@ -14,10 +14,13 @@ REST API
 * Fixed a security issue where one could hijack HTTP headers in the response
   through the `filename` argument of "/.../file" or "/.../archive" routes.
   (credits: Pavel Kohout, Aisle Research. www.aisle.com)
-* In tools/find, filtering against "LabelsConstraint": "None" with an empty "Labels" list
-  now returns all resources that do not have any labels attached instead of returning all resources.
-  This applies to the default SQLite DB and will apply to the next PostgreSQL plugin (v 10.1)
-
+* In tools/find:
+  - Filtering against "LabelsConstraint": "None" with an empty "Labels" list
+    now returns all resources that do not have any labels attached instead of returning all resources.
+    This applies to the default SQLite DB and will apply to the next PostgreSQL plugin (v 10.1)
+  - Improved behavior wrt to non latin searches and `CaseSensitive` searches that can 
+    now be combined with `Since`.
+  WIP: this needs to be validated from a performance point of view !
 
 Maintenance
 -----------

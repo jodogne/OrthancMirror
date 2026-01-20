@@ -123,7 +123,7 @@ namespace Orthanc
         }
         else
         {
-          comparison = "lower(" + tag + ".value) " + op + " lower(" + parameter + ")";
+          comparison = "lower_with_accents(" + tag + ".value) " + op + " lower_with_accents(" + parameter + ")";
         }
 
         break;
@@ -146,7 +146,7 @@ namespace Orthanc
           }
           else
           {
-            comparison += "lower(" + parameter + ")";
+            comparison += "lower_with_accents(" + parameter + ")";
           }
         }
 
@@ -156,7 +156,7 @@ namespace Orthanc
         }
         else
         {
-          comparison = "lower(" +  tag + ".value) IN (" + comparison + ")";
+          comparison = "lower_with_accents(" +  tag + ".value) IN (" + comparison + ")";
         }
             
         break;
@@ -224,7 +224,7 @@ namespace Orthanc
           }
           else
           {
-            comparison = ("lower(" + tag + ".value) LIKE lower(" +
+            comparison = ("lower_with_accents(" + tag + ".value) LIKE lower_with_accents(" +
                           parameter + ") " + formatter.FormatWildcardEscape());
           }
         }
@@ -451,7 +451,7 @@ namespace Orthanc
         }
         else
         {
-          comparison = " AND lower(value) " + op + " lower(" + parameter + ")";
+          comparison = " AND lower_with_accents(value) " + op + " lower_with_accents(" + parameter + ")";
         }
 
         break;
@@ -470,7 +470,7 @@ namespace Orthanc
           }
           else
           {
-            comparisonValues.push_back("lower(" + parameter + ")");
+            comparisonValues.push_back("lower_with_accents(" + parameter + ")");
           }
         }
 
@@ -483,7 +483,7 @@ namespace Orthanc
         }
         else
         {
-          comparison = " AND lower(value) IN (" + values + ")";
+          comparison = " AND lower_with_accents(value) IN (" + values + ")";
         }
             
         break;
@@ -550,7 +550,7 @@ namespace Orthanc
           }
           else
           {
-            comparison = " AND lower(value) LIKE lower(" + parameter + ") " + formatter.FormatWildcardEscape();
+            comparison = " AND lower_with_accents(value) LIKE lower_with_accents(" + parameter + ") " + formatter.FormatWildcardEscape();
           }
         }
           
