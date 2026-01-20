@@ -288,6 +288,12 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
       )
   endif()
 
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+    # this seems to be required since we have enabled IPv6 for _CFRelease & _SCDynamicStoreCopyProxies
+    link_libraries("-framework CoreFoundation"
+                   "-framework SystemConfiguration")
+  endif()
+
 elseif (CMAKE_CROSSCOMPILING AND
     "${CMAKE_SYSTEM_VERSION}" STREQUAL "CrossToolNg")
 
