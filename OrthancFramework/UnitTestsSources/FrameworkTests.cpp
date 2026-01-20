@@ -487,6 +487,15 @@ TEST(Toolbox, Case)
   s = "CoU";
   Toolbox::ToLowerCase(s);
   ASSERT_EQ("cou", s);
+
+#if ORTHANC_ENABLE_LOCALE == 1
+  s = "éсйігдйомевінрие";
+  s = Toolbox::ToUpperCaseWithAccents(s);
+  ASSERT_EQ("ÉСЙІГДЙОМЕВІНРИЕ", s);
+
+  s = Toolbox::ToLowerCaseWithAccents(s);
+  ASSERT_EQ("éсйігдйомевінрие", s);
+#endif
 }
 
 
