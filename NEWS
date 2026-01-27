@@ -43,7 +43,13 @@ Maintenance
   
 
 NB: To maintain compatibility with Windows XP, which is not supported
-by DCMTK 3.7.0, Windows 32-bit builds still use DCMTK 3.6.9.
+by DCMTK 3.7.0, Windows 32-bit builds must use
+"-DDCMTK_STATIC_VERSION=3.6.9" during the invocation of CMake. This is
+because the citrus library of DCMTK makes use of SRWLOCK and
+associated functions such as AcquireSRWLockShared(), which were only
+introduced in Windows Vista and Windows Server 2008.
+
+
 
 
 Version 1.12.10 (2025-11-26)
