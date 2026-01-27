@@ -96,24 +96,31 @@ namespace Orthanc
       bool RoundFloatWithChecks(T& target,
                                 float source)
       {
+#if defined(_WIN64)
+        // The functions "_isnanf()" and "_finitef()" are only available if targeting x64
         if (_isnanf(source) ||
             !_finitef(source))
         {
           return false;
         }
+#else
+        if (_isnan(static_cast<double>(source)) ||
+            !_finite(static_cast<double>(source)))
+        {
+          return false;
+        }
+#endif
+
+        const float rounded = RoundFloat(source);
+        if (rounded < static_cast<float>(std::numeric_limits<T>::min()) ||
+            rounded > static_cast<float>(std::numeric_limits<T>::max()))
+        {
+          return false;
+        }
         else
         {
-          float rounded = RoundFloat(source);
-          if (rounded < static_cast<float>(std::numeric_limits<T>::min()) ||
-              rounded > static_cast<float>(std::numeric_limits<T>::max()))
-          {
-            return false;
-          }
-          else
-          {
-            target = static_cast<T>(rounded);
-            return true;
-          }
+          target = static_cast<T>(rounded);
+          return true;
         }
       }
 
@@ -129,7 +136,7 @@ namespace Orthanc
         }
         else
         {
-          double rounded = RoundDouble(source);
+          const double rounded = RoundDouble(source);
           if (rounded < static_cast<double>(std::numeric_limits<T>::min()) ||
               rounded > static_cast<double>(std::numeric_limits<T>::max()))
           {
