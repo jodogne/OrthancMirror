@@ -55,7 +55,8 @@
  * https://www.boost.org/doc/libs/1_89_0/boost/math/tools/config.hpp
  **/
 
-#include <cmath>
+#include <cfloat>  // For _isnan()
+#include <cmath>   // For _isnanf()
 #include <limits>
 
 namespace Orthanc
@@ -95,8 +96,8 @@ namespace Orthanc
       bool RoundFloatWithChecks(T& target,
                                 float source)
       {
-        if (std::isnan(source) ||
-            !std::isfinite(source))
+        if (_isnanf(source) ||
+            !_finitef(source))
         {
           return false;
         }
@@ -121,8 +122,8 @@ namespace Orthanc
       bool RoundDoubleWithChecks(T& target,
                                  double source)
       {
-        if (std::isnan(source) ||
-            !std::isfinite(source))
+        if (_isnan(source) ||
+            !_finite(source))
         {
           return false;
         }
