@@ -4,12 +4,8 @@ Pending changes in the mainline
 General
 -------
 
-General
--------
-
-* New configuration "PermissiveStoreSopClasses" in "DicomModalities" to ignore errors when 
-  a modality does not accept to receive the given SOP Classes.
-
+* New configuration "PermissiveStoreSopClasses" in "DicomModalities" to ignore errors if
+  a modality does not accept receiving the given SOP Classes.
 
 REST API
 --------
@@ -19,28 +15,26 @@ REST API
   - "orthanc_logged_errors_count" 
   - "orthanc_logged_warnings_count"
 * Fixed a security issue where one could hijack HTTP headers in the response
-  through the `filename` argument of "/.../file" or "/.../archive" routes.
-  (credits: Pavel Kohout, Aisle Research. www.aisle.com)
-* In tools/find, filtering against "LabelsConstraint": "None" with an empty "Labels" list
-  now returns all resources that do not have any labels attached instead of returning all resources.
-  This applies to the default SQLite DB and will apply to the next PostgreSQL plugin (v 10.1)
-
+  through the "filename" argument of "/.../file" or "/.../archive" routes.
+  (credits: Pavel Kohout, Aisle Research, https://www.aisle.com/)
+* In "tools/find", filtering against "LabelsConstraint": "None" with an empty "Labels" list
+  now returns all resources that do not have any label attached, instead of returning all resources.
+  This applies to the default SQLite DB and will apply to the next PostgreSQL plugin (v10.1).
 
 Maintenance
 -----------
 
 * Fix "LimitFindResults" and "LimitFindInstances" configurations that were not
   applied to C-FIND (bug introduced in 1.12.5).
-* Allow executing multiple "/queries/../answers/../retrieve" in parallel
+* Allow multiple calls to "/queries/../answers/../retrieve" in parallel
   https://discourse.orthanc-server.org/t/synchronous-jobs-limited-to-one-at-a-time/6365
-* Fix /tools/lookup and OrthancPluginLookupPatient that were considering '1234', '_1234' and '%1234'
-  as the same PatientID.
+* Fix "/tools/lookup" and "OrthancPluginLookupPatient()" that were considering
+  "1234", "_1234" and "%1234" as the same PatientID.
+* libcurl: Enabling IPv6 if linking statically
+  https://github.com/orthanc-server/orthanc-builder/issues/33
 * Upgraded dependencies for static builds:
   - boost 1.89.0
   - dcmtk 3.7.0
-* LibCurl: now enabling ipv6 when linking statically.
-  https://github.com/orthanc-server/orthanc-builder/issues/33
-  
 
 NB: To maintain compatibility with Windows XP, which is not supported
 by DCMTK 3.7.0, Windows 32-bit builds must use
@@ -48,8 +42,6 @@ by DCMTK 3.7.0, Windows 32-bit builds must use
 because the citrus library of DCMTK makes use of SRWLOCK and
 associated functions such as AcquireSRWLockShared(), which were only
 introduced in Windows Vista and Windows Server 2008.
-
-
 
 
 Version 1.12.10 (2025-11-26)
