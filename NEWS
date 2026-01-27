@@ -4,6 +4,13 @@ Pending changes in the mainline
 General
 -------
 
+General
+-------
+
+* New configuration "PermissiveStoreSopClasses" in "DicomModalities" to ignore errors when 
+  a modality does not accept to receive the given SOP Classes.
+
+
 REST API
 --------
 
