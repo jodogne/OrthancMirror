@@ -76,7 +76,8 @@ Native Windows build with Microsoft Visual Studio 2008
 
 # cd [...]\Orthanc\Build
 # cmake -DSTANDALONE_BUILD=ON -DSTATIC_BUILD=ON -DALLOW_DOWNLOADS=ON \
-  -DUSE_LEGACY_JSONCPP=ON -DUSE_LEGACY_BOOST=ON -G "Visual Studio 9 2008" [...]\OrthancServer
+  -DUSE_LEGACY_JSONCPP=ON -DUSE_LEGACY_BOOST=ON -DDCMTK_STATIC_VERSION=3.6.9 \
+  -G "Visual Studio 9 2008" [...]\OrthancServer
 
 Then open the "[...]\Orthanc\Build\Orthanc.sln" with Visual Studio.
 
