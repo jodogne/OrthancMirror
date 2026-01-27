@@ -28,6 +28,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <set>
 #include <json/value.h>
 
 namespace Orthanc
@@ -52,7 +53,8 @@ namespace Orthanc
     std::string           localAet_;
     uint32_t              timeout_;
     RetrieveMethod        retrieveMethod_;   // New in Orthanc 1.12.6
-    
+    std::set<std::string> permissiveStoreSopClasses_;  // New in 1.12.11: a list of sop classes that will not generate an error if they are not accepted by the remote modality
+
     void Clear();
 
     void UnserializeArray(const Json::Value& serialized);
@@ -124,5 +126,6 @@ namespace Orthanc
 
     void SetRetrieveMethod(RetrieveMethod retrieveMethod);
 
+    bool IsPermissiveStoreSopClassUid(const std::string& sopClassUid) const;
   };
 }

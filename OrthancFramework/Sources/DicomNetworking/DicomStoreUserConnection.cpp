@@ -547,8 +547,16 @@ namespace Orthanc
 
     if (accepted.size() == 0)
     {
-      throw OrthancException(ErrorCode_NoPresentationContext, "Cannot C-Store an instance of SOPClassUID " + 
-                             sopClassUid + ", the destination has not accepted any TransferSyntax for this SOPClassUID.");
+      if (parameters_.GetRemoteModality().IsPermissiveStoreSopClassUid(sopClassUid))
+      {
+        LOG(INFO) << "Permissive SopClassUid '" << sopClassUid << "' is not accepted by '" << parameters_.GetRemoteModality().GetApplicationEntityTitle() << "'";
+        return;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_NoPresentationContext, "Cannot C-Store an instance of SOPClassUID " + 
+                              sopClassUid + ", the destination has not accepted any TransferSyntax for this SOPClassUID.");
+      }
     }
 
     if (accepted.find(sourceSyntax) != accepted.end())
