@@ -516,7 +516,7 @@
      *
      * The "PermissiveStoreSopClasses" option allows one to ignore
      * errors when a modality does not accept to receive the given 
-     * SOP Classes.
+     * SOP Classes.  Each entry can contain wildcards ("?" or "*").
      * E.g. CVI42 does not accept Encapsulated PDF files; by setting
      * "PermissiveStoreSopClasses": ["1.2.840.10008.5.1.4.1.1.104.1"],
      * a C-Store to CVI42 will be able to complete even if the study

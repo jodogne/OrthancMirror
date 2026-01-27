@@ -28,8 +28,10 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../SerializationToolbox.h"
+#include "../Toolbox.h"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/regex.hpp>
 #include <stdexcept>
 
 
@@ -557,6 +559,23 @@ namespace Orthanc
 
   bool RemoteModalityParameters::IsPermissiveStoreSopClassUid(const std::string& sopClassUid) const
   {
-    return permissiveStoreSopClasses_.find(sopClassUid) != permissiveStoreSopClasses_.end();
+    for (std::set<std::string>::const_iterator it = permissiveStoreSopClasses_.begin(); it != permissiveStoreSopClasses_.end(); ++it)
+    {
+      if (it->find('*') != std::string::npos || it->find('?') != std::string::npos)
+      {
+        boost::regex pattern(Toolbox::WildcardToRegularExpression(*it));
+        
+        if (boost::regex_match(sopClassUid, pattern))
+        {
+          return true;
+        }
+      }
+      else if (sopClassUid == *it)
+      {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
