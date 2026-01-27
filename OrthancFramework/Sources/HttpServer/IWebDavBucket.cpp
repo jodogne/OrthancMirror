@@ -166,12 +166,20 @@ namespace Orthanc
   
   IWebDavBucket::File::File(const std::string& displayName) :
     Resource(displayName),
+    hasContentLength_(false),
     contentLength_(0),
     mime_(MimeType_Binary)
   {
   }
 
   
+  void IWebDavBucket::File::SetContentLength(uint64_t contentLength)
+  {
+    hasContentLength_ = true;
+    contentLength_ = contentLength;
+  }
+
+
   void IWebDavBucket::File::Format(pugi::xml_node& node,
                                    const std::string& parentPath) const
   {
@@ -189,11 +197,14 @@ namespace Orthanc
     pugi::xml_node prop = node.first_element_by_path("D:propstat/D:prop");
     prop.append_child("D:resourcetype");
 
-    std::string s = boost::lexical_cast<std::string>(contentLength_);
-    prop.append_child("D:getcontentlength").append_child(pugi::node_pcdata).set_value(s.c_str());
-
-    s = EnumerationToString(mime_);
+    std::string s = EnumerationToString(mime_);
     prop.append_child("D:getcontenttype").append_child(pugi::node_pcdata).set_value(s.c_str());
+
+    if (hasContentLength_)
+    {
+      s = boost::lexical_cast<std::string>(contentLength_);
+      prop.append_child("D:getcontentlength").append_child(pugi::node_pcdata).set_value(s.c_str());
+    }
   }
 
 

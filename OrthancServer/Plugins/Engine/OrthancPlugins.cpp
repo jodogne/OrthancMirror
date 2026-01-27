@@ -262,7 +262,11 @@ namespace Orthanc
       {
         std::unique_ptr<File> f(new File(displayName));
         f->SetCreationTime(boost::posix_time::from_iso_string(creationTime));
-        f->SetContentLength(contentSize);
+
+        if (contentSize != ORTHANC_PLUGINS_WEBDAV_UNKNOWN_FILE_SIZE)
+        {
+          f->SetContentLength(contentSize);
+        }
 
         if (mimeType == NULL ||
             std::string(mimeType).empty())
