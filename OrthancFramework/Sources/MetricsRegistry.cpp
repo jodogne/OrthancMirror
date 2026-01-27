@@ -27,10 +27,10 @@
 
 #include "ChunkedBuffer.h"
 #include "Compatibility.h"
+#include "CompatibilityMath.h"
 #include "Logging.h"
 #include "OrthancException.h"
 
-#include <boost/math/special_functions/round.hpp>
 
 namespace Orthanc
 {
@@ -339,7 +339,7 @@ namespace Orthanc
     
     virtual void UpdateFloat(float value) ORTHANC_OVERRIDE
     {
-      value_.Update(boost::math::llround(value), GetPolicy());
+      value_.Update(Orthanc::Math::llround(value), GetPolicy());
     }
 
     virtual void UpdateInteger(int64_t value) ORTHANC_OVERRIDE
