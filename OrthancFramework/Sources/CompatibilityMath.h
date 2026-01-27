@@ -46,7 +46,7 @@
 #endif
 
 
-#if 1 || defined(_MSC_VER)
+#if defined(_MSC_VER)
 
 /**
  * This is for compatibility with Microsoft Visual Studio <= 2015.
