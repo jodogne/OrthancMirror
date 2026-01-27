@@ -44,10 +44,15 @@ namespace Orthanc
   {
   private:
     typedef std::map<std::string, IDynamicObject*>  Archive;
+    typedef boost::shared_lock<boost::shared_mutex> ReaderLock;
+    typedef boost::unique_lock<boost::shared_mutex> WriterLock;
 
     size_t                  maxSize_;
-    boost::recursive_mutex  mutex_;
+    boost::shared_mutex     mutex_;
     Archive                 archive_;
+
+    // The LRU index is not protected by "mutex_", but by "lruMutex_"
+    boost::mutex                        lruMutex_;
     LeastRecentlyUsedIndex<std::string> lru_;
 
     void RemoveInternal(const std::string& id);
@@ -56,8 +61,8 @@ namespace Orthanc
     class ORTHANC_PUBLIC Accessor : public boost::noncopyable
     {
     private:
-      boost::recursive_mutex::scoped_lock lock_;
-      IDynamicObject*                     item_;
+      ReaderLock       lock_;
+      IDynamicObject*  item_;
 
     public:
       Accessor(SharedArchive& that,
@@ -67,7 +72,6 @@ namespace Orthanc
       
       IDynamicObject& GetItem() const;
     };
-
 
     explicit SharedArchive(size_t maxSize);
 
@@ -80,5 +84,3 @@ namespace Orthanc
     void List(std::list<std::string>& items);
   };
 }
-
-
