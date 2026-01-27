@@ -222,6 +222,10 @@
  ** Definition of the Orthanc Plugin API.
  ********************************************************************/
 
+
+#define ORTHANC_PLUGINS_WEBDAV_UNKNOWN_FILE_SIZE ((uint64_t) -1)  /* New in Orthanc 1.12.11 */
+
+
 /** @{ */
 
 #ifdef __cplusplus
@@ -9498,11 +9502,17 @@ extern "C"
    * This function declares a file while returning the content of a
    * WebDAV folder.
    *
+   * Starting with Orthanc 1.12.11, if the file size is unknown
+   * because the file must be generated on-the-fly, you can set the
+   * size argument to the special value ORTHANC_PLUGINS_WEBDAV_UNKNOWN_FILE_SIZE.
+   * In this case, the WebDAV property "D:getcontentlength" will not be filled.
+   *
    * @param collection Context of the collection.
    * @param name Base name of the file.
    * @param dateTime The date and time of creation of the file.
    * Check out the documentation of OrthancPluginWebDavRetrieveFile() for more information.
-   * @param size Size of the file.
+   * @param size Size of the file. Can be set to ORTHANC_PLUGINS_WEBDAV_UNKNOWN_FILE_SIZE
+   * if unknown.
    * @param mimeType The MIME type of the file. If empty or set to `NULL`,
    * Orthanc will do a best guess depending on the file extension.
    * @return 0 if success, other value if error.
