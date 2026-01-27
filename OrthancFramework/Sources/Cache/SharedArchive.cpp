@@ -32,6 +32,9 @@ namespace Orthanc
 {
   void SharedArchive::RemoveInternal(const std::string& id)
   {
+    // This function assumes that "mutex_" is locked by a WriterLock,
+    // and that "lruMutex_" is locked
+
     Archive::iterator it = archive_.find(id);
 
     if (it != archive_.end())
@@ -45,10 +48,9 @@ namespace Orthanc
 
 
   SharedArchive::Accessor::Accessor(SharedArchive& that,
-                                    const std::string& id)
+                                    const std::string& id) :
+    lock_(that.mutex_)
   {
-    boost::recursive_mutex::scoped_lock lock(that.mutex_);
-
     Archive::iterator it = that.archive_.find(id);
 
     if (it == that.archive_.end())
@@ -57,7 +59,11 @@ namespace Orthanc
     }
     else
     {
-      that.lru_.MakeMostRecent(id);
+      {
+        boost::mutex::scoped_lock lock(that.lruMutex_);
+        that.lru_.MakeMostRecent(id);
+      }
+
       item_ = it->second;
     }
   }
@@ -104,7 +110,8 @@ namespace Orthanc
 
   std::string SharedArchive::Add(IDynamicObject* obj)
   {
-    boost::recursive_mutex::scoped_lock lock(mutex_);
+    WriterLock lock(mutex_);
+    boost::mutex::scoped_lock lruLock(lruMutex_);
 
     if (archive_.size() == maxSize_)
     {
@@ -124,7 +131,9 @@ namespace Orthanc
 
   void SharedArchive::Remove(const std::string& id)
   {
-    boost::recursive_mutex::scoped_lock lock(mutex_);
+    WriterLock lock(mutex_);
+    boost::mutex::scoped_lock lruLock(lruMutex_);
+
     RemoveInternal(id);      
   }
 
@@ -134,7 +143,7 @@ namespace Orthanc
     items.clear();
 
     {
-      boost::recursive_mutex::scoped_lock lock(mutex_);
+      ReaderLock lock(mutex_);
 
       for (Archive::const_iterator it = archive_.begin();
            it != archive_.end(); ++it)

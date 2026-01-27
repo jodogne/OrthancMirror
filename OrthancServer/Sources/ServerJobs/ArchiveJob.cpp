@@ -1649,18 +1649,16 @@ namespace Orthanc
     if (key == "archive" &&
         !mediaArchiveId_.empty())
     {
-      SharedArchive::Accessor accessor(context_.GetMediaArchive(), mediaArchiveId_);
+      bool found;
 
-      if (accessor.IsValid())
       {
-        context_.GetMediaArchive().Remove(mediaArchiveId_);
-        return true;
+        SharedArchive::Accessor accessor(context_.GetMediaArchive(), mediaArchiveId_);
+        found = accessor.IsValid();
       }
-      else
-      {
-        return false;
-      }
-    }    
+
+      context_.GetMediaArchive().Remove(mediaArchiveId_);
+      return found;
+    }
     else
     {
       return false;
