@@ -138,7 +138,6 @@
 #include <dcmtk/dcmdata/dcpxitem.h>
 
 
-#include <boost/math/special_functions/round.hpp>
 #include <dcmtk/dcmdata/dcostrmb.h>
 #include <boost/algorithm/string/predicate.hpp>
 

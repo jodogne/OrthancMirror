@@ -25,13 +25,13 @@
 #include "../PrecompiledHeaders.h"
 #include "DicomWebJsonVisitor.h"
 
+#include "../CompatibilityMath.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
-#include "../Toolbox.h"
 #include "../SerializationToolbox.h"
+#include "../Toolbox.h"
 #include "FromDcmtkBridge.h"
 
-#include <boost/math/special_functions/round.hpp>
 #include <boost/lexical_cast.hpp>
 
 
@@ -329,10 +329,9 @@ namespace Orthanc
     
   Json::Value DicomWebJsonVisitor::FormatDouble(double value)
   {
-    try
+    long long a;
+    if (Math::llround(a, value))
     {
-      long long a = boost::math::llround<double>(value);
-
       double d = fabs(value - static_cast<double>(a));
 
       if (d <= std::numeric_limits<double>::epsilon() * 100.0)
@@ -344,7 +343,7 @@ namespace Orthanc
         return Json::Value(value);
       }
     }
-    catch (boost::math::rounding_error&)
+    else
     {
       // Can occur if "long long" is too small to receive this value
       // (e.g. infinity)
@@ -352,12 +351,12 @@ namespace Orthanc
     }
   }
 
-  Json::Value DicomWebJsonVisitor::FormatDecimalString(double value, const std::string& originalString)
+  Json::Value DicomWebJsonVisitor::FormatDecimalString(double value,
+                                                       const std::string& originalString)
   {
-    try
+    long long a;
+    if (Math::llround(a, value))
     {
-      long long a = boost::math::llround<double>(value);
-
       double d = fabs(value - static_cast<double>(a));
 
       if (d <= std::numeric_limits<double>::epsilon() * 100.0)
@@ -369,7 +368,7 @@ namespace Orthanc
         return Json::Value(originalString);  // keep the original string to avoid rounding errors e.g, transforming "0.143" into 0.14299999999999
       }
     }
-    catch (boost::math::rounding_error&)
+    else
     {
       // Can occur if "long long" is too small to receive this value
       // (e.g. infinity)

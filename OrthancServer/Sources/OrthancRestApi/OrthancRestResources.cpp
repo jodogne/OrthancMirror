@@ -38,6 +38,7 @@
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/CompatibilityMath.h"
 
 #include "../OrthancConfiguration.h"
 #include "../Search/DatabaseLookup.h"
@@ -47,7 +48,6 @@
 #include "../SliceOrdering.h"
 
 // This "include" is mandatory for Release builds using Linux Standard Base
-#include <boost/math/special_functions/round.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "../../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
@@ -1170,8 +1170,8 @@ namespace Orthanc
             ratio = static_cast<float>(argHeight) / static_cast<float>(decoded->GetHeight());
           }
           
-          targetWidth = boost::math::iround(ratio * static_cast<float>(decoded->GetWidth()));
-          targetHeight = boost::math::iround(ratio * static_cast<float>(decoded->GetHeight()));
+          targetWidth = Math::iround(ratio * static_cast<float>(decoded->GetWidth()));
+          targetHeight = Math::iround(ratio * static_cast<float>(decoded->GetHeight()));
         }
         
         if (decoded->GetFormat() == PixelFormat_RGB24 || decoded->GetFormat() == PixelFormat_RGB48)
