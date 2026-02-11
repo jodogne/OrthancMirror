@@ -21,6 +21,12 @@ REST API
   now returns all resources that do not have any label attached, instead of returning all resources.
   This applies to the default SQLite DB and will apply to the next PostgreSQL plugin (v10.1).
 
+Plugins
+-------
+
+* When listing the contents of a folder in WebDAV, it is possible to use the special value
+  ORTHANC_PLUGINS_WEBDAV_UNKNOWN_FILE_SIZE if the file size is unknown prior to download.
+
 Maintenance
 -----------
 

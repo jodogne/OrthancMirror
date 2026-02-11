@@ -35,6 +35,7 @@
 
 #include <gtest/gtest.h>
 
+#include "../Sources/CompatibilityMath.h"
 #include "../Sources/DicomFormat/DicomTag.h"
 #include "../Sources/HttpServer/HttpToolbox.h"
 #include "../Sources/Logging.h"
@@ -51,6 +52,7 @@
 #endif
 
 #include <ctype.h>
+#include <limits>
 
 
 using namespace Orthanc;
@@ -1854,4 +1856,47 @@ TEST(OrthancException, ErrorPayload)
   ASSERT_EQ(ErrorPayloadType_Dimse, b.GetType());
   ASSERT_TRUE(b.GetContent().isString());
   ASSERT_EQ("Hello", b.GetContent().asString());
+}
+
+
+TEST(Math, Rounding)
+{
+  ASSERT_EQ(42, Math::iround(42.005f));
+  ASSERT_EQ(42, Math::iround(41.995f));
+  ASSERT_EQ(-42, Math::iround(-42.005f));
+  ASSERT_EQ(-42, Math::iround(-41.995f));
+
+  ASSERT_EQ(43, Math::iround(43.005));
+  ASSERT_EQ(43, Math::iround(42.995));
+  ASSERT_EQ(-43, Math::iround(-43.005));
+  ASSERT_EQ(-43, Math::iround(-42.995));
+
+  ASSERT_EQ(44ll, Math::llround(44.005f));
+  ASSERT_EQ(44ll, Math::llround(43.995f));
+  ASSERT_EQ(-44ll, Math::llround(-44.005f));
+  ASSERT_EQ(-44ll, Math::llround(-43.995f));
+
+  ASSERT_EQ(45ll, Math::llround(45.005));
+  ASSERT_EQ(45ll, Math::llround(44.995));
+  ASSERT_EQ(-45ll, Math::llround(-45.005));
+  ASSERT_EQ(-45ll, Math::llround(-44.995));
+
+  long long a;
+  ASSERT_TRUE(Math::llround(a, 46.005f));  ASSERT_EQ(46ll, a);
+  ASSERT_TRUE(Math::llround(a, 45.995f));  ASSERT_EQ(46ll, a);
+  ASSERT_TRUE(Math::llround(a, -46.005f));  ASSERT_EQ(-46ll, a);
+  ASSERT_TRUE(Math::llround(a, -45.995f));  ASSERT_EQ(-46ll, a);
+
+  ASSERT_FALSE(Math::llround(a, std::numeric_limits<float>::quiet_NaN()));
+  ASSERT_FALSE(Math::llround(a, std::numeric_limits<float>::infinity()));
+  ASSERT_FALSE(Math::llround(a, 1e20f /* float too large */));
+
+  ASSERT_TRUE(Math::llround(a, 47.005));  ASSERT_EQ(47ll, a);
+  ASSERT_TRUE(Math::llround(a, 46.995));  ASSERT_EQ(47ll, a);
+  ASSERT_TRUE(Math::llround(a, -47.005));  ASSERT_EQ(-47ll, a);
+  ASSERT_TRUE(Math::llround(a, -46.995));  ASSERT_EQ(-47ll, a);
+
+  ASSERT_FALSE(Math::llround(a, std::numeric_limits<double>::quiet_NaN()));
+  ASSERT_FALSE(Math::llround(a, std::numeric_limits<double>::infinity()));
+  ASSERT_FALSE(Math::llround(a, 1e20 /* double too large */));
 }

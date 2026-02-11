@@ -92,16 +92,14 @@ namespace Orthanc
     class File : public Resource
     {
     private:
+      bool      hasContentLength_;
       uint64_t  contentLength_;
       MimeType  mime_;
 
     public:
       explicit File(const std::string& displayName);
 
-      void SetContentLength(uint64_t contentLength)
-      {
-        contentLength_ = contentLength;
-      }
+      void SetContentLength(uint64_t contentLength);
 
       void SetMimeType(MimeType mime)
       {
