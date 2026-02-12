@@ -1571,7 +1571,12 @@ namespace OrthancPlugins
   {
     if (answer.size() > static_cast<size_t>(std::numeric_limits<uint32_t>::max()))
     {
+  #if HAS_ORTHANC_EXCEPTION == 1
       throw Orthanc::OrthancException(Orthanc::ErrorCode_ParameterOutOfRange, "Cannot send HTTP response larger than 4GB");
+  #else
+      ORTHANC_PLUGINS_LOG_ERROR("Cannot send HTTP response larger than 4GB");
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);          
+  #endif
     }
 
     OrthancPluginSetHttpHeader(GetGlobalContext(),
