@@ -231,6 +231,12 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
         # for BlockingSharedMessageQueue.WaitEmpty()
         set(ORTHANC_FRAMEWORK_PRE_RELEASE ON)
         set(ORTHANC_FRAMEWORK_MD5 "c037cd2ddbe1b65b431692855483161b")
+      elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "56eb61c86f93")
+        # OE2 1.11.0 (framework post-1.12.10)
+        # for HttpClient that returns the answer body in case of HTTP error
+        set(ORTHANC_FRAMEWORK_PRE_RELEASE ON)
+        set(ORTHANC_FRAMEWORK_MD5 "665f8aa70d7c5091bc20da37cf664910")
+      endif()
       endif()
     endif()
   endif()
