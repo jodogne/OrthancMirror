@@ -21,6 +21,11 @@ REST API
   now returns all resources that do not have any label attached, instead of returning all resources.
   This applies to the default SQLite DB and will apply to the next PostgreSQL plugin (v10.1).
 
+Lua
+---
+
+* Added a new "OutgoingCStoreInstanceFilter()" function. (TODO: document in the book + implement in plugins SDK)
+
 Plugins
 -------
 

@@ -43,6 +43,7 @@
 namespace Orthanc
 {
   class DicomInstanceToStore;
+  class OutgoingDicomInstance;
   class IPluginStorageArea;
   class JobsEngine;
   class MetricsRegistry;
@@ -140,6 +141,13 @@ namespace Orthanc
       {
         return context_.filterLua_.FilterIncomingCStoreInstance(dimseStatus, instance, simplified);
       }
+
+      virtual bool FilterOutgoingCStoreInstance(const OutgoingDicomInstance& instance,
+                                                const Json::Value& simplified) ORTHANC_OVERRIDE
+      {
+        return context_.filterLua_.FilterOutgoingCStoreInstance(instance, simplified);
+      }
+
     };
     
     class ServerListener

@@ -37,6 +37,7 @@
 #include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 #include "Database/SQLiteDatabaseWrapper.h"
+#include "DicomInstanceToStore.h"
 #include "EmbeddedResourceHttpHandler.h"
 #include "OrthancConfiguration.h"
 #include "OrthancFindRequestHandler.h"

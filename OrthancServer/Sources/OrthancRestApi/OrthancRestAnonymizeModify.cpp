@@ -27,6 +27,7 @@
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
+#include "../DicomInstanceToStore.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 #include "../ServerJobs/MergeStudyJob.h"

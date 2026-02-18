@@ -31,6 +31,7 @@
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "Database/IDatabaseWrapper.h"
 #include "Database/ResourcesContent.h"
+#include "DicomInstanceToStore.h"
 #include "OrthancConfiguration.h"
 #include "ServerContext.h"
 

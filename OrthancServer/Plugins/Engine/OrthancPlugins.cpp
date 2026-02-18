@@ -57,8 +57,10 @@
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../../../OrthancFramework/Sources/Toolbox.h"
 #include "../../Sources/Database/VoidDatabaseListener.h"
+#include "../../Sources/DicomInstanceToStore.h"
 #include "../../Sources/OrthancConfiguration.h"
 #include "../../Sources/OrthancFindRequestHandler.h"
+#include "../../Sources/OutgoingDicomInstance.h"
 #include "../../Sources/Search/HierarchicalMatcher.h"
 #include "../../Sources/ServerContext.h"
 #include "../../Sources/ServerToolbox.h"
@@ -2949,6 +2951,13 @@ namespace Orthanc
     return true;  // By default, the instance is accepted
   }
 
+
+  bool OrthancPlugins::FilterOutgoingCStoreInstance(const OutgoingDicomInstance& instance,
+                                                    const Json::Value& simplified)
+  {
+    // TODO
+    return true;
+  }
 
   OrthancPluginReceivedInstanceAction OrthancPlugins::ApplyReceivedInstanceCallbacks(PluginMemoryBuffer64& modified,
                                                                                      const void* receivedDicom,

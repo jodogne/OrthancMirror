@@ -24,8 +24,10 @@
 #include "PrecompiledHeadersServer.h"
 #include "LuaScripting.h"
 
+#include "DicomInstanceToStore.h"
 #include "OrthancConfiguration.h"
 #include "OrthancRestApi/OrthancRestApi.h"
+#include "OutgoingDicomInstance.h"
 #include "ServerContext.h"
 
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
@@ -1074,6 +1076,32 @@ namespace Orthanc
       int result;
       call.ExecuteToInt(result);
       return static_cast<uint16_t>(result);
+    }
+
+    return true;
+  }
+
+
+  bool LuaScripting::FilterOutgoingCStoreInstance(const OutgoingDicomInstance& instance,
+                                                  const Json::Value& simplified)
+  {
+    static const char* NAME = "OutgoingCStoreInstanceFilter";
+
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+
+    if (lua_.IsExistingFunction(NAME))
+    {
+      LuaFunctionCall call(lua_, NAME);
+      call.PushJson(simplified);
+
+      Json::Value destination;
+      instance.GetDestination().Format(destination);
+      call.PushJson(destination);
+
+      if (!call.ExecutePredicate())
+      {
+        return false;
+      }
     }
 
     return true;

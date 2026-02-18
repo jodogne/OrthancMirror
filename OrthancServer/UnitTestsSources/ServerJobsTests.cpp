@@ -32,6 +32,7 @@
 #include "../../OrthancFramework/Sources/SerializationToolbox.h"
 
 #include "../Sources/Database/SQLiteDatabaseWrapper.h"
+#include "../Sources/DicomInstanceToStore.h"
 #include "../Sources/ServerContext.h"
 #include "../Sources/ServerJobs/LuaJobManager.h"
 #include "../Sources/ServerJobs/OrthancJobUnserializer.h"
