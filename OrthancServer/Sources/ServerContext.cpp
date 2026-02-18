@@ -40,6 +40,7 @@
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 
+#include "DicomInstanceToStore.h"
 #include "OrthancConfiguration.h"
 #include "OrthancRestApi/OrthancRestApi.h"
 #include "ResourceFinder.h"
@@ -47,6 +48,7 @@
 #include "ServerJobs/OrthancJobUnserializer.h"
 #include "ServerToolbox.h"
 #include "StorageCommitmentReports.h"
+#include "OutgoingDicomInstance.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmnet/dimse.h>
@@ -1984,6 +1986,36 @@ namespace Orthanc
   {
     const void* data = dicom.empty() ? NULL : dicom.c_str();
     const RemoteModalityParameters& modality = connection.GetParameters().GetRemoteModality();
+
+    // Filter out outgoing C-Store instances
+    {
+      boost::shared_lock<boost::shared_mutex> lock(listenersMutex_);
+
+      std::unique_ptr<OutgoingDicomInstance> outgoingInstance(OutgoingDicomInstance::CreateFromBuffer(dicom));
+      outgoingInstance->SetDestination(DicomInstanceDestination(connection.GetParameters().GetRemoteModality().GetHost(),
+                                                                connection.GetParameters().GetRemoteModality().GetApplicationEntityTitle()));
+
+      Json::Value simplifiedTags;
+      outgoingInstance->GetSimplifiedJson(simplifiedTags);
+
+      for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
+      {
+        try
+        {
+          if (!it->GetListener().FilterOutgoingCStoreInstance(*outgoingInstance, simplifiedTags))
+          {
+            return;
+          }
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Error in the " << it->GetDescription() 
+                      << " callback while sending an instance: " << e.What()
+                      << " (code " << e.GetErrorCode() << ")";
+          throw;
+        }
+      }
+    }
 
     if (!transcodeDicomProtocol_ ||
         !modality.IsTranscodingAllowed())

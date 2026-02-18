@@ -25,6 +25,7 @@
 
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
+#include "../DicomInstanceToStore.h"
 #include "../ServerContext.h"
 #include <dcmtk/dcmnet/dimse.h>
 #include <algorithm>

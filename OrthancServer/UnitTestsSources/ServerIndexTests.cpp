@@ -32,6 +32,7 @@
 #include "../../OrthancFramework/Sources/Logging.h"
 
 #include "../Sources/Database/SQLiteDatabaseWrapper.h"
+#include "../Sources/DicomInstanceToStore.h"
 #include "../Sources/OrthancConfiguration.h"
 #include "../Sources/Search/DatabaseLookup.h"
 #include "../Sources/ServerContext.h"

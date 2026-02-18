@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "DicomInstanceToStore.h"
 #include "ServerIndexChange.h"
 #include "JobEvent.h"
 
@@ -31,6 +30,9 @@
 
 namespace Orthanc
 {
+  class DicomInstanceToStore;
+  class OutgoingDicomInstance;
+
   class IServerListener : public boost::noncopyable
   {
   public:
@@ -58,5 +60,12 @@ namespace Orthanc
     virtual bool FilterIncomingCStoreInstance(uint16_t& dimseStatus,
                                               const DicomInstanceToStore& instance,
                                               const Json::Value& simplified) = 0;
+
+    /**
+     * Returns "false" if the DICOM instance must NOT be sent to the target modality.
+     */
+    virtual bool FilterOutgoingCStoreInstance(const OutgoingDicomInstance& instance,
+                                              const Json::Value& simplified) = 0;
+
   };
 }

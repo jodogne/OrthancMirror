@@ -30,6 +30,7 @@
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "ResourceFinder.h"
 #include "Search/DatabaseLookup.h"
+#include "DicomInstanceToStore.h"
 #include "ServerContext.h"
 
 #include <boost/regex.hpp>
