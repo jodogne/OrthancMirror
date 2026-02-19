@@ -43,6 +43,8 @@ Maintenance
   "1234", "_1234" and "%1234" as the same PatientID.
 * libcurl: Enabling IPv6 if linking statically
   https://github.com/orthanc-server/orthanc-builder/issues/33
+* Fix /tools/reset fails to restart server with error "Internal error: Cannot initialize ICU: U_INVALID_FORMAT_ERROR"
+  https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=255
 * Upgraded dependencies for static builds:
   - boost 1.89.0
   - dcmtk 3.7.0
