@@ -2059,6 +2059,9 @@ namespace Orthanc
 
 #if (ORTHANC_ENABLE_ICU == 1)
     u_cleanup();
+#  if ORTHANC_STATIC_ICU == 1
+    globalIcuData_.clear();
+#  endif
 #endif
   }
 
