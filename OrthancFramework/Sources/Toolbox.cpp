@@ -278,7 +278,7 @@ namespace Orthanc
             digest[8], digest[9], digest[10], digest[11],
             digest[12], digest[13], digest[14], digest[15]);
 
-#    else  // BOOST_VERSION >= 108600
+#    elif BOOST_VERSION > 107000
     unsigned int digest[4];
 
     // Sanity check for the memory layout: A MD5 digest is 128 bits wide
@@ -293,6 +293,34 @@ namespace Orthanc
             digest[1],
             digest[2],
             digest[3]);
+
+#    else // BOOST version between 1066 and 1070: there was a byte order bug in these implementations (https://github.com/boostorg/uuid/pull/109)
+    unsigned int digest[4];
+
+    // Sanity check for the memory layout: A MD5 digest is 128 bits wide
+    assert(sizeof(digest) == (128 / 8));
+    assert(sizeof(boost::uuids::detail::md5::digest_type) == 16);
+
+    pimpl_->md5_.get_digest(digest);
+
+    target.resize(32);
+    sprintf(&target[0], "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+            (digest[0] >> 0) & 0xFF, 
+            (digest[0] >> 8) & 0xFF,
+            (digest[0] >> 16) & 0xFF,
+            (digest[0] >> 24) & 0xFF,
+            (digest[1] >> 0) & 0xFF, 
+            (digest[1] >> 8) & 0xFF,
+            (digest[1] >> 16) & 0xFF,
+            (digest[1] >> 24) & 0xFF,
+            (digest[2] >> 0) & 0xFF, 
+            (digest[2] >> 8) & 0xFF,
+            (digest[2] >> 16) & 0xFF,
+            (digest[2] >> 24) & 0xFF,
+            (digest[3] >> 0) & 0xFF, 
+            (digest[3] >> 8) & 0xFF,
+            (digest[3] >> 16) & 0xFF,
+            (digest[3] >> 24) & 0xFF);
 
 #    endif //BOOST_VERSION >= 108600
   }
