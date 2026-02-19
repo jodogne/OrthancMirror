@@ -22,7 +22,6 @@ General
 * Support retry counter in Orthanc::HttpClient
 * Option to enable DNS lookups in DICOM:
   https://orthanc.uclouvain.be/hg/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/OrthancFramework.cpp#l88
-* Toolbox::ComputeMD5() fails on files larger than 4GB
 * Logging: add more specific information to contextualize the logs.
   For a DICOM Transfer, that would be nice to include the modality in the context + a study identifier or a job id.
   Note that the thread id greatly helps already wrt this topic.

@@ -82,9 +82,11 @@
 
 
 #if ORTHANC_ENABLE_MD5 == 1
-// TODO - Could be replaced by <boost/uuid/detail/md5.hpp> starting
-// with Boost >= 1.66.0
-#  include "../Resources/ThirdParty/md5/md5.h"
+#  if BOOST_VERSION >= 106600
+#    include <boost/uuid/detail/md5.hpp>
+#  else
+#    include "../Resources/ThirdParty/md5/md5.h"
+#  endif
 #endif
 
 #if ORTHANC_ENABLE_BASE64 == 1
@@ -215,6 +217,86 @@ extern "C"
 namespace Orthanc
 {
 #if ORTHANC_ENABLE_MD5 == 1
+#  if BOOST_VERSION >= 106600
+  
+  struct Toolbox::MD5Context::PImpl
+  {
+    boost::uuids::detail::md5  md5_;
+    bool                       done_;
+
+    PImpl() :
+      done_(false)
+    {
+    }
+  };
+
+
+  Toolbox::MD5Context::MD5Context() :
+    pimpl_(new PImpl)
+  {
+  }
+
+
+  void Toolbox::MD5Context::Append(const void* data,
+                                   size_t size)
+  {
+    if (pimpl_->done_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    pimpl_->md5_.process_bytes(data, size);
+  }
+
+  void Toolbox::MD5Context::Append(const std::string& source)
+  {
+    Append(reinterpret_cast<const void*>(source.c_str()), source.size());
+  }
+
+  void Toolbox::MD5Context::Export(std::string& target)
+  {
+    if (pimpl_->done_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    pimpl_->done_ = true;
+
+#    if BOOST_VERSION >= 108600
+    unsigned char digest[16];
+
+    // Sanity check for the memory layout: A MD5 digest is 128 bits wide
+    assert(sizeof(digest) == (128 / 8));
+    assert(sizeof(boost::uuids::detail::md5::digest_type) == 16);
+
+    pimpl_->md5_.get_digest(digest);
+
+    target.resize(32);
+    sprintf(&target[0], "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+            digest[0], digest[1], digest[2], digest[3],
+            digest[4], digest[5], digest[6], digest[7],
+            digest[8], digest[9], digest[10], digest[11],
+            digest[12], digest[13], digest[14], digest[15]);
+
+#    else  // BOOST_VERSION >= 108600
+    unsigned int digest[4];
+
+    // Sanity check for the memory layout: A MD5 digest is 128 bits wide
+    assert(sizeof(digest) == (128 / 8));
+    assert(sizeof(boost::uuids::detail::md5::digest_type) == 16);
+
+    pimpl_->md5_.get_digest(digest);
+
+    target.resize(32);
+    sprintf(&target[0], "%08x%08x%08x%08x",
+            digest[0],
+            digest[1],
+            digest[2],
+            digest[3]);
+
+#    endif //BOOST_VERSION >= 108600
+  }
+#  else // BOOST_VERSION >= 106600
   static char GetHexadecimalCharacter(uint8_t value)
   {
     assert(value < 16);
@@ -317,6 +399,8 @@ namespace Orthanc
       target[2 * i + 1] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] % 16));
     }
   }
+
+#  endif // BOOST_VERSION >= 106600
 #endif  /* ORTHANC_ENABLE_MD5 */
 
 
