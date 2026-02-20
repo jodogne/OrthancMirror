@@ -1,7 +1,7 @@
 #ifndef INTS_H
 #define INTS_H
 
-#include <stdint.h>   // This one is provided by Orthanc
+#include <stdint.h>   /* This one is provided by Orthanc */
 
 typedef int16_t   i16_t;
 typedef int32_t   i32_t;
