@@ -164,9 +164,10 @@ namespace Orthanc
 
     const boost::filesystem::path& GetOutputPath() const;
 
-    void OpenFile(const char* filename);
+    void OpenFile(const std::string& filename);
 
-    void Write(const void* data, size_t length);
+    void Write(const void* data,
+               size_t length);
 
     void Write(const std::string& data);
 
