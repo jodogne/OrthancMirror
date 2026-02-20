@@ -9,7 +9,6 @@ TARGET = os.path.join(os.path.dirname(__file__))
 
 for f in [
         'crypt.h',
-        'ints.h',
         'ioapi.c',
         'ioapi.h',
         'skipset.h',
