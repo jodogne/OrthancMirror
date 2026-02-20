@@ -38,6 +38,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../SystemToolbox.h"
+#include "../Toolbox.h"
 
 
 static void PrepareFileInfo(zip_fileinfo& zfi)
@@ -607,6 +608,30 @@ namespace Orthanc
   {
     Open();
 
+    std::string utf8;
+
+#if 0
+    if (Toolbox::IsValidUtf8(filename))
+    {
+      /**
+       * Starting with minizip 1.3.2 (released on 17 Feb 2026), bit 11
+       * of the ZIP header flags is appropriately set if the filename
+       * is encoded using UTF-8. This enables compatibility with UTF-8.
+       * https://zlib.net/ChangeLog.txt
+       * https://discourse.orthanc-server.org/t/seriesdescription-characters-and-removed-during-oe2-zip-export/6397
+       **/
+      utf8 = filename;
+    }
+    else
+    {
+      // Fallback if the filename is not encoded using valid UTF-8
+      utf8 = Toolbox::ConvertToAscii(filename);
+    }
+#else
+    // This was the code used in Orthanc <= 1.12.10
+    utf8 = Toolbox::ConvertToAscii(filename);
+#endif
+
     zip_fileinfo zfi;
     PrepareFileInfo(zfi);
 
@@ -614,7 +639,7 @@ namespace Orthanc
 
     if (isZip64_)
     {
-      result = zipOpenNewFileInZip64(pimpl_->file_, filename.c_str(),
+      result = zipOpenNewFileInZip64(pimpl_->file_, utf8.c_str(),
                                      &zfi,
                                      NULL,   0,
                                      NULL,   0,
@@ -624,7 +649,7 @@ namespace Orthanc
     }
     else
     {
-      result = zipOpenNewFileInZip(pimpl_->file_, filename.c_str(),
+      result = zipOpenNewFileInZip(pimpl_->file_, utf8.c_str(),
                                    &zfi,
                                    NULL,   0,
                                    NULL,   0,
