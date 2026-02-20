@@ -60,7 +60,7 @@ namespace Orthanc
   
       Stack stack_;
 
-      std::string EnsureUniqueFilename(const char* filename);
+      std::string EnsureUniqueFilename(const std::string& name);
 
     public:
       Index();
@@ -69,9 +69,9 @@ namespace Orthanc
 
       bool IsRoot() const;
 
-      std::string OpenFile(const char* name);
+      std::string OpenFile(const std::string& name);
 
-      void OpenDirectory(const char* name);
+      void OpenDirectory(const std::string& name);
 
       void CloseDirectory();
 
@@ -103,9 +103,9 @@ namespace Orthanc
     
     bool IsAppendToExisting() const;
     
-    void OpenFile(const char* name);
+    void OpenFile(const std::string& name);
 
-    void OpenDirectory(const char* name);
+    void OpenDirectory(const std::string& name);
 
     void CloseDirectory();
 

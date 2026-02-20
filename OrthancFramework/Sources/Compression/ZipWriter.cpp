@@ -603,7 +603,7 @@ namespace Orthanc
     return compressionLevel_;
   }
 
-  void ZipWriter::OpenFile(const char* filename)
+  void ZipWriter::OpenFile(const std::string& filename)
   {
     Open();
 
@@ -614,7 +614,7 @@ namespace Orthanc
 
     if (isZip64_)
     {
-      result = zipOpenNewFileInZip64(pimpl_->file_, filename,
+      result = zipOpenNewFileInZip64(pimpl_->file_, filename.c_str(),
                                      &zfi,
                                      NULL,   0,
                                      NULL,   0,
@@ -624,7 +624,7 @@ namespace Orthanc
     }
     else
     {
-      result = zipOpenNewFileInZip(pimpl_->file_, filename,
+      result = zipOpenNewFileInZip(pimpl_->file_, filename.c_str(),
                                    &zfi,
                                    NULL,   0,
                                    NULL,   0,
