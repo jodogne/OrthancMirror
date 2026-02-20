@@ -436,3 +436,26 @@ TEST(Toolbox, DISABLED_JapaneseBackslashes)
   s = Orthanc::Toolbox::ConvertDicomStringToUtf8("ORIGINAL\\PRIMARY", Encoding_Latin1, false, ValueRepresentation_ShortText);
   ASSERT_EQ("ORIGINAL\\PRIMARY", s);
 }
+
+TEST(Toolbox, IsValidUtf8)
+{
+  ASSERT_TRUE(Orthanc::Toolbox::IsValidUtf8("Hello, world!"));          // ASCII
+  ASSERT_TRUE(Orthanc::Toolbox::IsValidUtf8(""));                       // Empty string is valid
+
+  ASSERT_TRUE(Orthanc::Toolbox::IsValidUtf8("\xC2\xA2"));               // U+00A2 2-byte
+  ASSERT_TRUE(Orthanc::Toolbox::IsValidUtf8("\xE2\x82\xAC"));           // U+20AC 3-byte
+  ASSERT_TRUE(Orthanc::Toolbox::IsValidUtf8("\xF0\x9F\x8C\x8D"));       // U+1F30D 4-byte
+  ASSERT_TRUE(Orthanc::Toolbox::IsValidUtf8("Hello \xE2\x82\xAC \xF0\x9F\x8C\x8D"));   // Mixed
+  ASSERT_TRUE(Orthanc::Toolbox::IsValidUtf8("\xF4\x8F\xBF\xBF"));       // U+10FFFF (max valid)
+
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidUtf8("\xC2\x20"));              // Invalid continuation
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidUtf8("\xE2\x82"));              // Missing continuation
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidUtf8("\x80"));                  // Lone continuation byte
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidUtf8("\xC0\xAF"));              // Overlong 2-byte
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidUtf8("\xE0\x80\xAF"));          // Overlong 3-byte
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidUtf8("\xED\xA0\x80"));          // Surrogate (U+D800)
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidUtf8("\xF4\x90\x80\x80"));      // > U+10FFFF
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidUtf8("\xF0\x9F\x8C"));          // Truncated 4-byte
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidUtf8("\xFF"));                  // Invalid leading byte
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidUtf8("\xF0\x28\x8C\x28"));
+}

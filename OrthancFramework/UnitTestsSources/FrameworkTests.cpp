@@ -504,6 +504,7 @@ TEST(Toolbox, ConvertFromLatin1)
   
   std::string s(reinterpret_cast<const char*>(&data[0]), 10);
   ASSERT_EQ("&abc", Toolbox::ConvertToAscii(s));
+  ASSERT_FALSE(Toolbox::IsValidUtf8(s));
 
   // Open in Emacs, then save with UTF-8 encoding, then "hexdump -C"
   std::string utf8 = Toolbox::ConvertToUtf8(s, Encoding_Latin1, false, false);
@@ -523,6 +524,7 @@ TEST(Toolbox, ConvertFromLatin1)
   ASSERT_EQ(0x62, static_cast<unsigned char>(utf8[12]));
   ASSERT_EQ(0x63, static_cast<unsigned char>(utf8[13]));
   ASSERT_EQ(0x00, static_cast<unsigned char>(utf8[14]));  // Null-terminated string
+  ASSERT_TRUE(Toolbox::IsValidUtf8(utf8));
 }
 
 
@@ -532,9 +534,12 @@ TEST(Toolbox, FixUtf8)
   const unsigned char latin1[] = { 0x63, 0x72, 0xe2, 0x6e, 0x65 };
 
   std::string s(reinterpret_cast<const char*>(&latin1[0]), sizeof(latin1) / sizeof(char));
+  ASSERT_FALSE(Toolbox::IsValidUtf8(s));
 
-  ASSERT_EQ(s, Toolbox::ConvertFromUtf8(Toolbox::ConvertToUtf8(s, Encoding_Latin1, false, false), Encoding_Latin1));
+  std::string utf8 = Toolbox::ConvertToUtf8(s, Encoding_Latin1, false, false);
+  ASSERT_EQ(s, Toolbox::ConvertFromUtf8(utf8, Encoding_Latin1));
   ASSERT_EQ("cre", Toolbox::ConvertToUtf8(s, Encoding_Utf8, false, false));
+  ASSERT_TRUE(Toolbox::IsValidUtf8(utf8));
 }
 
 

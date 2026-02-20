@@ -405,6 +405,8 @@ namespace Orthanc
 
     static void RemoveSurroundingQuotes(std::string& value);
 
+    static bool IsValidUtf8(const std::string& s);
+
     class ORTHANC_PUBLIC ElapsedTimer : public boost::noncopyable
     {
     private:
