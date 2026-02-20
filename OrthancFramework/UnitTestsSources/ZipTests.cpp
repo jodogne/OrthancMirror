@@ -36,6 +36,8 @@
 #include "../Sources/TemporaryFile.h"
 #include "../Sources/Toolbox.h"
 
+#include "../Resources/CodeGeneration/EncodingTests.h"
+
 
 using namespace Orthanc;
 
@@ -411,5 +413,50 @@ namespace Orthanc
     buffer.Flush(s);
     ASSERT_TRUE(s.empty());
     ASSERT_EQ(0u, buffer.GetPosition());
+  }
+}
+
+
+TEST(HierarchicalZipWriter, DISABLED_Utf8)
+{
+  (void) toUpperResult;
+  (void) toUpperSource;
+  (void) testEncodingsExpected;
+
+  static const std::string path = "UnitTestsResults/hello-utf8.zip";
+
+  {
+    Orthanc::ZipWriter w;
+    w.SetOutputPath(path);
+
+    for (unsigned int i = 0; i < testEncodingsCount; i++)
+    {
+      std::string source(testEncodingsEncoded[i]);
+      std::string s = Toolbox::ConvertToUtf8(source, testEncodings[i], false, false);
+      ASSERT_TRUE(Orthanc::Toolbox::IsValidUtf8(s));
+      printf("[%s]\n", s.c_str());
+      w.OpenFile(s);
+      w.Write("Hello");
+    }
+  }
+
+  {
+    std::unique_ptr<ZipReader> reader(ZipReader::CreateFromFile(path));
+
+    ASSERT_EQ(testEncodingsCount, reader->GetFilesCount());
+
+    std::set<std::string> files;
+    std::string filename, content;
+    while (reader->ReadNextFile(filename, content))
+    {
+      files.insert(filename);
+    }
+
+    for (unsigned int i = 0; i < testEncodingsCount; i++)
+    {
+      std::string source(testEncodingsEncoded[i]);
+      std::string s = Toolbox::ConvertToUtf8(source, testEncodings[i], false, false);
+      ASSERT_TRUE(files.find(s) != files.end());
+    }
   }
 }

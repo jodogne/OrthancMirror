@@ -1020,7 +1020,7 @@ namespace Orthanc
         }
       }
 
-      path = Toolbox::StripSpaces(Toolbox::ConvertToAscii(path));
+      path = Toolbox::StripSpaces(path);
 
       if (path.empty() 
           || (static_cast<size_t>(boost::count(path, '^')) == path.size()))  // this happens with non ASCII patient names: only the '^' remains and this is not a valid zip folder name
