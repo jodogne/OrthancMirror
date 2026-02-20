@@ -2825,6 +2825,139 @@ namespace Orthanc
     }
   }
 
+
+  bool Toolbox::IsValidUtf8(const std::string& s)
+  {
+    if (s.empty())
+    {
+      return true;
+    }
+
+    const unsigned char* bytes = reinterpret_cast<const unsigned char*>(s.data());
+    size_t len = s.size();
+
+    size_t i = 0;
+    while (i < len)
+    {
+      unsigned char b1 = bytes[i];
+
+      if (b1 <= 0x7fu)
+      {
+        // 1-byte (ASCII): 0xxxxxxx
+        i++;
+      }
+      else if ((b1 >> 5) == 0x06u)
+      {
+        // 2-byte sequence: 110xxxxx 10xxxxxx
+        if (i + 1 >= len)
+        {
+          return false;
+        }
+
+        unsigned char b2 = bytes[i + 1];
+        if ((b2 >> 6) != 0x02u)
+        {
+          return false;
+        }
+
+        uint32_t codepoint =
+          ((b1 & 0x1fu) << 6) |
+          (b2 & 0x3fu);
+
+        // Overlong encoding check
+        if (codepoint < 0x80u)
+        {
+          return false;
+        }
+
+        i += 2;
+      }
+      else if ((b1 >> 4) == 0x0eu)
+      {
+        // 3-byte sequence: 1110xxxx 10xxxxxx 10xxxxxx
+        if (i + 2 >= len)
+        {
+          return false;
+        }
+
+        unsigned char b2 = bytes[i + 1];
+        unsigned char b3 = bytes[i + 2];
+
+        if ((b2 >> 6) != 0x02u ||
+            (b3 >> 6) != 0x02u)
+        {
+          return false;
+        }
+
+        uint32_t codepoint =
+          ((b1 & 0x0fu) << 12) |
+          ((b2 & 0x3fu) << 6) |
+          (b3 & 0x3fu);
+
+        // Overlong encoding check
+        if (codepoint < 0x0800u)
+        {
+          return false;
+        }
+
+        // Surrogate range check (U+D800 to U+DFFF)
+        if (codepoint >= 0xd800u &&
+            codepoint <= 0xdfffu)
+        {
+          return false;
+        }
+
+        i += 3;
+      }
+      else if ((b1 >> 3) == 0x1eu)
+      {
+        // 4-byte sequence: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+        if (i + 3 >= len)
+        {
+          return false;
+        }
+
+        unsigned char b2 = bytes[i + 1];
+        unsigned char b3 = bytes[i + 2];
+        unsigned char b4 = bytes[i + 3];
+
+        if ((b2 >> 6) != 0x02u ||
+            (b3 >> 6) != 0x02u ||
+            (b4 >> 6) != 0x02u)
+        {
+          return false;
+        }
+
+        uint32_t codepoint =
+          ((b1 & 0x07u) << 18) |
+          ((b2 & 0x3fu) << 12) |
+          ((b3 & 0x3fu) << 6) |
+          (b4 & 0x3fu);
+
+        // Overlong encoding check
+        if (codepoint < 0x00010000u)
+        {
+          return false;
+        }
+
+        // Maximum valid Unicode code point
+        if (codepoint > 0x0010ffffu)
+        {
+          return false;
+        }
+
+        i += 4;
+      }
+      else
+      {
+        return false; // Invalid leading byte
+      }
+    }
+
+    return true;
+  }
+
+
   Toolbox::ElapsedTimer::ElapsedTimer()
   {
     Restart();

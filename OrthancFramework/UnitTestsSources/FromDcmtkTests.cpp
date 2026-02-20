@@ -265,6 +265,7 @@ TEST(FromDcmtkBridge, Encodings1)
     std::string source(testEncodingsEncoded[i]);
     std::string expected(testEncodingsExpected[i]);
     std::string s = Toolbox::ConvertToUtf8(source, testEncodings[i], false, false);
+    ASSERT_TRUE(Toolbox::IsValidUtf8(s));
     //std::cout << EnumerationToString(testEncodings[i]) << std::endl;
     EXPECT_EQ(expected, s);
   }
@@ -335,6 +336,7 @@ TEST(FromDcmtkBridge, Encodings3)
       f.SetEncoding(testEncodings[i]);
 
       std::string s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i], false, false);
+      ASSERT_TRUE(Toolbox::IsValidUtf8(s));
       f.Insert(DICOM_TAG_PATIENT_NAME, s, false, "");
       f.SaveToMemoryBuffer(dicom);
     }
@@ -1173,6 +1175,7 @@ TEST(ParsedDicomFile, DicomMapEncodings2)
         std::string encoded = Toolbox::ConvertFromUtf8(testEncodingsExpected[i], testEncodings[i]);
         ASSERT_STREQ(testEncodingsEncoded[i], encoded.c_str());
         std::string decoded = Toolbox::ConvertToUtf8(encoded, testEncodings[i], false, false);
+        ASSERT_TRUE(Toolbox::IsValidUtf8(decoded));
         ASSERT_STREQ(testEncodingsExpected[i], decoded.c_str());
 
         if (testEncodings[i] != Encoding_Chinese)
@@ -1182,6 +1185,7 @@ TEST(ParsedDicomFile, DicomMapEncodings2)
 
           const std::string tmp = Toolbox::ConvertToUtf8(
             Toolbox::ConvertFromUtf8(utf8, testEncodings[i]), testEncodings[i], false, false);
+          ASSERT_TRUE(Toolbox::IsValidUtf8(tmp));
           ASSERT_STREQ(testEncodingsExpected[i], tmp.c_str());
         }
       }
@@ -1612,7 +1616,8 @@ TEST(Toolbox, EncodingsKorean)
     0xea, 0xb8, 0xb8, 0xeb, 0x8f, 0x99
   };
 
-  std::string utf8(reinterpret_cast<const char*>(utf8raw), sizeof(utf8raw));
+  const std::string utf8(reinterpret_cast<const char*>(utf8raw), sizeof(utf8raw));
+  ASSERT_TRUE(Toolbox::IsValidUtf8(utf8));
 
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "\\ISO 2022 IR 149");
@@ -1709,7 +1714,8 @@ TEST(Toolbox, EncodingsJapaneseKanji)
     0x8d, 0xe3, 0x81, 0x86
   };
 
-  std::string utf8(reinterpret_cast<const char*>(utf8raw), sizeof(utf8raw));
+  const std::string utf8(reinterpret_cast<const char*>(utf8raw), sizeof(utf8raw));
+  ASSERT_TRUE(Toolbox::IsValidUtf8(utf8));
 
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "\\ISO 2022 IR 87");
@@ -1914,7 +1920,10 @@ TEST(Toolbox, EncodingsSimplifiedChinese2)
 
   std::string value;
   ASSERT_TRUE(dicom.GetTagValue(value, DICOM_TAG_PATIENT_NAME));
-  ASSERT_EQ(value, std::string(reinterpret_cast<const char*>(utf8), sizeof(utf8)));
+
+  const std::string tmp(reinterpret_cast<const char*>(utf8), sizeof(utf8));
+  ASSERT_EQ(value, tmp);
+  ASSERT_TRUE(Toolbox::IsValidUtf8(tmp));
 }
 
 
