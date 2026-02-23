@@ -290,6 +290,8 @@ Performance
     Would be interesting to log these errors and count them in the prometheus metrics.
   Note: I'm (maybe naively) thinking that you only need the beginning of the file to get the DICOM tags to be stored 
   in the database, so maybe the rest of the file could be "streamed" directly to disk and not kept in memory?
+  Refs: 
+  - https://discourse.orthanc-server.org/t/high-memory-consumption-during-ingestion-of-large-1-5-gb-multi-frame-instances/6408
 * To investigate: usage of mapped_file (not only in the indexer plugin): 
   https://discourse.orthanc-server.org/t/patch-for-orthanc-indexer-plugin-crashing-on-big-non-dicom-files/3849/7
 
