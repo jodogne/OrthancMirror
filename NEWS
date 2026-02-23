@@ -24,7 +24,7 @@ REST API
 Lua
 ---
 
-* Added a new "OutgoingCStoreInstanceFilter()" function. (TODO: document in the book + implement in plugins SDK)
+* Added a new "OutgoingCStoreInstanceFilter()" function. (TODO: document in the book + implement in plugins SDK + Remove PermissiveStoreSopClasses ?)
 
 Plugins
 -------
@@ -45,6 +45,8 @@ Maintenance
   https://github.com/orthanc-server/orthanc-builder/issues/33
 * Fix /tools/reset fails to restart server with error "Internal error: Cannot initialize ICU: U_INVALID_FORMAT_ERROR"
   https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=255
+* Save the jobs registry in DB only if it has changed.
+  https://discourse.orthanc-server.org/t/frequent-idle-messages-between-postgres-and-orthanc/6406
 * Upgraded dependencies for static builds:
   - boost 1.89.0
   - dcmtk 3.7.0

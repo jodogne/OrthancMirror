@@ -326,21 +326,30 @@ namespace Orthanc
   {
     if (saveJobs_)
     {
-      LOG(TRACE) << "Serializing the content of the jobs engine";
-    
-      try
-      {
-        Json::Value value;
-        jobsEngine_.GetRegistry().Serialize(value);
+      static boost::posix_time::ptime lastSerializedModification = boost::posix_time::neg_infin;
+      boost::posix_time::ptime lastModification = boost::posix_time::neg_infin;
 
-        std::string serialized;
-        Toolbox::WriteFastJson(serialized, value);
+      jobsEngine_.GetRegistry().GetLastModificationTime(lastModification);
 
-        index_.SetGlobalProperty(GlobalProperty_JobsRegistry, false /* not shared */, serialized);
-      }
-      catch (OrthancException& e)
+      if (lastModification > lastSerializedModification)
       {
-        LOG(ERROR) << "Cannot serialize the jobs engine: " << e.What();
+        LOG(TRACE) << "Serializing the content of the jobs engine";
+      
+        try
+        {
+          Json::Value value;
+          jobsEngine_.GetRegistry().Serialize(value);
+
+          std::string serialized;
+          Toolbox::WriteFastJson(serialized, value);
+
+          index_.SetGlobalProperty(GlobalProperty_JobsRegistry, false /* not shared */, serialized);
+          lastSerializedModification = lastModification;
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Cannot serialize the jobs engine: " << e.What();
+        }
       }
     }
   }

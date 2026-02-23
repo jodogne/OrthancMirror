@@ -109,6 +109,8 @@ namespace Orthanc
     
   void JobsEngine::RetryHandler(JobsEngine* engine)
   {
+    Logging::SetCurrentThreadName("JOBS-RETRY");
+
     assert(engine != NULL);
 
     while (engine->IsRunning())
