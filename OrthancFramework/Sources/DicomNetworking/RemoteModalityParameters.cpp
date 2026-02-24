@@ -53,7 +53,6 @@ static const char* KEY_USE_DICOM_TLS = "UseDicomTls";
 static const char* KEY_LOCAL_AET = "LocalAet";
 static const char* KEY_TIMEOUT = "Timeout";
 static const char* KEY_RETRIEVE_METHOD = "RetrieveMethod";
-static const char* KEY_PERMISSIVE_STORE_SOP_CLASSES = "PermissiveStoreSopClasses";
 
 
 namespace Orthanc
@@ -77,7 +76,6 @@ namespace Orthanc
     localAet_.clear();
     timeout_ = 0;
     retrieveMethod_ = RetrieveMethod_SystemDefault;
-    permissiveStoreSopClasses_.clear();
   }
 
 
@@ -325,11 +323,6 @@ namespace Orthanc
       retrieveMethod_ = RetrieveMethod_SystemDefault;
     }
 
-    if (serialized.isMember(KEY_PERMISSIVE_STORE_SOP_CLASSES))
-    {
-      SerializationToolbox::ReadSetOfStrings(permissiveStoreSopClasses_, serialized[KEY_PERMISSIVE_STORE_SOP_CLASSES]);
-    }   
-
   }
 
 
@@ -422,7 +415,6 @@ namespace Orthanc
             !allowNEventReport_ ||
             !allowTranscoding_ ||
             useDicomTls_ ||
-            permissiveStoreSopClasses_.size() > 0 ||
             HasLocalAet());
   }
 
@@ -451,7 +443,6 @@ namespace Orthanc
       target[KEY_LOCAL_AET] = localAet_;
       target[KEY_TIMEOUT] = timeout_;
       target[KEY_RETRIEVE_METHOD] = EnumerationToString(retrieveMethod_);
-      SerializationToolbox::WriteSetOfStrings(target, permissiveStoreSopClasses_, KEY_PERMISSIVE_STORE_SOP_CLASSES);
     }
     else
     {
@@ -557,25 +548,4 @@ namespace Orthanc
     retrieveMethod_ = retrieveMethod;
   }
 
-  bool RemoteModalityParameters::IsPermissiveStoreSopClassUid(const std::string& sopClassUid) const
-  {
-    for (std::set<std::string>::const_iterator it = permissiveStoreSopClasses_.begin(); it != permissiveStoreSopClasses_.end(); ++it)
-    {
-      if (it->find('*') != std::string::npos || it->find('?') != std::string::npos)
-      {
-        boost::regex pattern(Toolbox::WildcardToRegularExpression(*it));
-        
-        if (boost::regex_match(sopClassUid, pattern))
-        {
-          return true;
-        }
-      }
-      else if (sopClassUid == *it)
-      {
-        return true;
-      }
-    }
-
-    return false;
-  }
 }
