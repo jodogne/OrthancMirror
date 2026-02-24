@@ -4,8 +4,6 @@ Pending changes in the mainline
 General
 -------
 
-* New configuration "PermissiveStoreSopClasses" in "DicomModalities" to ignore errors if
-  a modality does not accept receiving the given SOP Classes.
 
 REST API
 --------
@@ -24,7 +22,7 @@ REST API
 Lua
 ---
 
-* Added a new "OutgoingCStoreInstanceFilter()" function. (TODO: document in the book + implement in plugins SDK + Remove PermissiveStoreSopClasses ?)
+* Added a new "OutgoingCStoreInstanceFilter()" function. (TODO: document in the book + implement in plugins SDK)
 
 Plugins
 -------
