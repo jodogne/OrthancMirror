@@ -32,43 +32,6 @@
 
 namespace Orthanc
 {
-  std::string HierarchicalZipWriter::Index::KeepAlphanumeric(const std::string& source)
-  {
-    std::string result;
-
-    bool lastSpace = false;
-
-    result.reserve(source.size());
-    for (size_t i = 0; i < source.size(); i++)
-    {
-      char c = source[i];
-      if (c == '^')
-        c = ' ';
-
-      if (c <= 127 && 
-          c >= 0)
-      {
-        if (isspace(c)) 
-        {
-          if (!lastSpace)
-          {
-            lastSpace = true;
-            result.push_back(' ');
-          }
-        }
-        else if (isalnum(c) || 
-                 c == '.' || 
-                 c == '_')
-        {
-          result.push_back(c);
-          lastSpace = false;
-        }
-      }
-    }
-
-    return Toolbox::StripSpaces(result);
-  }
-
   std::string HierarchicalZipWriter::Index::GetCurrentDirectoryPath() const
   {
     std::string result;
@@ -85,9 +48,15 @@ namespace Orthanc
     return result;
   }
 
-  std::string HierarchicalZipWriter::Index::EnsureUniqueFilename(const std::string& filename)
+  std::string HierarchicalZipWriter::Index::EnsureUniqueFilename(const std::string& filename,
+                                                                 bool allowUtf8)
   {
-    std::string standardized = KeepAlphanumeric(filename);
+    const std::string standardized = Toolbox::NormalizePath(filename, allowUtf8);
+
+    if (standardized.find('/') != std::string::npos)
+    {
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_ParameterOutOfRange, "Your filename must not contain slashes or backslashes");
+    }
 
     Directory& d = *stack_.back();
     Directory::Content::iterator it = d.content_.find(standardized);
@@ -122,14 +91,16 @@ namespace Orthanc
     return stack_.size() == 1;
   }
 
-  std::string HierarchicalZipWriter::Index::OpenFile(const std::string& name)
+  std::string HierarchicalZipWriter::Index::OpenFile(const std::string& name,
+                                                     bool allowUtf8)
   {
-    return GetCurrentDirectoryPath() + EnsureUniqueFilename(name);
+    return GetCurrentDirectoryPath() + EnsureUniqueFilename(name, allowUtf8);
   }
 
-  void HierarchicalZipWriter::Index::OpenDirectory(const std::string& name)
+  void HierarchicalZipWriter::Index::OpenDirectory(const std::string& name,
+                                                   bool allowUtf8)
   {
-    std::string d = EnsureUniqueFilename(name);
+    std::string d = EnsureUniqueFilename(name, allowUtf8);
 
     // Push the new directory onto the stack
     stack_.push_back(new Directory);
@@ -201,13 +172,13 @@ namespace Orthanc
 
   void HierarchicalZipWriter::OpenFile(const std::string& name)
   {
-    std::string p = indexer_.OpenFile(name);
+    std::string p = indexer_.OpenFile(name, IsAllowUtf8());
     writer_.OpenFile(p.c_str());
   }
 
   void HierarchicalZipWriter::OpenDirectory(const std::string& name)
   {
-    indexer_.OpenDirectory(name);
+    indexer_.OpenDirectory(name, IsAllowUtf8());
   }
 
   void HierarchicalZipWriter::CloseDirectory()
