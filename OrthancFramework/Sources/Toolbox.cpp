@@ -2958,6 +2958,67 @@ namespace Orthanc
   }
 
 
+  std::string Toolbox::NormalizePath(const std::string& utf8,
+                                     bool allowUtf8)
+  {
+    std::string converted;
+
+    if (allowUtf8 &&
+        IsValidUtf8(utf8))
+    {
+      converted = utf8;
+    }
+    else
+    {
+      converted = Toolbox::ConvertToAscii(utf8);
+    }
+
+    bool previousSpace = true;
+
+    std::string result;
+    result.reserve(converted.size());
+
+    for (size_t i = 0; i < converted.size(); i++)
+    {
+      unsigned char c = converted[i];
+
+      if (isspace(c) ||
+          c <= 31 ||  // Control characters
+
+          // Remove characters that could break some filesystems
+          c == ':' ||
+          c == '*' ||
+          c == '?' ||
+          c == '"' ||
+          c == '<' ||
+          c == '>' ||
+          c == '|')
+      {
+        if (!previousSpace)
+        {
+          previousSpace = true;
+          result.push_back(' ');
+        }
+      }
+      else
+      {
+        previousSpace = false;
+
+        if (c == '\\')
+        {
+          result.push_back('/');  // Replace backslashes by forward slashes
+        }
+        else
+        {
+          result.push_back(c);
+        }
+      }
+    }
+
+    return Toolbox::StripSpaces(result);
+  }
+
+
   Toolbox::ElapsedTimer::ElapsedTimer()
   {
     Restart();
