@@ -609,7 +609,7 @@ namespace Orthanc
   {
     Open();
 
-    const std::string normalized = Toolbox::NormalizePath(filename, allowUtf8_);
+    const std::string normalized = Toolbox::NormalizePath(filename, allowUtf8_, true /* allow slashes, necessary for subdirectories */);
 
     zip_fileinfo zfi;
     PrepareFileInfo(zfi);
