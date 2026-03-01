@@ -75,6 +75,9 @@ namespace Orthanc
     // New in Orthanc 1.10.0
     unsigned int         loaderThreads_;
 
+    // New in Orthanc 1.12.11
+    bool                 allowUtf8_;
+
     void FinalizeTarget();
     
   public:
@@ -110,6 +113,8 @@ namespace Orthanc
     void SetLossyQuality(unsigned int lossyQuality);
 
     void SetLoaderThreads(unsigned int loaderThreads);
+
+    void SetAllowUtf8(bool allowUtf8);
 
     virtual void Reset() ORTHANC_OVERRIDE;
 

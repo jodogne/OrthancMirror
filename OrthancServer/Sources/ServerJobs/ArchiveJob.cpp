@@ -55,6 +55,7 @@ static const char* const KEY_ARCHIVE_SIZE_MB = "ArchiveSizeMB";
 static const char* const KEY_UNCOMPRESSED_SIZE = "UncompressedSize";
 static const char* const KEY_ARCHIVE_SIZE = "ArchiveSize";
 static const char* const KEY_TRANSCODE = "Transcode";
+static const char* const KEY_ALLOW_UTF8 = "Utf8";
 
 static boost::mutex loaderThreadsCounterMutex;
 static uint32_t loaderThreadsCounter = 0;
@@ -1095,18 +1096,21 @@ namespace Orthanc
     std::unique_ptr<DicomDirWriter>         dicomDir_;
     bool                                    isMedia_;
     bool                                    isStream_;
+    bool                                    allowUtf8_;
 
   public:
     ZipWriterIterator(ServerContext& context,
                       InstanceLoader& instanceLoader,
                       ArchiveIndex& archive,
                       bool isMedia,
-                      bool enableExtendedSopClass) :
+                      bool enableExtendedSopClass,
+                      bool allowUtf8) :
       context_(context),
       instanceLoader_(instanceLoader),
       commands_(instanceLoader),
       isMedia_(isMedia),
-      isStream_(false)
+      isStream_(false),
+      allowUtf8_(allowUtf8)
     {
       if (isMedia)
       {
@@ -1134,6 +1138,7 @@ namespace Orthanc
       {
         zip_.reset(new HierarchicalZipWriter(path));
         zip_->SetZip64(commands_.IsZip64());
+        zip_->SetAllowUtf8(allowUtf8_);
         isStream_ = false;
       }
       else
@@ -1149,6 +1154,7 @@ namespace Orthanc
       if (zip_.get() == NULL)
       {
         zip_.reset(new HierarchicalZipWriter(protection.release(), commands_.IsZip64()));
+        zip_->SetAllowUtf8(allowUtf8_);
         isStream_ = true;
       }
       else
@@ -1267,7 +1273,8 @@ namespace Orthanc
     transcode_(false),
     transferSyntax_(DicomTransferSyntax_LittleEndianImplicit),
     lossyQuality_(100),
-    loaderThreads_(0)
+    loaderThreads_(0),
+    allowUtf8_(false)
   {
   }
 
@@ -1393,6 +1400,19 @@ namespace Orthanc
   }
 
 
+  void ArchiveJob::SetAllowUtf8(bool allowUtf8)
+  {
+    if (writer_.get() != NULL)   // Already started
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      allowUtf8_ = allowUtf8;
+    }
+  }
+
+
   void ArchiveJob::Reset()
   {
     throw OrthancException(ErrorCode_BadSequenceOfCalls,
@@ -1433,7 +1453,7 @@ namespace Orthanc
           assert(asynchronousTarget_.get() != NULL);
           asynchronousTarget_->Touch();  // Make sure we can write to the temporary file
           
-          writer_.reset(new ZipWriterIterator(context_, *instanceLoader_, *archive_, isMedia_, enableExtendedSopClass_));
+          writer_.reset(new ZipWriterIterator(context_, *instanceLoader_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
           writer_->SetOutputFile(asynchronousTarget_->GetPath());
         }
       }
@@ -1441,7 +1461,7 @@ namespace Orthanc
       {
         assert(synchronousTarget_.get() != NULL);
     
-        writer_.reset(new ZipWriterIterator(context_, *instanceLoader_, *archive_, isMedia_, enableExtendedSopClass_));
+        writer_.reset(new ZipWriterIterator(context_, *instanceLoader_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
         writer_->AcquireOutputStream(synchronousTarget_.release());
       }
 
@@ -1612,6 +1632,9 @@ namespace Orthanc
     {
       value[KEY_TRANSCODE] = GetTransferSyntaxUid(transferSyntax_);
     }
+
+    // New in Orthanc 1.12.11
+    value[KEY_ALLOW_UTF8] = allowUtf8_;
   }
 
 
