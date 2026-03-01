@@ -13,11 +13,14 @@ REST API
   - "orthanc_logged_errors_count" 
   - "orthanc_logged_warnings_count"
 * Fixed a security issue where one could hijack HTTP headers in the response
-  through the "filename" argument of "/.../file" or "/.../archive" routes.
+  through the "filename" argument of "{...}/file" or "{...}/archive" routes.
   (credits: Pavel Kohout, Aisle Research, https://www.aisle.com/)
 * In "tools/find", filtering against "LabelsConstraint": "None" with an empty "Labels" list
   now returns all resources that do not have any label attached, instead of returning all resources.
   This applies to the default SQLite DB and will apply to the next PostgreSQL plugin (v10.1).
+* New option "Utf8" available in the "{...}/archive" and "/tools/create-archive" routes
+  to use UTF-8 filenames in the generated ZIP archives. It defaults to the value
+  of the new configuration option "ZipUseUtf8".
 
 Lua
 ---
