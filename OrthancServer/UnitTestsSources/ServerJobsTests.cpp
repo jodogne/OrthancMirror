@@ -783,6 +783,14 @@ TEST_F(OrthancJobsSerialization, Jobs)
   {
     ArchiveJob job(GetContext(), false, false, ResourceType_Patient);
     ASSERT_FALSE(job.Serialize(s));  // Cannot serialize this
+
+    Json::Value content;
+    job.GetPublicContent(content);
+    ASSERT_FALSE(content["Utf8"].asBool());
+
+    job.SetAllowUtf8(true);
+    job.GetPublicContent(content);
+    ASSERT_TRUE(content["Utf8"].asBool());
   }
 
   // DicomModalityStoreJob
