@@ -3020,7 +3020,7 @@ namespace Orthanc
       else
       {
         if (result.empty() ||
-            result.back() != c)
+            result[result.size() - 1] != c)
         {
           result.push_back(c);
         }
