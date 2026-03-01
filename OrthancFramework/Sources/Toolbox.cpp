@@ -2959,7 +2959,8 @@ namespace Orthanc
 
 
   std::string Toolbox::NormalizePath(const std::string& utf8,
-                                     bool allowUtf8)
+                                     bool allowUtf8,
+                                     bool allowSlashes)
   {
     std::string converted;
 
@@ -2973,14 +2974,13 @@ namespace Orthanc
       converted = Toolbox::ConvertToAscii(utf8);
     }
 
-    bool previousSpace = true;
-
     std::string result;
     result.reserve(converted.size());
 
     for (size_t i = 0; i < converted.size(); i++)
     {
       unsigned char c = converted[i];
+      bool allowRepetitions = true;
 
       if (isspace(c) ||
           c <= 31 ||  // Control characters
@@ -2994,21 +2994,33 @@ namespace Orthanc
           c == '>' ||
           c == '|')
       {
-        if (!previousSpace)
+        // This is a space character: Avoid their repetition
+        allowRepetitions = false;
+        c = ' ';
+      }
+      else if (c == '/' ||
+               c == '\\')
+      {
+        // This is a slash or backslash: Prevent their repetition
+        allowRepetitions = false;
+        if (allowSlashes)
         {
-          previousSpace = true;
-          result.push_back(' ');
+          c = '/';  // Normalize backslashes as forward slashes
         }
+        else
+        {
+          c = ' ';  // Slashes are not allowed: Replace by spaces
+        }
+      }
+
+      if (allowRepetitions)
+      {
+        result.push_back(c);
       }
       else
       {
-        previousSpace = false;
-
-        if (c == '\\')
-        {
-          result.push_back('/');  // Replace backslashes by forward slashes
-        }
-        else
+        if (result.empty() ||
+            result.back() != c)
         {
           result.push_back(c);
         }

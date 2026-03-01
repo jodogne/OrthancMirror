@@ -111,22 +111,24 @@ namespace Orthanc
     ASSERT_EQ("hello-3", i.OpenFile("hello", true));
     ASSERT_EQ("trE hell", i.OpenFile("    ÊtrE hellô  ", false));
     ASSERT_EQ("ÊtrE hellô", i.OpenFile("    ÊtrE hellô  ", true));
-    ASSERT_THROW(i.OpenFile("hel/lo", true), OrthancException);
-    ASSERT_THROW(i.OpenFile("hel\\lo", true), OrthancException);
+    ASSERT_EQ("hel^lo", i.OpenFile("hel^lo", true));
+    ASSERT_EQ("hel lo", i.OpenFile("hel////lo", true));
+    ASSERT_EQ("hel lo-2", i.OpenFile("hel\\\\/\\/\\lo", true));
 
     i.OpenDirectory("coucou", true);
 
     ASSERT_EQ("coucou-2/world", i.OpenFile("world", true));
     ASSERT_EQ("coucou-2/world-2", i.OpenFile("world", true));
 
-    ASSERT_THROW(i.OpenDirectory("hel/lo", true), OrthancException);
-    ASSERT_THROW(i.OpenDirectory("hel\\lo", true), OrthancException);
-
     i.OpenDirectory("world", true);
-  
-    ASSERT_EQ("coucou-2/world-3/hello", i.OpenFile("hello", true));
-    ASSERT_EQ("coucou-2/world-3/hello-2", i.OpenFile("hello", true));
+    i.OpenDirectory("hel///lo", true);
+    i.OpenDirectory("hel\\\\/\\/\\lo", true);
 
+    ASSERT_EQ("coucou-2/world-3/hel lo/hel lo/hello", i.OpenFile("hello", true));
+    ASSERT_EQ("coucou-2/world-3/hel lo/hel lo/hello-2", i.OpenFile("hello", true));
+
+    i.CloseDirectory();
+    i.CloseDirectory();
     i.CloseDirectory();
 
     ASSERT_EQ("coucou-2/world-4", i.OpenFile("world", true));
@@ -142,9 +144,13 @@ namespace Orthanc
 
 TEST(HierarchicalZipWriter, Filenames)
 {
-  ASSERT_EQ("trE hell", Toolbox::NormalizePath("    ÊtrE hellô  ", false));
-  ASSERT_EQ("ÊtrE hellô", Toolbox::NormalizePath("    ÊtrE hellô  ", true));
-  ASSERT_EQ("Hel^^ ^ ^^lo world", Toolbox::NormalizePath("    Hel^^   ^\r\n\t^^lo  \t  <world>  ", true));
+  ASSERT_EQ("trE h/ell", Toolbox::NormalizePath("    ÊtrE h\\\\/\\/\\ellô  ", false, true));
+  ASSERT_EQ("ÊtrE h/ellô", Toolbox::NormalizePath("    ÊtrE h\\\\/\\/\\ellô  ", true, true));
+  ASSERT_EQ("H/el^^ ^ ^^lo world", Toolbox::NormalizePath("    H\\\\/\\/\\el^^   ^\r\n\t^^lo  \t  <world>  ", true, true));
+
+  ASSERT_EQ("trE h ell", Toolbox::NormalizePath("    ÊtrE h\\\\/\\/\\ellô  ", false, false));
+  ASSERT_EQ("ÊtrE h ellô", Toolbox::NormalizePath("    ÊtrE h\\\\/\\/\\ellô  ", true, false));
+  ASSERT_EQ("H el^^ ^ ^^lo world", Toolbox::NormalizePath("    H\\\\/\\/\\el^^   ^\r\n\t^^lo  \t  <world>  ", true, false));
 }
 
 

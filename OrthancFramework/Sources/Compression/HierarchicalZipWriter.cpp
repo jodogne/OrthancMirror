@@ -51,12 +51,9 @@ namespace Orthanc
   std::string HierarchicalZipWriter::Index::EnsureUniqueFilename(const std::string& filename,
                                                                  bool allowUtf8)
   {
-    const std::string standardized = Toolbox::NormalizePath(filename, allowUtf8);
+    const std::string standardized = Toolbox::NormalizePath(filename, allowUtf8, false /* replace (back)slashes by spaces */);
 
-    if (standardized.find('/') != std::string::npos)
-    {
-      throw Orthanc::OrthancException(Orthanc::ErrorCode_ParameterOutOfRange, "Your filename must not contain slashes or backslashes");
-    }
+    assert(standardized.find('\\') == std::string::npos);
 
     Directory& d = *stack_.back();
     Directory::Content::iterator it = d.content_.find(standardized);
