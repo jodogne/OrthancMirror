@@ -42,6 +42,8 @@
 #include <stdio.h>
 #include <memory>
 
+static const uint64_t MAX_FRAME_SIZE = 4ul * 1024ul * 1024ul * 1024ul;  // defensive approach: set a reasonable max size for a frame
+
 namespace Orthanc
 {
   DicomImageInformation::DicomImageInformation(const DicomMap& values)
@@ -129,6 +131,11 @@ namespace Orthanc
 
       values.GetValue(DICOM_TAG_COLUMNS).ParseFirstUnsignedInteger(width_); // in some US images, we've seen tag values of "800\0"; that's why we parse the 'first' value
       values.GetValue(DICOM_TAG_ROWS).ParseFirstUnsignedInteger(height_);
+
+      if (height_ > 65535 || width_ > 65535)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "Image width or height exceed DICOM VR US range (65535)");
+      }
 
       if (!values.ParseUnsignedInteger32(bitsAllocated_, DICOM_TAG_BITS_ALLOCATED))
       {
@@ -470,10 +477,17 @@ namespace Orthanc
     }
     else
     {
-      return (GetHeight() *
-              GetWidth() *
-              GetBytesPerValue() *
-              GetChannelCount());
+      uint64_t totalFrameSize = static_cast<uint64_t>(GetHeight()) * 
+                                GetWidth() *
+                                GetBytesPerValue() *
+                                GetChannelCount();
+
+      if (totalFrameSize > MAX_FRAME_SIZE)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "DICOM Frame size overflow");
+      }
+
+      return static_cast<size_t>(totalFrameSize);
     }
   }
 
