@@ -38,7 +38,7 @@
 #include <boost/algorithm/string/find.hpp>
 #include <boost/lexical_cast.hpp>
 
-static const uint64_t MAX_PAM_IMAGE_BUFFER_SIZE = 4ul * 1024ul * 1024ul * 1024ul;
+static const uint64_t MAX_PAM_IMAGE_BUFFER_SIZE = 4ul * 1024ul * 1024ul * 1024ul;  // defensive approach: set a reasonable max size for a PAM image
 
 namespace Orthanc
 {
