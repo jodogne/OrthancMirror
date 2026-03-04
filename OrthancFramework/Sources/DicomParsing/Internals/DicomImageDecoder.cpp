@@ -192,6 +192,11 @@ namespace Orthanc
     {
       if (inbuffer[i] == 0xa5)
       {
+        if (i + 2 >= length)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "Truncated PMSCT_RLE1 escape sequence");
+        }
+
         temp.push_back(inbuffer[i+2]);
         for (uint8_t repeat = inbuffer[i + 1]; repeat != 0; repeat--)
         {
@@ -215,6 +220,11 @@ namespace Orthanc
 
       if (temp[i] == 0x5a)
       {
+        if (i + 2 >= temp.size())
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "Truncated PMSCT_RLE1 delta sequence");
+        }
+
         uint16_t v1 = temp[i + 1];
         uint16_t v2 = temp[i + 2];
         value = (v2 << 8) + v1;
