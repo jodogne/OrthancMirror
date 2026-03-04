@@ -49,7 +49,7 @@ namespace Orthanc
         information_.GetBitsStored() >= 32)
     {
       // Not available, as the accessor internally uses int32_t values
-      throw OrthancException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_NotImplemented, "No support for BitsAllocated > 32 or BitsStored >= 32");
     }
 
     frame_ = 0;
@@ -57,7 +57,7 @@ namespace Orthanc
 
     if (information_.GetNumberOfFrames() * frameOffset_ > size)
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat, "Invalid size");
     }
 
     if (information_.IsSigned())
