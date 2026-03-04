@@ -511,6 +511,11 @@ namespace Orthanc
 
           for (unsigned int x = 0; x < width; x++)
           {
+            if (*source >= paletteSize)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat, "Pixel value exceeds palette");
+            }
+
             p[0] = lutRed[*source] >> offsetBits;
             p[1] = lutGreen[*source] >> offsetBits;
             p[2] = lutBlue[*source] >> offsetBits;
