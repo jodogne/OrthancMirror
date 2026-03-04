@@ -34,29 +34,29 @@ namespace Orthanc
   class ORTHANC_PUBLIC Semaphore : public boost::noncopyable
   {
   private:
-    unsigned int availableResources_;
+    size_t availableResources_;
     boost::mutex mutex_;
     boost::condition_variable condition_;
 
   public:
-    explicit Semaphore(unsigned int availableResources);
+    explicit Semaphore(size_t availableResources);
 
-    unsigned int GetAvailableResourcesCount() const;
+    size_t GetAvailableResourcesCount() const;
 
-    void Release(unsigned int resourceCount = 1);
+    void Release(size_t resourceCount = 1);
 
-    void Acquire(unsigned int resourceCount = 1);
+    void Acquire(size_t resourceCount = 1);
 
-    bool TryAcquire(unsigned int resourceCount = 1);
+    bool TryAcquire(size_t resourceCount = 1);
 
     class Locker : public boost::noncopyable
     {
     private:
       Semaphore&  that_;
-      unsigned int resourceCount_;
+      size_t resourceCount_;
 
     public:
-      explicit Locker(Semaphore& that, unsigned int resourceCount = 1) :
+      explicit Locker(Semaphore& that, size_t resourceCount = 1) :
         that_(that),
         resourceCount_(resourceCount)
       {
@@ -73,11 +73,11 @@ namespace Orthanc
     {
     private:
       Semaphore&    that_;
-      unsigned int  resourceCount_;
+      size_t        resourceCount_;
       bool          isAcquired_;
 
     public:
-      explicit TryLocker(Semaphore& that, unsigned int resourceCount = 1) :
+      explicit TryLocker(Semaphore& that, size_t resourceCount = 1) :
         that_(that),
         resourceCount_(resourceCount)
       {
