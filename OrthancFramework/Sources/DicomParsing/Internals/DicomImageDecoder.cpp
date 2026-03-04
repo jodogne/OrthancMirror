@@ -460,6 +460,13 @@ namespace Orthanc
           throw OrthancException(ErrorCode_NotImplemented, std::string("Palette Color Lookup Table Descriptor invalid palette size: '") + r.c_str() + "'");
         }
 
+        uint64_t expectedSize = static_cast<uint64_t>(target->GetWidth()) * target->GetHeight();
+        
+        if (static_cast<uint64_t>(pixelLength) != expectedSize)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "Invalid size");
+        }
+
         if (pixelLength != target->GetWidth() * target->GetHeight())
         {
           DcmElement *elem;
