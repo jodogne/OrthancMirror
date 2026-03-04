@@ -1949,6 +1949,8 @@ int main(int argc, char* argv[])
   Logging::SetCurrentThreadName("MAIN");
   SetGlobalVerbosity(Verbosity_Default);
 
+  LimitedMemoryAllocator::Initialize(8ul * 1024ul * 1024ul * 1024ul);  // TODO-MEM: get this value from the configuration file
+
   bool upgradeDatabase = false;
   bool loadJobsFromDatabase = true;
   boost::filesystem::path configurationFile;
