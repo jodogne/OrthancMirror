@@ -38,6 +38,7 @@
 #include <boost/filesystem.hpp>
 #include <stdint.h>
 #include <string>
+#include "MemoryManagedString.h"
 
 namespace Orthanc
 {
@@ -59,6 +60,8 @@ namespace Orthanc
     void Write(const std::string& content);
 
     void Read(std::string& content) const;
+
+    void Read(MemoryManagedString& content) const;
 
     void Touch();
 

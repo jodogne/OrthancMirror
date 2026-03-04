@@ -129,6 +129,21 @@ namespace Orthanc
   }
 
 
+  void TemporaryFile::Read(MemoryManagedString& content) const
+  {
+    try
+    {
+      SystemToolbox::ReadFile(content, path_);
+    }
+    catch (OrthancException& e)
+    {
+      throw OrthancException(e.GetErrorCode(), 
+                             "Can't read temporary file \"" + SystemToolbox::PathToUtf8(path_) +
+                             "\": Another process has corrupted the temporary directory");
+    }
+  }
+  
+
   void TemporaryFile::Touch()
   {
     std::string empty;

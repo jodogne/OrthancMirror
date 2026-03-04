@@ -4,6 +4,8 @@ Pending changes in the mainline
 General
 -------
 
+* Experimental WIP: try to limit the memory used by the HTTP server when multiple HTTP clients upload 
+  large DICOM files at the same time.  Right now, the limit is hardcoded to 8GB.  Check the TODO-MEM in the code.
 
 REST API
 --------

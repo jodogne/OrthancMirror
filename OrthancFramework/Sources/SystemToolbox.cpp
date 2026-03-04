@@ -267,6 +267,52 @@ namespace Orthanc
   }
 
 
+  void SystemToolbox::ReadFile(MemoryManagedString& content,
+                               const boost::filesystem::path& path,
+                               bool log)
+  {
+    if (!IsRegularFile(path))
+    {
+      throw OrthancException(ErrorCode_RegularFileExpected,
+                             "The path does not point to a regular file: " + PathToUtf8(path), log);
+    }
+
+    try
+    {
+      boost::filesystem::ifstream f;
+      f.open(path, std::ifstream::in | std::ifstream::binary);
+      if (!f.good())
+      {
+        throw OrthancException(ErrorCode_InexistentFile, "File not found: " + PathToUtf8(path), log);
+      }
+
+      std::streamsize size = GetStreamSize(f);
+      content.resize(static_cast<size_t>(size));
+
+      if (static_cast<std::streamsize>(content.size()) != size)
+      {
+        throw OrthancException(ErrorCode_InternalError,
+                               "Reading a file that is too large for a 32bit architecture");
+      }
+    
+      if (size != 0)
+      {
+        f.read(&content[0], size);
+      }
+
+      f.close();
+    }
+    catch (boost::filesystem::filesystem_error&)
+    {
+      throw OrthancException(ErrorCode_InexistentFile);
+    }
+    catch (...)  // To catch "std::system_error&" in C++11
+    {
+      throw OrthancException(ErrorCode_InexistentFile);
+    }
+  }
+
+
   bool SystemToolbox::ReadHeader(std::string& header,
                                  const boost::filesystem::path& path,
                                  size_t headerSize)

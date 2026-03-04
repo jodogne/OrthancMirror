@@ -51,6 +51,7 @@
 
 #include "IIncomingHttpRequestFilter.h"
 #include "../MetricsRegistry.h"
+#include "../MemoryManagedString.h"
 
 #include <list>
 #include <map>
@@ -234,7 +235,7 @@ namespace Orthanc
                                   const std::string& username,
                                   const UriComponents& uri,
                                   const std::map<std::string, std::string>& headers,
-                                  const std::string& body,
+                                  const MemoryManagedString& body,
                                   const std::string& boundary,
                                   const std::string& authenticationPayload);
 

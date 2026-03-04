@@ -88,6 +88,17 @@ namespace Orthanc
 
       file_.Read(target);
     }
+
+    void Read(MemoryManagedString& target)
+    {
+      if (isWriting_)
+      {
+        stream_.close();
+        isWriting_ = false;
+      }
+
+      file_.Read(target);
+    }
   };
 
     
@@ -106,6 +117,13 @@ namespace Orthanc
 
 
   void FileBuffer::Read(std::string& target)
+  {
+    assert(pimpl_.get() != NULL);
+    pimpl_->Read(target);
+  }
+
+
+  void FileBuffer::Read(MemoryManagedString& target)
   {
     assert(pimpl_.get() != NULL);
     pimpl_->Read(target);

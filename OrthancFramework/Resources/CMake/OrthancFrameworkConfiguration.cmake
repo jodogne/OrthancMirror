@@ -178,6 +178,7 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/StringMatcher.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Logging.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MallocMemoryBuffer.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MemoryManagedString.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancException.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancFramework.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiHierarchy.cpp

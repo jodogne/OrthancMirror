@@ -45,6 +45,7 @@
 #include <string>
 #include <stdint.h>
 #include <boost/filesystem.hpp>
+#include "MemoryManagedString.h"
 
 // Note: The use of "boost::filesystem::path" is mandatory to handle
 // non ASCII-only path on Windows
@@ -65,6 +66,16 @@ namespace Orthanc
                          bool log);
 
     static inline void ReadFile(std::string& content,
+                                const boost::filesystem::path& path)
+    {
+      ReadFile(content, path, true /* log */);
+    }
+
+    static void ReadFile(MemoryManagedString& content,
+                         const boost::filesystem::path& path, 
+                         bool log);
+
+    static inline void ReadFile(MemoryManagedString& content,
                                 const boost::filesystem::path& path)
     {
       ReadFile(content, path, true /* log */);

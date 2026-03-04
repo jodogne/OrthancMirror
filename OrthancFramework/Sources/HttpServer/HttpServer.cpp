@@ -30,6 +30,7 @@
 #include "../ChunkedBuffer.h"
 #include "../FileBuffer.h"
 #include "../Logging.h"
+#include "../MemoryManagedString.h"
 #include "../OrthancException.h"
 #include "../TemporaryFile.h"
 #include "../SystemToolbox.h"
@@ -480,7 +481,7 @@ namespace Orthanc
                                             const std::string& username,
                                             const UriComponents& uri,
                                             const std::map<std::string, std::string>& headers,
-                                            const std::string& body,
+                                            const MemoryManagedString& body,
                                             const std::string& boundary,
                                             const std::string& authenticationPayload)
   {
@@ -488,12 +489,12 @@ namespace Orthanc
           
     MultipartStreamReader reader(boundary);
     reader.SetHandler(handler);
-    reader.AddChunk(body);        
+    reader.AddChunk(body.c_str(), body.size());        
     reader.CloseStream();
   }
   
 
-  static PostDataStatus ReadBodyWithContentLength(std::string& body,
+  static PostDataStatus ReadBodyWithContentLength(MemoryManagedString& body,
                                                   struct mg_connection *connection,
                                                   const std::string& contentLength)
   {
@@ -533,7 +534,7 @@ namespace Orthanc
   }
                                                   
 
-  static PostDataStatus ReadBodyWithoutContentLength(std::string& body,
+  static PostDataStatus ReadBodyWithoutContentLength(MemoryManagedString& body,
                                                      struct mg_connection *connection)
   {
     // Store the individual chunks in a temporary file, then read it
@@ -565,7 +566,7 @@ namespace Orthanc
   }
                                                   
 
-  static PostDataStatus ReadBodyToString(std::string& body,
+  static PostDataStatus ReadBodyToString(MemoryManagedString& body,
                                          struct mg_connection *connection,
                                          const HttpToolbox::Arguments& headers)
   {
@@ -593,7 +594,7 @@ namespace Orthanc
     if (contentLength != headers.end())
     {
       // "Content-Length" is available
-      std::string body;
+      MemoryManagedString body;
       PostDataStatus status = ReadBodyWithContentLength(body, connection, contentLength->second);
 
       if (status == PostDataStatus_Success &&
@@ -1039,10 +1040,11 @@ namespace Orthanc
           else if (method == "PUT")
           {
 #if CIVETWEB_HAS_WEBDAV_WRITING == 1           
-            std::string body;
+            MemoryManagedString body;
             if (ReadBodyToString(body, connection, headers) == PostDataStatus_Success)
             {
-              if (bucket->second->StoreFile(body, path))
+              std::string bodyStr(body.begin(), body.end()); // TODO-MEM: avoid this copy and use a MemoryManagedString in StoreFile too 
+              if (bucket->second->StoreFile(bodyStr, path))
               {
                 //output.SendStatus(HttpStatus_200_Ok);
                 output.SendStatus(HttpStatus_201_Created);
@@ -1425,8 +1427,8 @@ namespace Orthanc
 
     // Extract the body of the request for PUT and POST, or process
     // the body as a stream
+    MemoryManagedString body;
 
-    std::string body;
     if (method == HttpMethod_Post ||
         method == HttpMethod_Put)
     {

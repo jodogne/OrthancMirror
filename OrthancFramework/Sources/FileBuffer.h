@@ -36,7 +36,7 @@
 
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
-
+#include "MemoryManagedString.h"
 
 namespace Orthanc
 {
@@ -53,5 +53,7 @@ namespace Orthanc
                 size_t size);
 
     void Read(std::string& target);
+
+    void Read(MemoryManagedString& target);
   };
 }
