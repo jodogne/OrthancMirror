@@ -143,9 +143,10 @@ Maintenance
   - Avoid adding twice the same tag in DB for the same resource, e.g. when
     "TimeZoneOffsetFromUTC" is added to the "ExtraMainDicomTags" at Patient level.
     https://discourse.orthanc-server.org/t/jobs-api-the-dicommovescu-job-doesnt-seems-to-track-progress/3140/14
-  - Fix possible overflow when calling /tools/create-dicom with a PAM file.
-  - Fix possible overflow when rows/columns DICOM tags exceed the maximum value for a US (65535).
-  - Fix possible overflow in PMSCT_RLE1 encoded images.
+  - Fix possible out-of-bound access when calling /tools/create-dicom with a PAM file.
+  - Fix possible out-of-bound access when rows/columns DICOM tags exceed the maximum value for a US (65535).
+  - Fix possible out-of-bound access in PMSCT_RLE1 encoded images.
+  - Fix possible out-of-bound access in palette images.
 * Upgraded dependencies for static builds:
   - civetweb 1.16, including patch for CVE-2025-55763
   - SQLite 3.50.4
