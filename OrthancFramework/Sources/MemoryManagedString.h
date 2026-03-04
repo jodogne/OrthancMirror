@@ -26,7 +26,7 @@
 
 #include <memory>
 #include <cstdlib>
-
+#include <string>
 
 namespace Orthanc
 {
