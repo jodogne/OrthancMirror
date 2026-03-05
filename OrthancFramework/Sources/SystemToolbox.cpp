@@ -266,7 +266,7 @@ namespace Orthanc
     }
   }
 
-
+  // TODO-MEM: find a way to share code between these 2 overloads
   void SystemToolbox::ReadFile(MemoryManagedString& content,
                                const boost::filesystem::path& path,
                                bool log)

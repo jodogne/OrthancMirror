@@ -2503,6 +2503,11 @@ namespace Orthanc
   DcmFileFormat* FromDcmtkBridge::LoadFromMemoryBuffer(const void* buffer,
                                                        size_t size)
   {
+    if (!DicomMap::IsDicomFile(buffer, size))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Not a DICOM file");
+    }
+
     DcmInputBufferStream is;
     if (size > 0)
     {

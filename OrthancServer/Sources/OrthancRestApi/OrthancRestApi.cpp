@@ -177,14 +177,15 @@ namespace Orthanc
 
       Json::Value answer = Json::arrayValue;
       
-      std::string filename, content;
+      std::string filename;
+      MemoryManagedString content;
       while (reader->ReadNextFile(filename, content))
       {
         if (!content.empty())
         {
           LOG(INFO) << "Uploading DICOM file from ZIP archive: " << filename;
 
-          std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromBuffer(content));
+          std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromBuffer(content.c_str(), content.size()));
           toStore->SetOrigin(DicomInstanceOrigin::FromRest(call));
 
           try

@@ -365,6 +365,59 @@ namespace Orthanc
     }
   }    
 
+  // TODO-MEM: find a way to share code between these 2 overloads
+  bool ZipReader::ReadNextFile(std::string& filename,
+                               MemoryManagedString& content)
+  {
+    assert(pimpl_->unzip_ != NULL);
+
+    if (pimpl_->done_)
+    {
+      return false;
+    }
+    else
+    {
+      unz_file_info64_s info;
+      if (unzGetCurrentFileInfo64(pimpl_->unzip_, &info, NULL, 0, NULL, 0, NULL, 0) != 0)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      filename.resize(info.size_filename);
+      if (!filename.empty() &&
+          unzGetCurrentFileInfo64(pimpl_->unzip_, &info, &filename[0],
+                                  static_cast<uLong>(filename.size()), NULL, 0, NULL, 0) != 0)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      content.resize(info.uncompressed_size);
+
+      if (!content.empty())
+      {
+        if (unzOpenCurrentFile(pimpl_->unzip_) == 0)
+        {
+          bool success = (unzReadCurrentFile(pimpl_->unzip_, &content[0],
+                                             static_cast<uLong>(content.size())) != 0);
+                          
+          if (unzCloseCurrentFile(pimpl_->unzip_) != 0 ||
+              !success)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "Invalid file or unsupported compression method (e.g. Deflate64)");
+        }
+      }
+      
+      pimpl_->done_ = (unzGoToNextFile(pimpl_->unzip_) != 0);
+ 
+      return true;
+    }
+  }    
+
   
   ZipReader* ZipReader::CreateFromMemory(const void* buffer,
                                          size_t size)
