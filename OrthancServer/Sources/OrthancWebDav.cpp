@@ -1213,7 +1213,7 @@ namespace Orthanc
         std::unique_ptr<ZipReader> reader(ZipReader::CreateFromMemory(content));
 
         std::string filename, uncompressedFile;
-        while (reader->ReadNextFile(filename, uncompressedFile))
+        while (reader->ReadNextFile(filename, uncompressedFile))  // TODO-MEM: use MemoryManagedString
         {
           if (!uncompressedFile.empty())
           {

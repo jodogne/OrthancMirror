@@ -1949,7 +1949,9 @@ int main(int argc, char* argv[])
   Logging::SetCurrentThreadName("MAIN");
   SetGlobalVerbosity(Verbosity_Default);
 
-  LimitedMemoryAllocator::Initialize(8ul * 1024ul * 1024ul * 1024ul);  // TODO-MEM: get this value from the configuration file
+  uint64_t maxMemorySize = 8ul * 1024ul * 1024ul * 1024ul;  // TODO-MEM: get this value from the configuration file
+  maxMemorySize = std::min(maxMemorySize, std::numeric_limits<size_t>::max()); // on 32 bits system, limit the value to 4GB
+  LimitedMemoryAllocator::Initialize(static_cast<size_t>(maxMemorySize));
 
   bool upgradeDatabase = false;
   bool loadJobsFromDatabase = true;

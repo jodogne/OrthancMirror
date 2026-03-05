@@ -43,6 +43,7 @@
 #include <string>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
+#include "../MemoryManagedString.h"
 
 #if ORTHANC_SANDBOXED != 1
 #  include <boost/filesystem.hpp>
@@ -69,7 +70,10 @@ namespace Orthanc
 
     bool ReadNextFile(std::string& filename,
                       std::string& content);
-    
+
+    bool ReadNextFile(std::string& filename,
+                      MemoryManagedString& content);
+                      
     static ZipReader* CreateFromMemory(const void* buffer,
                                        size_t size);
 
