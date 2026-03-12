@@ -227,7 +227,7 @@ namespace Orthanc
         .SetDescription("Trigger C-ECHO SCU command against the DICOM modality whose identifier is provided in URL: "
                         "https://orthanc.uclouvain.be/book/users/rest.html#performing-c-echo")
         .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
-                         "Timeout for the C-ECHO command, in seconds", false)
+                         "Timeout for the C-ECHO command, in seconds.  Orthanc will close the DICOM association if no C-ECHO answer is received within this time period.", false)
         .SetUriArgument("id", "Identifier of the modality of interest");
       return;
     }
@@ -684,7 +684,7 @@ namespace Orthanc
                          "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
                          "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
         .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
-                         "Timeout for the C-FIND command and subsequent C-MOVE retrievals, in seconds (new in Orthanc 1.9.1)", false)
+                         "Timeout for the C-FIND command and subsequent C-GET/C-MOVE retrievals, in seconds (new in Orthanc 1.9.1).  Orthanc will close the related DICOM associations if no DICOM messages are received within this time period.", false)
         .SetAnswerField("ID", RestApiCallDocumentation::Type_String,
                         "Identifier of the query, to be used with `/queries/{id}`")
         .SetAnswerField("Path", RestApiCallDocumentation::Type_String,
@@ -1032,7 +1032,7 @@ namespace Orthanc
                        "AET of the target modality. By default, the AET of Orthanc is used, as defined in the "
                        "`DicomAet` configuration option.", false)
       .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
-                       "Timeout for the C-MOVE command, in seconds", false)
+                       "Timeout for the C-MOVE command, in seconds.  Orthanc will close the DICOM association if no DICOM messages (e.g., C-STORE sub-operations or responses) are received within this time period.", false)
       .SetRequestField(KEY_RETRIEVE_METHOD, RestApiCallDocumentation::Type_String,
                         "Force usage of C-MOVE or C-GET to retrieve the resource.  If note defined in the payload, "
                         "the retrieve method is defined in the DicomDefaultRetrieveMethod configuration or in "
@@ -1496,7 +1496,7 @@ namespace Orthanc
                          "Whether to chain C-STORE with DICOM storage commitment to validate the success of the transmission: "
                          "https://orthanc.uclouvain.be/book/users/storage-commitment.html#chaining-c-store-with-storage-commitment", false)
         .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
-                         "Timeout for the C-STORE command, in seconds", false)
+                         "Timeout for the C-STORE command, in seconds.  Orthanc will close the DICOM association if no DICOM messages (e.g., C-STORE responses) are received within this time period.", false)
         .SetUriArgument("id", "Identifier of the modality of interest");
       return;
     }
@@ -1655,7 +1655,7 @@ namespace Orthanc
                          "Target AET that will be used by the remote DICOM modality as a target for its C-STORE SCU "
                          "commands, defaults to `DicomAet` configuration option in order to do a simple query/retrieve", false)
         .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
-                         "Timeout for the C-MOVE command, in seconds", false)
+                         "Timeout for the C-MOVE command, in seconds.  Orthanc will close the DICOM association if no DICOM messages (e.g., C-STORE sub-operations or responses) are received within this time period.", false)
         .SetUriArgument("id", "Identifier of the modality of interest");
       return;
     }
@@ -1705,7 +1705,7 @@ namespace Orthanc
                          "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
                          "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
         .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
-                         "Timeout for the C-GET command, in seconds", false)
+                         "Timeout for the C-GET command, in seconds.  Orthanc will close the DICOM association if no DICOM messages are received within this time period.", false)
         .SetUriArgument("id", "Identifier of the modality of interest");
       return;
     }
