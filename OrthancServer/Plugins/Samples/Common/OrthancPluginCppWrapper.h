@@ -1031,6 +1031,13 @@ namespace OrthancPlugins
                                  value, OrthancPluginMetricsType_Default);
   }
 
+  inline void SetMetricsValue(const char* name,
+                              int64_t value)
+  {
+    OrthancPluginSetMetricsIntegerValue(GetGlobalContext(), name,
+                                        value, OrthancPluginMetricsType_Default);
+  }
+
   class MetricsTimer : public boost::noncopyable
   {
   private:
