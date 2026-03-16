@@ -28,13 +28,23 @@
 #define NOMINMAX
 #endif
 
+#if !defined(ORTHANC_USE_SYSTEM_MINIZIP)
+#  error The macro ORTHANC_USE_SYSTEM_MINIZIP must be defined
+#endif
+
 #include "ZipWriter.h"
+
 
 #include <limits>
 #include <boost/filesystem.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include "../../Resources/ThirdParty/minizip/zip.h"
+#if ORTHANC_USE_SYSTEM_MINIZIP == 1
+#  include <minizip/zip.h>
+#else
+#  include "../../Resources/ThirdParty/minizip/zip.h"
+#endif
+
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../SystemToolbox.h"

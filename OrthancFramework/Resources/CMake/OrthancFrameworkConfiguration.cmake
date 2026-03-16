@@ -753,12 +753,8 @@ set(ORTHANC_CORE_SOURCES_DEPENDENCIES
   )
 
 if (ENABLE_ZLIB AND NOT ORTHANC_SANDBOXED)
-  list(APPEND ORTHANC_CORE_SOURCES_DEPENDENCIES
-    # This is the minizip distribution to create/decode ZIP files using zlib
-    ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/minizip/ioapi.c
-    ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/minizip/unzip.c
-    ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/minizip/zip.c
-    )
+  # This is the minizip distribution to create/decode ZIP files using zlib
+  include(${CMAKE_CURRENT_LIST_DIR}/MinizipConfiguration.cmake)
 endif()
 
 

@@ -50,6 +50,7 @@ Maintenance
   https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=255
 * Save the jobs registry in DB only if it has changed.
   https://discourse.orthanc-server.org/t/frequent-idle-messages-between-postgres-and-orthanc/6406
+* New CMake option: "USE_SYSTEM_MINIZIP" to use the system-wide version of minizip
 * Upgraded dependencies for static builds:
   - boost 1.89.0
   - dcmtk 3.7.0
