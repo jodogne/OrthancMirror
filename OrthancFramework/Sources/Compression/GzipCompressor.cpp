@@ -47,7 +47,7 @@ namespace Orthanc
      *
      * There is an unreliable way to determine the uncompressed size,
      * which is to look at the last four bytes of the gzip file, which
-     * is the uncompressed length of that entry modulo 232 in little
+     * is the uncompressed length of that entry modulo 2^32 in little
      * endian order.
      * 
      * It is unreliable because a) the uncompressed data may be longer
