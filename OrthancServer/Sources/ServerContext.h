@@ -271,7 +271,8 @@ namespace Orthanc
     std::set<DicomTransferSyntax>  acceptedTransferSyntaxes_;
     std::list<std::string>         acceptedSopClasses_;  // ordered; the most 120 common ones first
     bool readOnly_;
-
+    bool patientLevelEnabled_;
+    
     StoreResult StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
                                       StoreInstanceMode mode,
@@ -340,6 +341,13 @@ namespace Orthanc
     void SetMaximumStorageCacheSize(size_t size)
     {
       return storageCache_.SetMaximumSize(size);
+    }
+
+    void SetPatientLevelEnabled(bool enabled);
+
+    bool IsPatientLevelEnabled() const
+    {
+      return patientLevelEnabled_;
     }
 
     void SetCompressionEnabled(bool enabled);

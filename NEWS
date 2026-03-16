@@ -4,6 +4,8 @@ Pending changes in the mainline
 General
 -------
 
+* New experimental configuration "PatientLevelEnabled" (TODO: work in progree)
+
 
 REST API
 --------
