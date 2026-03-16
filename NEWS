@@ -147,6 +147,7 @@ Maintenance
   - Fix possible out-of-bound access when rows/columns DICOM tags exceed the maximum value for a US (65535).
   - Fix possible out-of-bound access in PMSCT_RLE1 encoded images.
   - Fix possible out-of-bound access in palette images.
+  - Fix possible out-of-bound access when reading a DICOM file with invalid group length tag.
 * Upgraded dependencies for static builds:
   - civetweb 1.16, including patch for CVE-2025-55763
   - SQLite 3.50.4
