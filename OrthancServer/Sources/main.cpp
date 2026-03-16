@@ -323,7 +323,7 @@ public:
 
     if (alwaysAllowMove_)
     {
-      LOG(WARNING) << "Security risk in DICOM SCP: C-MOOVE requests are always allowed, even from unknown modalities";
+      LOG(WARNING) << "Security risk in DICOM SCP: C-MOVE requests are always allowed, even from unknown modalities";
     }
   }
 
