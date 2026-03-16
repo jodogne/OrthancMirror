@@ -727,7 +727,7 @@ namespace Orthanc
       }
     }
 
-    if (modificationLevel == ResourceType_Study && replacePatientMainDicomTags)
+    if (GetContext().IsPatientLevelEnabled() && modificationLevel == ResourceType_Study && replacePatientMainDicomTags)
     {
       for (std::set<std::string>::const_iterator studyId = parentResources_.begin(); studyId != parentResources_.end(); ++studyId)
       {
