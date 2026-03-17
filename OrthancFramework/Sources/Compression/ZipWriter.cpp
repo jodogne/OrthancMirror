@@ -596,6 +596,21 @@ namespace Orthanc
     }
   }
 
+
+  void ZipWriter::SetAllowUtf8(bool allowUtf8)
+  {
+    allowUtf8_ = allowUtf8;
+
+#if ORTHANC_USE_SYSTEM_MINIZIP == 1
+    if (allowUtf8_)
+    {
+      LOG(WARNING) << "UTF-8 paths requested in ZIP file, but Orthanc is linked against "
+                   << "the system-wide minizip library, which may not support this feature";
+    }
+#endif
+  }
+
+
   void ZipWriter::SetCompressionLevel(uint8_t level)
   {
     if (level >= 10)
