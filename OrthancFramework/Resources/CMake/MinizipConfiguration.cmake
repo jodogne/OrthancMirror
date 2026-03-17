@@ -20,11 +20,13 @@
 # <http://www.gnu.org/licenses/>.
 
 
-if (NOT ENABLE_ZLIB OR ORTHANC_SANDBOXED)
-  message(FATAL_ERROR "This file cannot be used if zlib is disabled or if targeting WebAssembly")
+if (NOT ENABLE_ZLIB)
+  message(FATAL_ERROR "This file cannot be used if zlib is disabled")
 endif()
 
-if (STATIC_BUILD OR NOT USE_SYSTEM_MINIZIP)
+if (STATIC_BUILD OR
+    ORTHANC_SANDBOXED OR   # For WebAssembly
+    NOT USE_SYSTEM_MINIZIP)
   add_definitions(-DORTHANC_USE_SYSTEM_MINIZIP=0)
 
   list(APPEND ORTHANC_CORE_SOURCES_DEPENDENCIES
