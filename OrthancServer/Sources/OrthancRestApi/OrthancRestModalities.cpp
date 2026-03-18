@@ -1446,9 +1446,12 @@ namespace Orthanc
                                "This string is not a valid Orthanc identifier: " + stripped);
       }
 
-      job.AddParentResource(stripped);  // New in Orthanc 1.5.7
+      ResourceType level;
+      context.GetIndex().LookupResourceType(level, stripped);
+
+      job.AddParentResource(stripped, level);  // New in Orthanc 1.5.7
       
-      context.AddChildInstances(job, stripped);
+      context.AddChildInstances(job, stripped, level);
 
       if (logExportedResources)
       {

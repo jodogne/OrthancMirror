@@ -729,7 +729,7 @@ namespace Orthanc
 
     if (GetContext().IsPatientLevelEnabled() && modificationLevel == ResourceType_Study && replacePatientMainDicomTags)
     {
-      for (std::set<std::string>::const_iterator studyId = parentResources_.begin(); studyId != parentResources_.end(); ++studyId)
+      for (std::map<std::string, ResourceType>::const_iterator it = parentResources_.begin(); it != parentResources_.end(); ++it)
       {
         // When modifying a study, you may not modify patient tags as you wish.
         // - If this is the patient's only study, you may modify all patient tags. This could be performed in 2 steps (modify the patient and then, the study) but, 
@@ -737,6 +737,7 @@ namespace Orthanc
         // - If the patient already has other studies, you may only 'attach' the study to an existing patient by modifying 
         //   all patient tags from the study to match those of the target patient.
         // - Otherwise, you can't modify the patient tags
+        const std::string& studyId = it->first;
         
         std::string targetPatientId;
         if (modification_->IsReplaced(DICOM_TAG_PATIENT_ID))
@@ -746,7 +747,7 @@ namespace Orthanc
         else
         {
           FindRequest request(ResourceType_Study);
-          request.SetOrthancStudyId(*studyId);
+          request.SetOrthancStudyId(studyId);
           request.SetRetrieveMainDicomTags(true);
 
           FindResponse response;
@@ -788,7 +789,7 @@ namespace Orthanc
             bool targetPatientHasOtherStudies = childrenIds.size() > 1;
             if (childrenIds.size() == 1)
             {
-              targetPatientHasOtherStudies = (childrenIds.find(*studyId) == childrenIds.end());  // if the patient has one study that is not the one being modified
+              targetPatientHasOtherStudies = (childrenIds.find(studyId) == childrenIds.end());  // if the patient has one study that is not the one being modified
             }
 
             if (targetPatientHasOtherStudies)

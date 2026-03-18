@@ -71,7 +71,7 @@ namespace Orthanc
   
   protected:
     mutable boost::recursive_mutex      mutex_;
-    std::set<std::string>               parentResources_;
+    std::map<std::string, ResourceType> parentResources_;
 
   public:
     ThreadedSetOfInstancesJob(ServerContext& context,
@@ -129,7 +129,7 @@ namespace Orthanc
 
     void AddInstances(const std::list<std::string>& instances);
 
-    void AddParentResource(const std::string &resource);
+    void AddParentResource(const std::string &resource, ResourceType level);
 
     bool IsPermissive() const;
 

@@ -1810,10 +1810,11 @@ namespace Orthanc
 
 
   void ServerContext::AddChildInstances(SetOfInstancesJob& job,
-                                        const std::string& publicId)
+                                        const std::string& publicId,
+                                        ResourceType level)
   {
     std::list<std::string> instances;
-    GetIndex().GetChildInstances(instances, publicId);
+    GetIndex().GetChildInstances(instances, publicId, level);
 
     job.Reserve(job.GetInstancesCount() + instances.size());
 

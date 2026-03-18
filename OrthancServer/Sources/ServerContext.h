@@ -514,7 +514,8 @@ namespace Orthanc
     bool HasPlugins() const;
 
     void AddChildInstances(SetOfInstancesJob& job,
-                           const std::string& publicId);
+                           const std::string& publicId,
+                           ResourceType level);
 
     void SignalUpdatedModalities();
 

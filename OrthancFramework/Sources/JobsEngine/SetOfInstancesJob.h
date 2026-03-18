@@ -28,6 +28,7 @@
 #include "SetOfCommandsJob.h"
 
 #include <set>
+#include <map>
 
 namespace Orthanc
 {
@@ -40,7 +41,7 @@ namespace Orthanc
     
     bool                   hasTrailingStep_;
     std::set<std::string>  failedInstances_;
-    std::set<std::string>  parentResources_;
+    std::map<std::string, ResourceType> parentResources_;
 
   protected:
     virtual bool HandleInstance(const std::string& instance) = 0;
@@ -57,7 +58,7 @@ namespace Orthanc
 
     // Only used for reporting in the public content
     // https://groups.google.com/d/msg/orthanc-users/9GCV88GLEzw/6wAgP_PRAgAJ
-    void AddParentResource(const std::string& resource);
+    void AddParentResource(const std::string& resource, ResourceType level);
     
     void AddInstance(const std::string& instance);
 
