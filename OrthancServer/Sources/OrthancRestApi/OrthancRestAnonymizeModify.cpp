@@ -433,10 +433,13 @@ namespace Orthanc
            it = resources.begin(); it != resources.end(); ++it)
     {
       std::list<std::string> instances;
-      context.GetIndex().GetChildInstances(instances, *it);
+      ResourceType level;
+      context.GetIndex().LookupResourceType(level, *it);
+
+      context.GetIndex().GetChildInstances(instances, *it, level);
       job->AddInstances(instances);
 
-      job->AddParentResource(*it);
+      job->AddParentResource(*it, level);
     }
 
     job->PerformSanityChecks();

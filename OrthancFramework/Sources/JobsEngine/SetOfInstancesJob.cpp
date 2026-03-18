@@ -27,6 +27,7 @@
 
 #include "../OrthancException.h"
 #include "../SerializationToolbox.h"
+#include "../Logging.h"
 
 #include <cassert>
 
@@ -130,11 +131,10 @@ namespace Orthanc
   }
 
 
-  void SetOfInstancesJob::AddParentResource(const std::string &resource)
+  void SetOfInstancesJob::AddParentResource(const std::string &resource, ResourceType level)
   {
-    parentResources_.insert(resource);
+    parentResources_[resource] = level;
   }
-
 
   void SetOfInstancesJob::AddInstance(const std::string& instance)
   {
@@ -201,20 +201,38 @@ namespace Orthanc
 
   static const char* KEY_TRAILING_STEP = "TrailingStep";
   static const char* KEY_FAILED_INSTANCES = "FailedInstances";
-  static const char* KEY_PARENT_RESOURCES = "ParentResources";
+  static const char* KEY_PARENT_RESOURCES = "ParentResources"; // old style but we keep it for backward compatibility
+  static const char* KEY_RESOURCES = "Resources"; // new style with the Resource type
+
+
+  static void SerializeResources(Json::Value& target, const std::map<std::string, ResourceType>& parentResources, bool includeParentResourcesField)
+  {
+    if (!parentResources.empty())
+    {
+      target[KEY_RESOURCES] = Json::arrayValue;
+      SerializationToolbox::WriteMapOfResourcesAndTypes(target[KEY_RESOURCES], parentResources);
+
+      if (includeParentResourcesField)
+      {
+        std::set<std::string> keys;
+        for (std::map<std::string, ResourceType>::const_iterator it = parentResources.begin(); it != parentResources.end(); ++it) 
+        {
+          keys.insert(it->first);
+        }
+
+        SerializationToolbox::WriteSetOfStrings(target, keys, KEY_PARENT_RESOURCES);
+      }
+    }
+  }
 
   void SetOfInstancesJob::GetPublicContent(Json::Value& target) const
   {
     SetOfCommandsJob::GetPublicContent(target);
     target["InstancesCount"] = static_cast<uint32_t>(GetInstancesCount());
     target["FailedInstancesCount"] = static_cast<uint32_t>(failedInstances_.size());
-
-    if (!parentResources_.empty())
-    {
-      SerializationToolbox::WriteSetOfStrings(target, parentResources_, KEY_PARENT_RESOURCES);
-    }
+    
+    SerializeResources(target, parentResources_, true);
   }
-
 
   bool SetOfInstancesJob::Serialize(Json::Value& target) const 
   {
@@ -222,7 +240,7 @@ namespace Orthanc
     {
       target[KEY_TRAILING_STEP] = hasTrailingStep_;
       SerializationToolbox::WriteSetOfStrings(target, failedInstances_, KEY_FAILED_INSTANCES);
-      SerializationToolbox::WriteSetOfStrings(target, parentResources_, KEY_PARENT_RESOURCES);
+      SerializeResources(target, parentResources_, false);
       return true;
     }
     else
@@ -237,10 +255,13 @@ namespace Orthanc
   {
     SerializationToolbox::ReadSetOfStrings(failedInstances_, source, KEY_FAILED_INSTANCES);
 
-    if (source.isMember(KEY_PARENT_RESOURCES))
+    if (source.isMember(KEY_PARENT_RESOURCES) && !source.isMember(KEY_RESOURCES))
     {
-      // Backward compatibility with Orthanc <= 1.5.6
-      SerializationToolbox::ReadSetOfStrings(parentResources_, source, KEY_PARENT_RESOURCES);
+      LOG(ERROR) << "Unable to read the " << KEY_PARENT_RESOURCES << " of a job that has been saved with the previous version of Orthanc";
+    }
+    else if (source.isMember(KEY_RESOURCES) && source[KEY_RESOURCES].isArray())
+    {
+      SerializationToolbox::ReadMapOfResourcesAndTypes(parentResources_, source, KEY_RESOURCES);
     }
     
     if (source.isMember(KEY_TRAILING_STEP))
