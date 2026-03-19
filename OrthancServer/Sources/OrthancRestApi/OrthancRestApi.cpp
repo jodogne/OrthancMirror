@@ -30,6 +30,7 @@
 #include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../DicomInstanceToStore.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 

@@ -41,7 +41,6 @@ namespace Orthanc
   {
 #if ORTHANC_BUILD_UNIT_TESTS == 1
     FRIEND_TEST(HierarchicalZipWriter, Index);
-    FRIEND_TEST(HierarchicalZipWriter, Filenames);
 #endif
 
   private:
@@ -60,7 +59,8 @@ namespace Orthanc
   
       Stack stack_;
 
-      std::string EnsureUniqueFilename(const char* filename);
+      std::string EnsureUniqueFilename(const std::string& name,
+                                       bool allowUtf8);
 
     public:
       Index();
@@ -69,15 +69,15 @@ namespace Orthanc
 
       bool IsRoot() const;
 
-      std::string OpenFile(const char* name);
+      std::string OpenFile(const std::string& name,
+                           bool allowUtf8);
 
-      void OpenDirectory(const char* name);
+      void OpenDirectory(const std::string& name,
+                         bool allowUtf8);
 
       void CloseDirectory();
 
       std::string GetCurrentDirectoryPath() const;
-
-      static std::string KeepAlphanumeric(const std::string& source);
     };
 
     Index indexer_;
@@ -95,6 +95,16 @@ namespace Orthanc
 
     bool IsZip64() const;
 
+    void SetAllowUtf8(bool allowUtf8)
+    {
+      writer_.SetAllowUtf8(allowUtf8);
+    }
+
+    bool IsAllowUtf8() const
+    {
+      return writer_.IsAllowUtf8();
+    }
+
     void SetCompressionLevel(uint8_t level);
 
     uint8_t GetCompressionLevel() const;
@@ -103,9 +113,9 @@ namespace Orthanc
     
     bool IsAppendToExisting() const;
     
-    void OpenFile(const char* name);
+    void OpenFile(const std::string& name);
 
-    void OpenDirectory(const char* name);
+    void OpenDirectory(const std::string& name);
 
     void CloseDirectory();
 

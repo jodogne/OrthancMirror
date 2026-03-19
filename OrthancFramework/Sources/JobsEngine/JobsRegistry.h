@@ -70,6 +70,7 @@ namespace Orthanc
     };
 
     class JobHandler;
+    class LastModificationTimeUpdater;
 
     struct PriorityComparator
     {
@@ -84,7 +85,8 @@ namespace Orthanc
                                 std::vector<JobHandler*>,   // Could be a "std::deque"
                                 PriorityComparator>         PendingJobs;
 
-    boost::mutex               mutex_;
+    mutable boost::mutex       mutex_;
+    boost::posix_time::ptime   lastModificationTime_;
     JobsIndex                  jobsIndex_;
     PendingJobs                pendingJobs_;
     CompletedJobs              completedJobs_;
@@ -197,6 +199,8 @@ namespace Orthanc
                        unsigned int& success,
                        unsigned int& errors);
 
+    void GetLastModificationTime(boost::posix_time::ptime& modificationTime) const;
+    
     class ORTHANC_PUBLIC RunningJob : public boost::noncopyable
     {
     private:

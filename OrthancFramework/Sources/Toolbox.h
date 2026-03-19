@@ -407,6 +407,12 @@ namespace Orthanc
 
     static void RemoveSurroundingQuotes(std::string& value);
 
+    static bool IsValidUtf8(const std::string& s);
+
+    static std::string NormalizePath(const std::string& utf8,
+                                     bool allowUtf8,
+                                     bool allowSlashes);
+
     class ORTHANC_PUBLIC ElapsedTimer : public boost::noncopyable
     {
     private:

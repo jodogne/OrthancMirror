@@ -40,6 +40,7 @@
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 
+#include "DicomInstanceToStore.h"
 #include "OrthancConfiguration.h"
 #include "OrthancRestApi/OrthancRestApi.h"
 #include "ResourceFinder.h"
@@ -47,6 +48,7 @@
 #include "ServerJobs/OrthancJobUnserializer.h"
 #include "ServerToolbox.h"
 #include "StorageCommitmentReports.h"
+#include "OutgoingDicomInstance.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmnet/dimse.h>
@@ -324,21 +326,30 @@ namespace Orthanc
   {
     if (saveJobs_)
     {
-      LOG(TRACE) << "Serializing the content of the jobs engine";
-    
-      try
-      {
-        Json::Value value;
-        jobsEngine_.GetRegistry().Serialize(value);
+      static boost::posix_time::ptime lastSerializedModification = boost::posix_time::neg_infin;
+      boost::posix_time::ptime lastModification = boost::posix_time::neg_infin;
 
-        std::string serialized;
-        Toolbox::WriteFastJson(serialized, value);
+      jobsEngine_.GetRegistry().GetLastModificationTime(lastModification);
 
-        index_.SetGlobalProperty(GlobalProperty_JobsRegistry, false /* not shared */, serialized);
-      }
-      catch (OrthancException& e)
+      if (lastModification > lastSerializedModification)
       {
-        LOG(ERROR) << "Cannot serialize the jobs engine: " << e.What();
+        LOG(TRACE) << "Serializing the content of the jobs engine";
+      
+        try
+        {
+          Json::Value value;
+          jobsEngine_.GetRegistry().Serialize(value);
+
+          std::string serialized;
+          Toolbox::WriteFastJson(serialized, value);
+
+          index_.SetGlobalProperty(GlobalProperty_JobsRegistry, false /* not shared */, serialized);
+          lastSerializedModification = lastModification;
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Cannot serialize the jobs engine: " << e.What();
+        }
       }
     }
   }
@@ -389,6 +400,7 @@ namespace Orthanc
     ingestTranscodingOfCompressed_(true),
     preferredTransferSyntax_(DicomTransferSyntax_LittleEndianExplicit),
     readOnly_(readOnly),
+    patientLevelEnabled_(true),
     deidentifyLogs_(false),
     serverStartTimeUtc_(boost::posix_time::second_clock::universal_time())
   {
@@ -610,6 +622,17 @@ namespace Orthanc
       LOG(WARNING) << "Disk compression is disabled";
 
     compressionEnabled_ = enabled;
+  }
+
+
+  void ServerContext::SetPatientLevelEnabled(bool enabled)
+  {
+    if (enabled)
+      LOG(WARNING) << "Patient level is enabled";
+    else
+      LOG(WARNING) << "Patient level  is disabled";
+
+    patientLevelEnabled_ = enabled;
   }
 
 
@@ -1787,10 +1810,11 @@ namespace Orthanc
 
 
   void ServerContext::AddChildInstances(SetOfInstancesJob& job,
-                                        const std::string& publicId)
+                                        const std::string& publicId,
+                                        ResourceType level)
   {
     std::list<std::string> instances;
-    GetIndex().GetChildInstances(instances, publicId);
+    GetIndex().GetChildInstances(instances, publicId, level);
 
     job.Reserve(job.GetInstancesCount() + instances.size());
 
@@ -1984,6 +2008,36 @@ namespace Orthanc
   {
     const void* data = dicom.empty() ? NULL : dicom.c_str();
     const RemoteModalityParameters& modality = connection.GetParameters().GetRemoteModality();
+
+    // Filter out outgoing C-Store instances
+    {
+      boost::shared_lock<boost::shared_mutex> lock(listenersMutex_);
+
+      std::unique_ptr<OutgoingDicomInstance> outgoingInstance(OutgoingDicomInstance::CreateFromBuffer(dicom));
+      outgoingInstance->SetDestination(DicomInstanceDestination(connection.GetParameters().GetRemoteModality().GetHost(),
+                                                                connection.GetParameters().GetRemoteModality().GetApplicationEntityTitle()));
+
+      Json::Value simplifiedTags;
+      outgoingInstance->GetSimplifiedJson(simplifiedTags);
+
+      for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
+      {
+        try
+        {
+          if (!it->GetListener().FilterOutgoingCStoreInstance(*outgoingInstance, simplifiedTags))
+          {
+            return;
+          }
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Error in the " << it->GetDescription() 
+                      << " callback while sending an instance: " << e.What()
+                      << " (code " << e.GetErrorCode() << ")";
+          throw;
+        }
+      }
+    }
 
     if (!transcodeDicomProtocol_ ||
         !modality.IsTranscodingAllowed())

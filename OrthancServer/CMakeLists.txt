@@ -109,6 +109,7 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/Database/SQLiteDatabaseWrapper.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/StatelessDatabaseOperations.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/VoidDatabaseListener.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/DicomInstanceDestination.cpp
   ${CMAKE_SOURCE_DIR}/Sources/DicomInstanceOrigin.cpp
   ${CMAKE_SOURCE_DIR}/Sources/DicomInstanceToStore.cpp
   ${CMAKE_SOURCE_DIR}/Sources/EmbeddedResourceHttpHandler.cpp
@@ -128,6 +129,7 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestResources.cpp
   ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestSystem.cpp
   ${CMAKE_SOURCE_DIR}/Sources/OrthancWebDav.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OutgoingDicomInstance.cpp
   ${CMAKE_SOURCE_DIR}/Sources/QueryRetrieveHandler.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ResourceFinder.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Search/DatabaseDicomTagConstraint.cpp

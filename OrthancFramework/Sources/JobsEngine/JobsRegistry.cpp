@@ -47,6 +47,22 @@ namespace Orthanc
   static const char* ERROR_PAYLOAD_TYPE = "ErrorPayloadType";
   static const char* ERROR_PAYLOAD = "ErrorPayload";
 
+  class JobsRegistry::LastModificationTimeUpdater
+  {
+  private:
+    JobsRegistry&  registry_;
+
+  public:
+    LastModificationTimeUpdater(JobsRegistry& registry) :
+      registry_(registry)
+    {
+    }
+
+    ~LastModificationTimeUpdater()
+    {
+      registry_.lastModificationTime_ = boost::posix_time::microsec_clock::universal_time();
+    }
+  };
 
   class JobsRegistry::JobHandler : public boost::noncopyable
   {
@@ -628,6 +644,7 @@ namespace Orthanc
   void JobsRegistry::SetMaxCompletedJobs(size_t n)
   {
     boost::mutex::scoped_lock lock(mutex_);
+    LastModificationTimeUpdater updater(*this);
     CheckInvariants();
 
     LOG(INFO) << "The size of the history of the jobs engine is set to: " << n << " job(s)";
@@ -691,6 +708,7 @@ namespace Orthanc
     LOG(INFO) << "Deleting job: " << id;
 
     boost::mutex::scoped_lock lock(mutex_);
+    LastModificationTimeUpdater updater(*this);
     CheckInvariants();
 
     JobsIndex::iterator found = jobsIndex_.find(id);
@@ -756,6 +774,7 @@ namespace Orthanc
                                      const std::string& key)
   {
     boost::mutex::scoped_lock lock(mutex_);
+    LastModificationTimeUpdater updater(*this);
     CheckInvariants();
 
     JobsIndex::const_iterator found = jobsIndex_.find(job);
@@ -792,6 +811,7 @@ namespace Orthanc
 
     {
       boost::mutex::scoped_lock lock(mutex_);
+      LastModificationTimeUpdater updater(*this);
       CheckInvariants();
 
       id = handler->GetId();
@@ -845,6 +865,7 @@ namespace Orthanc
   }
 
   JobsRegistry::JobsRegistry(size_t maxCompletedJobs) :
+    lastModificationTime_(boost::posix_time::neg_infin),
     maxCompletedJobs_(maxCompletedJobs),
     observer_(NULL)
   {
@@ -881,6 +902,8 @@ namespace Orthanc
 
       for (;;)
       {
+        LastModificationTimeUpdater updater(*this);
+
         if (!GetStateInternal(state, id))
         {
           // Job has finished and has been lost (typically happens if
@@ -952,6 +975,7 @@ namespace Orthanc
     LOG(INFO) << "Changing priority to " << priority << " for job: " << id;
 
     boost::mutex::scoped_lock lock(mutex_);
+    LastModificationTimeUpdater updater(*this);
     CheckInvariants();
 
     JobsIndex::iterator found = jobsIndex_.find(id);
@@ -1020,6 +1044,7 @@ namespace Orthanc
     LOG(INFO) << "Pausing job: " << id;
 
     boost::mutex::scoped_lock lock(mutex_);
+    LastModificationTimeUpdater updater(*this);
     CheckInvariants();
 
     JobsIndex::iterator found = jobsIndex_.find(id);
@@ -1068,6 +1093,7 @@ namespace Orthanc
     LOG(INFO) << "Canceling job: " << id;
 
     boost::mutex::scoped_lock lock(mutex_);
+    LastModificationTimeUpdater updater(*this);
     CheckInvariants();
 
     JobsIndex::iterator found = jobsIndex_.find(id);
@@ -1125,6 +1151,7 @@ namespace Orthanc
     LOG(INFO) << "Resuming job: " << id;
 
     boost::mutex::scoped_lock lock(mutex_);
+    LastModificationTimeUpdater updater(*this);
     CheckInvariants();
 
     JobsIndex::iterator found = jobsIndex_.find(id);
@@ -1155,6 +1182,7 @@ namespace Orthanc
     LOG(INFO) << "Resubmitting failed job: " << id;
 
     boost::mutex::scoped_lock lock(mutex_);
+    LastModificationTimeUpdater updater(*this);
     CheckInvariants();
 
     JobsIndex::iterator found = jobsIndex_.find(id);
@@ -1214,6 +1242,7 @@ namespace Orthanc
     {
       if ((*it)->IsRetryReady(now))
       {
+        LastModificationTimeUpdater updater(*this);
         LOG(INFO) << "Retrying job: " << (*it)->GetId();
         (*it)->SetState(JobState_Pending);
         pendingJobs_.push(*it);
@@ -1280,6 +1309,8 @@ namespace Orthanc
         }
       }
 
+      LastModificationTimeUpdater updater(registry_);
+
       handler_ = registry_.pendingJobs_.top();
       registry_.pendingJobs_.pop();
 
@@ -1299,6 +1330,7 @@ namespace Orthanc
     if (IsValid())
     {
       boost::mutex::scoped_lock lock(registry_.mutex_);
+      LastModificationTimeUpdater updater(registry_);
 
       try
       {
@@ -1495,6 +1527,7 @@ namespace Orthanc
       status.GetErrorPayload() = errorPayload;
 
       boost::mutex::scoped_lock lock(registry_.mutex_);
+      LastModificationTimeUpdater updater(registry_);
       registry_.CheckInvariants();
       assert(handler_->GetState() == JobState_Running);
 
@@ -1515,6 +1548,7 @@ namespace Orthanc
       JobStatus status(code, details, *job_);
 
       boost::mutex::scoped_lock lock(registry_.mutex_);
+      LastModificationTimeUpdater updater(registry_);
       registry_.CheckInvariants();
       assert(handler_->GetState() == JobState_Running);
 
@@ -1548,6 +1582,7 @@ namespace Orthanc
   JobsRegistry::JobsRegistry(IJobUnserializer& unserializer,
                              const Json::Value& s,
                              size_t maxCompletedJobs) :
+    lastModificationTime_(boost::posix_time::neg_infin),
     maxCompletedJobs_(maxCompletedJobs),
     observer_(NULL)
   {
@@ -1637,5 +1672,12 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
       }
     }
+  }
+
+  void JobsRegistry::GetLastModificationTime(boost::posix_time::ptime& modificationTime) const
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    
+    modificationTime = lastModificationTime_;
   }
 }

@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "DicomInstanceToStore.h"
 #include "ServerIndexChange.h"
 #include "JobEvent.h"
 #include "ServerJobs/LuaJobManager.h"
@@ -34,6 +33,8 @@
 namespace Orthanc
 {
   class ServerContext;
+  class OutgoingDicomInstance;
+  class DicomInstanceToStore;
 
   class LuaScripting : public boost::noncopyable
   {
@@ -127,6 +128,9 @@ namespace Orthanc
 
     bool FilterIncomingCStoreInstance(uint16_t& dimseStatus,
                                       const DicomInstanceToStore& instance,
+                                      const Json::Value& simplified);
+
+    bool FilterOutgoingCStoreInstance(const OutgoingDicomInstance& instance,
                                       const Json::Value& simplified);
 
     void Execute(const std::string& command);

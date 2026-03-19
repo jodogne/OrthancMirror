@@ -28,10 +28,20 @@
 #define NOMINMAX
 #endif
 
+#if !defined(ORTHANC_USE_SYSTEM_MINIZIP)
+#  error The macro ORTHANC_USE_SYSTEM_MINIZIP must be defined
+#endif
+
 #include "ZipReader.h"
 
+#if ORTHANC_USE_SYSTEM_MINIZIP == 1
+#  include <minizip/unzip.h>
+#else
+#  include "../../Resources/ThirdParty/minizip/unzip.h"
+#endif
+
+
 #include "../OrthancException.h"
-#include "../../Resources/ThirdParty/minizip/unzip.h"
 
 #if ORTHANC_SANDBOXED != 1
 #  include "../SystemToolbox.h"

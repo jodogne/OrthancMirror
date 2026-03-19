@@ -66,6 +66,7 @@ namespace Orthanc
 {
   class HttpServer;
   class ServerContext;
+  class OutgoingDicomInstance;
 
   class OrthancPlugins : 
     public IHttpHandler, 
@@ -331,6 +332,10 @@ private:
 
     virtual bool FilterIncomingCStoreInstance(uint16_t& dimseStatus,
                                               const DicomInstanceToStore& instance,
+                                              const Json::Value& simplified) ORTHANC_OVERRIDE;
+
+    // TODO
+    virtual bool FilterOutgoingCStoreInstance(const OutgoingDicomInstance& instance,
                                               const Json::Value& simplified) ORTHANC_OVERRIDE;
 
     OrthancPluginReceivedInstanceAction ApplyReceivedInstanceCallbacks(PluginMemoryBuffer64& modified,

@@ -36,12 +36,14 @@
 #include "../Sources/TemporaryFile.h"
 #include "../Sources/Toolbox.h"
 
+#include "../Resources/CodeGeneration/EncodingTests.h"
+
 
 using namespace Orthanc;
 
 TEST(ZipWriter, Basic)
 {
-  Orthanc::ZipWriter w;
+  ZipWriter w;
   w.SetOutputPath("UnitTestsResults/hello.zip");
   w.Open();
   w.OpenFile("world/hello");
@@ -51,7 +53,7 @@ TEST(ZipWriter, Basic)
 
 TEST(ZipWriter, Basic64)
 {
-  Orthanc::ZipWriter w;
+  ZipWriter w;
   w.SetOutputPath("UnitTestsResults/hello64.zip");
   w.SetZip64(true);
   w.Open();
@@ -62,18 +64,18 @@ TEST(ZipWriter, Basic64)
 
 TEST(ZipWriter, Exceptions)
 {
-  Orthanc::ZipWriter w;
-  ASSERT_THROW(w.Open(), Orthanc::OrthancException);
+  ZipWriter w;
+  ASSERT_THROW(w.Open(), OrthancException);
   w.SetOutputPath("UnitTestsResults/hello3.zip");
   w.Open();
-  ASSERT_THROW(w.Write("hello world"), Orthanc::OrthancException);
+  ASSERT_THROW(w.Write("hello world"), OrthancException);
 }
 
 
 TEST(ZipWriter, Append)
 {
   {
-    Orthanc::ZipWriter w;
+    ZipWriter w;
     w.SetAppendToExisting(false);
     w.SetOutputPath("UnitTestsResults/append.zip");
     w.Open();
@@ -82,7 +84,7 @@ TEST(ZipWriter, Append)
   }
 
   {
-    Orthanc::ZipWriter w;
+    ZipWriter w;
     w.SetAppendToExisting(true);
     w.SetOutputPath("UnitTestsResults/append.zip");
     w.Open();
@@ -103,40 +105,52 @@ namespace Orthanc
   TEST(HierarchicalZipWriter, Index)
   {
     HierarchicalZipWriter::Index i;
-    ASSERT_EQ("hello", i.OpenFile("hello"));
-    ASSERT_EQ("hello-2", i.OpenFile("hello"));
-    ASSERT_EQ("coucou", i.OpenFile("coucou"));
-    ASSERT_EQ("hello-3", i.OpenFile("hello"));
+    ASSERT_EQ("hello", i.OpenFile("hello", true));
+    ASSERT_EQ("hello-2", i.OpenFile("hello", true));
+    ASSERT_EQ("coucou", i.OpenFile("coucou", true));
+    ASSERT_EQ("hello-3", i.OpenFile("hello", true));
+    ASSERT_EQ("trE hell", i.OpenFile("    ÊtrE hellô  ", false));
+    ASSERT_EQ("ÊtrE hellô", i.OpenFile("    ÊtrE hellô  ", true));
+    ASSERT_EQ("hel^lo", i.OpenFile("hel^lo", true));
+    ASSERT_EQ("hel lo", i.OpenFile("hel////lo", true));
+    ASSERT_EQ("hel lo-2", i.OpenFile("hel\\\\/\\/\\lo", true));
 
-    i.OpenDirectory("coucou");
+    i.OpenDirectory("coucou", true);
 
-    ASSERT_EQ("coucou-2/world", i.OpenFile("world"));
-    ASSERT_EQ("coucou-2/world-2", i.OpenFile("world"));
+    ASSERT_EQ("coucou-2/world", i.OpenFile("world", true));
+    ASSERT_EQ("coucou-2/world-2", i.OpenFile("world", true));
 
-    i.OpenDirectory("world");
-  
-    ASSERT_EQ("coucou-2/world-3/hello", i.OpenFile("hello"));
-    ASSERT_EQ("coucou-2/world-3/hello-2", i.OpenFile("hello"));
+    i.OpenDirectory("world", true);
+    i.OpenDirectory("hel///lo", true);
+    i.OpenDirectory("hel\\\\/\\/\\lo", true);
+
+    ASSERT_EQ("coucou-2/world-3/hel lo/hel lo/hello", i.OpenFile("hello", true));
+    ASSERT_EQ("coucou-2/world-3/hel lo/hel lo/hello-2", i.OpenFile("hello", true));
+
+    i.CloseDirectory();
+    i.CloseDirectory();
+    i.CloseDirectory();
+
+    ASSERT_EQ("coucou-2/world-4", i.OpenFile("world", true));
 
     i.CloseDirectory();
 
-    ASSERT_EQ("coucou-2/world-4", i.OpenFile("world"));
-
-    i.CloseDirectory();
-
-    ASSERT_EQ("coucou-3", i.OpenFile("coucou"));
+    ASSERT_EQ("coucou-3", i.OpenFile("coucou", true));
 
     ASSERT_THROW(i.CloseDirectory(), OrthancException);
   }
+}
 
 
-  TEST(HierarchicalZipWriter, Filenames)
-  {
-    ASSERT_EQ("trE hell", HierarchicalZipWriter::Index::KeepAlphanumeric("    ÊtrE hellô  "));
+TEST(HierarchicalZipWriter, Filenames)
+{
+  ASSERT_EQ("trE h/ell", Toolbox::NormalizePath("    ÊtrE h\\\\/\\/\\ellô  ", false, true));
+  ASSERT_EQ("ÊtrE h/ellô", Toolbox::NormalizePath("    ÊtrE h\\\\/\\/\\ellô  ", true, true));
+  ASSERT_EQ("H/el^^ ^ ^^lo world", Toolbox::NormalizePath("    H\\\\/\\/\\el^^   ^\r\n\t^^lo  \t  <world>  ", true, true));
 
-    // The "^" character is considered as a space in DICOM
-    ASSERT_EQ("Hel lo world", HierarchicalZipWriter::Index::KeepAlphanumeric("    Hel^^  ^\r\n\t^^lo  \t  <world>  "));
-  }
+  ASSERT_EQ("trE h ell", Toolbox::NormalizePath("    ÊtrE h\\\\/\\/\\ellô  ", false, false));
+  ASSERT_EQ("ÊtrE h ellô", Toolbox::NormalizePath("    ÊtrE h\\\\/\\/\\ellô  ", true, false));
+  ASSERT_EQ("H el^^ ^ ^^lo world", Toolbox::NormalizePath("    H\\\\/\\/\\el^^   ^\r\n\t^^lo  \t  <world>  ", true, false));
 }
 
 
@@ -191,7 +205,7 @@ TEST(ZipReader, Basic)
   TemporaryFile f;
   
   {
-    Orthanc::ZipWriter w;
+    ZipWriter w;
     ASSERT_EQ(0u, w.GetArchiveSize());
 
     w.SetOutputPath(f.GetPath());
@@ -231,7 +245,7 @@ TEST(ZipWriter, Stream)
   for (int i = 0; i < 2; i++)
   {
     {
-      Orthanc::ZipWriter w;
+      ZipWriter w;
       w.SetMemoryOutput(memory, (i == 0) /* ZIP64? */);
       w.Open();
 
@@ -240,13 +254,13 @@ TEST(ZipWriter, Stream)
       w.CancelStream();
     }
 
-    ASSERT_THROW(ZipReader::CreateFromMemory(memory), Orthanc::OrthancException);
+    ASSERT_THROW(ZipReader::CreateFromMemory(memory), OrthancException);
 
     memory.clear();
     uint64_t archiveSize;
     
     {
-      Orthanc::ZipWriter w;
+      ZipWriter w;
       ASSERT_EQ(0u, w.GetArchiveSize());
       
       w.SetMemoryOutput(memory, (i == 0) /* ZIP64? */);
@@ -411,5 +425,50 @@ namespace Orthanc
     buffer.Flush(s);
     ASSERT_TRUE(s.empty());
     ASSERT_EQ(0u, buffer.GetPosition());
+  }
+}
+
+
+TEST(HierarchicalZipWriter, DISABLED_Utf8)
+{
+  (void) toUpperResult;
+  (void) toUpperSource;
+  (void) testEncodingsExpected;
+
+  static const std::string path = "UnitTestsResults/hello-utf8.zip";
+
+  {
+    ZipWriter w;
+    w.SetOutputPath(path);
+
+    for (unsigned int i = 0; i < testEncodingsCount; i++)
+    {
+      std::string source(testEncodingsEncoded[i]);
+      std::string s = Toolbox::ConvertToUtf8(source, testEncodings[i], false, false);
+      ASSERT_TRUE(Toolbox::IsValidUtf8(s));
+      printf("[%s]\n", s.c_str());
+      w.OpenFile(s);
+      w.Write("Hello");
+    }
+  }
+
+  {
+    std::unique_ptr<ZipReader> reader(ZipReader::CreateFromFile(path));
+
+    ASSERT_EQ(testEncodingsCount, reader->GetFilesCount());
+
+    std::set<std::string> files;
+    std::string filename, content;
+    while (reader->ReadNextFile(filename, content))
+    {
+      files.insert(filename);
+    }
+
+    for (unsigned int i = 0; i < testEncodingsCount; i++)
+    {
+      std::string source(testEncodingsEncoded[i]);
+      std::string s = Toolbox::ConvertToUtf8(source, testEncodings[i], false, false);
+      ASSERT_TRUE(files.find(s) != files.end());
+    }
   }
 }

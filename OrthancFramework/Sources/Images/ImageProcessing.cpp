@@ -25,26 +25,15 @@
 #include "../PrecompiledHeaders.h"
 #include "ImageProcessing.h"
 
+#include "../CompatibilityMath.h"
+#include "../OrthancException.h"
 #include "Image.h"
 #include "ImageTraits.h"
 #include "PixelTraits.h"
-#include "../OrthancException.h"
-
-#ifdef __EMSCRIPTEN__
-/* 
-   Avoid this error:
-   -----------------
-   .../boost/math/special_functions/round.hpp:118:12: warning: implicit conversion from 'std::__2::numeric_limits<long long>::type' (aka 'long long') to 'float' changes value from 9223372036854775807 to 9223372036854775808 [-Wimplicit-int-float-conversion]
-   .../mnt/c/osi/dev/orthanc/Core/Images/ImageProcessing.cpp:333:28: note: in instantiation of function template specialization 'boost::math::llround<float>' requested here
-   .../mnt/c/osi/dev/orthanc/Core/Images/ImageProcessing.cpp:1006:9: note: in instantiation of function template specialization 'Orthanc::MultiplyConstantInternal<unsigned char, true>' requested here
-*/
-#pragma GCC diagnostic ignored "-Wimplicit-int-float-conversion"
-#endif 
-
-#include <boost/math/special_functions/round.hpp>
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <limits>
 #include <list>
 #include <map>
@@ -384,7 +373,7 @@ namespace Orthanc
         {
           assert(sizeof(long long) == sizeof(int64_t));
           // The "round" operation is very costly
-          v = boost::math::llround(static_cast<float>(*p) * factor);
+          v = Math::llround(static_cast<float>(*p) * factor);
         }
         else
         {
@@ -464,7 +453,7 @@ namespace Orthanc
         {         
           // The "round" operation is very costly
           assert(sizeof(TargetType) < sizeof(int));
-          *p = static_cast<TargetType>(boost::math::iround(v));
+          *p = static_cast<TargetType>(Math::iround(v));
         }
         else
         {
@@ -2716,7 +2705,7 @@ namespace Orthanc
             if (UseRound)
             {
               assert(sizeof(RawPixel) < sizeof(int));
-              *p = static_cast<RawPixel>(boost::math::iround(accumulator));
+              *p = static_cast<RawPixel>(Math::iround(accumulator));
             }
             else
             {
@@ -2868,8 +2857,8 @@ namespace Orthanc
       static_cast<float>(target.GetWidth()) / cw,
       static_cast<float>(target.GetHeight()) / ch);
 
-    unsigned int sw = std::min(static_cast<unsigned int>(boost::math::iround(cw * r)), target.GetWidth());  
-    unsigned int sh = std::min(static_cast<unsigned int>(boost::math::iround(ch * r)), target.GetHeight());
+    unsigned int sw = std::min(static_cast<unsigned int>(Math::iround(cw * r)), target.GetWidth());
+    unsigned int sh = std::min(static_cast<unsigned int>(Math::iround(ch * r)), target.GetHeight());
 
     Image resized(target.GetFormat(), sw, sh, false);
   
@@ -2913,10 +2902,10 @@ namespace Orthanc
                              static_cast<float>(height) / static_cast<float>(source.GetHeight()));
 
       unsigned int resizedWidth = static_cast<unsigned int>(
-        boost::math::iround(ratio * static_cast<float>(source.GetWidth())));
+        Math::iround(ratio * static_cast<float>(source.GetWidth())));
 
       unsigned int resizedHeight = static_cast<unsigned int>(
-        boost::math::iround(ratio * static_cast<float>(source.GetHeight())));
+        Math::iround(ratio * static_cast<float>(source.GetHeight())));
 
       std::unique_ptr<ImageAccessor> resized(FitSize(source, resizedWidth, resizedHeight));
 

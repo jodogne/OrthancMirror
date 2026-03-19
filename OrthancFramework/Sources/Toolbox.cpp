@@ -82,9 +82,11 @@
 
 
 #if ORTHANC_ENABLE_MD5 == 1
-// TODO - Could be replaced by <boost/uuid/detail/md5.hpp> starting
-// with Boost >= 1.66.0
-#  include "../Resources/ThirdParty/md5/md5.h"
+#  if BOOST_VERSION >= 106600
+#    include <boost/uuid/detail/md5.hpp>
+#  else
+#    include "../Resources/ThirdParty/md5/md5.h"
+#  endif
 #endif
 
 #if ORTHANC_ENABLE_BASE64 == 1
@@ -215,6 +217,114 @@ extern "C"
 namespace Orthanc
 {
 #if ORTHANC_ENABLE_MD5 == 1
+#  if BOOST_VERSION >= 106600
+  
+  struct Toolbox::MD5Context::PImpl
+  {
+    boost::uuids::detail::md5  md5_;
+    bool                       done_;
+
+    PImpl() :
+      done_(false)
+    {
+    }
+  };
+
+
+  Toolbox::MD5Context::MD5Context() :
+    pimpl_(new PImpl)
+  {
+  }
+
+
+  void Toolbox::MD5Context::Append(const void* data,
+                                   size_t size)
+  {
+    if (pimpl_->done_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    pimpl_->md5_.process_bytes(data, size);
+  }
+
+  void Toolbox::MD5Context::Append(const std::string& source)
+  {
+    Append(reinterpret_cast<const void*>(source.c_str()), source.size());
+  }
+
+  void Toolbox::MD5Context::Export(std::string& target)
+  {
+    if (pimpl_->done_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    pimpl_->done_ = true;
+
+#    if BOOST_VERSION >= 108600
+    unsigned char digest[16];
+
+    // Sanity check for the memory layout: A MD5 digest is 128 bits wide
+    assert(sizeof(digest) == (128 / 8));
+    assert(sizeof(boost::uuids::detail::md5::digest_type) == 16);
+
+    pimpl_->md5_.get_digest(digest);
+
+    target.resize(32);
+    sprintf(&target[0], "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+            digest[0], digest[1], digest[2], digest[3],
+            digest[4], digest[5], digest[6], digest[7],
+            digest[8], digest[9], digest[10], digest[11],
+            digest[12], digest[13], digest[14], digest[15]);
+
+#    elif BOOST_VERSION > 107000
+    unsigned int digest[4];
+
+    // Sanity check for the memory layout: A MD5 digest is 128 bits wide
+    assert(sizeof(digest) == (128 / 8));
+    assert(sizeof(boost::uuids::detail::md5::digest_type) == 16);
+
+    pimpl_->md5_.get_digest(digest);
+
+    target.resize(32);
+    sprintf(&target[0], "%08x%08x%08x%08x",
+            digest[0],
+            digest[1],
+            digest[2],
+            digest[3]);
+
+#    else // BOOST version between 1066 and 1070: there was a byte order bug in these implementations (https://github.com/boostorg/uuid/pull/109)
+    unsigned int digest[4];
+
+    // Sanity check for the memory layout: A MD5 digest is 128 bits wide
+    assert(sizeof(digest) == (128 / 8));
+    assert(sizeof(boost::uuids::detail::md5::digest_type) == 16);
+
+    pimpl_->md5_.get_digest(digest);
+
+    target.resize(32);
+    sprintf(&target[0], "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+            (digest[0] >> 0) & 0xFF, 
+            (digest[0] >> 8) & 0xFF,
+            (digest[0] >> 16) & 0xFF,
+            (digest[0] >> 24) & 0xFF,
+            (digest[1] >> 0) & 0xFF, 
+            (digest[1] >> 8) & 0xFF,
+            (digest[1] >> 16) & 0xFF,
+            (digest[1] >> 24) & 0xFF,
+            (digest[2] >> 0) & 0xFF, 
+            (digest[2] >> 8) & 0xFF,
+            (digest[2] >> 16) & 0xFF,
+            (digest[2] >> 24) & 0xFF,
+            (digest[3] >> 0) & 0xFF, 
+            (digest[3] >> 8) & 0xFF,
+            (digest[3] >> 16) & 0xFF,
+            (digest[3] >> 24) & 0xFF);
+
+#    endif //BOOST_VERSION >= 108600
+  }
+#  else // BOOST_VERSION >= 106600
   static char GetHexadecimalCharacter(uint8_t value)
   {
     assert(value < 16);
@@ -317,6 +427,8 @@ namespace Orthanc
       target[2 * i + 1] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] % 16));
     }
   }
+
+#  endif // BOOST_VERSION >= 106600
 #endif  /* ORTHANC_ENABLE_MD5 */
 
 
@@ -1947,6 +2059,9 @@ namespace Orthanc
 
 #if (ORTHANC_ENABLE_ICU == 1)
     u_cleanup();
+#  if ORTHANC_STATIC_ICU == 1
+    globalIcuData_.clear();
+#  endif
 #endif
   }
 
@@ -2728,6 +2843,212 @@ namespace Orthanc
       value = value.substr(1, value.size() - 2);
     }
   }
+
+
+  bool Toolbox::IsValidUtf8(const std::string& s)
+  {
+    if (s.empty())
+    {
+      return true;
+    }
+
+    const unsigned char* bytes = reinterpret_cast<const unsigned char*>(s.data());
+    size_t len = s.size();
+
+    size_t i = 0;
+    while (i < len)
+    {
+      unsigned char b1 = bytes[i];
+
+      if (b1 <= 0x7fu)
+      {
+        // 1-byte (ASCII): 0xxxxxxx
+        i++;
+      }
+      else if ((b1 >> 5) == 0x06u)
+      {
+        // 2-byte sequence: 110xxxxx 10xxxxxx
+        if (i + 1 >= len)
+        {
+          return false;
+        }
+
+        unsigned char b2 = bytes[i + 1];
+        if ((b2 >> 6) != 0x02u)
+        {
+          return false;
+        }
+
+        uint32_t codepoint =
+          ((b1 & 0x1fu) << 6) |
+          (b2 & 0x3fu);
+
+        // Overlong encoding check
+        if (codepoint < 0x80u)
+        {
+          return false;
+        }
+
+        i += 2;
+      }
+      else if ((b1 >> 4) == 0x0eu)
+      {
+        // 3-byte sequence: 1110xxxx 10xxxxxx 10xxxxxx
+        if (i + 2 >= len)
+        {
+          return false;
+        }
+
+        unsigned char b2 = bytes[i + 1];
+        unsigned char b3 = bytes[i + 2];
+
+        if ((b2 >> 6) != 0x02u ||
+            (b3 >> 6) != 0x02u)
+        {
+          return false;
+        }
+
+        uint32_t codepoint =
+          ((b1 & 0x0fu) << 12) |
+          ((b2 & 0x3fu) << 6) |
+          (b3 & 0x3fu);
+
+        // Overlong encoding check
+        if (codepoint < 0x0800u)
+        {
+          return false;
+        }
+
+        // Surrogate range check (U+D800 to U+DFFF)
+        if (codepoint >= 0xd800u &&
+            codepoint <= 0xdfffu)
+        {
+          return false;
+        }
+
+        i += 3;
+      }
+      else if ((b1 >> 3) == 0x1eu)
+      {
+        // 4-byte sequence: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+        if (i + 3 >= len)
+        {
+          return false;
+        }
+
+        unsigned char b2 = bytes[i + 1];
+        unsigned char b3 = bytes[i + 2];
+        unsigned char b4 = bytes[i + 3];
+
+        if ((b2 >> 6) != 0x02u ||
+            (b3 >> 6) != 0x02u ||
+            (b4 >> 6) != 0x02u)
+        {
+          return false;
+        }
+
+        uint32_t codepoint =
+          ((b1 & 0x07u) << 18) |
+          ((b2 & 0x3fu) << 12) |
+          ((b3 & 0x3fu) << 6) |
+          (b4 & 0x3fu);
+
+        // Overlong encoding check
+        if (codepoint < 0x00010000u)
+        {
+          return false;
+        }
+
+        // Maximum valid Unicode code point
+        if (codepoint > 0x0010ffffu)
+        {
+          return false;
+        }
+
+        i += 4;
+      }
+      else
+      {
+        return false; // Invalid leading byte
+      }
+    }
+
+    return true;
+  }
+
+
+  std::string Toolbox::NormalizePath(const std::string& utf8,
+                                     bool allowUtf8,
+                                     bool allowSlashes)
+  {
+    std::string converted;
+
+    if (allowUtf8 &&
+        IsValidUtf8(utf8))
+    {
+      converted = utf8;
+    }
+    else
+    {
+      converted = Toolbox::ConvertToAscii(utf8);
+    }
+
+    std::string result;
+    result.reserve(converted.size());
+
+    for (size_t i = 0; i < converted.size(); i++)
+    {
+      unsigned char c = converted[i];
+      bool allowRepetitions = true;
+
+      if (isspace(c) ||
+          c <= 31 ||  // Control characters
+
+          // Remove characters that could break some filesystems
+          c == ':' ||
+          c == '*' ||
+          c == '?' ||
+          c == '"' ||
+          c == '<' ||
+          c == '>' ||
+          c == '|')
+      {
+        // This is a space character: Avoid their repetition
+        allowRepetitions = false;
+        c = ' ';
+      }
+      else if (c == '/' ||
+               c == '\\')
+      {
+        // This is a slash or backslash: Prevent their repetition
+        allowRepetitions = false;
+        if (allowSlashes)
+        {
+          c = '/';  // Normalize backslashes as forward slashes
+        }
+        else
+        {
+          c = ' ';  // Slashes are not allowed: Replace by spaces
+        }
+      }
+
+      if (allowRepetitions)
+      {
+        result.push_back(c);
+      }
+      else
+      {
+        if (result.empty() ||
+            result[result.size() - 1] != c)
+        {
+          result.push_back(c);
+        }
+      }
+    }
+
+    return Toolbox::StripSpaces(result);
+  }
+
 
   Toolbox::ElapsedTimer::ElapsedTimer()
   {

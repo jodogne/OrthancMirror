@@ -22,7 +22,6 @@ General
 * Support retry counter in Orthanc::HttpClient
 * Option to enable DNS lookups in DICOM:
   https://orthanc.uclouvain.be/hg/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/OrthancFramework.cpp#l88
-* Toolbox::ComputeMD5() fails on files larger than 4GB
 * Logging: add more specific information to contextualize the logs.
   For a DICOM Transfer, that would be nice to include the modality in the context + a study identifier or a job id.
   Note that the thread id greatly helps already wrt this topic.
@@ -74,8 +73,6 @@ General
       "Hashing": "sha1"} }
 * Reuse the ThreadedInstanceLoader from the ArchiveJob in C-Store, peer/store ... to optimize loading
   time when working with an object storage.
-* Implement a SharedMessageQueue with a max size -> that would greatly simplify the flow control in the 
-  ThreadedInstanceLoader (also used in DicomWeb).
   
 
 ============================
@@ -288,6 +285,8 @@ Performance
     Would be interesting to log these errors and count them in the prometheus metrics.
   Note: I'm (maybe naively) thinking that you only need the beginning of the file to get the DICOM tags to be stored 
   in the database, so maybe the rest of the file could be "streamed" directly to disk and not kept in memory?
+  Refs: 
+  - https://discourse.orthanc-server.org/t/high-memory-consumption-during-ingestion-of-large-1-5-gb-multi-frame-instances/6408
 * To investigate: usage of mapped_file (not only in the indexer plugin): 
   https://discourse.orthanc-server.org/t/patch-for-orthanc-indexer-plugin-crashing-on-big-non-dicom-files/3849/7
 

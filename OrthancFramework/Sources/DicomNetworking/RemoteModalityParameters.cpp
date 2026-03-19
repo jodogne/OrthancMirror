@@ -28,8 +28,10 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../SerializationToolbox.h"
+#include "../Toolbox.h"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/regex.hpp>
 #include <stdexcept>
 
 
@@ -545,4 +547,5 @@ namespace Orthanc
   {
     retrieveMethod_ = retrieveMethod;
   }
+
 }

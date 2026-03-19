@@ -100,6 +100,7 @@ namespace Orthanc
     static const char* const HAS_EXTENDED_FIND = "HasExtendedFind";
     static const char* const READ_ONLY = "ReadOnly";
     static const char* const HAS_RESERVE_QUEUE_VALUE = "HasReserveQueueValue";
+    static const char* const PATIENT_LEVEL_ENABLED = "PatientLevelEnabled";
 
     if (call.IsDocumentation())
     {
@@ -153,6 +154,8 @@ namespace Orthanc
                         "and 'HasReserveQueueValue' (new in Orthanc 1.12.10)")
         .SetAnswerField(READ_ONLY, RestApiCallDocumentation::Type_Boolean,
                         "Whether Orthanc is running in read only mode (new in Orthanc 1.12.5)")
+        .SetAnswerField(PATIENT_LEVEL_ENABLED, RestApiCallDocumentation::Type_Boolean,
+                        "Whether Patient level routes and sanity checks are enabled (new in Orthanc 1.12.11)")
         .SetHttpGetSample("https://orthanc.uclouvain.be/demo/system", true);
       return;
     }
@@ -186,6 +189,7 @@ namespace Orthanc
     result[STORAGE_AREA_PLUGIN] = Json::nullValue;
     result[DATABASE_BACKEND_PLUGIN] = Json::nullValue;
     result[READ_ONLY] = context.IsReadOnly();
+    result[PATIENT_LEVEL_ENABLED] = context.IsPatientLevelEnabled();
 
 #if ORTHANC_ENABLE_PLUGINS == 1
     result[PLUGINS_ENABLED] = true;
