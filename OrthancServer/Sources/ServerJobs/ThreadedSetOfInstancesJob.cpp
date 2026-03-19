@@ -371,6 +371,7 @@ namespace Orthanc
 
   static const char* KEY_FAILED_INSTANCES = "FailedInstances";
   static const char* KEY_PARENT_RESOURCES = "ParentResources";
+  static const char* KEY_RESOURCES = "Resources";
   static const char* KEY_DESCRIPTION = "Description";
   static const char* KEY_PERMISSIVE = "Permissive";
   static const char* KEY_USER_DATA = "UserData";
@@ -382,6 +383,26 @@ namespace Orthanc
   static const char* KEY_KEEP_SOURCE = "KeepSource";
   static const char* KEY_WORKERS_COUNT = "WorkersCount";
 
+  static void SerializeResources(Json::Value& target, const std::map<std::string, ResourceType>& parentResources, bool includeParentResourcesField)
+  {
+    if (!parentResources.empty())
+    {
+      target[KEY_RESOURCES] = Json::arrayValue;
+      SerializationToolbox::WriteMapOfResourcesAndTypes(target[KEY_RESOURCES], parentResources);
+
+      if (includeParentResourcesField)
+      {
+        std::set<std::string> keys;
+        for (std::map<std::string, ResourceType>::const_iterator it = parentResources.begin(); it != parentResources.end(); ++it) 
+        {
+          keys.insert(it->first);
+        }
+
+        SerializationToolbox::WriteSetOfStrings(target, keys, KEY_PARENT_RESOURCES);
+      }
+    }
+  }
+
 
   void ThreadedSetOfInstancesJob::GetPublicContent(Json::Value& target) const
   {
@@ -391,10 +412,7 @@ namespace Orthanc
     target[KEY_INSTANCES_COUNT] = static_cast<uint32_t>(GetInstancesCount());
     target[KEY_FAILED_INSTANCES_COUNT] = static_cast<uint32_t>(failedInstances_.size());
 
-    if (!parentResources_.empty())
-    {
-      SerializationToolbox::WriteSetOfStrings(target, parentResources_, KEY_PARENT_RESOURCES);
-    }
+    SerializeResources(target, parentResources_, true);
   }
 
 
@@ -417,7 +435,7 @@ namespace Orthanc
     
     SerializationToolbox::WriteSetOfStrings(target, instancesToProcess_, KEY_INSTANCES);
     SerializationToolbox::WriteSetOfStrings(target, failedInstances_, KEY_FAILED_INSTANCES);
-    SerializationToolbox::WriteSetOfStrings(target, parentResources_, KEY_PARENT_RESOURCES);
+    SerializeResources(target, parentResources_, false);
 
     return true;
   }
@@ -439,10 +457,29 @@ namespace Orthanc
   {
     SerializationToolbox::ReadSetOfStrings(failedInstances_, source, KEY_FAILED_INSTANCES);
 
-    if (source.isMember(KEY_PARENT_RESOURCES))
+    if (source.isMember(KEY_PARENT_RESOURCES) && !source.isMember(KEY_RESOURCES))
     {
-      // Backward compatibility with Orthanc <= 1.5.6
-      SerializationToolbox::ReadSetOfStrings(parentResources_, source, KEY_PARENT_RESOURCES);
+      // Backward compatibility with Orthanc <= 1.12.11 (a KEY_PARENT_RESOURCES field with the resources ids)
+      std::set<std::string> parentResources;
+      SerializationToolbox::ReadSetOfStrings(parentResources, source, KEY_PARENT_RESOURCES);
+
+      for (std::set<std::string>::const_iterator it = parentResources.begin(); it != parentResources.end(); ++it)
+      {
+        try
+        {
+          ResourceType level;
+          context.GetIndex().LookupResourceType(level, *it);
+          parentResources_[*it] = level;
+        }
+        catch(...)
+        {
+          // ignore errors, the resource might have disappear 
+        }
+      }
+    }
+    else if (source.isMember(KEY_RESOURCES) && source[KEY_RESOURCES].isArray())
+    {
+      SerializationToolbox::ReadMapOfResourcesAndTypes(parentResources_, source, KEY_RESOURCES);
     }
     
     if (source.isMember(KEY_KEEP_SOURCE))
@@ -635,11 +672,11 @@ namespace Orthanc
   }
 
 
-  void ThreadedSetOfInstancesJob::AddParentResource(const std::string &resource)
+  void ThreadedSetOfInstancesJob::AddParentResource(const std::string &resource, ResourceType level)
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
 
-    parentResources_.insert(resource);
+    parentResources_[resource] = level;
   }
 
 }

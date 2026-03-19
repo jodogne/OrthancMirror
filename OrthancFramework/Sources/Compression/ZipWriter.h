@@ -130,6 +130,7 @@ namespace Orthanc
     boost::shared_ptr<PImpl> pimpl_;
 
     bool isZip64_;
+    bool allowUtf8_;
     bool hasFileInZip_;
     bool append_;
     uint8_t compressionLevel_;
@@ -145,6 +146,26 @@ namespace Orthanc
     void SetZip64(bool isZip64);
 
     bool IsZip64() const;
+
+    /**
+     * Starting with minizip 1.3.2 (released on 17 Feb 2026), bit 11
+     * of the ZIP header flags is appropriately set if the path is
+     * encoded using UTF-8. This enables compatibility with UTF-8.
+     * The behavior of Orthanc <= 1.12.10 corresponds to
+     * "SetAllowUtf8(false)".
+     *
+     * Note that if linking against the system-wide version of minizip,
+     * there is no way to check that its version is above 1.3.2.
+     *
+     * https://zlib.net/ChangeLog.txt
+     * https://discourse.orthanc-server.org/t/seriesdescription-characters-and-removed-during-oe2-zip-export/6397
+     **/
+    void SetAllowUtf8(bool allowUtf8);
+
+    bool IsAllowUtf8() const
+    {
+      return allowUtf8_;
+    }
 
     void SetCompressionLevel(uint8_t level);
 
@@ -164,9 +185,10 @@ namespace Orthanc
 
     const boost::filesystem::path& GetOutputPath() const;
 
-    void OpenFile(const char* filename);
+    void OpenFile(const std::string& filename);
 
-    void Write(const void* data, size_t length);
+    void Write(const void* data,
+               size_t length);
 
     void Write(const std::string& data);
 

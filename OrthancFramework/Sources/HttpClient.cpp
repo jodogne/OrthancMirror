@@ -1138,6 +1138,7 @@ namespace Orthanc
     }
     else
     {
+      answer.FlattenBody(answerBody);
       return false;
     }
   }

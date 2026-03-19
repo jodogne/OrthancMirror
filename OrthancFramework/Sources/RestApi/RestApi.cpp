@@ -25,12 +25,12 @@
 #include "../PrecompiledHeaders.h"
 #include "RestApi.h"
 
+#include "../CompatibilityMath.h"
 #include "../HttpServer/StringHttpOutput.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
 
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/math/special_functions/round.hpp>
 #include <stdlib.h>   // To define "_exit()" under Windows
 #include <stdio.h>
 
@@ -356,7 +356,7 @@ namespace Orthanc
     
         LOG(WARNING) << "The documentation of the REST API contains " << GetSuccessPathsCount()
                      << " paths over a total of " << GetTotalPathsCount() << " paths "
-                     << "(coverage: " << static_cast<unsigned int>(boost::math::iround(coverage)) << "%)";
+                     << "(coverage: " << static_cast<unsigned int>(Math::iround(coverage)) << "%)";
       }
     };
 

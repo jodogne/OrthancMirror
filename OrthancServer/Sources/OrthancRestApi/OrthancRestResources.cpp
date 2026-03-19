@@ -38,6 +38,7 @@
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/CompatibilityMath.h"
 
 #include "../OrthancConfiguration.h"
 #include "../Search/DatabaseLookup.h"
@@ -47,7 +48,6 @@
 #include "../SliceOrdering.h"
 
 // This "include" is mandatory for Release builds using Linux Standard Base
-#include <boost/math/special_functions/round.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "../../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
@@ -1170,8 +1170,8 @@ namespace Orthanc
             ratio = static_cast<float>(argHeight) / static_cast<float>(decoded->GetHeight());
           }
           
-          targetWidth = boost::math::iround(ratio * static_cast<float>(decoded->GetWidth()));
-          targetHeight = boost::math::iround(ratio * static_cast<float>(decoded->GetHeight()));
+          targetWidth = Math::iround(ratio * static_cast<float>(decoded->GetWidth()));
+          targetHeight = Math::iround(ratio * static_cast<float>(decoded->GetHeight()));
         }
         
         if (decoded->GetFormat() == PixelFormat_RGB24 || decoded->GetFormat() == PixelFormat_RGB48)
@@ -4283,14 +4283,20 @@ namespace Orthanc
   void OrthancRestApi::RegisterResources()
   {
     Register("/instances", ListResources<ResourceType_Instance>);
-    Register("/patients", ListResources<ResourceType_Patient>);
+    if (context_.IsPatientLevelEnabled())
+    {
+      Register("/patients", ListResources<ResourceType_Patient>);
+    }
     Register("/series", ListResources<ResourceType_Series>);
     Register("/studies", ListResources<ResourceType_Study>);
 
     if (!context_.IsReadOnly())
     {
       Register("/instances/{id}", DeleteSingleResource<ResourceType_Instance>);
-      Register("/patients/{id}", DeleteSingleResource<ResourceType_Patient>);
+      if (context_.IsPatientLevelEnabled())
+      {
+        Register("/patients/{id}", DeleteSingleResource<ResourceType_Patient>);
+      }
       Register("/series/{id}", DeleteSingleResource<ResourceType_Series>);
       Register("/studies/{id}", DeleteSingleResource<ResourceType_Study>);
 
@@ -4302,21 +4308,33 @@ namespace Orthanc
     }
 
     Register("/instances/{id}", GetSingleResource<ResourceType_Instance>);
-    Register("/patients/{id}", GetSingleResource<ResourceType_Patient>);
+    if (context_.IsPatientLevelEnabled())
+    {
+      Register("/patients/{id}", GetSingleResource<ResourceType_Patient>);
+    }
     Register("/series/{id}", GetSingleResource<ResourceType_Series>);
     Register("/studies/{id}", GetSingleResource<ResourceType_Study>);
 
     Register("/instances/{id}/statistics", GetResourceStatistics);
-    Register("/patients/{id}/statistics", GetResourceStatistics);
+    if (context_.IsPatientLevelEnabled())
+    {
+      Register("/patients/{id}/statistics", GetResourceStatistics);
+    }
     Register("/studies/{id}/statistics", GetResourceStatistics);
     Register("/series/{id}/statistics", GetResourceStatistics);
 
-    Register("/patients/{id}/shared-tags", GetSharedTags);
+    if (context_.IsPatientLevelEnabled())
+    {
+      Register("/patients/{id}/shared-tags", GetSharedTags);
+    }
     Register("/series/{id}/shared-tags", GetSharedTags);
     Register("/studies/{id}/shared-tags", GetSharedTags);
 
     Register("/instances/{id}/module", GetModule<ResourceType_Instance, DicomModule_Instance>);
-    Register("/patients/{id}/module", GetModule<ResourceType_Patient, DicomModule_Patient>);
+    if (context_.IsPatientLevelEnabled())
+    {
+      Register("/patients/{id}/module", GetModule<ResourceType_Patient, DicomModule_Patient>);
+    }
     Register("/series/{id}/module", GetModule<ResourceType_Series, DicomModule_Series>);
     Register("/studies/{id}/module", GetModule<ResourceType_Study, DicomModule_Study>);
     Register("/studies/{id}/module-patient", GetModule<ResourceType_Study, DicomModule_Patient>);
@@ -4347,11 +4365,17 @@ namespace Orthanc
     Register("/instances/{id}/header", GetInstanceHeader);
     Register("/instances/{id}/numpy", GetNumpyInstance);  // New in Orthanc 1.10.0
 
-    Register("/patients/{id}/protected", IsProtectedPatient);
+    if (context_.IsPatientLevelEnabled())
+    {
+      Register("/patients/{id}/protected", IsProtectedPatient);
+    }
   
     if (!context_.IsReadOnly())
     {
-      Register("/patients/{id}/protected", SetPatientProtection);
+      if (context_.IsPatientLevelEnabled())
+      {
+        Register("/patients/{id}/protected", SetPatientProtection);
+      }
     }
     else
     {
@@ -4367,6 +4391,11 @@ namespace Orthanc
 
     for (size_t i = 0; i < resourceTypes.size(); i++)
     {
+      if (resourceTypes[i] == "patients" && !context_.IsPatientLevelEnabled())
+      {
+        continue;
+      }
+
       Register("/" + resourceTypes[i] + "/{id}/metadata", ListMetadata);
       Register("/" + resourceTypes[i] + "/{id}/metadata/{name}", DeleteMetadata);
       Register("/" + resourceTypes[i] + "/{id}/metadata/{name}", GetMetadata);
@@ -4418,9 +4447,12 @@ namespace Orthanc
     Register("/tools/find", Find<FindType_Find>);
     Register("/tools/count-resources", Find<FindType_Count>);
 
-    Register("/patients/{id}/studies", GetChildResources<ResourceType_Patient, ResourceType_Study>);
-    Register("/patients/{id}/series", GetChildResources<ResourceType_Patient, ResourceType_Series>);
-    Register("/patients/{id}/instances", GetChildResources<ResourceType_Patient, ResourceType_Instance>);
+    if (context_.IsPatientLevelEnabled())
+    {
+      Register("/patients/{id}/studies", GetChildResources<ResourceType_Patient, ResourceType_Study>);
+      Register("/patients/{id}/series", GetChildResources<ResourceType_Patient, ResourceType_Series>);
+      Register("/patients/{id}/instances", GetChildResources<ResourceType_Patient, ResourceType_Instance>);
+    }
     Register("/studies/{id}/series", GetChildResources<ResourceType_Study, ResourceType_Series>);
     Register("/studies/{id}/instances", GetChildResources<ResourceType_Study, ResourceType_Instance>);
     Register("/series/{id}/instances", GetChildResources<ResourceType_Series, ResourceType_Instance>);
@@ -4432,7 +4464,10 @@ namespace Orthanc
     Register("/instances/{id}/study", GetParentResource<ResourceType_Instance, ResourceType_Study>);
     Register("/instances/{id}/series", GetParentResource<ResourceType_Instance, ResourceType_Series>);
 
-    Register("/patients/{id}/instances-tags", GetChildInstancesTags);
+    if (context_.IsPatientLevelEnabled())
+    {
+      Register("/patients/{id}/instances-tags", GetChildInstancesTags);
+    }
     Register("/studies/{id}/instances-tags", GetChildInstancesTags);
     Register("/series/{id}/instances-tags", GetChildInstancesTags);
 
@@ -4443,7 +4478,10 @@ namespace Orthanc
 
     if (!context_.IsReadOnly())
     {
-      Register("/patients/{id}/reconstruct", ReconstructResource<ResourceType_Patient>);
+      if (context_.IsPatientLevelEnabled())
+      {
+        Register("/patients/{id}/reconstruct", ReconstructResource<ResourceType_Patient>);
+      }
       Register("/studies/{id}/reconstruct", ReconstructResource<ResourceType_Study>);
       Register("/series/{id}/reconstruct", ReconstructResource<ResourceType_Series>);
       Register("/instances/{id}/reconstruct", ReconstructResource<ResourceType_Instance>);

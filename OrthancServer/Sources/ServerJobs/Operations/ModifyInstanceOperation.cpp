@@ -25,6 +25,7 @@
 #include "ModifyInstanceOperation.h"
 
 #include "DicomInstanceOperationValue.h"
+#include "../../DicomInstanceToStore.h"
 #include "../../ServerContext.h"
 
 #include "../../../../OrthancFramework/Sources/Logging.h"

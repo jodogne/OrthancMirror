@@ -30,17 +30,17 @@
 
 namespace Orthanc
 {
-  Semaphore::Semaphore(unsigned int availableResources) :
+  Semaphore::Semaphore(size_t availableResources) :
     availableResources_(availableResources)
   {
   }
 
-  unsigned int Semaphore::GetAvailableResourcesCount() const
+  size_t Semaphore::GetAvailableResourcesCount() const
   {
     return availableResources_;
   }
 
-  void Semaphore::Release(unsigned int resourceCount)
+  void Semaphore::Release(size_t resourceCount)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
@@ -48,7 +48,7 @@ namespace Orthanc
     condition_.notify_one();
   }
 
-  void Semaphore::Acquire(unsigned int resourceCount)
+  void Semaphore::Acquire(size_t resourceCount)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
@@ -60,7 +60,7 @@ namespace Orthanc
     availableResources_ -= resourceCount;
   }
 
-  bool Semaphore::TryAcquire(unsigned int resourceCount)
+  bool Semaphore::TryAcquire(size_t resourceCount)
   {
     boost::mutex::scoped_lock lock(mutex_);
 

@@ -43,6 +43,7 @@
 namespace Orthanc
 {
   class DicomInstanceToStore;
+  class OutgoingDicomInstance;
   class IPluginStorageArea;
   class JobsEngine;
   class MetricsRegistry;
@@ -140,6 +141,13 @@ namespace Orthanc
       {
         return context_.filterLua_.FilterIncomingCStoreInstance(dimseStatus, instance, simplified);
       }
+
+      virtual bool FilterOutgoingCStoreInstance(const OutgoingDicomInstance& instance,
+                                                const Json::Value& simplified) ORTHANC_OVERRIDE
+      {
+        return context_.filterLua_.FilterOutgoingCStoreInstance(instance, simplified);
+      }
+
     };
     
     class ServerListener
@@ -263,7 +271,8 @@ namespace Orthanc
     std::set<DicomTransferSyntax>  acceptedTransferSyntaxes_;
     std::list<std::string>         acceptedSopClasses_;  // ordered; the most 120 common ones first
     bool readOnly_;
-
+    bool patientLevelEnabled_;
+    
     StoreResult StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
                                       StoreInstanceMode mode,
@@ -332,6 +341,13 @@ namespace Orthanc
     void SetMaximumStorageCacheSize(size_t size)
     {
       return storageCache_.SetMaximumSize(size);
+    }
+
+    void SetPatientLevelEnabled(bool enabled);
+
+    bool IsPatientLevelEnabled() const
+    {
+      return patientLevelEnabled_;
     }
 
     void SetCompressionEnabled(bool enabled);
@@ -498,7 +514,8 @@ namespace Orthanc
     bool HasPlugins() const;
 
     void AddChildInstances(SetOfInstancesJob& job,
-                           const std::string& publicId);
+                           const std::string& publicId,
+                           ResourceType level);
 
     void SignalUpdatedModalities();
 

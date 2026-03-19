@@ -52,7 +52,7 @@ namespace Orthanc
     std::string           localAet_;
     uint32_t              timeout_;
     RetrieveMethod        retrieveMethod_;   // New in Orthanc 1.12.6
-    
+
     void Clear();
 
     void UnserializeArray(const Json::Value& serialized);
@@ -123,6 +123,5 @@ namespace Orthanc
     RetrieveMethod GetRetrieveMethod() const;
 
     void SetRetrieveMethod(RetrieveMethod retrieveMethod);
-
   };
 }

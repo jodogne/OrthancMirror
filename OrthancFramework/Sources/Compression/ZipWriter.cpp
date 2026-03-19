@@ -28,16 +28,27 @@
 #define NOMINMAX
 #endif
 
+#if !defined(ORTHANC_USE_SYSTEM_MINIZIP)
+#  error The macro ORTHANC_USE_SYSTEM_MINIZIP must be defined
+#endif
+
 #include "ZipWriter.h"
+
 
 #include <limits>
 #include <boost/filesystem.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include "../../Resources/ThirdParty/minizip/zip.h"
+#if ORTHANC_USE_SYSTEM_MINIZIP == 1
+#  include <minizip/zip.h>
+#else
+#  include "../../Resources/ThirdParty/minizip/zip.h"
+#endif
+
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../SystemToolbox.h"
+#include "../Toolbox.h"
 
 
 static void PrepareFileInfo(zip_fileinfo& zfi)
@@ -440,6 +451,7 @@ namespace Orthanc
   ZipWriter::ZipWriter() :
     pimpl_(new PImpl),
     isZip64_(false),
+    allowUtf8_(false),
     hasFileInZip_(false),
     append_(false),
     compressionLevel_(6)
@@ -584,6 +596,21 @@ namespace Orthanc
     }
   }
 
+
+  void ZipWriter::SetAllowUtf8(bool allowUtf8)
+  {
+    allowUtf8_ = allowUtf8;
+
+#if ORTHANC_USE_SYSTEM_MINIZIP == 1
+    if (allowUtf8_)
+    {
+      LOG(WARNING) << "UTF-8 paths requested in ZIP file, but Orthanc is linked against "
+                   << "the system-wide minizip library, which may not support this feature";
+    }
+#endif
+  }
+
+
   void ZipWriter::SetCompressionLevel(uint8_t level)
   {
     if (level >= 10)
@@ -603,9 +630,11 @@ namespace Orthanc
     return compressionLevel_;
   }
 
-  void ZipWriter::OpenFile(const char* filename)
+  void ZipWriter::OpenFile(const std::string& filename)
   {
     Open();
+
+    const std::string normalized = Toolbox::NormalizePath(filename, allowUtf8_, true /* allow slashes, necessary for subdirectories */);
 
     zip_fileinfo zfi;
     PrepareFileInfo(zfi);
@@ -614,7 +643,7 @@ namespace Orthanc
 
     if (isZip64_)
     {
-      result = zipOpenNewFileInZip64(pimpl_->file_, filename,
+      result = zipOpenNewFileInZip64(pimpl_->file_, normalized.c_str(),
                                      &zfi,
                                      NULL,   0,
                                      NULL,   0,
@@ -624,7 +653,7 @@ namespace Orthanc
     }
     else
     {
-      result = zipOpenNewFileInZip(pimpl_->file_, filename,
+      result = zipOpenNewFileInZip(pimpl_->file_, normalized.c_str(),
                                    &zfi,
                                    NULL,   0,
                                    NULL,   0,

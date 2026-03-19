@@ -32,6 +32,7 @@
 #include "../../OrthancFramework/Sources/SerializationToolbox.h"
 
 #include "../Sources/Database/SQLiteDatabaseWrapper.h"
+#include "../Sources/DicomInstanceToStore.h"
 #include "../Sources/ServerContext.h"
 #include "../Sources/ServerJobs/LuaJobManager.h"
 #include "../Sources/ServerJobs/OrthancJobUnserializer.h"
@@ -782,6 +783,14 @@ TEST_F(OrthancJobsSerialization, Jobs)
   {
     ArchiveJob job(GetContext(), false, false, ResourceType_Patient);
     ASSERT_FALSE(job.Serialize(s));  // Cannot serialize this
+
+    Json::Value content;
+    job.GetPublicContent(content);
+    ASSERT_FALSE(content["Utf8"].asBool());
+
+    job.SetAllowUtf8(true);
+    job.GetPublicContent(content);
+    ASSERT_TRUE(content["Utf8"].asBool());
   }
 
   // DicomModalityStoreJob
