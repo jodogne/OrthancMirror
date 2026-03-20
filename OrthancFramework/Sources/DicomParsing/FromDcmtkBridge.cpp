@@ -888,6 +888,11 @@ namespace Orthanc
           Float32* floatArray = NULL;
           if (content.getFloat32Array(floatArray).good() && floatArray != NULL)
           {
+            if (element.getLength() % sizeof(Float32) != 0)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
+
             const unsigned long numFloats = element.getLength() / sizeof(Float32);
             std::string result;
             for (unsigned long i = 0; i < numFloats; i++)
@@ -916,6 +921,11 @@ namespace Orthanc
           Float64* doubleArray = NULL;
           if (content.getFloat64Array(doubleArray).good() && doubleArray != NULL)
           {
+            if (element.getLength() % sizeof(Float64) != 0)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
+
             const unsigned long numDoubles = element.getLength() / sizeof(Float64);
             std::string result;
             for (unsigned long i = 0; i < numDoubles; i++)
@@ -945,6 +955,11 @@ namespace Orthanc
           Uint32* uint32Array = NULL;
           if (content.getUint32Array(uint32Array).good() && uint32Array != NULL)
           {
+            if (element.getLength() % sizeof(Uint32) != 0)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
+
             const unsigned long numValues = element.getLength() / sizeof(Uint32);
             std::string result;
             for (unsigned long i = 0; i < numValues; i++)
@@ -3175,6 +3190,11 @@ namespace Orthanc
           Float32* floatArray = NULL;
           if (content.getFloat32Array(floatArray).good() && floatArray != NULL)
           {
+            if (element.getLength() % sizeof(Float32) != 0)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
+
             const unsigned long numFloats = static_cast<unsigned long>(element.getLength() / sizeof(Float32));
             values.reserve(numFloats);
 
@@ -3204,6 +3224,11 @@ namespace Orthanc
           Float64* doubleArray = NULL;
           if (content.getFloat64Array(doubleArray).good() && doubleArray != NULL)
           {
+            if (element.getLength() % sizeof(Float64) != 0)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
+
             const unsigned long numDoubles = static_cast<unsigned long>(element.getLength() / sizeof(Float64));
             values.reserve(numDoubles);
 
@@ -3234,6 +3259,11 @@ namespace Orthanc
           Uint32* uint32Array = NULL;
           if (content.getUint32Array(uint32Array).good() && uint32Array != NULL)
           {
+            if (element.getLength() % sizeof(Uint32) != 0)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
+
             const unsigned long numValues = static_cast<unsigned long>(element.getLength() / sizeof(Uint32));
             values.reserve(numValues);
 
