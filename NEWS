@@ -22,7 +22,7 @@ REST API
 * New option "Utf8" available in the "{...}/archive" and "/tools/create-archive" routes
   to use UTF-8 filenames in the generated ZIP archives. It defaults to the value
   of the new configuration option "ZipUseUtf8".
-* Support for OF and OD value representations in "/instances/{...}/file" with content type
+* Support for OD, OF, and OL value representations in "/instances/{...}/file" with content type
   "application/dicom+json" (i.e. DICOMweb) and in "/instances/{...}/tags" (contribution by
   Yusuf Sayıta, Philips).
 * New "Content.Resources" field in "DicomModalityStore", "OrthancPeerStore" and "ResourceModification" 
