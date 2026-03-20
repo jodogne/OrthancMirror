@@ -461,13 +461,15 @@ namespace Orthanc
 
   size_t DicomImageInformation::GetFrameSize() const
   {
+    uint64_t totalFrameSize;
+
     if (bitsStored_ == 1)
     {
       assert(GetWidth() % 8 == 0);
       
       if (GetChannelCount() == 1)
       {
-        return GetHeight() * GetWidth() / 8;
+        totalFrameSize = static_cast<uint64_t>(GetHeight()) * static_cast<uint64_t>(GetWidth()) / 8;
       }
       else
       {
@@ -477,16 +479,19 @@ namespace Orthanc
     }
     else
     {
-      uint64_t totalFrameSize = static_cast<uint64_t>(GetHeight()) * 
-                                GetWidth() *
-                                GetBytesPerValue() *
-                                GetChannelCount();
+      totalFrameSize = (static_cast<uint64_t>(GetHeight()) *
+                        static_cast<uint64_t>(GetWidth()) *
+                        static_cast<uint64_t>(GetBytesPerValue()) *
+                        static_cast<uint64_t>(GetChannelCount()));
+    }
 
-      if (totalFrameSize > MAX_FRAME_SIZE)
-      {
-        throw OrthancException(ErrorCode_BadFileFormat, "DICOM Frame size overflow");
-      }
-
+    if (totalFrameSize > MAX_FRAME_SIZE ||
+        static_cast<uint64_t>(static_cast<size_t>(totalFrameSize)) != totalFrameSize)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "DICOM Frame size overflow");
+    }
+    else
+    {
       return static_cast<size_t>(totalFrameSize);
     }
   }
