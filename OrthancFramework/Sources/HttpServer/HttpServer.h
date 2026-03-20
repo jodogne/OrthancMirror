@@ -123,6 +123,10 @@ namespace Orthanc
     boost::mutex threadCounterMutex_;  // New in Orthanc 1.12.9
     uint16_t threadCounter_;           // Introduced as a global, static variable in Orthanc 1.12.2
 
+    // New in Orthanc 1.12.11
+    bool    hasMaxBodySize_;
+    size_t  maxBodySize_;
+
 #if ORTHANC_ENABLE_PUGIXML == 1
     WebDavBuckets webDavBuckets_;
 #endif
@@ -246,5 +250,17 @@ namespace Orthanc
     MetricsRegistry::AvailableResourcesDecounter* CreateAvailableHttpThreadsDecounter();
 
     void UpdateCurrentThreadName();
+
+    void SetMaxBodySize(uint64_t size);
+
+    bool HasMaxBodySize() const
+    {
+      return hasMaxBodySize_;
+    }
+
+    size_t GetMaxBodySize() const
+    {
+      return maxBodySize_;
+    }
   };
 }
