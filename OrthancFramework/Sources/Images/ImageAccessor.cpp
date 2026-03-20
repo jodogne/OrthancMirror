@@ -165,7 +165,14 @@ namespace Orthanc
   {
     if (buffer_ != NULL)
     {
-      return buffer_ + static_cast<size_t>(y) * static_cast<size_t>(pitch_);
+      if (y < height_)
+      {
+        return buffer_ + static_cast<size_t>(y) * static_cast<size_t>(pitch_);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
     }
     else
     {
@@ -184,7 +191,14 @@ namespace Orthanc
 
     if (buffer_ != NULL)
     {
-      return buffer_ + static_cast<size_t>(y) * static_cast<size_t>(pitch_);
+      if (y < height_)
+      {
+        return buffer_ + static_cast<size_t>(y) * static_cast<size_t>(pitch_);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
     }
     else
     {
@@ -210,17 +224,20 @@ namespace Orthanc
                                      unsigned int pitch,
                                      const void *buffer)
   {
+    const uint64_t size = static_cast<uint64_t>(height) * static_cast<uint64_t>(pitch);
+
+    if (static_cast<uint64_t>(GetBytesPerPixel() * width) > static_cast<uint64_t>(pitch) ||
+        static_cast<uint64_t>(static_cast<size_t>(size)) != size)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     readOnly_ = true;
     format_ = format;
     width_ = width;
     height_ = height;
     pitch_ = pitch;
     buffer_ = reinterpret_cast<uint8_t*>(const_cast<void*>(buffer));
-
-    if (GetBytesPerPixel() * width_ > pitch_)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
   }
 
   void ImageAccessor::GetReadOnlyAccessor(ImageAccessor &target) const
@@ -235,17 +252,20 @@ namespace Orthanc
                                      unsigned int pitch,
                                      void *buffer)
   {
+    const uint64_t size = static_cast<uint64_t>(height) * static_cast<uint64_t>(pitch);
+
+    if (static_cast<uint64_t>(GetBytesPerPixel() * width) > static_cast<uint64_t>(pitch) ||
+        static_cast<uint64_t>(static_cast<size_t>(size)) != size)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     readOnly_ = false;
     format_ = format;
     width_ = width;
     height_ = height;
     pitch_ = pitch;
     buffer_ = reinterpret_cast<uint8_t*>(buffer);
-
-    if (GetBytesPerPixel() * width_ > pitch_)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
   }
 
 

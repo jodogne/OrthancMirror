@@ -46,8 +46,16 @@ namespace Orthanc
         }
       */
 
-      pitch_ = GetBytesPerPixel() * width_;
-      size_t size = static_cast<size_t>(pitch_) * static_cast<size_t>(height_);
+      const uint64_t tmpPitch = static_cast<uint64_t>(GetBytesPerPixel()) * static_cast<uint64_t>(width_);
+      const uint64_t size = tmpPitch * static_cast<uint64_t>(height_);
+
+      if (static_cast<uint64_t>(static_cast<unsigned int>(tmpPitch)) != tmpPitch ||
+          static_cast<uint64_t>(static_cast<size_t>(size)) != size)
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory);
+      }
+
+      pitch_ = static_cast<unsigned int>(tmpPitch);
 
       if (size == 0)
       {
@@ -55,7 +63,7 @@ namespace Orthanc
       }
       else
       {
-        buffer_ = malloc(size);
+        buffer_ = malloc(static_cast<size_t>(size));
         if (buffer_ == NULL)
         {
           throw OrthancException(ErrorCode_NotEnoughMemory,
