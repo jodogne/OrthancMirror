@@ -57,7 +57,12 @@ Maintenance
   https://discourse.orthanc-server.org/t/frequent-idle-messages-between-postgres-and-orthanc/6406
 * New CMake option: "USE_SYSTEM_MINIZIP" to use the system-wide version of minizip
 * Security fixes courtesy of Machine Spirits UG:
-  - CWE-770: Memory exhaustion via very large "Content-Length"
+  - Fix possible out-of-bound access when calling /tools/create-dicom with a PAM file.
+  - Fix possible out-of-bound access when rows/columns DICOM tags exceed the maximum value for a US (65535).
+  - Fix possible out-of-bound access in PMSCT_RLE1 encoded images.
+  - Fix possible out-of-bound access in palette images.
+  - Fix possible out-of-bound access when reading a DICOM file with invalid group length tag.
+  - Fix possible memory exhaustion via very large "Content-Length"
 * Upgraded dependencies for static builds:
   - boost 1.89.0
   - dcmtk 3.7.0
@@ -145,11 +150,6 @@ Maintenance
   - Avoid adding twice the same tag in DB for the same resource, e.g. when
     "TimeZoneOffsetFromUTC" is added to the "ExtraMainDicomTags" at Patient level.
     https://discourse.orthanc-server.org/t/jobs-api-the-dicommovescu-job-doesnt-seems-to-track-progress/3140/14
-  - Fix possible out-of-bound access when calling /tools/create-dicom with a PAM file.
-  - Fix possible out-of-bound access when rows/columns DICOM tags exceed the maximum value for a US (65535).
-  - Fix possible out-of-bound access in PMSCT_RLE1 encoded images.
-  - Fix possible out-of-bound access in palette images.
-  - Fix possible out-of-bound access when reading a DICOM file with invalid group length tag.
 * Upgraded dependencies for static builds:
   - civetweb 1.16, including patch for CVE-2025-55763
   - SQLite 3.50.4
