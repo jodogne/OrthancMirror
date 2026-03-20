@@ -504,8 +504,8 @@ namespace Orthanc
   }
 
     
-  int OrthancConfiguration::GetIntegerParameter(const std::string& parameter,
-                                                int defaultValue) const
+  bool OrthancConfiguration::LookupIntegerParameter(int& target,
+                                                    const std::string& parameter) const
   {
     if (json_.isMember(parameter))
     {
@@ -516,8 +516,24 @@ namespace Orthanc
       }
       else
       {
-        return json_[parameter].asInt();
+        target = json_[parameter].asInt();
+        return true;
       }
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
+  int OrthancConfiguration::GetIntegerParameter(const std::string& parameter,
+                                                int defaultValue) const
+  {
+    int v;
+    if (LookupIntegerParameter(v, parameter))
+    {
+      return v;
     }
     else
     {
@@ -526,20 +542,41 @@ namespace Orthanc
   }
 
     
-  unsigned int OrthancConfiguration::GetUnsignedIntegerParameter(
-    const std::string& parameter,
-    unsigned int defaultValue) const
+  bool OrthancConfiguration::LookupUnsignedIntegerParameter(unsigned int& target,
+                                                            const std::string& parameter) const
   {
-    int v = GetIntegerParameter(parameter, defaultValue);
-
-    if (v < 0)
+    int v;
+    if (LookupIntegerParameter(v, parameter))
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange,
-                             "The configuration option \"" + parameter + "\" must be a positive integer");
+      if (v < 0)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "The configuration option \"" + parameter + "\" must be a positive integer");
+      }
+      else
+      {
+        target = static_cast<unsigned int>(v);
+        return true;
+      }
     }
     else
     {
-      return static_cast<unsigned int>(v);
+      return false;
+    }
+  }
+
+
+  unsigned int OrthancConfiguration::GetUnsignedIntegerParameter(const std::string& parameter,
+                                                                 unsigned int defaultValue) const
+  {
+    unsigned int v;
+    if (LookupUnsignedIntegerParameter(v, parameter))
+    {
+      return v;
+    }
+    else
+    {
+      return defaultValue;
     }
   }
 
