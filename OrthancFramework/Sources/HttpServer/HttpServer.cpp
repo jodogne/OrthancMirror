@@ -546,7 +546,7 @@ namespace Orthanc
                                                   bool hasMaxBodySize,
                                                   size_t maxBodySize)
   {
-    static const size_t MAXIMUM_BODY_SIZE_IN_MEMORY = 10 * 1024 * 1024;  // 10MB
+    static const size_t MAXIMUM_BODY_SIZE_IN_MEMORY = 100 * 1024 * 1024;  // 100MB
 
     assert(!hasMaxBodySize || maxBodySize > 0);
 
