@@ -185,7 +185,8 @@ namespace Orthanc
       PostDataStatus_Success,
       PostDataStatus_NoLength,
       PostDataStatus_Pending,
-      PostDataStatus_Failure
+      PostDataStatus_Failure,
+      PostDataStatus_RequestEntityTooLarge  // New in Orthanc 1.12.11
     };
   }
 
@@ -491,57 +492,19 @@ namespace Orthanc
     reader.AddChunk(body);        
     reader.CloseStream();
   }
-  
 
-  static PostDataStatus ReadBodyWithContentLength(std::string& body,
-                                                  struct mg_connection *connection,
-                                                  const std::string& contentLength)
-  {
-    size_t length;
-    try
-    {
-      int64_t tmp = boost::lexical_cast<int64_t>(contentLength);
-      if (tmp < 0)
-      {
-        return PostDataStatus_NoLength;
-      }
 
-      length = static_cast<size_t>(tmp);
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-      return PostDataStatus_NoLength;
-    }
-
-    body.resize(length);
-
-    size_t pos = 0;
-    while (length > 0)
-    {
-      int r = mg_read(connection, &body[pos], length);
-      if (r <= 0)
-      {
-        return PostDataStatus_Failure;
-      }
-
-      assert(static_cast<size_t>(r) <= length);
-      length -= r;
-      pos += r;
-    }
-
-    return PostDataStatus_Success;
-  }
-                                                  
-
-  static PostDataStatus ReadBodyWithoutContentLength(std::string& body,
-                                                     struct mg_connection *connection)
+  static PostDataStatus ReadBodyUsingFile(std::string& body,
+                                          struct mg_connection *connection,
+                                          size_t maxSize /* "0" means no limit */)
   {
     // Store the individual chunks in a temporary file, then read it
     // back into the memory buffer "body"
     FileBuffer buffer;
 
+    uint64_t readSoFar = 0;
     std::string tmp(1024 * 1024, 0);
-      
+
     for (;;)
     {
       int r = mg_read(connection, &tmp[0], tmp.size());
@@ -555,6 +518,15 @@ namespace Orthanc
       }
       else
       {
+        readSoFar += r;
+
+        if (readSoFar > std::numeric_limits<size_t>::max() ||
+            (maxSize != 0 &&
+             readSoFar > maxSize))
+        {
+          return PostDataStatus_RequestEntityTooLarge;
+        }
+
         buffer.Append(tmp.c_str(), r);
       }
     }
@@ -562,6 +534,88 @@ namespace Orthanc
     buffer.Read(body);
 
     return PostDataStatus_Success;
+  }
+
+
+  static PostDataStatus ReadBodyWithContentLength(std::string& body,
+                                                  struct mg_connection *connection,
+                                                  const std::string& contentLength)
+  {
+    static const size_t MAXIMUM_BODY_SIZE_IN_MEMORY = 10 * 1024 * 1024;  // 10MB
+
+    size_t length;
+    try
+    {
+      int64_t tmp = boost::lexical_cast<int64_t>(contentLength);
+      if (tmp < 0)
+      {
+        return PostDataStatus_NoLength;
+      }
+
+      length = static_cast<size_t>(tmp);
+      if (static_cast<int64_t>(length) != tmp)
+      {
+        return PostDataStatus_Failure;
+      }
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      return PostDataStatus_NoLength;
+    }
+
+    if (length < MAXIMUM_BODY_SIZE_IN_MEMORY)
+    {
+      /**
+       * Small POST bodies should land into RAM to avoid creating
+       * temporary files, which would result in bad performance.
+       **/
+      body.resize(length);
+
+      size_t pos = 0;
+      while (length > 0)
+      {
+        int r = mg_read(connection, &body[pos], length);
+        if (r <= 0)
+        {
+          return PostDataStatus_Failure;
+        }
+
+        assert(static_cast<size_t>(r) <= length);
+        length -= r;
+        pos += r;
+      }
+
+      return PostDataStatus_Success;
+    }
+    else
+    {
+      /**
+       * Deal with CWE-770 (Machine Spirits UG). If the client wants
+       * to send a large body, use a temporary file to prevent memory
+       * exhaustion by a malicious client that would set a large
+       * "Content-Length" without sending any actual data.
+       **/
+
+      PostDataStatus status = ReadBodyUsingFile(body, connection, length);
+
+      if (status == PostDataStatus_Success)
+      {
+        return (body.size() == length ?
+                PostDataStatus_Success :
+                PostDataStatus_Failure);
+      }
+      else
+      {
+        return status;
+      }
+    }
+  }
+
+
+  static PostDataStatus ReadBodyWithoutContentLength(std::string& body,
+                                                     struct mg_connection *connection)
+  {
+    return ReadBodyUsingFile(body, connection, 0 /* TODO - no bound */);
   }
                                                   
 
@@ -1490,6 +1544,10 @@ namespace Orthanc
       {
         case PostDataStatus_NoLength:
           output.SendStatus(HttpStatus_411_LengthRequired);
+          return;
+
+        case PostDataStatus_RequestEntityTooLarge:  // New in Orthanc 1.12.11
+          output.SendStatus(HttpStatus_413_RequestEntityTooLarge);
           return;
 
         case PostDataStatus_Failure:
