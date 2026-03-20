@@ -1126,6 +1126,19 @@ static bool StartHttpServer(ServerContext& context,
       httpServer.SetTcpNoDelay(lock.GetConfiguration().GetBooleanParameter("TcpNoDelay", true));
       httpServer.SetRequestTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpRequestTimeout", 30));
 
+      // New in Orthanc 1.12.11
+      const unsigned int maxBodySize = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumRequestBodySizeMB", 2048);
+      if (maxBodySize != 0)
+      {
+        LOG(WARNING) << "Limiting the maximum body size in HTTP requests to " << maxBodySize << "MB";
+        httpServer.SetMaxBodySize(static_cast<uint64_t>(maxBodySize) *
+                                  static_cast<uint64_t>(1024 * 1024));
+      }
+      else
+      {
+        LOG(WARNING) << "No limit on the maximum body size in HTTP requests";
+      }
+
       // Let's assume that the HTTP server is secure
       context.SetHttpServerSecure(true);
 

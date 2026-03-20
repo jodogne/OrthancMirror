@@ -496,8 +496,11 @@ namespace Orthanc
 
   static PostDataStatus ReadBodyUsingFile(std::string& body,
                                           struct mg_connection *connection,
-                                          size_t maxSize /* "0" means no limit */)
+                                          bool hasMaxBodySize,
+                                          size_t maxBodySize)
   {
+    assert(!hasMaxBodySize || maxBodySize > 0);
+
     // Store the individual chunks in a temporary file, then read it
     // back into the memory buffer "body"
     FileBuffer buffer;
@@ -521,8 +524,8 @@ namespace Orthanc
         readSoFar += r;
 
         if (readSoFar > std::numeric_limits<size_t>::max() ||
-            (maxSize != 0 &&
-             readSoFar > maxSize))
+            (hasMaxBodySize &&
+             readSoFar > maxBodySize))
         {
           return PostDataStatus_RequestEntityTooLarge;
         }
@@ -539,9 +542,13 @@ namespace Orthanc
 
   static PostDataStatus ReadBodyWithContentLength(std::string& body,
                                                   struct mg_connection *connection,
-                                                  const std::string& contentLength)
+                                                  const std::string& contentLength,
+                                                  bool hasMaxBodySize,
+                                                  size_t maxBodySize)
   {
     static const size_t MAXIMUM_BODY_SIZE_IN_MEMORY = 10 * 1024 * 1024;  // 10MB
+
+    assert(!hasMaxBodySize || maxBodySize > 0);
 
     size_t length;
     try
@@ -561,6 +568,12 @@ namespace Orthanc
     catch (boost::bad_lexical_cast&)
     {
       return PostDataStatus_NoLength;
+    }
+
+    if (hasMaxBodySize &&
+        length > maxBodySize)
+    {
+      return PostDataStatus_RequestEntityTooLarge;
     }
 
     if (length < MAXIMUM_BODY_SIZE_IN_MEMORY)
@@ -596,7 +609,8 @@ namespace Orthanc
        * "Content-Length" without sending any actual data.
        **/
 
-      PostDataStatus status = ReadBodyUsingFile(body, connection, length);
+      PostDataStatus status = ReadBodyUsingFile(body, connection,
+                                                true /* do not read after "Content-Length" */, length);
 
       if (status == PostDataStatus_Success)
       {
@@ -613,34 +627,40 @@ namespace Orthanc
 
 
   static PostDataStatus ReadBodyWithoutContentLength(std::string& body,
-                                                     struct mg_connection *connection)
+                                                     struct mg_connection *connection,
+                                                     bool hasMaxBodySize,
+                                                     size_t maxBodySize)
   {
-    return ReadBodyUsingFile(body, connection, 0 /* TODO - no bound */);
+    return ReadBodyUsingFile(body, connection, hasMaxBodySize, maxBodySize);
   }
                                                   
 
   static PostDataStatus ReadBodyToString(std::string& body,
                                          struct mg_connection *connection,
-                                         const HttpToolbox::Arguments& headers)
+                                         const HttpToolbox::Arguments& headers,
+                                         bool hasMaxBodySize,
+                                         size_t maxBodySize)
   {
     HttpToolbox::Arguments::const_iterator contentLength = headers.find("content-length");
 
     if (contentLength != headers.end())
     {
       // "Content-Length" is available
-      return ReadBodyWithContentLength(body, connection, contentLength->second);
+      return ReadBodyWithContentLength(body, connection, contentLength->second, hasMaxBodySize, maxBodySize);
     }
     else
     {
       // No Content-Length
-      return ReadBodyWithoutContentLength(body, connection);
+      return ReadBodyWithoutContentLength(body, connection, hasMaxBodySize, maxBodySize);
     }
   }
 
 
   static PostDataStatus ReadBodyToStream(IHttpHandler::IChunkedRequestReader& stream,
                                          struct mg_connection *connection,
-                                         const HttpToolbox::Arguments& headers)
+                                         const HttpToolbox::Arguments& headers,
+                                         bool hasMaxBodySize,
+                                         size_t maxBodySize)
   {
     HttpToolbox::Arguments::const_iterator contentLength = headers.find("content-length");
 
@@ -648,7 +668,7 @@ namespace Orthanc
     {
       // "Content-Length" is available
       std::string body;
-      PostDataStatus status = ReadBodyWithContentLength(body, connection, contentLength->second);
+      PostDataStatus status = ReadBodyWithContentLength(body, connection, contentLength->second, hasMaxBodySize, maxBodySize);
 
       if (status == PostDataStatus_Success &&
           !body.empty())
@@ -884,7 +904,9 @@ namespace Orthanc
                            const std::string& method,
                            const HttpToolbox::Arguments& headers,
                            const std::string& uri,
-                           struct mg_connection *connection /* to read the PUT body if need be */)
+                           struct mg_connection *connection /* to read the PUT body if need be */,
+                           bool hasMaxBodySize,
+                           size_t maxBodySize)
   {
     if (buckets.empty())
     {
@@ -1094,7 +1116,7 @@ namespace Orthanc
           {
 #if CIVETWEB_HAS_WEBDAV_WRITING == 1           
             std::string body;
-            if (ReadBodyToString(body, connection, headers) == PostDataStatus_Success)
+            if (ReadBodyToString(body, connection, headers, hasMaxBodySize, maxBodySize) == PostDataStatus_Success)
             {
               if (bucket->second->StoreFile(body, path))
               {
@@ -1461,7 +1483,7 @@ namespace Orthanc
 
 #if ORTHANC_ENABLE_PUGIXML == 1
     if (HandleWebDav(output, server.GetWebDavBuckets(), request->request_method,
-                     headers, requestUri, connection))
+                     headers, requestUri, connection, server.HasMaxBodySize(), server.GetMaxBodySize()))
     {
       return;
     }
@@ -1501,7 +1523,7 @@ namespace Orthanc
          **/
         isMultipartForm = true;
 
-        postStatus = ReadBodyToString(body, connection, headers);
+        postStatus = ReadBodyToString(body, connection, headers, server.HasMaxBodySize(), server.GetMaxBodySize());
         if (postStatus == PostDataStatus_Success)
         {
           server.ProcessMultipartFormData(remoteIp, username, uri, headers, body, boundary, authenticationPayload);
@@ -1527,7 +1549,7 @@ namespace Orthanc
             throw OrthancException(ErrorCode_InternalError);
           }
 
-          postStatus = ReadBodyToStream(*stream, connection, headers);
+          postStatus = ReadBodyToStream(*stream, connection, headers, server.HasMaxBodySize(), server.GetMaxBodySize());
 
           if (postStatus == PostDataStatus_Success)
           {
@@ -1536,7 +1558,7 @@ namespace Orthanc
         }
         else
         {
-          postStatus = ReadBodyToString(body, connection, headers);
+          postStatus = ReadBodyToString(body, connection, headers, server.HasMaxBodySize(), server.GetMaxBodySize());
         }
       }
 
@@ -1743,7 +1765,9 @@ namespace Orthanc
     threadsCount_(50),  // Default value in mongoose/civetweb
     tcpNoDelay_(true),
     requestTimeout_(30),  // Default value in mongoose/civetweb (30 seconds)
-    threadCounter_(0)
+    threadCounter_(0),
+    hasMaxBodySize_(false),
+    maxBodySize_(0)
   {
 #if ORTHANC_ENABLE_MONGOOSE == 1
     CLOG(INFO, HTTP) << "This Orthanc server uses Mongoose as its embedded HTTP server";
@@ -2445,6 +2469,23 @@ namespace Orthanc
     {
       boost::mutex::scoped_lock lock(threadCounterMutex_);
       Logging::SetCurrentThreadName(std::string("HTTP-") + boost::lexical_cast<std::string>(threadCounter_++));
+    }
+  }
+
+
+  void HttpServer::SetMaxBodySize(uint64_t size)
+  {
+    Stop();
+
+    if (size == 0 ||
+        static_cast<uint64_t>(static_cast<size_t>(size)) != size)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      hasMaxBodySize_ = true;
+      maxBodySize_ = static_cast<size_t>(size);
     }
   }
 }
