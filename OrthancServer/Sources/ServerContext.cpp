@@ -400,6 +400,7 @@ namespace Orthanc
     ingestTranscodingOfCompressed_(true),
     preferredTransferSyntax_(DicomTransferSyntax_LittleEndianExplicit),
     readOnly_(readOnly),
+    patientLevelEnabled_(true),
     deidentifyLogs_(false),
     serverStartTimeUtc_(boost::posix_time::second_clock::universal_time())
   {
@@ -621,6 +622,17 @@ namespace Orthanc
       LOG(WARNING) << "Disk compression is disabled";
 
     compressionEnabled_ = enabled;
+  }
+
+
+  void ServerContext::SetPatientLevelEnabled(bool enabled)
+  {
+    if (enabled)
+      LOG(WARNING) << "Patient level is enabled";
+    else
+      LOG(WARNING) << "Patient level  is disabled";
+
+    patientLevelEnabled_ = enabled;
   }
 
 
@@ -1798,10 +1810,11 @@ namespace Orthanc
 
 
   void ServerContext::AddChildInstances(SetOfInstancesJob& job,
-                                        const std::string& publicId)
+                                        const std::string& publicId,
+                                        ResourceType level)
   {
     std::list<std::string> instances;
-    GetIndex().GetChildInstances(instances, publicId);
+    GetIndex().GetChildInstances(instances, publicId, level);
 
     job.Reserve(job.GetInstancesCount() + instances.size());
 

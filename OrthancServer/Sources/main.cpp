@@ -323,7 +323,7 @@ public:
 
     if (alwaysAllowMove_)
     {
-      LOG(WARNING) << "Security risk in DICOM SCP: C-MOOVE requests are always allowed, even from unknown modalities";
+      LOG(WARNING) << "Security risk in DICOM SCP: C-MOVE requests are always allowed, even from unknown modalities";
     }
   }
 
@@ -1679,6 +1679,8 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
   {
     OrthancConfiguration::ReaderLock lock;
 
+    context.SetPatientLevelEnabled(lock.GetConfiguration().GetBooleanParameter("PatientLevelEnabled", true));
+
     if (context.IsReadOnly())
     {
       LOG(WARNING) << "READ-ONLY SYSTEM: ignoring these configurations: StorageCompression, StoreMD5ForAttachments, OverwriteInstances, MaximumPatientCount, MaximumStorageSize, MaximumStorageMode, SaveJobs"; 
@@ -1691,9 +1693,17 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       // New option in Orthanc 1.4.2
       context.SetOverwriteInstances(lock.GetConfiguration().GetBooleanParameter("OverwriteInstances", false));
 
+      unsigned int maximumPatientCount = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumPatientCount", 0);
+      unsigned int maximumStorageSize = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumStorageSize", 0);
+
+      if (!context.IsPatientLevelEnabled() && (maximumPatientCount != 0 || maximumStorageSize != 0))
+      {
+        LOG(ERROR) << "Can not set MaximumPatientCount or MaximumStorageSize when PatientLevelEnabled is set to false since these options require patient recycling.";
+      }
+
       try
       {
-        context.GetIndex().SetMaximumPatientCount(lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumPatientCount", 0));
+        context.GetIndex().SetMaximumPatientCount(maximumPatientCount);
       }
       catch (...)
       {
@@ -1702,7 +1712,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
       try
       {
-        uint64_t size = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumStorageSize", 0);
+        uint64_t size = maximumStorageSize;
         context.GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
       }
       catch (...)

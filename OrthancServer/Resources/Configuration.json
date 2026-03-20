@@ -1106,5 +1106,14 @@
   // Orthanc <= 1.12.10. This default value can be overwritten per archive,
   // by providing the "Utf8" field to the "{...}/archive" and
   // "/tools/create-archives" routes. (new in Orthanc 1.12.11)
-  "ZipUseUtf8" : false
+  "ZipUseUtf8" : false,
+
+  // When set to false, this option disables all /patients routes and
+  // disables patients related sanity checks when performing resource
+  // modification.  This is required e.g when your Orthanc stores
+  // resources from multiple sources in which the same PatientID might
+  // be attached to different patients because there is no centralized
+  // patient id management. (new in Orthanc 1.12.11)
+  // As of 1.12.11, this is an experimental configuration.
+  "PatientLevelEnabled": true
 }

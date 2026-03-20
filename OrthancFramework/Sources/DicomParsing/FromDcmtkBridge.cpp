@@ -803,7 +803,6 @@ namespace Orthanc
          **/
 
         case EVR_OB:  // other byte
-        case EVR_OF:  // other float
         case EVR_OW:  // other word
         case EVR_UN:  // unknown value representation
         case EVR_ox:  // OB or OW depending on context
@@ -875,6 +874,107 @@ namespace Orthanc
         {
           return ApplyDcmtkToCTypeConverter<DcmtkToFloat64Converter>(element);
         }
+
+        case EVR_OF:  // other float - binary array of 32-bit floats (new in Orthanc 1.12.11)
+        {
+          /**
+           * OF stores a binary array of 32-bit IEEE floats. Unlike FL where getVM()
+           * returns the count of values, for OF getVM() returns 1 (the entire binary
+           * blob is considered one "value"). We must use getFloat32Array() to access
+           * the raw float buffer, then build a string of all values.
+           * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
+           **/
+          DcmFloatingPointSingle& content = dynamic_cast<DcmFloatingPointSingle&>(element);
+          Float32* floatArray = NULL;
+          if (content.getFloat32Array(floatArray).good() && floatArray != NULL)
+          {
+            if (element.getLength() % sizeof(Float32) != 0)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
+
+            const unsigned long numFloats = element.getLength() / sizeof(Float32);
+            std::string result;
+            for (unsigned long i = 0; i < numFloats; i++)
+            {
+              if (i > 0)
+              {
+                result += "\\";
+              }
+              result += boost::lexical_cast<std::string>(floatArray[i]);
+            }
+            return new DicomValue(result, false);
+          }
+          return new DicomValue;
+        }
+
+#if DCMTK_VERSION_NUMBER >= 361
+        case EVR_OD:  // other double - binary array of 64-bit floats (new in Orthanc 1.12.11)
+        {
+          /**
+           * OD stores a binary array of 64-bit IEEE doubles. Similar to OF,
+           * getVM() returns 1 for OD. We must use getFloat64Array() to access
+           * the raw double buffer.
+           * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
+           **/
+          DcmFloatingPointDouble& content = dynamic_cast<DcmFloatingPointDouble&>(element);
+          Float64* doubleArray = NULL;
+          if (content.getFloat64Array(doubleArray).good() && doubleArray != NULL)
+          {
+            if (element.getLength() % sizeof(Float64) != 0)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
+
+            const unsigned long numDoubles = element.getLength() / sizeof(Float64);
+            std::string result;
+            for (unsigned long i = 0; i < numDoubles; i++)
+            {
+              if (i > 0)
+              {
+                result += "\\";
+              }
+              result += boost::lexical_cast<std::string>(doubleArray[i]);
+            }
+            return new DicomValue(result, false);
+          }
+          return new DicomValue;
+        }
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 362
+        case EVR_OL:  // other long - binary array of 32-bit unsigned integers (new in Orthanc 1.12.11)
+        {
+          /**
+           * OL stores a binary array of 32-bit unsigned integers. Like OF/OD,
+           * getVM() returns 1 for OL (the entire binary blob is one "value").
+           * We must use getUint32Array() to access the raw buffer.
+           * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
+           **/
+          DcmUnsignedLong& content = dynamic_cast<DcmUnsignedLong&>(element);
+          Uint32* uint32Array = NULL;
+          if (content.getUint32Array(uint32Array).good() && uint32Array != NULL)
+          {
+            if (element.getLength() % sizeof(Uint32) != 0)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
+
+            const unsigned long numValues = element.getLength() / sizeof(Uint32);
+            std::string result;
+            for (unsigned long i = 0; i < numValues; i++)
+            {
+              if (i > 0)
+              {
+                result += "\\";
+              }
+              result += boost::lexical_cast<std::string>(uint32Array[i]);
+            }
+            return new DicomValue(result, false);
+          }
+          return new DicomValue;
+        }
+#endif
 
 
         /**
@@ -3001,9 +3101,6 @@ namespace Orthanc
         }
 
         case EVR_UL:  // unsigned long
-#if DCMTK_VERSION_NUMBER >= 362
-        case EVR_OL:
-#endif
         {
           DcmUnsignedLong& content = dynamic_cast<DcmUnsignedLong&>(element);
 
@@ -3044,7 +3141,6 @@ namespace Orthanc
         }
 
         case EVR_FL:  // float single-precision
-        case EVR_OF:
         {
           DcmFloatingPointSingle& content = dynamic_cast<DcmFloatingPointSingle&>(element);
 
@@ -3065,9 +3161,6 @@ namespace Orthanc
         }
 
         case EVR_FD:  // float double-precision
-#if DCMTK_VERSION_NUMBER >= 361
-        case EVR_OD:
-#endif
         {
           DcmFloatingPointDouble& content = dynamic_cast<DcmFloatingPointDouble&>(element);
 
@@ -3086,6 +3179,109 @@ namespace Orthanc
           action = visitor.VisitDoubles(parentTags, parentIndexes, tag, vr, values);
           break;
         }
+
+        case EVR_OF:  // other float - binary array of 32-bit floats (new in Orthanc 1.12.11)
+        {
+          /**
+           * OF stores a binary array of 32-bit IEEE floats. Unlike FL where getVM()
+           * returns the count of values, for OF getVM() returns 1 (the entire binary
+           * blob is considered one "value"). We must use getFloat32Array() to access
+           * the raw float buffer, then iterate over all values.
+           **/
+          DcmFloatingPointSingle& content = dynamic_cast<DcmFloatingPointSingle&>(element);
+
+          std::vector<double> values;
+
+          Float32* floatArray = NULL;
+          if (content.getFloat32Array(floatArray).good() && floatArray != NULL)
+          {
+            if (element.getLength() % sizeof(Float32) != 0)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
+
+            const unsigned long numFloats = static_cast<unsigned long>(element.getLength() / sizeof(Float32));
+            values.reserve(numFloats);
+
+            for (unsigned long i = 0; i < numFloats; i++)
+            {
+              values.push_back(static_cast<double>(floatArray[i]));
+            }
+          }
+
+          action = visitor.VisitDoubles(parentTags, parentIndexes, tag, vr, values);
+          break;
+        }
+
+#if DCMTK_VERSION_NUMBER >= 361
+        case EVR_OD:  // other double - binary array of 64-bit floats (new in Orthanc 1.12.11)
+        {
+          /**
+           * OD stores a binary array of 64-bit IEEE doubles. Unlike FD where getVM()
+           * returns the count of values, for OD getVM() returns 1 (the entire binary
+           * blob is considered one "value"). We must use getFloat64Array() to access
+           * the raw double buffer, then iterate over all values.
+           **/
+          DcmFloatingPointDouble& content = dynamic_cast<DcmFloatingPointDouble&>(element);
+
+          std::vector<double> values;
+
+          Float64* doubleArray = NULL;
+          if (content.getFloat64Array(doubleArray).good() && doubleArray != NULL)
+          {
+            if (element.getLength() % sizeof(Float64) != 0)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
+
+            const unsigned long numDoubles = static_cast<unsigned long>(element.getLength() / sizeof(Float64));
+            values.reserve(numDoubles);
+
+            for (unsigned long i = 0; i < numDoubles; i++)
+            {
+              values.push_back(doubleArray[i]);
+            }
+          }
+
+          action = visitor.VisitDoubles(parentTags, parentIndexes, tag, vr, values);
+          break;
+        }
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 362
+        case EVR_OL:  // other long - binary array of 32-bit unsigned integers (new in Orthanc 1.12.11)
+        {
+          /**
+           * OL stores a binary array of 32-bit unsigned integers. Like OF/OD,
+           * getVM() returns 1 for OL (the entire binary blob is one "value").
+           * We must use getUint32Array() to access the raw buffer, then iterate
+           * over all values based on element length.
+           **/
+          DcmUnsignedLong& content = dynamic_cast<DcmUnsignedLong&>(element);
+
+          std::vector<int64_t> values;
+
+          Uint32* uint32Array = NULL;
+          if (content.getUint32Array(uint32Array).good() && uint32Array != NULL)
+          {
+            if (element.getLength() % sizeof(Uint32) != 0)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
+
+            const unsigned long numValues = static_cast<unsigned long>(element.getLength() / sizeof(Uint32));
+            values.reserve(numValues);
+
+            for (unsigned long i = 0; i < numValues; i++)
+            {
+              values.push_back(static_cast<int64_t>(uint32Array[i]));
+            }
+          }
+
+          action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
+          break;
+        }
+#endif
 
 
         /**
