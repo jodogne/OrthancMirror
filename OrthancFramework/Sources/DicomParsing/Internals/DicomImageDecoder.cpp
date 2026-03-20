@@ -470,16 +470,12 @@ namespace Orthanc
           throw OrthancException(ErrorCode_NotImplemented, std::string("Palette Color Lookup Table Descriptor invalid palette size: '") + r.c_str() + "'");
         }
 
-        uint64_t expectedSize = static_cast<uint64_t>(target->GetWidth()) * target->GetHeight();
+        const uint64_t expectedSize = (static_cast<uint64_t>(target->GetWidth()) *
+                                       static_cast<uint64_t>(target->GetHeight()));
         
-        if (static_cast<uint64_t>(pixelLength) != expectedSize)
+        if (pixelLength != expectedSize)
         {
-          throw OrthancException(ErrorCode_BadFileFormat, "Invalid size");
-        }
-
-        if (pixelLength != target->GetWidth() * target->GetHeight())
-        {
-          DcmElement *elem;
+          DcmElement *elem = NULL;
           Uint16 bitsAllocated = 0;
 
           if (!dataset.findAndGetUint16(DCM_BitsAllocated, bitsAllocated).good())
@@ -487,7 +483,8 @@ namespace Orthanc
             throw OrthancException(ErrorCode_NotImplemented);  
           }
 
-          if (!dataset.findAndGetElement(DCM_PixelData, elem).good())
+          if (!dataset.findAndGetElement(DCM_PixelData, elem).good() ||
+              elem == NULL)
           {
             throw OrthancException(ErrorCode_NotImplemented);  
           }
@@ -495,9 +492,11 @@ namespace Orthanc
           // In implicit VR files, pixelLength is expressed in words (OW) although pixels can actually be 8 bits
           // -> pixelLength is wrong by a factor of two and the image can still be decoded!
           // seen in some Philips ClearVue 650 images (using 8 bits LUT)
-          if (!(elem->getVR() == EVR_OW && bitsAllocated == 8 && (2*pixelLength == target->GetWidth() * target->GetHeight())))  
+          if (elem->getVR() != EVR_OW ||
+              bitsAllocated != 8 ||
+              2 * pixelLength != expectedSize)
           {
-            throw OrthancException(ErrorCode_NotImplemented);
+            throw OrthancException(ErrorCode_BadFileFormat, "Invalid size");
           }
         }
 
