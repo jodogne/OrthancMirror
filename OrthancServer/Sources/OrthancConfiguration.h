@@ -182,9 +182,15 @@ namespace Orthanc
     std::string GetStringParameter(const std::string& parameter,
                                    const std::string& defaultValue) const;
     
+    bool LookupIntegerParameter(int& target,
+                                const std::string& parameter) const;
+
     int GetIntegerParameter(const std::string& parameter,
                             int defaultValue) const;
-    
+
+    bool LookupUnsignedIntegerParameter(unsigned int& target,
+                                        const std::string& parameter) const;
+
     unsigned int GetUnsignedIntegerParameter(const std::string& parameter,
                                              unsigned int defaultValue) const;
 
