@@ -862,10 +862,14 @@ namespace Orthanc
     
   void OrthancRestApi::RegisterArchive()
   {
-    Register("/patients/{id}/archive", CreateSingleGet<ResourceType_Patient, false /* ZIP */>);
-    Register("/patients/{id}/archive", CreateSinglePost<ResourceType_Patient, false /* ZIP */>);
-    Register("/patients/{id}/media",   CreateSingleGet<ResourceType_Patient, true /* media */>);
-    Register("/patients/{id}/media",   CreateSinglePost<ResourceType_Patient, true /* media */>);
+    if (context_.IsPatientLevelEnabled())
+    {
+      Register("/patients/{id}/archive", CreateSingleGet<ResourceType_Patient, false /* ZIP */>);
+      Register("/patients/{id}/archive", CreateSinglePost<ResourceType_Patient, false /* ZIP */>);
+      Register("/patients/{id}/media",   CreateSingleGet<ResourceType_Patient, true /* media */>);
+      Register("/patients/{id}/media",   CreateSinglePost<ResourceType_Patient, true /* media */>);
+    }
+
     Register("/series/{id}/archive",   CreateSingleGet<ResourceType_Series, false /* ZIP */>);
     Register("/series/{id}/archive",   CreateSinglePost<ResourceType_Series, false /* ZIP */>);
     Register("/series/{id}/media",     CreateSingleGet<ResourceType_Series, true /* media */>);

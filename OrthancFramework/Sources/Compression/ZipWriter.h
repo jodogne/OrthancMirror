@@ -154,13 +154,13 @@ namespace Orthanc
      * The behavior of Orthanc <= 1.12.10 corresponds to
      * "SetAllowUtf8(false)".
      *
+     * Note that if linking against the system-wide version of minizip,
+     * there is no way to check that its version is above 1.3.2.
+     *
      * https://zlib.net/ChangeLog.txt
      * https://discourse.orthanc-server.org/t/seriesdescription-characters-and-removed-during-oe2-zip-export/6397
      **/
-    void SetAllowUtf8(bool allowUtf8)
-    {
-      allowUtf8_ = allowUtf8;
-    }
+    void SetAllowUtf8(bool allowUtf8);
 
     bool IsAllowUtf8() const
     {

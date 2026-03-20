@@ -28,13 +28,23 @@
 #define NOMINMAX
 #endif
 
+#if !defined(ORTHANC_USE_SYSTEM_MINIZIP)
+#  error The macro ORTHANC_USE_SYSTEM_MINIZIP must be defined
+#endif
+
 #include "ZipWriter.h"
+
 
 #include <limits>
 #include <boost/filesystem.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include "../../Resources/ThirdParty/minizip/zip.h"
+#if ORTHANC_USE_SYSTEM_MINIZIP == 1
+#  include <minizip/zip.h>
+#else
+#  include "../../Resources/ThirdParty/minizip/zip.h"
+#endif
+
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../SystemToolbox.h"
@@ -585,6 +595,21 @@ namespace Orthanc
                              "SetZip64() must be given to AcquireOutputStream()");
     }
   }
+
+
+  void ZipWriter::SetAllowUtf8(bool allowUtf8)
+  {
+    allowUtf8_ = allowUtf8;
+
+#if ORTHANC_USE_SYSTEM_MINIZIP == 1
+    if (allowUtf8_)
+    {
+      LOG(WARNING) << "UTF-8 paths requested in ZIP file, but Orthanc is linked against "
+                   << "the system-wide minizip library, which may not support this feature";
+    }
+#endif
+  }
+
 
   void ZipWriter::SetCompressionLevel(uint8_t level)
   {

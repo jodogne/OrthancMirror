@@ -373,6 +373,35 @@ namespace Orthanc
     }
   }
 
+  void SerializationToolbox::ReadMapOfResourcesAndTypes(std::map<std::string, ResourceType>& target,
+                                                        const Json::Value& value,
+                                                        const std::string& field)
+  {
+    if (!value[field].isArray())
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Array expected in field: " + field);
+    }
+
+    target.clear();
+    
+    for (Json::ArrayIndex i = 0; i < value[field].size(); ++i)
+    {
+      target[value[field][i]["ID"].asString()] = StringToResourceType(value[field][i]["Type"].asString().c_str());
+    }
+  }
+
+  void SerializationToolbox::WriteMapOfResourcesAndTypes(Json::Value& targetArray,
+                                                         const std::map<std::string, ResourceType>& values)
+  {
+    for (std::map<std::string, ResourceType>::const_iterator it = values.begin(); it != values.end(); ++it) 
+    {
+      Json::Value resource;
+      resource["ID"] = it->first;
+      resource["Type"] = EnumerationToString(it->second);
+      targetArray.append(resource);
+    }
+  }
+
 
   void SerializationToolbox::WriteArrayOfStrings(Json::Value& target,
                                                  const std::vector<std::string>& values,

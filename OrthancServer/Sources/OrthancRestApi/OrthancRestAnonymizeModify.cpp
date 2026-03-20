@@ -433,10 +433,13 @@ namespace Orthanc
            it = resources.begin(); it != resources.end(); ++it)
     {
       std::list<std::string> instances;
-      context.GetIndex().GetChildInstances(instances, *it);
+      ResourceType level;
+      context.GetIndex().LookupResourceType(level, *it);
+
+      context.GetIndex().GetChildInstances(instances, *it, level);
       job->AddInstances(instances);
 
-      job->AddParentResource(*it);
+      job->AddParentResource(*it, level);
     }
 
     job->PerformSanityChecks();
@@ -1306,18 +1309,22 @@ namespace Orthanc
     Register("/instances/{id}/modify", ModifyInstance);
     Register("/series/{id}/modify", ModifyResource<ResourceType_Series>);
     Register("/studies/{id}/modify", ModifyResource<ResourceType_Study>);
-    Register("/patients/{id}/modify", ModifyResource<ResourceType_Patient>);
     Register("/tools/bulk-modify", BulkModify);
 
     Register("/instances/{id}/anonymize", AnonymizeInstance);
     Register("/series/{id}/anonymize", AnonymizeResource<ResourceType_Series>);
     Register("/studies/{id}/anonymize", AnonymizeResource<ResourceType_Study>);
-    Register("/patients/{id}/anonymize", AnonymizeResource<ResourceType_Patient>);
     Register("/tools/bulk-anonymize", BulkAnonymize);
 
     Register("/tools/create-dicom", CreateDicom);
 
     Register("/studies/{id}/split", SplitStudy);
     Register("/studies/{id}/merge", MergeStudy);
+
+    if (context_.IsPatientLevelEnabled())
+    {
+      Register("/patients/{id}/modify", ModifyResource<ResourceType_Patient>);
+      Register("/patients/{id}/anonymize", AnonymizeResource<ResourceType_Patient>);
+    }
   }
 }

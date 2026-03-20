@@ -90,6 +90,10 @@ namespace Orthanc
                               const Json::Value& value,
                               const std::string& field);
 
+    static void ReadMapOfResourcesAndTypes(std::map<std::string, ResourceType>& target,
+                                           const Json::Value& value,
+                                           const std::string& field);
+
     static void WriteArrayOfStrings(Json::Value& target,
                                     const std::vector<std::string>& values,
                                     const std::string& field);
@@ -104,6 +108,9 @@ namespace Orthanc
 
     static void WriteSetOfStrings(Json::Value& targetArray,
                                   const std::set<std::string>& values);
+
+    static void WriteMapOfResourcesAndTypes(Json::Value& targetArray,
+                                            const std::map<std::string, ResourceType>& values);
 
     static void WriteSetOfTags(Json::Value& target,
                                const std::set<DicomTag>& tags,
