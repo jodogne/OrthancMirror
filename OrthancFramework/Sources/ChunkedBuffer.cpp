@@ -49,6 +49,15 @@ namespace Orthanc
   void ChunkedBuffer::AddChunkInternal(const void* chunkData,
                                        size_t chunkSize)
   {
+    {
+      uint64_t resultingSize = static_cast<uint64_t>(numBytes_) + static_cast<uint64_t>(chunkSize);
+      if (static_cast<uint64_t>(static_cast<size_t>(resultingSize)) != resultingSize)
+      {
+        // Guard for 32bit architectures
+        throw OrthancException(ErrorCode_NotEnoughMemory);
+      }
+    }
+
     if (chunkSize == 0)
     {
       return;
