@@ -29,6 +29,7 @@
 #include <string.h>
 #include <zlib.h>
 
+#include "../ChunkedBuffer.h"
 #include "../OrthancException.h"
 #include "../Logging.h"
 
@@ -177,100 +178,128 @@ namespace Orthanc
   }
 
 
+  namespace
+  {
+    class GzipRaii : public boost::noncopyable
+    {
+    private:
+      z_stream&  stream_;
+
+    public:
+      GzipRaii(z_stream& stream) :
+        stream_(stream)
+      {
+        int error = inflateInit2(&stream_,
+                                 MAX_WBITS + 16);  // this is a gzip input
+
+        if (error != Z_OK)
+        {
+          throw OrthancException(ErrorCode_InternalError, "Cannot initialize zlib");
+        }
+      }
+
+      ~GzipRaii()
+      {
+        inflateEnd(&stream_);
+      }
+    };
+  }
+
+
   void GzipCompressor::Uncompress(std::string& uncompressed,
                                   const void* compressed,
                                   size_t compressedSize)
   {
-    uint64_t uncompressedSize;
     const uint8_t* source = reinterpret_cast<const uint8_t*>(compressed);
+
+    bool hasMaximumSize = false;
+    size_t maximumSize = 0;
 
     if (HasPrefixWithUncompressedSize())
     {
-      uncompressedSize = ReadUncompressedSizePrefix(compressed, compressedSize);
+      hasMaximumSize = true;
+      maximumSize = ReadUncompressedSizePrefix(compressed, compressedSize);
       source += sizeof(uint64_t);
       compressedSize -= sizeof(uint64_t);
     }
     else
     {
-      uncompressedSize = GuessUncompressedSize(compressed, compressedSize);
-    }
-
-    try
-    {
-      uncompressed.resize(static_cast<size_t>(uncompressedSize));
-    }
-    catch (...)
-    {
-      throw OrthancException(ErrorCode_NotEnoughMemory);
+      // TODO
     }
 
     z_stream stream;
     memset(&stream, 0, sizeof(stream));
 
-    char dummy = '\0';  // zlib does not like NULL output buffers (even if the uncompressed data is empty)
     stream.next_in = const_cast<Bytef*>(source);
-    stream.next_out = reinterpret_cast<Bytef*>(uncompressedSize == 0 ? &dummy : &uncompressed[0]);
-
     stream.avail_in = static_cast<uInt>(compressedSize);
-    stream.avail_out = static_cast<uInt>(uncompressedSize);
 
-    // Ensure no overflow (if the buffer is too large for the current archicture)
-    if (static_cast<size_t>(stream.avail_in) != compressedSize ||
-        static_cast<size_t>(stream.avail_out) != uncompressedSize)
+    // Ensure no overflow (if the buffer is too large for the current zlib archicture)
+    if (static_cast<size_t>(stream.avail_in) != compressedSize)
     {
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
-    // Initialize the compression engine
-    int error = inflateInit2(&stream, 
-                             MAX_WBITS + 16);  // this is a gzip input
+    ChunkedBuffer buffer;
 
-    if (error != Z_OK)
     {
-      // Cannot initialize zlib
-      uncompressed.clear();
-      throw OrthancException(ErrorCode_InternalError);
-    }
+      GzipRaii raii(stream);
 
-    // Uncompress the input buffer
-    error = inflate(&stream, Z_FINISH);
+      std::string chunk;
+      chunk.resize(10 * 1024 * 1024); // Read by chunks of 10MB
 
-    if (error != Z_STREAM_END)
-    {
-      inflateEnd(&stream);
-      uncompressed.clear();
+      int ret = Z_OK;
 
-      switch (error)
+      while (ret != Z_STREAM_END)
       {
+        stream.next_out  = reinterpret_cast<Bytef*>(chunk.data());
+        stream.avail_out = static_cast<uInt>(chunk.size());
+
+        ret = inflate(&stream, Z_NO_FLUSH);
+
+        switch (ret)
+        {
+        case Z_STREAM_END:
+        case Z_OK:
+          break; // Normal
+
+        case Z_NEED_DICT:
+        case Z_DATA_ERROR:
+        case Z_STREAM_ERROR:
+          throw OrthancException(ErrorCode_BadFileFormat);
+
         case Z_MEM_ERROR:
           throw OrthancException(ErrorCode_NotEnoughMemory);
-          
+
         case Z_BUF_ERROR:
-        case Z_NEED_DICT:
-          throw OrthancException(ErrorCode_BadFileFormat);
-          
+          // Not fatal: means no progress was possible this round.
+          // If avail_in is also 0 here, the input is truncated.
+          if (stream.avail_in == 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat, "Truncated gzip input");
+          }
+          break;
+
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_InternalError); // Unknown error
+        }
+
+        const size_t produced = chunk.size() - stream.avail_out;
+
+        if (hasMaximumSize &&
+            buffer.GetNumBytes() + produced > maximumSize)
+        {
+          char s[32];
+          sprintf(s, "%0.1f", static_cast<float>(maximumSize) / (1024.0f * 1024.0f));
+          throw OrthancException(ErrorCode_BadFileFormat, "Uncompressed size exceeds limit (" + std::string(s) + "MB)");
+        }
+        else
+        {
+          // OK, add the chunk
+          buffer.AddChunk(&chunk[0], produced);
+        }
       }
     }
 
-    size_t size = stream.total_out;
-
-    if (inflateEnd(&stream) != Z_OK)
-    {
-      uncompressed.clear();
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    if (size != uncompressedSize)
-    {
-      uncompressed.clear();
-
-      // The uncompressed size was not that properly guess, presumably
-      // because of a file size over 4GB. Should fallback to
-      // stream-based decompression.
-      throw OrthancException(ErrorCode_NotImplemented,
-                             "The uncompressed size of a gzip-encoded buffer was not properly guessed");
-    }
+    buffer.Flatten(uncompressed);
   }
 }

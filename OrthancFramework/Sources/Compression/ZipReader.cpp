@@ -425,8 +425,8 @@ namespace Orthanc
             info.uncompressed_size > maximumUncompressedFileSize_)
         {
           char s[32];
-          sprintf(s, "%0.2f", static_cast<float>(info.uncompressed_size) / (1024.0f * 1024.0f));
-          throw OrthancException(ErrorCode_BadFileFormat, "Uncompressed size exceeds limit: " + std::string(s) + "MB");
+          sprintf(s, "%0.1f", static_cast<float>(maximumUncompressedFileSize_) / (1024.0f * 1024.0f));
+          throw OrthancException(ErrorCode_BadFileFormat, "Uncompressed size exceeds limit (" + std::string(s) + "MB)");
         }
       }
 
