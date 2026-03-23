@@ -65,6 +65,7 @@ Maintenance
   - Fix possible out-of-bound access when reading a DICOM file with invalid group length tag.
   - Fix possible memory exhaustion via very large "Content-Length"
   - Fix possible memory exhaustion via forged ZIP metadata
+  - Fix possible memory exhaustion via forged gzip metadata
 * Upgraded dependencies for static builds:
   - boost 1.89.0
   - dcmtk 3.7.0
