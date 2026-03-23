@@ -264,7 +264,7 @@ namespace Orthanc
 
       while (ret != Z_STREAM_END)
       {
-        stream.next_out  = reinterpret_cast<Bytef*>(chunk.data());
+        stream.next_out  = const_cast<Bytef*>(reinterpret_cast<const Bytef*>(chunk.data()));
         stream.avail_out = static_cast<uInt>(chunk.size());
 
         ret = inflate(&stream, Z_NO_FLUSH);
