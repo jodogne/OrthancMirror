@@ -4,7 +4,8 @@ Pending changes in the mainline
 General
 -------
 
-* New configuration option "MaximumRequestBodySizeMB" to limit the maximum body size in HTTP requests
+* New configuration option "MaximumRequestBodySizeMB" to limit the body size in HTTP requests
+* New configuration option "MaximumFileSizeInArchiveMB" to limit the file size in ZIP/gzip archives
 * New experimental configuration "PatientLevelEnabled" (TODO: work in progree)
 
 REST API

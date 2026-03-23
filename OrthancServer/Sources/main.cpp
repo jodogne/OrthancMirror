@@ -25,6 +25,7 @@
 #include "OrthancRestApi/OrthancRestApi.h"
 
 #include "../../OrthancFramework/Sources/Compatibility.h"
+#include "../../OrthancFramework/Sources/Compression/GzipCompressor.h"
 #include "../../OrthancFramework/Sources/Compression/ZipReader.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomAssociationParameters.h"
@@ -1146,6 +1147,8 @@ static bool StartHttpServer(ServerContext& context,
         LOG(WARNING) << "Limiting on the maximum file size uncompressed from ZIP/gzip archives to " << maxSizeInArchive << "MB";
         ZipReader::SetMaximumUncompressedFileSize(static_cast<uint64_t>(maxSizeInArchive) *
                                                   static_cast<uint64_t>(1024 * 1024));
+        GzipCompressor::SetMaximumUncompressedFileSize(static_cast<uint64_t>(maxSizeInArchive) *
+                                                       static_cast<uint64_t>(1024 * 1024));
       }
       else
       {

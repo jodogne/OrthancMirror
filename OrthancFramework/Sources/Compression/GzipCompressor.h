@@ -45,5 +45,7 @@ namespace Orthanc
     virtual void Uncompress(std::string& uncompressed,
                             const void* compressed,
                             size_t compressedSize) ORTHANC_OVERRIDE;
+
+    static void SetMaximumUncompressedFileSize(uint64_t size);
   };
 }
