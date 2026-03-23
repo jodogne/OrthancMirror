@@ -68,7 +68,7 @@ typedef ssize_t SSIZE_T;
 #include <string.h>
 
 
-static Orthanc::ReaderWriterLock mutex_;
+static Orthanc::ReaderWriterLock maximumUncompressedFileSizeMutex_;
 static bool hasMaximumUncompressedFileSize_ = false;
 static size_t maximumUncompressedFileSize_ = 0;
 
@@ -419,7 +419,7 @@ namespace Orthanc
 
       {
         // Prevent ZIP bombs
-        ReaderWriterLock::ReadLock lock(mutex_);
+        ReaderWriterLock::ReadLock lock(maximumUncompressedFileSizeMutex_);
 
         if (hasMaximumUncompressedFileSize_ &&
             info.uncompressed_size > maximumUncompressedFileSize_)
@@ -535,7 +535,7 @@ namespace Orthanc
     }
     else
     {
-      ReaderWriterLock::WriteLock lock(mutex_);
+      ReaderWriterLock::WriteLock lock(maximumUncompressedFileSizeMutex_);
       hasMaximumUncompressedFileSize_ = true;
       maximumUncompressedFileSize_ = size;
     }

@@ -30,8 +30,15 @@
 #include <zlib.h>
 
 #include "../ChunkedBuffer.h"
-#include "../OrthancException.h"
 #include "../Logging.h"
+#include "../MultiThreading/ReaderWriterLock.h"
+#include "../OrthancException.h"
+
+
+static Orthanc::ReaderWriterLock maximumUncompressedFileSizeMutex_;
+static bool hasMaximumUncompressedFileSize_ = false;
+static size_t maximumUncompressedFileSize_ = 0;
+
 
 namespace Orthanc
 {
@@ -224,7 +231,13 @@ namespace Orthanc
     }
     else
     {
-      // TODO
+      ReaderWriterLock::ReadLock lock(maximumUncompressedFileSizeMutex_);
+
+      if (hasMaximumUncompressedFileSize_)
+      {
+        hasMaximumSize = true;
+        maximumSize = maximumUncompressedFileSize_;
+      }
     }
 
     z_stream stream;
@@ -301,5 +314,20 @@ namespace Orthanc
     }
 
     buffer.Flatten(uncompressed);
+  }
+
+
+  void GzipCompressor::SetMaximumUncompressedFileSize(uint64_t size)
+  {
+    if (static_cast<uint64_t>(static_cast<size_t>(size)) != size)
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+    else
+    {
+      ReaderWriterLock::WriteLock lock(maximumUncompressedFileSizeMutex_);
+      hasMaximumUncompressedFileSize_ = true;
+      maximumUncompressedFileSize_ = size;
+    }
   }
 }
