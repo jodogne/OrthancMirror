@@ -86,7 +86,7 @@ REST API
   "ErrorPayload" in the HTTP response with details about the failed operation.
   This is currently implemented for C-Store, C-Move, and C-Get operations.
 * C-Move jobs, C-Get jobs, and HTTP responses now include a new "Details" field with the
-  "DimseErrorStatus" of each operation and the list of "RetrievedInstancesIds".
+  "DimseErrorStatus" of each operation and the list of "ReceivedInstancesIds".
 
 Plugin SDK
 ----------
