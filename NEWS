@@ -67,6 +67,7 @@ Maintenance
   - Fix possible memory exhaustion via very large "Content-Length"
   - Fix possible memory exhaustion via forged ZIP metadata
   - Fix possible memory exhaustion via forged gzip metadata
+  - Sanitize HTTP header "Content-Disposition" when creating ZIP archives
 * Upgraded dependencies for static builds:
   - boost 1.89.0
   - dcmtk 3.7.0
