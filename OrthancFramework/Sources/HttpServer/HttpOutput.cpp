@@ -981,7 +981,7 @@ namespace Orthanc
     std::string filename;
     if (stream.HasContentFilename(filename))
     {
-      stateMachine_.AddHeader("Content-Disposition", "filename=\"" + std::string(filename) + "\"");
+      stateMachine_.SetContentFilename(filename.c_str());
     }
 
     stateMachine_.StartStream(contentType);
