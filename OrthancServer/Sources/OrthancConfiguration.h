@@ -248,6 +248,7 @@ namespace Orthanc
 
     void RemovePeer(const std::string& symbolicName);
 
+    unsigned int GetLoaderThreads() const;
 
     void Format(std::string& result) const;
     

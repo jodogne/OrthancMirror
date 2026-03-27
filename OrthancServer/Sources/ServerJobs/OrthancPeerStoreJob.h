@@ -24,7 +24,7 @@
 #pragma once
 
 #include "../../../OrthancFramework/Sources/Compatibility.h"
-#include "../../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h"
+#include "StoreJob.h"
 #include "../../../OrthancFramework/Sources/HttpClient.h"
 
 #include <stdint.h>
@@ -34,10 +34,9 @@ namespace Orthanc
 {
   class ServerContext;
   
-  class OrthancPeerStoreJob : public SetOfInstancesJob
+  class OrthancPeerStoreJob : public StoreJob
   {
   private:
-    ServerContext&               context_;
     WebServiceParameters         peer_;
     std::unique_ptr<HttpClient>  client_;
     bool                         transcode_;
@@ -52,7 +51,7 @@ namespace Orthanc
 
   public:
     explicit OrthancPeerStoreJob(ServerContext& context) :
-      context_(context),
+      StoreJob(context),
       transcode_(false),
       transferSyntax_(DicomTransferSyntax_LittleEndianExplicit),  // Dummy value
       compress_(false),
@@ -95,6 +94,11 @@ namespace Orthanc
     virtual void GetJobType(std::string& target) const ORTHANC_OVERRIDE
     {
       target = "OrthancPeerStore";
+    }
+
+    virtual const char* GetLoaderPrefix() const
+    {
+      return "PSTO";
     }
 
     virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;
