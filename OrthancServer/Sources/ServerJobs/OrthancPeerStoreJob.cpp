@@ -61,7 +61,7 @@ namespace Orthanc
       if (transcode_)
       {
         std::string dicom;
-        context_.ReadDicom(dicom, instance);
+        instancesLoader_->GetDicom(dicom, instance);
 
         std::set<DicomTransferSyntax> syntaxes;
         syntaxes.insert(transferSyntax_);
@@ -217,6 +217,8 @@ namespace Orthanc
   void OrthancPeerStoreJob::Stop(JobStopReason reason)   // For pausing jobs
   {
     client_.reset(NULL);
+
+    StoreJob::Stop(reason);
   }
 
 
@@ -249,8 +251,7 @@ namespace Orthanc
 
   OrthancPeerStoreJob::OrthancPeerStoreJob(ServerContext& context,
                                            const Json::Value& serialized) :
-    SetOfInstancesJob(serialized),
-    context_(context)
+    StoreJob(context, serialized)
   {
     assert(serialized.type() == Json::objectValue);
     peer_ = WebServiceParameters(serialized[PEER]);

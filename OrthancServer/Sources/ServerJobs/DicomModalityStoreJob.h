@@ -24,7 +24,7 @@
 #pragma once
 
 #include "../../../OrthancFramework/Sources/Compatibility.h"
-#include "../../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h"
+#include "StoreJob.h"
 #include "../../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.h"
 
 #include <list>
@@ -33,10 +33,9 @@ namespace Orthanc
 {
   class ServerContext;
   
-  class DicomModalityStoreJob : public SetOfInstancesJob
+  class DicomModalityStoreJob : public StoreJob
   {
   private:
-    ServerContext&                             context_;
     DicomAssociationParameters                 parameters_;
     std::string                                moveOriginatorAet_;
     uint16_t                                   moveOriginatorId_;
@@ -91,6 +90,11 @@ namespace Orthanc
     virtual void GetJobType(std::string& target) const ORTHANC_OVERRIDE
     {
       target = "DicomModalityStore";
+    }
+
+    virtual const char* GetLoaderPrefix() const
+    {
+      return "CSTO";
     }
 
     virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;

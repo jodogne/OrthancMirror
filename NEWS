@@ -4,7 +4,22 @@ Pending changes in the mainline
 General
 -------
 
-* New experimental configuration "PatientLevelEnabled" (TODO: work in progree)
+* New configuration "LoaderThreads" that is a general configuration for all actions
+  that require loading files, possibly in parallel:
+  - downloading zip archive/media,
+  - performing a C-Store to a remote modality
+  - performing a peer transfer to a remote Orthanc.
+  Note: the old "ZipLoaderThreads" configuration is still available for backward 
+        compatibility reasons.
+* When performing a C-Store or a peer transfer, the instances are now 
+  grouped per series and ordered by their InstanceNumber instead of using
+  a random order in previous Orthanc versions.
+TODO before release: - reconfigure the instancesLoader when unserializing a C-Store or peer job
+                     - serialize the ParentResources in C-Store and peer job
+                     - use ThreadedInstancesLoader in OrthancGetRequestHandler
+
+
+* New experimental configuration "PatientLevelEnabled".
 
 REST API
 --------

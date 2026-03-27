@@ -49,6 +49,7 @@
 #include "ServerToolbox.h"
 #include "StorageCommitmentReports.h"
 #include "OutgoingDicomInstance.h"
+#include "SimpleInstanceOrdering.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmnet/dimse.h>
@@ -1809,20 +1810,53 @@ namespace Orthanc
   }
 
 
-  void ServerContext::AddChildInstances(SetOfInstancesJob& job,
-                                        const std::string& publicId,
-                                        ResourceType level)
+  void ServerContext::GetOrderedChildInstances(std::vector<std::string>& instancesIds,
+                                               std::vector<FileInfo>& filesInfo,
+                                               const std::string& publicId,
+                                               ResourceType level)
   {
-    std::list<std::string> instances;
-    GetIndex().GetChildInstances(instances, publicId, level);
-
-    job.Reserve(job.GetInstancesCount() + instances.size());
-
-    for (std::list<std::string>::const_iterator
-           it = instances.begin(); it != instances.end(); ++it)
+    // don't mix series and, inside a series, order the instances per instance number
+    switch (level)
     {
-      job.AddInstance(*it);
+      case ResourceType_Patient:
+      case ResourceType_Study:
+      {
+        std::list<std::string> childrenIds;
+        GetIndex().GetChildren(childrenIds, level, publicId);
+
+        for (std::list<std::string>::const_iterator it = childrenIds.begin(); it != childrenIds.end(); ++it)
+        {
+          GetOrderedChildInstances(instancesIds, filesInfo, *it, GetChildResourceType(level));
+        }
+      }; break;
+      case ResourceType_Series:
+      {
+        SimpleInstanceOrdering orderedInstances(GetIndex(), publicId);
+
+        instancesIds.reserve(instancesIds.size() + orderedInstances.GetInstancesCount());
+        filesInfo.reserve(filesInfo.size() + orderedInstances.GetInstancesCount());
+        
+        for (size_t i = 0; i < orderedInstances.GetInstancesCount(); ++i)
+        {
+          instancesIds.push_back(orderedInstances.GetInstanceId(i));
+          filesInfo.push_back(orderedInstances.GetInstanceFileInfo(i));
+        }
+      }; break;
+      case ResourceType_Instance:
+      {  
+        FileInfo fileInfo;
+        int64_t revisionNotUsed;
+
+        if (GetIndex().LookupAttachment(fileInfo, revisionNotUsed, level, publicId, FileContentType_Dicom))
+        {
+          instancesIds.push_back(publicId);
+          filesInfo.push_back(fileInfo);
+        }
+      }; break;
+      default:
+        throw OrthancException(ErrorCode_InternalError);
     }
+
   }
 
 
