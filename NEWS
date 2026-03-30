@@ -17,9 +17,10 @@ General
 TODO before release: - reconfigure the instancesLoader when unserializing a C-Store or peer job
                      - serialize the ParentResources in C-Store and peer job
                      - use ThreadedInstancesLoader in OrthancGetRequestHandler
-
-
 * New experimental configuration "PatientLevelEnabled".
+
+TODO before release: re-enable test_content_disposition
+
 
 REST API
 --------
