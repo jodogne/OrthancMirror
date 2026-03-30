@@ -579,6 +579,7 @@ namespace Orthanc
     }
 
     instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads, false, DicomTransferSyntax_BigEndianExplicit /* dummy unused value */, 0, "CGET"));
+    std::vector<FileInfo> filesInfo;
 
     for (std::list<std::string>::const_iterator
            resourceId = publicIds.begin(); resourceId != publicIds.end(); ++resourceId)
@@ -586,13 +587,12 @@ namespace Orthanc
       CLOG(INFO, DICOM) << "C-GET: Sending resource " << *resourceId
                         << " to modality \"" << originatorAet << "\"";
 
-      std::vector<FileInfo> filesInfo;
       context_.GetOrderedChildInstances(instancesIds_, filesInfo, *resourceId, level);
+    }
 
-      for (size_t i = 0; i < instancesIds_.size(); ++i)
-      {
-        instancesLoader_->PrepareDicom(instancesIds_[i], filesInfo[i]);
-      }
+    for (size_t i = 0; i < instancesIds_.size(); ++i)
+    {
+      instancesLoader_->PrepareDicom(instancesIds_[i], filesInfo[i]);
     }
 
     failedUIDs_.clear();
