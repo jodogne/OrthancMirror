@@ -9,6 +9,7 @@ General
   - downloading zip archive/media,
   - performing a C-Store to a remote modality
   - performing a peer transfer to a remote Orthanc.
+  - responding to a C-Get request from a remote modality.
   Note: the old "ZipLoaderThreads" configuration is still available for backward 
         compatibility reasons.
 * When performing a C-Store or a peer transfer, the instances are now 
@@ -16,7 +17,6 @@ General
   a random order in previous Orthanc versions.
 TODO before release: - reconfigure the instancesLoader when unserializing a C-Store or peer job
                      - serialize the ParentResources in C-Store and peer job
-                     - use ThreadedInstancesLoader in OrthancGetRequestHandler
 * New experimental configuration "PatientLevelEnabled".
 
 TODO before release: re-enable test_content_disposition

@@ -35,16 +35,18 @@ class DcmFileFormat;
 namespace Orthanc
 {
   class ServerContext;
+  class ThreadedInstancesLoader;
   
   class OrthancGetRequestHandler : public IGetRequestHandler
   {
   private:
     ServerContext& context_;
     std::string localAet_;
-    std::vector<std::string> instances_;
+    std::vector<std::string> instancesIds_;
     size_t position_;
     std::string originatorAet_;
-    
+    std::unique_ptr<ThreadedInstancesLoader> instancesLoader_;
+
     unsigned int completedCount_;
     unsigned int warningCount_;
     unsigned int failedCount_;
@@ -78,7 +80,7 @@ namespace Orthanc
     
     virtual unsigned int GetSubOperationCount() const ORTHANC_OVERRIDE
     {
-      return static_cast<unsigned int>(instances_.size());
+      return static_cast<unsigned int>(instancesIds_.size());
     }
     
     virtual unsigned int GetCompletedCount() const ORTHANC_OVERRIDE
