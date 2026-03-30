@@ -44,6 +44,8 @@ REST API
 * New "Content.Resources" field in "DicomModalityStore", "OrthancPeerStore" and "ResourceModification" 
   jobs that contains JSON objects with "ID" and "Type" of each resource.  The "Content.ParentResources"
   field that only contains the IDs is preserved for backward compatibility.
+* In /system: renamed "DefaultRetrieveMethod" into "DicomDefaultRetrieveMethod" to match the name
+  in the configuration file.  The configuration returned was actually not reflecting the configuration.
 
 Lua
 ---
