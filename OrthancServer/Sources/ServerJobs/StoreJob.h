@@ -25,7 +25,7 @@
 
 #include "../../../OrthancFramework/Sources/Compatibility.h"
 #include "../../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h"
-#include "../../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.h"
+#include "../../../OrthancFramework/Sources/FileStorage/FileInfo.h"
 #include "ThreadedInstancesLoader.h"
 
 #include <vector>
@@ -33,9 +33,8 @@
 namespace Orthanc
 {
   class ServerContext;
-  class ThreadedInstancesLoader;
   
-  class StoreJob : public SetOfInstancesJob
+  class ORTHANC_PUBLIC StoreJob : public SetOfInstancesJob
   {
   protected:
     ServerContext&                             context_;
