@@ -45,6 +45,21 @@ namespace Orthanc
     SetOfInstancesJob(serialized),
     context_(context)
   {
+    // we need to rebuild the instancesIds_ and filesInfo_ from the SetOfInstancesJob
+    GetInstancesIds(instancesIds_);
+
+    for (size_t i = 0; i < instancesIds_.size(); ++i)
+    {
+      FileInfo fileInfo;
+      int64_t revisionNotUsed;
+      if (!context.GetIndex().LookupAttachment(fileInfo, revisionNotUsed, ResourceType_Instance, instancesIds_[i], FileContentType_Dicom))
+      {
+        throw OrthancException(ErrorCode_UnknownResource, std::string("Error while unserializing a job, unable to find DICOM attachment for instance ") + instancesIds_[i]);
+      }
+
+      filesInfo_.push_back(fileInfo);
+    }
+
   }
 
   void StoreJob::AddInstances(const std::vector<std::string>& instancesIds,
@@ -87,7 +102,8 @@ namespace Orthanc
   {
     if (reason == JobStopReason_Canceled ||
         reason == JobStopReason_Failure ||
-        reason == JobStopReason_Retry)
+        reason == JobStopReason_Retry ||
+        reason == JobStopReason_Success)
     {
       // clear the loader threads
       if (instancesLoader_.get() != NULL)

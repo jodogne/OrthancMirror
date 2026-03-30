@@ -39,7 +39,6 @@ namespace Orthanc
   protected:
     ServerContext&                             context_;
     std::unique_ptr<ThreadedInstancesLoader>   instancesLoader_;
-    // TODO: re-create when unserializing (in AddParentResources ?)
     std::vector<std::string>                   instancesIds_;
     std::vector<FileInfo>                      filesInfo_;
 
