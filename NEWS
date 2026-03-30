@@ -15,8 +15,6 @@ General
 * When performing a C-Store or a peer transfer, the instances are now 
   grouped per series and ordered by their InstanceNumber instead of using
   a random order in previous Orthanc versions.
-TODO before release: - reconfigure the instancesLoader when unserializing a C-Store or peer job
-                     - serialize the ParentResources in C-Store and peer job
 * New experimental configuration "PatientLevelEnabled".
 
 TODO before release: re-enable test_content_disposition

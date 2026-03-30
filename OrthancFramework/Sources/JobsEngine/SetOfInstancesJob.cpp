@@ -274,4 +274,15 @@ namespace Orthanc
       hasTrailingStep_ = false;
     }
   }
+
+  void SetOfInstancesJob::GetInstancesIds(std::vector<std::string>& target) const
+  {
+    target.clear();
+    target.reserve(GetCommandsCount());
+
+    for (size_t i = 0; i < GetCommandsCount(); ++i)
+    {
+      target.push_back(dynamic_cast<const InstanceCommand&>(GetCommand(i)).GetInstance());
+    }
+  }
 }
