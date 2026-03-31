@@ -36,6 +36,7 @@
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 #include "../SimpleInstanceOrdering.h"
+#include "ThreadedInstancesLoader.h"
 
 #include <stdio.h>
 #include <boost/range/algorithm/count.hpp>
@@ -57,8 +58,6 @@ static const char* const KEY_ARCHIVE_SIZE = "ArchiveSize";
 static const char* const KEY_TRANSCODE = "Transcode";
 static const char* const KEY_ALLOW_UTF8 = "Utf8";
 
-static boost::mutex loaderThreadsCounterMutex;
-static uint32_t loaderThreadsCounter = 0;
 
 namespace Orthanc
 {
@@ -86,263 +85,6 @@ namespace Orthanc
   }
 
 
-  class ArchiveJob::InstanceLoader : public boost::noncopyable
-  {
-  protected:
-    ServerContext&                        context_;
-    bool                                  transcode_;
-    DicomTransferSyntax                   transferSyntax_;
-    unsigned int                          lossyQuality_;
-  public:
-    explicit InstanceLoader(ServerContext& context, bool transcode, DicomTransferSyntax transferSyntax, unsigned int lossyQuality)
-    : context_(context),
-      transcode_(transcode),
-      transferSyntax_(transferSyntax),
-      lossyQuality_(lossyQuality)
-    {
-    }
-
-    virtual ~InstanceLoader()
-    {
-    }
-
-    virtual void PrepareDicom(const std::string& instanceId, const FileInfo& fileInfo)
-    {
-    }
-
-    bool TranscodeDicom(std::string& transcodedBuffer, const std::string& sourceBuffer, const std::string& instanceId)
-    {
-      if (transcode_)
-      {
-        std::set<DicomTransferSyntax> syntaxes;
-        syntaxes.insert(transferSyntax_);
-
-        IDicomTranscoder::DicomImage source, transcoded;
-        source.SetExternalBuffer(sourceBuffer);
-
-        if (context_.Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew, lossyQuality_))
-        {
-          transcodedBuffer.assign(reinterpret_cast<const char*>(transcoded.GetBufferData()), transcoded.GetBufferSize());
-          return true;
-        }
-        else
-        {
-          LOG(INFO) << "Cannot transcode instance " << instanceId
-                    << " to transfer syntax: " << GetTransferSyntaxUid(transferSyntax_);
-        }
-      }
-
-      return false;
-    }
-
-    virtual void GetDicom(std::string& dicom, const std::string& instanceId, const FileInfo& fileInfo) = 0;
-
-    virtual void Clear(bool isAbort)
-    {
-    }
-  };
-
-  class ArchiveJob::SynchronousInstanceLoader : public ArchiveJob::InstanceLoader
-  {
-  public:
-    explicit SynchronousInstanceLoader(ServerContext& context, bool transcode, DicomTransferSyntax transferSyntax, unsigned int lossyQuality)
-    : InstanceLoader(context, transcode, transferSyntax, lossyQuality)
-    {
-    }
-
-    virtual void GetDicom(std::string& dicom, const std::string& instanceId, const FileInfo& fileInfo) ORTHANC_OVERRIDE
-    {
-      context_.ReadAttachment(dicom, fileInfo, true);
-
-      if (transcode_)
-      {
-        std::string transcoded;
-        if (TranscodeDicom(transcoded, dicom, instanceId))
-        {
-          dicom.swap(transcoded);
-        }
-      }
-      
-    }
-  };
-
-  class InstanceToPreload : public Orthanc::IDynamicObject
-  {
-  private:
-    std::string id_;
-    FileInfo    fileInfo_;
-
-  public:
-    explicit InstanceToPreload(const std::string& id, const FileInfo& fileInfo) : 
-      id_(id),
-      fileInfo_(fileInfo)
-    {
-    }
-
-    virtual ~InstanceToPreload() ORTHANC_OVERRIDE
-    {
-    }
-
-    const std::string& GetId() const {return id_;};
-    const FileInfo& GetFileInfo() const {return fileInfo_;};
-  };
-
-  class ArchiveJob::ThreadedInstanceLoader : public ArchiveJob::InstanceLoader
-  {
-    boost::condition_variable           condInstanceAvailable_;
-    std::map<std::string, boost::shared_ptr<std::string> >  availableInstances_;
-    boost::mutex                        availableInstancesMutex_;
-    BlockingSharedMessageQueue          instancesToPreload_;
-    std::vector<boost::thread*>         threads_;
-    bool                                loadersShouldStop_;
-
-
-  public:
-    ThreadedInstanceLoader(ServerContext& context, size_t threadCount, bool transcode, DicomTransferSyntax transferSyntax, unsigned int lossyQuality)
-    : InstanceLoader(context, transcode, transferSyntax, lossyQuality),
-      instancesToPreload_ (3*threadCount), 
-      loadersShouldStop_(false)
-    {
-      for (size_t i = 0; i < threadCount; i++)
-      {
-        threads_.push_back(new boost::thread(PreloaderWorkerThread, this));
-      }
-    }
-
-    virtual ~ThreadedInstanceLoader() ORTHANC_OVERRIDE
-    {
-      ThreadedInstanceLoader::Clear(false);
-    }
-
-    virtual void Clear(bool isAbort) ORTHANC_OVERRIDE
-    {
-      if (threads_.size() > 0)
-      {
-        loadersShouldStop_ = true; // not need to protect this by a mutex.  This is the only "writer" and all loaders are "readers"
-
-        if (isAbort)
-        {
-          LOG(INFO) << "Cancelling the loader threads";
-          instancesToPreload_.Clear();
-        }
-        else
-        {
-          LOG(INFO) << "Waiting for loader threads to complete";
-        }
-
-        // unlock the loaders if they are waiting on this message queue (this happens when the job completes sucessfully)
-        for (size_t i = 0; i < threads_.size(); i++)
-        {
-          instancesToPreload_.Enqueue(NULL);
-        }
-
-        for (size_t i = 0; i < threads_.size(); i++)
-        {
-          if (threads_[i]->joinable())
-          {
-            threads_[i]->join();
-          }
-          delete threads_[i];
-        }
-
-        threads_.clear();
-        availableInstances_.clear();
-
-        LOG(INFO) << "Waiting for loader threads to complete - done";
-      }
-    }
-
-    static void PreloaderWorkerThread(ThreadedInstanceLoader* that)
-    {
-      {
-        boost::mutex::scoped_lock lock(loaderThreadsCounterMutex);
-        Logging::SetCurrentThreadName(std::string("ARCH-LOAD-") + boost::lexical_cast<std::string>(loaderThreadsCounter++));
-        loaderThreadsCounter %= 1000000;
-      }
-
-      LOG(INFO) << "Loader thread has started";
-
-      while (true)
-      {
-        std::unique_ptr<InstanceToPreload> instanceToPreload(dynamic_cast<InstanceToPreload*>(that->instancesToPreload_.Dequeue(0)));
-        if (instanceToPreload.get() == NULL || that->loadersShouldStop_)  // that's the signal to exit the thread
-        {
-          LOG(INFO) << "Loader thread has completed";
-          return;
-        }
-        
-        try
-        {
-          boost::shared_ptr<std::string> dicomContent(new std::string());
-          that->context_.ReadAttachment(*dicomContent, instanceToPreload->GetFileInfo(), true);
-
-          if (that->transcode_)
-          {
-            boost::shared_ptr<std::string> transcodedDicom(new std::string());
-            if (that->TranscodeDicom(*transcodedDicom, *dicomContent, instanceToPreload->GetId()))
-            {
-              dicomContent = transcodedDicom;
-            }
-          }
-
-          {
-            boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
-            that->availableInstances_[instanceToPreload->GetId()] = dicomContent;
-            that->condInstanceAvailable_.notify_one();
-          }
-        }
-        catch (OrthancException& e)
-        {
-          LOG(ERROR) << "Failed to load instance " << instanceToPreload->GetId() << " error: " << e.GetDetails();
-          boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
-          // store a NULL result to notify that we could not read the instance
-          that->availableInstances_[instanceToPreload->GetId()] = boost::shared_ptr<std::string>(); 
-          that->condInstanceAvailable_.notify_one();
-        }
-        catch (...)
-        {
-          LOG(ERROR) << "Failed to load instance " << instanceToPreload->GetId() << " unknown error";
-          boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
-          // store a NULL result to notify that we could not read the instance
-          that->availableInstances_[instanceToPreload->GetId()] = boost::shared_ptr<std::string>(); 
-          that->condInstanceAvailable_.notify_one();
-        }
-      }
-    }
-
-    virtual void PrepareDicom(const std::string& instanceId, const FileInfo& fileInfo) ORTHANC_OVERRIDE
-    {
-      instancesToPreload_.Enqueue(new InstanceToPreload(instanceId, fileInfo));
-    }
-
-    virtual void GetDicom(std::string& dicom, const std::string& instanceId, const FileInfo& fileInfo) ORTHANC_OVERRIDE
-    {
-      boost::mutex::scoped_lock lock(availableInstancesMutex_);
-
-      while (true)
-      {
-        // wait for this instance to be available but this might not be the one we are waiting for !
-        while (availableInstances_.find(instanceId) == availableInstances_.end())
-        {
-          condInstanceAvailable_.wait(lock);
-        }
-
-        boost::shared_ptr<std::string> dicomContent;
-
-        // this is the instance we were waiting for
-        dicomContent = availableInstances_[instanceId];
-        availableInstances_.erase(instanceId);
-
-        if (dicomContent.get() == NULL)  // there has been an error while reading the file
-        {
-          throw OrthancException(ErrorCode_InexistentItem);
-        }
-        dicom.swap(*dicomContent);
-
-        return;
-      }
-    }
-  };
 
   // This enum defines specific resource types to be used when exporting the archive.
   // It defines if we should use the PatientInfo from the Patient or from the Study.
@@ -774,7 +516,7 @@ namespace Orthanc
       }
         
       void Apply(HierarchicalZipWriter& writer,
-                 InstanceLoader& instanceLoader,
+                 ThreadedInstancesLoader& instancesLoader,
                  DicomDirWriter* dicomDir,
                  const std::string& dicomDirFolder,
                  bool transcode,
@@ -797,7 +539,7 @@ namespace Orthanc
             try
             {
               LOG(INFO) << "Adding instance " << instanceId_ << " in zip";
-              instanceLoader.GetDicom(content, instanceId_, fileInfo_);
+              instancesLoader.GetDicom(content, instanceId_);
             }
             catch (OrthancException& e)
             {
@@ -828,11 +570,11 @@ namespace Orthanc
     std::deque<Command*>  commands_;
     uint64_t              uncompressedSize_;
     unsigned int          instancesCount_;
-    InstanceLoader&       instanceLoader_;
+    ThreadedInstancesLoader& instancesLoader_;
 
       
     void ApplyInternal(HierarchicalZipWriter& writer,
-                       InstanceLoader& instanceLoader,
+                       ThreadedInstancesLoader& instancesLoader,
                        size_t index,
                        DicomDirWriter* dicomDir,
                        const std::string& dicomDirFolder,
@@ -844,14 +586,14 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
 
-      commands_[index]->Apply(writer, instanceLoader, dicomDir, dicomDirFolder, transcode, transferSyntax);
+      commands_[index]->Apply(writer, instancesLoader, dicomDir, dicomDirFolder, transcode, transferSyntax);
     }
       
   public:
-    explicit ZipCommands(InstanceLoader& instanceLoader) :
+    explicit ZipCommands(ThreadedInstancesLoader& instancesLoader) :
       uncompressedSize_(0),
       instancesCount_(0),
-      instanceLoader_(instanceLoader)
+      instancesLoader_(instancesLoader)
     {
     }
       
@@ -882,24 +624,24 @@ namespace Orthanc
 
     // "media" flavor (with DICOMDIR)
     void Apply(HierarchicalZipWriter& writer,
-               InstanceLoader& instanceLoader,
+               ThreadedInstancesLoader& instancesLoader,
                size_t index,
                DicomDirWriter& dicomDir,
                const std::string& dicomDirFolder,
                bool transcode,
                DicomTransferSyntax transferSyntax) const
     {
-      ApplyInternal(writer, instanceLoader, index, &dicomDir, dicomDirFolder, transcode, transferSyntax);
+      ApplyInternal(writer, instancesLoader, index, &dicomDir, dicomDirFolder, transcode, transferSyntax);
     }
 
     // "archive" flavor (without DICOMDIR)
     void Apply(HierarchicalZipWriter& writer,
-               InstanceLoader& instanceLoader,
+               ThreadedInstancesLoader& instancesLoader,
                size_t index,
                bool transcode,
                DicomTransferSyntax transferSyntax) const
     {
-      ApplyInternal(writer, instanceLoader, index, NULL, "", transcode, transferSyntax);
+      ApplyInternal(writer, instancesLoader, index, NULL, "", transcode, transferSyntax);
     }
       
     void AddOpenDirectory(const std::string& filename)
@@ -916,7 +658,7 @@ namespace Orthanc
                           const std::string& instanceId,
                           const FileInfo& fileInfo)
     {
-      instanceLoader_.PrepareDicom(instanceId, fileInfo);
+      instancesLoader_.PrepareDicom(instanceId, fileInfo);
       commands_.push_back(new Command(Type_WriteInstance, filename, instanceId, fileInfo));
       instancesCount_ ++;
       uncompressedSize_ += fileInfo.GetUncompressedSize();
@@ -1090,7 +832,7 @@ namespace Orthanc
   {
   private:
     ServerContext&                          context_;
-    InstanceLoader&                         instanceLoader_;
+    ThreadedInstancesLoader&                instancesLoader_;
     ZipCommands                             commands_;
     std::unique_ptr<HierarchicalZipWriter>  zip_;
     std::unique_ptr<DicomDirWriter>         dicomDir_;
@@ -1100,14 +842,14 @@ namespace Orthanc
 
   public:
     ZipWriterIterator(ServerContext& context,
-                      InstanceLoader& instanceLoader,
+                      ThreadedInstancesLoader& instancesLoader,
                       ArchiveIndex& archive,
                       bool isMedia,
                       bool enableExtendedSopClass,
                       bool allowUtf8) :
       context_(context),
-      instanceLoader_(instanceLoader),
-      commands_(instanceLoader),
+      instancesLoader_(instancesLoader),
+      commands_(instancesLoader),
       isMedia_(isMedia),
       isStream_(false),
       allowUtf8_(allowUtf8)
@@ -1234,13 +976,13 @@ namespace Orthanc
         if (isMedia_)
         {
           assert(dicomDir_.get() != NULL);
-          commands_.Apply(*zip_, instanceLoader_, index, *dicomDir_,
+          commands_.Apply(*zip_, instancesLoader_, index, *dicomDir_,
                           MEDIA_IMAGES_FOLDER, transcode, transferSyntax);
         }
         else
         {
           assert(dicomDir_.get() == NULL);
-          commands_.Apply(*zip_, instanceLoader_, index, transcode, transferSyntax);
+          commands_.Apply(*zip_, instancesLoader_, index, transcode, transferSyntax);
         }
       }
     }
@@ -1273,7 +1015,7 @@ namespace Orthanc
     transcode_(false),
     transferSyntax_(DicomTransferSyntax_LittleEndianImplicit),
     lossyQuality_(100),
-    loaderThreads_(0),
+    loaderThreads_(1),
     allowUtf8_(false)
   {
   }
@@ -1395,7 +1137,7 @@ namespace Orthanc
     }
     else
     {
-      loaderThreads_ = loaderThreads;
+      loaderThreads_ = std::max(1u, loaderThreads);
     }
   }
 
@@ -1422,15 +1164,7 @@ namespace Orthanc
   
   void ArchiveJob::Start()
   {
-    if (loaderThreads_ == 0)
-    {
-      // default behaviour before loaderThreads was introducted in 1.10.0
-      instanceLoader_.reset(new SynchronousInstanceLoader(context_, transcode_, transferSyntax_, lossyQuality_));
-    }
-    else
-    {
-      instanceLoader_.reset(new ThreadedInstanceLoader(context_, loaderThreads_, transcode_, transferSyntax_, lossyQuality_));
-    }
+    instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads_, transcode_, transferSyntax_, lossyQuality_, "ARCH"));
 
     if (writer_.get() != NULL)
     {
@@ -1453,7 +1187,7 @@ namespace Orthanc
           assert(asynchronousTarget_.get() != NULL);
           asynchronousTarget_->Touch();  // Make sure we can write to the temporary file
           
-          writer_.reset(new ZipWriterIterator(context_, *instanceLoader_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
+          writer_.reset(new ZipWriterIterator(context_, *instancesLoader_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
           writer_->SetOutputFile(asynchronousTarget_->GetPath());
         }
       }
@@ -1461,7 +1195,7 @@ namespace Orthanc
       {
         assert(synchronousTarget_.get() != NULL);
     
-        writer_.reset(new ZipWriterIterator(context_, *instanceLoader_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
+        writer_.reset(new ZipWriterIterator(context_, *instancesLoader_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
         writer_->AcquireOutputStream(synchronousTarget_.release());
       }
 
@@ -1506,9 +1240,9 @@ namespace Orthanc
       writer_.reset();
     }
 
-    if (instanceLoader_.get() != NULL)
+    if (instancesLoader_.get() != NULL)
     {
-      instanceLoader_->Clear(false);
+      instancesLoader_->Clear(false);
     }
 
     if (asynchronousTarget_.get() != NULL)
@@ -1578,9 +1312,9 @@ namespace Orthanc
       asynchronousTarget_.reset();
 
       // clear the loader threads
-      if (instanceLoader_.get() != NULL)
+      if (instancesLoader_.get() != NULL)
       {
-        instanceLoader_->Clear(true);
+        instancesLoader_->Clear(true);
       }
     }
   }

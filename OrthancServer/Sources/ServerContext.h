@@ -513,9 +513,10 @@ namespace Orthanc
 
     bool HasPlugins() const;
 
-    void AddChildInstances(SetOfInstancesJob& job,
-                           const std::string& publicId,
-                           ResourceType level);
+    void GetOrderedChildInstances(std::vector<std::string>& instancesIds,
+                                  std::vector<FileInfo>& filesInfo,
+                                  const std::string& publicId,
+                                  ResourceType level);
 
     void SignalUpdatedModalities();
 

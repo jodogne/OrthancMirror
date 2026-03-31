@@ -4943,6 +4943,11 @@ namespace Orthanc
 
     CheckKeyValueStoresSupport(lock.GetContext());
 
+    if (parameters.valueSize == 0 || parameters.value == NULL)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "You must provide a non-null and non-empty value when adding a value in a Key-Value store.");
+    }
+
     lock.GetContext().GetIndex().StoreKeyValue(parameters.storeId, parameters.key, parameters.value, parameters.valueSize);
   }
 
@@ -5005,6 +5010,11 @@ namespace Orthanc
     PImpl::ServerContextReference lock(*pimpl_);
 
     CheckQueuesSupport(lock.GetContext());
+
+    if (parameters.valueSize == 0 || parameters.value == NULL)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "You must provide a non-null and non-empty value when enqueing a value in a Queue.");
+    }
 
     lock.GetContext().GetIndex().EnqueueValue(parameters.queueId, parameters.value, parameters.valueSize);
   }

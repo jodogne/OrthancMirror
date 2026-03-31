@@ -1009,12 +1009,19 @@
   // as soon as one DICOM file gets compressed (new in Orthanc 1.9.4)
   "SynchronousZipStream" : true,
 
-  // Default number of loader threads when generating Zip archive/media.
-  // A value of 0 means reading and writing are performed in sequence
-  // (default behaviour).  A value > 1 is meaningful only if the storage
+  // Default number of loader threads when reading files from disk when
+  // executing some tasks:
+  // - generating archive/media, 
+  // - executing a C-Store 
+  // - transmitting resources through Orthanc peering.
+  // A value of 0 and 1 are equivalent: a single thread is used.
+  // A value > 1 is meaningful only if the storage
   // is a distributed network storage (e.g object storage plugin).
-  // (new experimental feature in Orthanc 1.10.0)
-  "ZipLoaderThreads": 0,
+  // (new in Orthanc 1.12.11)
+  // Note, from 1.10.0 to 1.12.10, a "ZipLoaderThreads" configuration
+  // was available only for the zip archive/media.  It is still valid
+  // for backward compatibility.
+  "LoaderThreads": 1,
 
   // Extra Main Dicom tags that are stored in DB together with all default
   // Main Dicom tags that are already stored.

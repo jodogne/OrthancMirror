@@ -4,7 +4,21 @@ Pending changes in the mainline
 General
 -------
 
-* New experimental configuration "PatientLevelEnabled" (TODO: work in progree)
+* New configuration "LoaderThreads" that is a general configuration for all actions
+  that require loading files, possibly in parallel:
+  - downloading zip archive/media,
+  - performing a C-Store to a remote modality
+  - performing a peer transfer to a remote Orthanc.
+  - responding to a C-Get request from a remote modality.
+  Note: the old "ZipLoaderThreads" configuration is still available for backward 
+        compatibility reasons.
+* When performing a C-Store or a peer transfer, the instances are now 
+  grouped per series and ordered by their InstanceNumber instead of using
+  a random order in previous Orthanc versions.
+* New experimental configuration "PatientLevelEnabled".
+
+TODO before release: re-enable test_content_disposition
+
 
 REST API
 --------
@@ -26,12 +40,14 @@ REST API
 * New option "Utf8" available in the "{...}/archive" and "/tools/create-archive" routes
   to use UTF-8 filenames in the generated ZIP archives. It defaults to the value
   of the new configuration option "ZipUseUtf8".
-* Support for OF and OD value representations in "/instances/{...}/file" with content type
+* Support for OD, OF, and OL value representations in "/instances/{...}/file" with content type
   "application/dicom+json" (i.e. DICOMweb) and in "/instances/{...}/tags" (contribution by
   Yusuf Sayıta, Philips).
 * New "Content.Resources" field in "DicomModalityStore", "OrthancPeerStore" and "ResourceModification" 
   jobs that contains JSON objects with "ID" and "Type" of each resource.  The "Content.ParentResources"
   field that only contains the IDs is preserved for backward compatibility.
+* In /system: renamed "DefaultRetrieveMethod" into "DicomDefaultRetrieveMethod" to match the name
+  in the configuration file.  The configuration returned was actually not reflecting the configuration.
 
 Lua
 ---
@@ -90,7 +106,7 @@ REST API
   "ErrorPayload" in the HTTP response with details about the failed operation.
   This is currently implemented for C-Store, C-Move, and C-Get operations.
 * C-Move jobs, C-Get jobs, and HTTP responses now include a new "Details" field with the
-  "DimseErrorStatus" of each operation and the list of "RetrievedInstancesIds".
+  "DimseErrorStatus" of each operation and the list of "ReceivedInstancesIds".
 
 Plugin SDK
 ----------

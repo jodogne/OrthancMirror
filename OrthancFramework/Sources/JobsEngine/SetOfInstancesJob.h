@@ -51,6 +51,7 @@ namespace Orthanc
     // Hiding this method, use AddInstance() instead
     using SetOfCommandsJob::AddCommand;
 
+    void GetInstancesIds(std::vector<std::string>& target) const;
   public:
     SetOfInstancesJob();
 

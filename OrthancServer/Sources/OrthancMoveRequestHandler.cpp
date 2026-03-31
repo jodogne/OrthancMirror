@@ -33,6 +33,7 @@
 #include "OrthancConfiguration.h"
 #include "ServerContext.h"
 #include "ServerJobs/DicomModalityStoreJob.h"
+#include "ServerJobs/ThreadedInstancesLoader.h"
 
 
 namespace Orthanc
@@ -46,7 +47,9 @@ namespace Orthanc
     private:
       ServerContext& context_;
       const std::string& localAet_;
-      std::vector<std::string> instances_;
+      std::vector<std::string> instancesIds_;
+      // std::vector<FileInfo> filesInfo_;
+      std::unique_ptr<ThreadedInstancesLoader> instancesLoader_;
       size_t position_;
       RemoteModalityParameters remote_;
       std::string originatorAet_;
@@ -57,6 +60,7 @@ namespace Orthanc
       SynchronousMove(ServerContext& context,
                       const std::string& targetAet,
                       const std::vector<std::string>& publicIds,
+                      ResourceType resourceType,
                       const std::string& originatorAet,
                       uint16_t originatorId) :
         context_(context),
@@ -65,43 +69,49 @@ namespace Orthanc
         originatorAet_(originatorAet),
         originatorId_(originatorId)
       {
+        unsigned int loaderThreads;
+
         {
           OrthancConfiguration::ReaderLock lock;
           remote_ = lock.GetConfiguration().GetModalityUsingAet(targetAet);
+          loaderThreads = lock.GetConfiguration().GetLoaderThreads();
         }
 
+        instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads, false, DicomTransferSyntax_BigEndianExplicit /* dummy value*/, 0, "CSTO"));
+
+        std::vector<FileInfo> filesInfo;
         for (size_t i = 0; i < publicIds.size(); i++)
         {
-          CLOG(INFO, DICOM) << "Sending resource " << publicIds[i] << " to modality \""
+          const std::string resourceId = publicIds[i];
+
+          CLOG(INFO, DICOM) << "Sending resource " << resourceId << " to modality \""
                             << targetAet << "\" in synchronous mode";
 
-          std::list<std::string> tmp;
-          context_.GetIndex().GetChildInstances(tmp, publicIds[i]);
+          context.GetOrderedChildInstances(instancesIds_, filesInfo, resourceId, resourceType);
+        }
 
-          instances_.reserve(tmp.size());
-          for (std::list<std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
-          {
-            instances_.push_back(*it);
-          }
+        for (size_t i = 0; i < instancesIds_.size(); ++i)
+        {
+          instancesLoader_->PrepareDicom(instancesIds_[i], filesInfo[i]);
         }
       }
 
       virtual unsigned int GetSubOperationCount() const ORTHANC_OVERRIDE
       {
-        return instances_.size();
+        return instancesIds_.size();
       }
 
       virtual Status DoNext() ORTHANC_OVERRIDE
       {
-        if (position_ >= instances_.size())
+        if (position_ >= instancesIds_.size())
         {
           return Status_Failure;
         }
 
-        const std::string& id = instances_[position_++];
+        const std::string& id = instancesIds_[position_++];
 
         std::string dicom;
-        context_.ReadDicom(dicom, id);
+        instancesLoader_->GetDicom(dicom, id);
 
         if (connection_.get() == NULL)
         {
@@ -130,6 +140,7 @@ namespace Orthanc
       AsynchronousMove(ServerContext& context,
                        const std::string& targetAet,
                        const std::vector<std::string>& publicIds,
+                       ResourceType resourceType,
                        const std::string& originatorAet,
                        uint16_t originatorId) :
         context_(context),
@@ -151,23 +162,23 @@ namespace Orthanc
           job_->SetMoveOriginator(originatorAet, originatorId);
         }
 
+        std::vector<std::string> instancesIds;
+        std::vector<FileInfo> filesInfo;
+
         for (size_t i = 0; i < publicIds.size(); i++)
         {
-          CLOG(INFO, DICOM) << "Sending resource " << publicIds[i] << " to modality \""
+          const std::string resourceId = publicIds[i];
+
+          CLOG(INFO, DICOM) << "Sending resource " << resourceId << " to modality \""
                             << targetAet << "\" in asynchronous mode";
 
-          std::list<std::string> tmp;
-          context_.GetIndex().GetChildInstances(tmp, publicIds[i]);
+          job_->AddParentResource(resourceId, resourceType);
 
-          countInstances_ = tmp.size();
-
-          job_->Reserve(job_->GetCommandsCount() + tmp.size());
-
-          for (std::list<std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
-          {
-            job_->AddInstance(*it);
-          }
+          context.GetOrderedChildInstances(instancesIds, filesInfo, resourceId, resourceType);
         }
+
+        job_->AddInstances(instancesIds, filesInfo);
+        countInstances_ = instancesIds.size();
       }
 
       virtual unsigned int GetSubOperationCount() const ORTHANC_OVERRIDE
@@ -289,6 +300,7 @@ namespace Orthanc
   static IMoveRequestIterator* CreateIterator(ServerContext& context,
                                               const std::string& targetAet,
                                               const std::vector<std::string>& publicIds,
+                                              ResourceType resourceType,
                                               const std::string& originatorAet,
                                               uint16_t originatorId)
   {
@@ -307,11 +319,11 @@ namespace Orthanc
 
     if (synchronous)
     {
-      return new SynchronousMove(context, targetAet, publicIds, originatorAet, originatorId);
+      return new SynchronousMove(context, targetAet, publicIds, resourceType, originatorAet, originatorId);
     }
     else
     {
-      return new AsynchronousMove(context, targetAet, publicIds, originatorAet, originatorId);
+      return new AsynchronousMove(context, targetAet, publicIds, resourceType, originatorAet, originatorId);
     }
   }
 
@@ -356,12 +368,21 @@ namespace Orthanc
 
       std::vector<std::string> publicIds;
 
-      if (LookupIdentifiers(publicIds, ResourceType_Instance, input) ||
-          LookupIdentifiers(publicIds, ResourceType_Series, input) ||
-          LookupIdentifiers(publicIds, ResourceType_Study, input) ||
-          LookupIdentifiers(publicIds, ResourceType_Patient, input))
+      if (LookupIdentifiers(publicIds, ResourceType_Instance, input))
       {
-        return CreateIterator(context_, targetAet, publicIds, connection.GetRemoteAet(), originatorId);
+        return CreateIterator(context_, targetAet, publicIds, ResourceType_Instance, connection.GetRemoteAet(), originatorId);
+      }
+      else if (LookupIdentifiers(publicIds, ResourceType_Series, input))
+      {
+        return CreateIterator(context_, targetAet, publicIds, ResourceType_Series, connection.GetRemoteAet(), originatorId);
+      }
+      else if (LookupIdentifiers(publicIds, ResourceType_Study, input))
+      {
+        return CreateIterator(context_, targetAet, publicIds, ResourceType_Study, connection.GetRemoteAet(), originatorId);
+      }
+      else if (LookupIdentifiers(publicIds, ResourceType_Patient, input))
+      {
+        return CreateIterator(context_, targetAet, publicIds, ResourceType_Patient, connection.GetRemoteAet(), originatorId);
       }
       else
       {
@@ -382,7 +403,7 @@ namespace Orthanc
 
     if (LookupIdentifiers(publicIds, level, input))
     {
-      return CreateIterator(context_, targetAet, publicIds, connection.GetRemoteAet(), originatorId);
+      return CreateIterator(context_, targetAet, publicIds, level, connection.GetRemoteAet(), originatorId);
     }
     else
     {
