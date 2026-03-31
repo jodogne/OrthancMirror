@@ -30,6 +30,7 @@
 #include "OrthancConfiguration.h"
 #include "ServerContext.h"
 #include "ServerJobs/DicomModalityStoreJob.h"
+#include "ServerJobs/ThreadedInstancesLoader.h"
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
@@ -59,15 +60,20 @@ namespace Orthanc
 
   bool OrthancGetRequestHandler::DoNext(T_ASC_Association* assoc)
   {
-    if (position_ >= instances_.size())
+    if (position_ >= instancesIds_.size())
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
     
-    const std::string& id = instances_[position_++];
+    if (instancesLoader_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    const std::string& id = instancesIds_[position_++];
 
     std::string dicom;
-    context_.ReadDicom(dicom, id);
+    instancesLoader_->GetDicom(dicom, id);
     
     if (dicom.empty())
     {
@@ -544,7 +550,8 @@ namespace Orthanc
     localAet_ = context_.GetDefaultLocalApplicationEntityTitle();
     position_ = 0;
     originatorAet_ = originatorAet;
-    
+    unsigned int loaderThreads = 1;
+
     {
       OrthancConfiguration::ReaderLock lock;
 
@@ -567,22 +574,25 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InexistentItem,
                                "C-GET: Rejecting SCU request from unknown modality with AET: " + originatorAet);
       }
+
+      loaderThreads = lock.GetConfiguration().GetLoaderThreads();
     }
 
+    instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads, false, DicomTransferSyntax_BigEndianExplicit /* dummy unused value */, 0, "CGET"));
+    std::vector<FileInfo> filesInfo;
+
     for (std::list<std::string>::const_iterator
-           resource = publicIds.begin(); resource != publicIds.end(); ++resource)
+           resourceId = publicIds.begin(); resourceId != publicIds.end(); ++resourceId)
     {
-      CLOG(INFO, DICOM) << "C-GET: Sending resource " << *resource
+      CLOG(INFO, DICOM) << "C-GET: Sending resource " << *resourceId
                         << " to modality \"" << originatorAet << "\"";
-      
-      std::list<std::string> tmp;
-      context_.GetIndex().GetChildInstances(tmp, *resource);
-      
-      instances_.reserve(tmp.size());
-      for (std::list<std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
-      {
-        instances_.push_back(*it);
-      }
+
+      context_.GetOrderedChildInstances(instancesIds_, filesInfo, *resourceId, level);
+    }
+
+    for (size_t i = 0; i < instancesIds_.size(); ++i)
+    {
+      instancesLoader_->PrepareDicom(instancesIds_[i], filesInfo[i]);
     }
 
     failedUIDs_.clear();

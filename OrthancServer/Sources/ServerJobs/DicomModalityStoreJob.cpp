@@ -55,7 +55,7 @@ namespace Orthanc
 
     try
     {
-      context_.ReadDicom(dicom, instance);
+      instancesLoader_->GetDicom(dicom, instance);
     }
     catch (OrthancException& e)
     {
@@ -112,7 +112,7 @@ namespace Orthanc
 
 
   DicomModalityStoreJob::DicomModalityStoreJob(ServerContext& context) :
-    context_(context),
+    StoreJob(context),
     moveOriginatorId_(0),      // By default, not a C-MOVE
     storageCommitment_(false)  // By default, no storage commitment
   {
@@ -207,8 +207,9 @@ namespace Orthanc
   void DicomModalityStoreJob::Stop(JobStopReason reason)   // For pausing jobs
   {
     connection_.reset(NULL);
-  }
 
+    StoreJob::Stop(reason);
+  }
 
   void DicomModalityStoreJob::ResetStorageCommitment()
   {
@@ -269,8 +270,7 @@ namespace Orthanc
 
   DicomModalityStoreJob::DicomModalityStoreJob(ServerContext& context,
                                                const Json::Value& serialized) :
-    SetOfInstancesJob(serialized),
-    context_(context)
+    StoreJob(context, serialized)
   {
     moveOriginatorAet_ = SerializationToolbox::ReadString(serialized, MOVE_ORIGINATOR_AET);
     moveOriginatorId_ = static_cast<uint16_t>

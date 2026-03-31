@@ -1360,7 +1360,7 @@ namespace Orthanc
    ***************************************************************************/
 
   static void GetInstancesToExport(Json::Value& otherArguments,
-                                   SetOfInstancesJob& job,
+                                   StoreJob& job,
                                    const std::string& remote,
                                    RestApiPostCall& call)
   {
@@ -1439,23 +1439,27 @@ namespace Orthanc
                                "Resources to be exported must be specified as a JSON array of strings");
       }
 
-      std::string stripped = Toolbox::StripSpaces((*resources) [i].asString());
-      if (!Toolbox::IsSHA1(stripped))
+      std::string resourceId = Toolbox::StripSpaces((*resources) [i].asString());
+      if (!Toolbox::IsSHA1(resourceId))
       {
         throw OrthancException(ErrorCode_BadFileFormat,
-                               "This string is not a valid Orthanc identifier: " + stripped);
+                               "This string is not a valid Orthanc identifier: " + resourceId);
       }
 
       ResourceType level;
-      context.GetIndex().LookupResourceType(level, stripped);
+      context.GetIndex().LookupResourceType(level, resourceId);
 
-      job.AddParentResource(stripped, level);  // New in Orthanc 1.5.7
-      
-      context.AddChildInstances(job, stripped, level);
+      job.AddParentResource(resourceId, level);  // New in Orthanc 1.5.7
+
+      std::vector<std::string> instancesIds;
+      std::vector<FileInfo> filesInfo;
+
+      context.GetOrderedChildInstances(instancesIds, filesInfo, resourceId, level);
+      job.AddInstances(instancesIds, filesInfo);
 
       if (logExportedResources)
       {
-        context.GetIndex().LogExportedResource(stripped, remote);
+        context.GetIndex().LogExportedResource(resourceId, remote);
       }
     }
   }

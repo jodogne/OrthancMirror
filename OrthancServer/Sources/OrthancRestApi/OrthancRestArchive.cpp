@@ -52,7 +52,6 @@ namespace Orthanc
   static const char* const GET_FILENAME = "filename";
   static const char* const GET_RESOURCES = "resources";
 
-  static const char* const CONFIG_LOADER_THREADS = "ZipLoaderThreads";
   static const char* const CONFIG_ALLOW_UTF8 = "ZipUseUtf8";
 
 
@@ -188,7 +187,7 @@ namespace Orthanc
 
     {
       OrthancConfiguration::ReaderLock lock;
-      loaderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(CONFIG_LOADER_THREADS, 0);  // New in Orthanc 1.10.0
+      loaderThreads = lock.GetConfiguration().GetLoaderThreads();
     }
 
     // New in Orthanc 1.12.11
@@ -783,7 +782,7 @@ namespace Orthanc
 
     {
       OrthancConfiguration::ReaderLock lock;
-      unsigned int loaderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(CONFIG_LOADER_THREADS, 0);  // New in Orthanc 1.10.0
+      unsigned int loaderThreads = lock.GetConfiguration().GetLoaderThreads();
       job->SetLoaderThreads(loaderThreads);
     }
 

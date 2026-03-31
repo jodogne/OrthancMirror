@@ -34,6 +34,7 @@
 namespace Orthanc
 {
   class ServerContext;
+  class ThreadedInstancesLoader;
   
   class ArchiveJob : public IJob
   {
@@ -45,14 +46,11 @@ namespace Orthanc
     class ResourceIdentifiers;
     class ZipCommands;
     class ZipWriterIterator;
-    class InstanceLoader;
-    class SynchronousInstanceLoader;
-    class ThreadedInstanceLoader;
 
     std::unique_ptr<ZipWriter::IOutputStream>  synchronousTarget_;  // Only valid before "Start()"
     std::unique_ptr<TemporaryFile>        asynchronousTarget_;
     ServerContext&                        context_;
-    std::unique_ptr<InstanceLoader>       instanceLoader_;
+    std::unique_ptr<ThreadedInstancesLoader>  instancesLoader_;
     boost::shared_ptr<ArchiveIndex>       archive_;
     bool                                  isMedia_;
     bool                                  enableExtendedSopClass_;
