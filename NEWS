@@ -1,6 +1,27 @@
 Pending changes in the mainline
 ===============================
 
+Security
+--------
+
+* Fixed 9 CVEs reported by Machine Spirits UG (https://www.machinespirits.com/):
+  - CVE-2026-5437: Out-of-Bounds read in DicomStreamReader
+  - CVE-2026-5438: Memory exhaustion via forged gzip metadata 
+    (check the new "MaximumFileSizeInArchiveMB" configuration)
+  - CVE-2026-5439: Memory exhaustion via forged zip metadata 
+    (check the new "MaximumFileSizeInArchiveMB" configuration)
+  - CVE-2026-5440: Memory exhaustion via unbounded Content-Length
+    (check the new "MaximumRequestBodySizeMB" configuration)
+  - CVE-2026-5441: Out-of-Bounds read in PMSCT_RLE1 decompression
+  - CVE-2026-5442: Out-of-Bounds read triggered by oversized image dimensions
+  - CVE-2026-5443: Out-of-Bounds read triggered by invalid palette size
+  - CVE-2026-5444: Out-of-Bounds write when calling /tools/create-dicom with a forged PAM file.
+  - CVE-2026-5444: Out-of-Bounds read triggered by invalid palette indexes
+* Fixed a security issue where one could hijack HTTP headers in the response
+  through the "filename" argument of "{...}/file" or "{...}/archive" routes.
+  (credits: Pavel Kohout, Aisle Research, https://www.aisle.com/)
+
+
 General
 -------
 
@@ -12,14 +33,14 @@ General
   - responding to a C-Get request from a remote modality.
   Note: the old "ZipLoaderThreads" configuration is still available for backward 
         compatibility reasons.
-* When performing a C-Store or a peer transfer, the instances are now 
+* When performing a C-Store, a peer transfer or replying to a C-Get, the instances are now 
   grouped per series and ordered by their InstanceNumber instead of using
   a random order in previous Orthanc versions.
+* New configuration option "MaximumRequestBodySizeMB" to limit the body size in HTTP requests.
+  Default value is set to 2GB.
+* New configuration option "MaximumFileSizeInArchiveMB" to limit the file size in ZIP/gzip archives.
+  Default value is set to 512MB.
 * New experimental configuration "PatientLevelEnabled".
-* New configuration option "MaximumRequestBodySizeMB" to limit the body size in HTTP requests
-* New configuration option "MaximumFileSizeInArchiveMB" to limit the file size in ZIP/gzip archives
-
-TODO before release: re-enable test_content_disposition
 
 
 REST API
@@ -29,9 +50,6 @@ REST API
 * Added new metrics in "/tools/metrics-prometheus":
   - "orthanc_logged_errors_count" 
   - "orthanc_logged_warnings_count"
-* Fixed a security issue where one could hijack HTTP headers in the response
-  through the "filename" argument of "{...}/file" or "{...}/archive" routes.
-  (credits: Pavel Kohout, Aisle Research, https://www.aisle.com/)
 * In "tools/find", filtering against "LabelsConstraint": "None" with an empty "Labels" list
   now returns all resources that do not have any label attached, instead of returning all resources.
   This applies to the default SQLite DB and will apply to the next PostgreSQL plugin (v10.1).
@@ -50,7 +68,7 @@ REST API
 Lua
 ---
 
-* Added a new "OutgoingCStoreInstanceFilter()" function. (TODO: document in the book + implement in plugins SDK)
+* Added a new "OutgoingCStoreInstanceFilter()" function.
 
 Plugins
 -------
@@ -74,16 +92,6 @@ Maintenance
 * Save the jobs registry in DB only if it has changed.
   https://discourse.orthanc-server.org/t/frequent-idle-messages-between-postgres-and-orthanc/6406
 * New CMake option: "USE_SYSTEM_MINIZIP" to use the system-wide version of minizip
-* Fixes for security issues reported Machine Spirits UG:
-  - Fix possible out-of-bound access when calling /tools/create-dicom with a PAM file.
-  - Fix possible out-of-bound access when rows/columns DICOM tags exceed the maximum value for a US (65535).
-  - Fix possible out-of-bound access in PMSCT_RLE1 encoded images.
-  - Fix possible out-of-bound access in palette images.
-  - Fix possible out-of-bound access when reading a DICOM file with invalid group length tag.
-  - Fix possible memory exhaustion via very large "Content-Length"
-  - Fix possible memory exhaustion via forged ZIP metadata
-  - Fix possible memory exhaustion via forged gzip metadata
-  - Sanitize HTTP header "Content-Disposition" when creating ZIP archives
 * Upgraded dependencies for static builds:
   - boost 1.89.0
   - dcmtk 3.7.0

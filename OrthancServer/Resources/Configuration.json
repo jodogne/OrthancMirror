@@ -1120,8 +1120,8 @@
   // limit (default in Orthanc <= 1.12.10). (new in Orthanc 1.12.11)
   "MaximumRequestBodySizeMB" : 2048,
 
-  // Maximum allowed size (in MB) of a file after decompression when
-  // it is contained in a ZIP or gzip archive, to prevent resource
+  // Maximum allowed size (in MB) of a single file after decompression 
+  // when it is contained in a ZIP or gzip archive, to prevent resource
   // exhaustion by ZIP/gzip bombs. A value of "0" means no limit (this
   // was the default in Orthanc <= 1.12.10). (new in Orthanc 1.12.11)
   "MaximumFileSizeInArchiveMB" : 512,

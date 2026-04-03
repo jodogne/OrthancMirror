@@ -330,7 +330,7 @@ SDK
   message in the logs.
 * Add OrthancPluginSetStableStatus2() which would take an additional OrthancPluginResourceType
   argument to avoid possible ambiguity about the resource of interest
-
+* Add an equivalent to the lua "OutgoingCStoreInstanceFilter()" function
 
 -----------
 Housekeeper
