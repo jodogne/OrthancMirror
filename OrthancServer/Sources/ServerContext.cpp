@@ -1984,7 +1984,7 @@ namespace Orthanc
       }
       catch (OrthancException& e)
       {
-        LOG(INFO) << e.GetDetails();
+        LOG(INFO) << "Failed to decode a DICOM frame: " << e.GetDetails();
       }
     }
 

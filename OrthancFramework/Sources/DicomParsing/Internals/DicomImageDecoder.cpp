@@ -192,6 +192,11 @@ namespace Orthanc
     {
       if (inbuffer[i] == 0xa5)
       {
+        if (i + 2 >= length)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "Truncated PMSCT_RLE1 escape sequence");
+        }
+
         temp.push_back(inbuffer[i+2]);
         for (uint8_t repeat = inbuffer[i + 1]; repeat != 0; repeat--)
         {
@@ -215,6 +220,11 @@ namespace Orthanc
 
       if (temp[i] == 0x5a)
       {
+        if (i + 2 >= temp.size())
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "Truncated PMSCT_RLE1 delta sequence");
+        }
+
         uint16_t v1 = temp[i + 1];
         uint16_t v2 = temp[i + 2];
         value = (v2 << 8) + v1;
@@ -460,9 +470,12 @@ namespace Orthanc
           throw OrthancException(ErrorCode_NotImplemented, std::string("Palette Color Lookup Table Descriptor invalid palette size: '") + r.c_str() + "'");
         }
 
-        if (pixelLength != target->GetWidth() * target->GetHeight())
+        const uint64_t expectedSize = (static_cast<uint64_t>(target->GetWidth()) *
+                                       static_cast<uint64_t>(target->GetHeight()));
+        
+        if (pixelLength != expectedSize)
         {
-          DcmElement *elem;
+          DcmElement *elem = NULL;
           Uint16 bitsAllocated = 0;
 
           if (!dataset.findAndGetUint16(DCM_BitsAllocated, bitsAllocated).good())
@@ -470,7 +483,8 @@ namespace Orthanc
             throw OrthancException(ErrorCode_NotImplemented);  
           }
 
-          if (!dataset.findAndGetElement(DCM_PixelData, elem).good())
+          if (!dataset.findAndGetElement(DCM_PixelData, elem).good() ||
+              elem == NULL)
           {
             throw OrthancException(ErrorCode_NotImplemented);  
           }
@@ -478,9 +492,11 @@ namespace Orthanc
           // In implicit VR files, pixelLength is expressed in words (OW) although pixels can actually be 8 bits
           // -> pixelLength is wrong by a factor of two and the image can still be decoded!
           // seen in some Philips ClearVue 650 images (using 8 bits LUT)
-          if (!(elem->getVR() == EVR_OW && bitsAllocated == 8 && (2*pixelLength == target->GetWidth() * target->GetHeight())))  
+          if (elem->getVR() != EVR_OW ||
+              bitsAllocated != 8 ||
+              2 * pixelLength != expectedSize)
           {
-            throw OrthancException(ErrorCode_NotImplemented);
+            throw OrthancException(ErrorCode_BadFileFormat, "Invalid size");
           }
         }
 
@@ -494,6 +510,11 @@ namespace Orthanc
 
           for (unsigned int x = 0; x < width; x++)
           {
+            if (*source >= paletteSize)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat, "Pixel value exceeds palette");
+            }
+
             p[0] = lutRed[*source] >> offsetBits;
             p[1] = lutGreen[*source] >> offsetBits;
             p[2] = lutBlue[*source] >> offsetBits;

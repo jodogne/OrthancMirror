@@ -25,6 +25,8 @@
 #include "OrthancRestApi/OrthancRestApi.h"
 
 #include "../../OrthancFramework/Sources/Compatibility.h"
+#include "../../OrthancFramework/Sources/Compression/GzipCompressor.h"
+#include "../../OrthancFramework/Sources/Compression/ZipReader.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomAssociationParameters.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomServer.h"
@@ -47,8 +49,8 @@
 #include "OrthancWebDav.h"
 #include "ServerContext.h"
 #include "ServerEnumerations.h"
-#include "ServerJobs/StorageCommitmentScpJob.h"
 #include "ServerJobs/DicomRetrieveScuBaseJob.h"
+#include "ServerJobs/StorageCommitmentScpJob.h"
 #include "ServerToolbox.h"
 #include "StorageCommitmentReports.h"
 
@@ -1125,6 +1127,33 @@ static bool StartHttpServer(ServerContext& context,
       httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled", false));
       httpServer.SetTcpNoDelay(lock.GetConfiguration().GetBooleanParameter("TcpNoDelay", true));
       httpServer.SetRequestTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpRequestTimeout", 30));
+
+      // New in Orthanc 1.12.11
+      const unsigned int maxBodySize = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumRequestBodySizeMB", 2048);
+      if (maxBodySize != 0)
+      {
+        LOG(WARNING) << "Limiting the maximum body size in HTTP requests to " << maxBodySize << "MB";
+        httpServer.SetMaxBodySize(static_cast<uint64_t>(maxBodySize) *
+                                  static_cast<uint64_t>(1024 * 1024));
+      }
+      else
+      {
+        LOG(WARNING) << "No limit on the maximum body size in HTTP requests";
+      }
+
+      const unsigned int maxSizeInArchive = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumFileSizeInArchiveMB", 512);
+      if (maxSizeInArchive != 0)
+      {
+        LOG(WARNING) << "Limiting on the maximum file size uncompressed from ZIP/gzip archives to " << maxSizeInArchive << "MB";
+        ZipReader::SetMaximumUncompressedFileSize(static_cast<uint64_t>(maxSizeInArchive) *
+                                                  static_cast<uint64_t>(1024 * 1024));
+        GzipCompressor::SetMaximumUncompressedFileSize(static_cast<uint64_t>(maxSizeInArchive) *
+                                                       static_cast<uint64_t>(1024 * 1024));
+      }
+      else
+      {
+        LOG(WARNING) << "No limit on the maximum file size uncompressed from ZIP/gzip archives";
+      }
 
       // Let's assume that the HTTP server is secure
       context.SetHttpServerSecure(true);
