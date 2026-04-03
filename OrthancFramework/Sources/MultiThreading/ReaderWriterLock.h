@@ -24,28 +24,53 @@
 
 #pragma once
 
-#include "DeflateBaseCompressor.h"
-#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
+#include "../OrthancFramework.h"
+
+#if !defined(__EMSCRIPTEN__)
+// Multithreading is not supported in WebAssembly
+#  include <boost/thread/shared_mutex.hpp>
+#  include <boost/thread/lock_types.hpp>  // For boost::unique_lock<> and boost::shared_lock<>
+#endif
+
 
 namespace Orthanc
 {
-  class ORTHANC_PUBLIC GzipCompressor : public DeflateBaseCompressor
+  class ORTHANC_PUBLIC ReaderWriterLock : public boost::noncopyable
   {
   private:
-    uint64_t GuessUncompressedSize(const void* compressed,
-                                   size_t compressedSize);
+    boost::shared_mutex mutex_;
 
   public:
-    GzipCompressor();
+    class ReadLock : public boost::noncopyable
+    {
+    private:
+#if !defined(__EMSCRIPTEN__)
+      boost::shared_lock<boost::shared_mutex> lock_;
+#endif
 
-    virtual void Compress(std::string& compressed,
-                          const void* uncompressed,
-                          size_t uncompressedSize) ORTHANC_OVERRIDE;
+    public:
+      explicit ReadLock(ReaderWriterLock& that)
+#if !defined(__EMSCRIPTEN__)
+        : lock_(that.mutex_)
+#endif
+      {
+      }
+    };
 
-    virtual void Uncompress(std::string& uncompressed,
-                            const void* compressed,
-                            size_t compressedSize) ORTHANC_OVERRIDE;
+    class WriteLock : public boost::noncopyable
+    {
+    private:
+#if !defined(__EMSCRIPTEN__)
+      boost::unique_lock<boost::shared_mutex> lock_;
+#endif
 
-    static void SetMaximumUncompressedFileSize(uint64_t size);
+    public:
+      explicit WriteLock(ReaderWriterLock& that)
+#if !defined(__EMSCRIPTEN__)
+        : lock_(that.mutex_)
+#endif
+      {
+      }
+    };
   };
 }

@@ -41,7 +41,9 @@
 #endif
 
 
+#include "../ChunkedBuffer.h"
 #include "../OrthancException.h"
+#include "../MultiThreading/ReaderWriterLock.h"
 
 #if ORTHANC_SANDBOXED != 1
 #  include "../SystemToolbox.h"
@@ -64,6 +66,11 @@ typedef ssize_t SSIZE_T;
 #endif
 
 #include <string.h>
+
+
+static Orthanc::ReaderWriterLock maximumUncompressedFileSizeMutex_;
+static bool hasMaximumUncompressedFileSize_ = false;
+static size_t maximumUncompressedFileSize_ = 0;
 
 
 namespace Orthanc
@@ -323,6 +330,62 @@ namespace Orthanc
   }
 
 
+  static bool ReadInternal(std::string& content,
+                           unzFile& unzip,
+                           uint64_t size) ORTHANC_NOEXCEPT
+  {
+#if 0
+    /**
+     * This was the code using in Orthanc <= 1.12.10
+     **/
+    content.resize(static_cast<size_t>(size));
+    return (unzReadCurrentFile(unzip, &content[0], static_cast<uLong>(content.size())) != 0);
+
+#else
+    /**
+     * Read chunk by chunk to disarm ZIP bombs
+     **/
+    ChunkedBuffer buffer;
+
+    std::string chunk;
+    chunk.resize(10 * 1024 * 1024); // Read by chunks of 10MB
+
+    for (;;)
+    {
+      int r = unzReadCurrentFile(unzip, &chunk[0], chunk.size());
+
+      if (r == 0)
+      {
+        // We're done
+        if (buffer.GetNumBytes() == size)
+        {
+          buffer.Flatten(content);
+          return true;
+        }
+        else
+        {
+          return false;  // Presumably a malicious ZIP file
+        }
+      }
+      else if (r < 0)
+      {
+        // Error (might come from a malicious ZIP file)
+        return false;
+      }
+      else if (static_cast<uint64_t>(buffer.GetNumBytes()) + r > size)
+      {
+        // Presumably a ZIP bomb
+        return false;
+      }
+      else
+      {
+        buffer.AddChunk(&chunk[0], r);
+      }
+    }
+#endif
+  }
+
+
   bool ZipReader::ReadNextFile(std::string& filename,
                                std::string& content)
   {
@@ -340,6 +403,12 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadFileFormat);
       }
 
+      if (static_cast<uint64_t>(static_cast<size_t>(info.uncompressed_size)) != info.uncompressed_size)
+      {
+        // Too large file for a 32bit architecture
+        throw OrthancException(ErrorCode_NotEnoughMemory);
+      }
+
       filename.resize(info.size_filename);
       if (!filename.empty() &&
           unzGetCurrentFileInfo64(pimpl_->unzip_, &info, &filename[0],
@@ -348,14 +417,28 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadFileFormat);
       }
 
-      content.resize(info.uncompressed_size);
+      {
+        // Prevent ZIP bombs
+        ReaderWriterLock::ReadLock lock(maximumUncompressedFileSizeMutex_);
 
-      if (!content.empty())
+        if (hasMaximumUncompressedFileSize_ &&
+            info.uncompressed_size > maximumUncompressedFileSize_)
+        {
+          char s[32];
+          sprintf(s, "%0.1f", static_cast<float>(maximumUncompressedFileSize_) / (1024.0f * 1024.0f));
+          throw OrthancException(ErrorCode_BadFileFormat, "Uncompressed size exceeds limit (" + std::string(s) + "MB)");
+        }
+      }
+
+      if (info.uncompressed_size == 0)
+      {
+        content.clear();
+      }
+      else
       {
         if (unzOpenCurrentFile(pimpl_->unzip_) == 0)
         {
-          bool success = (unzReadCurrentFile(pimpl_->unzip_, &content[0],
-                                             static_cast<uLong>(content.size())) != 0);
+          bool success = ReadInternal(content, pimpl_->unzip_, info.uncompressed_size);
                           
           if (unzCloseCurrentFile(pimpl_->unzip_) != 0 ||
               !success)
@@ -442,4 +525,19 @@ namespace Orthanc
     }
   }
 #endif
+
+
+  void ZipReader::SetMaximumUncompressedFileSize(uint64_t size)
+  {
+    if (static_cast<uint64_t>(static_cast<size_t>(size)) != size)
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+    else
+    {
+      ReaderWriterLock::WriteLock lock(maximumUncompressedFileSizeMutex_);
+      hasMaximumUncompressedFileSize_ = true;
+      maximumUncompressedFileSize_ = size;
+    }
+  }
 }

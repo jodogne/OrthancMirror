@@ -87,5 +87,7 @@ namespace Orthanc
 #if ORTHANC_SANDBOXED != 1
     static bool IsZipFile(const boost::filesystem::path& path);
 #endif
+
+    static void SetMaximumUncompressedFileSize(uint64_t size);
   };
 }

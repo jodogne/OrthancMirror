@@ -1115,6 +1115,17 @@
   // "/tools/create-archives" routes. (new in Orthanc 1.12.11)
   "ZipUseUtf8" : false,
 
+  // Maximum allowed size (in MB) of the body of an HTTP request (POST
+  // or PUT), to prevent resource exhaustion. A value of "0" means no
+  // limit (default in Orthanc <= 1.12.10). (new in Orthanc 1.12.11)
+  "MaximumRequestBodySizeMB" : 2048,
+
+  // Maximum allowed size (in MB) of a file after decompression when
+  // it is contained in a ZIP or gzip archive, to prevent resource
+  // exhaustion by ZIP/gzip bombs. A value of "0" means no limit (this
+  // was the default in Orthanc <= 1.12.10). (new in Orthanc 1.12.11)
+  "MaximumFileSizeInArchiveMB" : 512,
+
   // When set to false, this option disables all /patients routes and
   // disables patients related sanity checks when performing resource
   // modification.  This is required e.g when your Orthanc stores

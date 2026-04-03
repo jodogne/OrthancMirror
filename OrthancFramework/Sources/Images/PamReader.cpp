@@ -38,6 +38,7 @@
 #include <boost/algorithm/string/find.hpp>
 #include <boost/lexical_cast.hpp>
 
+static const uint64_t MAX_PAM_IMAGE_BUFFER_SIZE = 4ul * 1024ul * 1024ul * 1024ul;  // defensive approach: set a reasonable max size for a PAM image
 
 namespace Orthanc
 {
@@ -181,11 +182,29 @@ namespace Orthanc
     const unsigned int maxValue = LookupIntegerParameter(parameters, "MAXVAL");
     const std::string tupleType = LookupStringParameter(parameters, "TUPLTYPE");
 
+    if (width > 65535 || height > 65535 || channelCount > 4 || maxValue > 65535)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "PAM header values exceed reasonable limits");
+    }
+
     unsigned int bytesPerChannel;
     PixelFormat format;
     GetPixelFormat(format, bytesPerChannel, maxValue, channelCount, tupleType);
 
-    unsigned int pitch = width * channelCount * bytesPerChannel;
+    // unsigned int pitch = width * channelCount * bytesPerChannel;
+    uint64_t pitch = static_cast<uint64_t>(width) * channelCount * bytesPerChannel;
+
+    if (pitch > std::numeric_limits<unsigned int>::max())
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "PAM dimensions exceed limits");
+    }
+
+    uint64_t totalSize = pitch * height;
+    if (totalSize > MAX_PAM_IMAGE_BUFFER_SIZE ||
+        static_cast<uint64_t>(static_cast<size_t>(totalSize)) != totalSize)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "PAM image too large");
+    }
 
     if (content_.size() != header.size() + headerDelimiter.size() + pitch * height)
     {
@@ -196,7 +215,7 @@ namespace Orthanc
 
     {
       intptr_t bufferAddr = reinterpret_cast<intptr_t>(&content_[offset]);
-      if((bufferAddr % 8) == 0)
+      if ((bufferAddr % 8) == 0)
         LOG(TRACE) << "PamReader::ParseContent() image address = " << bufferAddr;
       else
         LOG(TRACE) << "PamReader::ParseContent() image address = " << bufferAddr << " (not a multiple of 8!)";

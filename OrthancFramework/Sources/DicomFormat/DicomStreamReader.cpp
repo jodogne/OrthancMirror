@@ -204,6 +204,11 @@ namespace Orthanc
       {
         uint16_t length = ReadUnsignedInteger16(p + pos + 6, true);
 
+        if (pos + 8 + length > block.size())
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "DICOM meta-header tag length exceeds available data");
+        }
+
         std::string value;
         value.assign(p + pos + 8, length);
         NormalizeValue(value, vr);
@@ -236,6 +241,11 @@ namespace Orthanc
         }
           
         uint32_t length = ReadUnsignedInteger32(p + pos + 8, true);
+
+        if (pos + 12 + static_cast<size_t>(length) > block.size())
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "DICOM meta-header tag length exceeds available data");
+        }
 
         if (tag.GetGroup() == 0x0002)
         {

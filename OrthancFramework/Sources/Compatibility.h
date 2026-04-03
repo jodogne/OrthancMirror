@@ -72,10 +72,12 @@
 // The override keyword (C++11) is enabled
 #  define ORTHANC_OVERRIDE  override 
 #  define ORTHANC_FINAL     final
+#  define ORTHANC_NOEXCEPT  noexcept
 #else
 // The override keyword (C++11) is not available
 #  define ORTHANC_OVERRIDE
 #  define ORTHANC_FINAL
+#  define ORTHANC_NOEXCEPT
 #endif
 
 
