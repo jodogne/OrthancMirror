@@ -193,7 +193,7 @@ namespace Orthanc
       z_stream&  stream_;
 
     public:
-      GzipRaii(z_stream& stream) :
+      explicit GzipRaii(z_stream& stream) :
         stream_(stream)
       {
         int error = inflateInit2(&stream_,

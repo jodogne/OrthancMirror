@@ -96,7 +96,7 @@ namespace Orthanc
       target = "OrthancPeerStore";
     }
 
-    virtual const char* GetLoaderPrefix() const
+    virtual const char* GetLoaderPrefix() const ORTHANC_OVERRIDE
     {
       return "PSTO";
     }

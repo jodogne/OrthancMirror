@@ -53,7 +53,7 @@ namespace Orthanc
     JobsRegistry&  registry_;
 
   public:
-    LastModificationTimeUpdater(JobsRegistry& registry) :
+    explicit LastModificationTimeUpdater(JobsRegistry& registry) :
       registry_(registry)
     {
     }

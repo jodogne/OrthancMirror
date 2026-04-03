@@ -525,7 +525,7 @@ namespace Orthanc
         switch (type_)
         {
           case Type_OpenDirectory:
-            writer.OpenDirectory(filename_.c_str());
+            writer.OpenDirectory(filename_);
             break;
 
           case Type_CloseDirectory:
@@ -547,7 +547,7 @@ namespace Orthanc
               return;
             }
 
-            writer.OpenFile(filename_.c_str());
+            writer.OpenFile(filename_);
 
             writer.Write(content);
 
