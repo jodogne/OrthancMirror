@@ -255,7 +255,7 @@ namespace
       target_.insert(value);
     }
 
-    virtual ~DynamicInteger()
+    virtual ~DynamicInteger() ORTHANC_OVERRIDE
     {
       target_.erase(value_);
     }

@@ -40,7 +40,7 @@ namespace Orthanc
     DicomInstanceDestination            destination_;
     std::unique_ptr<ParsedDicomFile>    dicom_;
 
-    OutgoingDicomInstance(ParsedDicomFile* dicom) :
+    explicit OutgoingDicomInstance(ParsedDicomFile* dicom) :
       dicom_(dicom)
     {}
 

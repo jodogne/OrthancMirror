@@ -92,7 +92,7 @@ namespace Orthanc
       target = "DicomModalityStore";
     }
 
-    virtual const char* GetLoaderPrefix() const
+    virtual const char* GetLoaderPrefix() const ORTHANC_OVERRIDE
     {
       return "CSTO";
     }

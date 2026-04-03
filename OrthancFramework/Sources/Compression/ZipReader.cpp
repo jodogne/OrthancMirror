@@ -331,7 +331,7 @@ namespace Orthanc
 
 
   static bool ReadInternal(std::string& content,
-                           unzFile& unzip,
+                           const unzFile& unzip,
                            uint64_t size) ORTHANC_NOEXCEPT
   {
 #if 0
