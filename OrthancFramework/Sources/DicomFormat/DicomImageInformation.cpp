@@ -488,7 +488,7 @@ namespace Orthanc
     if (totalFrameSize > MAX_FRAME_SIZE ||
         static_cast<uint64_t>(static_cast<size_t>(totalFrameSize)) != totalFrameSize)
     {
-      throw OrthancException(ErrorCode_BadFileFormat, "DICOM Frame size overflow");
+      throw OrthancException(ErrorCode_BadFileFormat, "DICOM Frame size overflow  (" + boost::lexical_cast<std::string>(totalFrameSize) + " vs " + boost::lexical_cast<std::string>(MAX_FRAME_SIZE) + ")");
     }
     else
     {
