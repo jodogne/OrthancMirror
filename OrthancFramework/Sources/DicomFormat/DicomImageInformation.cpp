@@ -42,7 +42,10 @@
 #include <stdio.h>
 #include <memory>
 
-static const uint64_t MAX_FRAME_SIZE = 4ul * 1024ul * 1024ul * 1024ul;  // defensive approach: set a reasonable max size for a frame
+static const uint64_t MAX_FRAME_SIZE = (static_cast<uint64_t>(std::numeric_limits<size_t>::max()) == 0xFFFFFFFFu 
+                                        ? static_cast<uint64_t>(1) * 1024 * 1024 * 1024   // 1 GB on 32 bits system
+                                        : static_cast<uint64_t>(4) * 1024 * 1024 * 1024); // 4 GiB on 64 bits system
+
 
 namespace Orthanc
 {
