@@ -202,7 +202,9 @@ namespace Orthanc
     if (totalSize > MAX_PAM_IMAGE_BUFFER_SIZE ||
         static_cast<uint64_t>(static_cast<size_t>(totalSize)) != totalSize)
     {
-      throw OrthancException(ErrorCode_BadFileFormat, "PAM image too large (" + boost::lexical_cast<std::string>(totalSize) + " vs " + boost::lexical_cast<std::string>(MAX_PAM_IMAGE_BUFFER_SIZE) + ")");
+      std::ostringstream errorMessage;
+      errorMessage << "PAM image too large  (" << totalSize << " vs " << MAX_PAM_IMAGE_BUFFER_SIZE << ")";
+      throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
     }
 
     if (content_.size() != header.size() + headerDelimiter.size() + pitch * height)
