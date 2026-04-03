@@ -37,8 +37,13 @@
 #include <stdlib.h>  // For malloc/free
 #include <boost/algorithm/string/find.hpp>
 #include <boost/lexical_cast.hpp>
+#include <limits>
 
-static const uint64_t MAX_PAM_IMAGE_BUFFER_SIZE = 4ul * 1024ul * 1024ul * 1024ul;  // defensive approach: set a reasonable max size for a PAM image
+static const uint64_t MAX_PAM_IMAGE_BUFFER_SIZE = (static_cast<uint64_t>(std::numeric_limits<size_t>::max()) == 0xFFFFFFFFu 
+                                                   ? static_cast<uint64_t>(1) * 1024 * 1024 * 1024   // 1 GB on 32 bits system
+                                                   : static_cast<uint64_t>(4) * 1024 * 1024 * 1024); // 4 GiB on 64 bits system
+
+
 
 namespace Orthanc
 {
