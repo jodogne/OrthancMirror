@@ -191,7 +191,6 @@ namespace Orthanc
     PixelFormat format;
     GetPixelFormat(format, bytesPerChannel, maxValue, channelCount, tupleType);
 
-    // unsigned int pitch = width * channelCount * bytesPerChannel;
     uint64_t pitch = static_cast<uint64_t>(width) * channelCount * bytesPerChannel;
 
     if (pitch > std::numeric_limits<unsigned int>::max())
@@ -203,7 +202,7 @@ namespace Orthanc
     if (totalSize > MAX_PAM_IMAGE_BUFFER_SIZE ||
         static_cast<uint64_t>(static_cast<size_t>(totalSize)) != totalSize)
     {
-      throw OrthancException(ErrorCode_BadFileFormat, "PAM image too large");
+      throw OrthancException(ErrorCode_BadFileFormat, "PAM image too large (" + boost::lexical_cast<std::string>(totalSize) + " vs " + boost::lexical_cast<std::string>(MAX_PAM_IMAGE_BUFFER_SIZE) + ")");
     }
 
     if (content_.size() != header.size() + headerDelimiter.size() + pitch * height)
