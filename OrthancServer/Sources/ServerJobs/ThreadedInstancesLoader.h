@@ -35,7 +35,7 @@ namespace Orthanc
   class ServerContext;
   class FileInfo;
 
-  class ThreadedInstancesLoader : public boost::noncopyable
+  class ORTHANC_PUBLIC ThreadedInstancesLoader : public boost::noncopyable
   {
     boost::condition_variable           condInstanceAvailable_;
     std::map<std::string, boost::shared_ptr<std::string> >  availableInstances_;
