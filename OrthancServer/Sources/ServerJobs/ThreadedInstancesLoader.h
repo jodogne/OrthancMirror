@@ -28,12 +28,12 @@
 #include "../../../OrthancFramework/Sources/MultiThreading/BlockingSharedMessageQueue.h"
 #include "../../../OrthancFramework/Sources/Enumerations.h"
 #include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
+#include "../../../OrthancFramework/Sources/FileStorage/FileInfo.h"
 
 
 namespace Orthanc
 {
   class ServerContext;
-  class FileInfo;
 
   class ORTHANC_PUBLIC ThreadedInstancesLoader : public boost::noncopyable
   {
