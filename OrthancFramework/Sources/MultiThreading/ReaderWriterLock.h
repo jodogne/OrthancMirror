@@ -38,7 +38,9 @@ namespace Orthanc
   class ORTHANC_PUBLIC ReaderWriterLock : public boost::noncopyable
   {
   private:
+#if !defined(__EMSCRIPTEN__)
     boost::shared_mutex mutex_;
+#endif
 
   public:
     class ReadLock : public boost::noncopyable
