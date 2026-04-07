@@ -275,6 +275,8 @@ Plugin SDK
   by custom database backends (cf. "OrthancDatabasePlugin.proto").
 * Added OrthancPluginAdoptDicomInstance() to adopt DICOM instances stored elsewhere
   than in the storage area (to be used by "orthanc-advanced-storage" plugin).
+* New functions in the SDK:
+  - OrthancPluginRegisterStorageArea3()
 
 Plugins
 -------
