@@ -1129,7 +1129,7 @@ static bool StartHttpServer(ServerContext& context,
       httpServer.SetRequestTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpRequestTimeout", 30));
 
       // New in Orthanc 1.12.11
-      const unsigned int maxBodySize = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumRequestBodySizeMB", 2048);
+      const unsigned int maxBodySize = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumRequestBodySizeMB", 8192);
       if (maxBodySize != 0)
       {
         LOG(WARNING) << "Limiting the maximum body size in HTTP requests to " << maxBodySize << "MB";
@@ -1141,7 +1141,7 @@ static bool StartHttpServer(ServerContext& context,
         LOG(WARNING) << "No limit on the maximum body size in HTTP requests";
       }
 
-      const unsigned int maxSizeInArchive = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumFileSizeInArchiveMB", 512);
+      const unsigned int maxSizeInArchive = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumFileSizeInArchiveMB", 4096);
       if (maxSizeInArchive != 0)
       {
         LOG(WARNING) << "Limiting on the maximum file size uncompressed from ZIP/gzip archives to " << maxSizeInArchive << "MB";
