@@ -556,7 +556,7 @@ extern "C"
     _OrthancPluginService_RegisterFindCallback2 = 1023,        /* New in Orthanc 1.12.10 */
     _OrthancPluginService_RegisterMoveCallback2 = 1024,        /* New in Orthanc 1.12.10 */
     _OrthancPluginService_RegisterWorklistCallback2 = 1025,    /* New in Orthanc 1.12.10 */
-    _OrthancPluginService_RegisterStorageCommitmentScpCallback2 = 1026, /* New in Orthanc 1.12.0 */
+    _OrthancPluginService_RegisterStorageCommitmentScpCallback2 = 1026, /* New in Orthanc 1.12.10 */
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
