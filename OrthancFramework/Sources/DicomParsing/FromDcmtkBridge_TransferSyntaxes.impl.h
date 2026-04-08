@@ -294,6 +294,24 @@ namespace Orthanc
         return true;
 #endif
 
+#if DCMTK_VERSION_NUMBER >= 369
+      case DicomTransferSyntax_HT2JKLossless:
+        target = EXS_HighThroughputJPEG2000LosslessOnly;
+        return true;
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 369
+      case DicomTransferSyntax_HT2JKWithRPCLOptionsLossless:
+        target = EXS_HighThroughputJPEG2000withRPCLOptionsLosslessOnly;
+        return true;
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 369
+      case DicomTransferSyntax_HT2JK:
+        target = EXS_HighThroughputJPEG2000;
+        return true;
+#endif
+
       default:
         return false;
     }
@@ -566,6 +584,24 @@ namespace Orthanc
 #if DCMTK_VERSION_NUMBER >= 369
       case EXS_JPEGXL:
         target = DicomTransferSyntax_JPEGXL;
+        return true;
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 369
+      case EXS_HighThroughputJPEG2000LosslessOnly:
+        target = DicomTransferSyntax_HT2JKLossless;
+        return true;
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 369
+      case EXS_HighThroughputJPEG2000withRPCLOptionsLosslessOnly:
+        target = DicomTransferSyntax_HT2JKWithRPCLOptionsLossless;
+        return true;
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 369
+      case EXS_HighThroughputJPEG2000:
+        target = DicomTransferSyntax_HT2JK;
         return true;
 #endif
 
