@@ -396,5 +396,31 @@
     "Value" : "JPEGXL",
     "DCMTK" : "EXS_JPEGXL",
     "SinceDCMTK" : "369"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.201",
+    "Name" : "HTJ2K Lossless",
+    "Value" : "HT2JKLossless",
+    "DCMTK" : "EXS_HighThroughputJPEG2000LosslessOnly",
+    "SinceDCMTK" : "369"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.202",
+    "Name" : "HTJ2K with RPCL Options Lossless",
+    "Value" : "HT2JKWithRPCLOptionsLossless",
+    "DCMTK" : "EXS_HighThroughputJPEG2000withRPCLOptionsLosslessOnly",
+    "SinceDCMTK" : "369"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.203",
+    "Name" : "HTJ2K",
+    "Value" : "HT2JK",
+    "DCMTK" : "EXS_HighThroughputJPEG2000",
+    "SinceDCMTK" : "369"
   }
+
+
 ]

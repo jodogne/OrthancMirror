@@ -51,7 +51,7 @@ with open(path, 'r') as f:
 
 s = ',\n'.join(map(lambda x: '    DicomTransferSyntax_%s    /*!< %s */' % (x['Value'], x['Name']), SYNTAXES))
 
-a = re.sub('(enum DicomTransferSyntax\s*{)[^}]*?(\s*};)', r'\1\n%s\2' % s, a, re.DOTALL)
+a = re.sub(r'(enum DicomTransferSyntax\s*{)[^}]*?(\s*};)', r'\1\n%s\2' % s, a, re.DOTALL)
 
 with open(path, 'w') as f:
     f.write(a)

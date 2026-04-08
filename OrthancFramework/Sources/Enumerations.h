@@ -287,7 +287,10 @@ namespace Orthanc
     DicomTransferSyntax_XML    /*!< XML Encoding */,
     DicomTransferSyntax_JPEGXLLossless    /*!< JPEG XL Lossless */,
     DicomTransferSyntax_JPEGXLJPEGRecompression    /*!< JPEG XL JPEG Recompression */,
-    DicomTransferSyntax_JPEGXL    /*!< JPEG XL */
+    DicomTransferSyntax_JPEGXL    /*!< JPEG XL */,
+    DicomTransferSyntax_HT2JKLossless    /*!< HTJ2K Lossless */,
+    DicomTransferSyntax_HT2JKWithRPCLOptionsLossless    /*!< HTJ2K with RPCL Options Lossless */,
+    DicomTransferSyntax_HT2JK    /*!< HTJ2K */
   };
 
 

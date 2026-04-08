@@ -164,6 +164,15 @@ namespace Orthanc
       case DicomTransferSyntax_JPEGXL:
         return "1.2.840.10008.1.2.4.112";
 
+      case DicomTransferSyntax_HT2JKLossless:
+        return "1.2.840.10008.1.2.4.201";
+
+      case DicomTransferSyntax_HT2JKWithRPCLOptionsLossless:
+        return "1.2.840.10008.1.2.4.202";
+
+      case DicomTransferSyntax_HT2JK:
+        return "1.2.840.10008.1.2.4.203";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -307,6 +316,15 @@ namespace Orthanc
         return false;
 
       case DicomTransferSyntax_JPEGXL:
+        return false;
+
+      case DicomTransferSyntax_HT2JKLossless:
+        return false;
+
+      case DicomTransferSyntax_HT2JKWithRPCLOptionsLossless:
+        return false;
+
+      case DicomTransferSyntax_HT2JK:
         return false;
 
       default:
@@ -588,6 +606,24 @@ namespace Orthanc
       return true;
     }
     
+    if (uid == "1.2.840.10008.1.2.4.201")
+    {
+      target = DicomTransferSyntax_HT2JKLossless;
+      return true;
+    }
+    
+    if (uid == "1.2.840.10008.1.2.4.202")
+    {
+      target = DicomTransferSyntax_HT2JKWithRPCLOptionsLossless;
+      return true;
+    }
+    
+    if (uid == "1.2.840.10008.1.2.4.203")
+    {
+      target = DicomTransferSyntax_HT2JK;
+      return true;
+    }
+    
     return false;
   }
 
@@ -640,5 +676,8 @@ namespace Orthanc
     target.insert(DicomTransferSyntax_JPEGXLLossless);
     target.insert(DicomTransferSyntax_JPEGXLJPEGRecompression);
     target.insert(DicomTransferSyntax_JPEGXL);
+    target.insert(DicomTransferSyntax_HT2JKLossless);
+    target.insert(DicomTransferSyntax_HT2JKWithRPCLOptionsLossless);
+    target.insert(DicomTransferSyntax_HT2JK);
   }
 }
