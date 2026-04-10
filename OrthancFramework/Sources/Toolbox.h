@@ -355,6 +355,8 @@ namespace Orthanc
     static void FinalizeGlobalLocale();
 
     static std::string ToUpperCaseWithAccents(const std::string& source);
+
+    static std::string ToLowerCaseWithAccents(const std::string& source);
 #endif
 
     static void InitializeOpenSsl();
