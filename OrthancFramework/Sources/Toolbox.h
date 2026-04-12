@@ -413,6 +413,8 @@ namespace Orthanc
                                      bool allowUtf8,
                                      bool allowSlashes);
 
+    static size_t BoundMemorySizeToCurrentArchitecture(uint64_t size);
+
     class ORTHANC_PUBLIC ElapsedTimer : public boost::noncopyable
     {
     private:

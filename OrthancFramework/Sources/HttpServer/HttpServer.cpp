@@ -66,6 +66,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/thread.hpp>
 #include <iostream>
+#include <limits>
 #include <stdio.h>
 #include <string.h>
 

@@ -459,3 +459,21 @@ TEST(Toolbox, IsValidUtf8)
   ASSERT_FALSE(Orthanc::Toolbox::IsValidUtf8("\xFF"));                  // Invalid leading byte
   ASSERT_FALSE(Orthanc::Toolbox::IsValidUtf8("\xF0\x28\x8C\x28"));
 }
+
+TEST(Toolbox, BoundMemorySizeToCurrentArchitecture)
+{
+  if (sizeof(void*) == 4)
+  {
+    ASSERT_EQ(Toolbox::BoundMemorySizeToCurrentArchitecture(4294967295llu), 4294967295llu);
+    ASSERT_EQ(Toolbox::BoundMemorySizeToCurrentArchitecture(4294967296llu), 4294967295llu);
+  }
+  else if (sizeof(void*) == 8)
+  {
+    ASSERT_EQ(Toolbox::BoundMemorySizeToCurrentArchitecture(4294967295llu), 4294967295llu);
+    ASSERT_EQ(Toolbox::BoundMemorySizeToCurrentArchitecture(4294967296llu), 4294967296llu);
+  }
+  else
+  {
+    throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+  }
+}
