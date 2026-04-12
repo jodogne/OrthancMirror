@@ -32,6 +32,7 @@
 #include <json/reader.h>
 #include <json/version.h>
 #include <json/writer.h>
+#include <limits>
 
 #if !defined(JSONCPP_VERSION_MAJOR) || !defined(JSONCPP_VERSION_MINOR)
 #  error Cannot access the version of JsonCpp
@@ -3047,6 +3048,24 @@ namespace Orthanc
     }
 
     return Toolbox::StripSpaces(result);
+  }
+
+
+  size_t Toolbox::BoundMemorySizeToCurrentArchitecture(uint64_t size)
+  {
+    if (sizeof(void*) == 4 &&
+        size > std::numeric_limits<size_t>::max())
+    {
+      return std::numeric_limits<size_t>::max();
+    }
+    else if (static_cast<uint64_t>(static_cast<size_t>(size)) == size)
+    {
+      return size;
+    }
+    else
+    {
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_NotEnoughMemory);
+    }
   }
 
 

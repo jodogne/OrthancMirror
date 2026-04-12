@@ -1129,12 +1129,13 @@ static bool StartHttpServer(ServerContext& context,
       httpServer.SetRequestTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpRequestTimeout", 30));
 
       // New in Orthanc 1.12.11
+      static const uint64_t MEGABYTE = 1024llu * 1024llu;
       const unsigned int maxBodySize = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumRequestBodySizeMB", 8192);
       if (maxBodySize != 0)
       {
-        LOG(WARNING) << "Limiting the maximum body size in HTTP requests to " << maxBodySize << "MB";
-        httpServer.SetMaxBodySize(static_cast<uint64_t>(maxBodySize) *
-                                  static_cast<uint64_t>(1024 * 1024));
+        const uint64_t size = Toolbox::BoundMemorySizeToCurrentArchitecture(static_cast<uint64_t>(maxBodySize) * MEGABYTE);
+        LOG(WARNING) << "Limiting the maximum body size in HTTP requests to " << (size / MEGABYTE) << "MB";
+        httpServer.SetMaxBodySize(size);
       }
       else
       {
@@ -1144,11 +1145,10 @@ static bool StartHttpServer(ServerContext& context,
       const unsigned int maxSizeInArchive = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumFileSizeInArchiveMB", 4096);
       if (maxSizeInArchive != 0)
       {
-        LOG(WARNING) << "Limiting on the maximum file size uncompressed from ZIP/gzip archives to " << maxSizeInArchive << "MB";
-        ZipReader::SetMaximumUncompressedFileSize(static_cast<uint64_t>(maxSizeInArchive) *
-                                                  static_cast<uint64_t>(1024 * 1024));
-        GzipCompressor::SetMaximumUncompressedFileSize(static_cast<uint64_t>(maxSizeInArchive) *
-                                                       static_cast<uint64_t>(1024 * 1024));
+        const uint64_t size = Toolbox::BoundMemorySizeToCurrentArchitecture(static_cast<uint64_t>(maxSizeInArchive) * MEGABYTE);
+        LOG(WARNING) << "Limiting on the maximum file size uncompressed from ZIP/gzip archives to " << (size / MEGABYTE) << "MB";
+        ZipReader::SetMaximumUncompressedFileSize(size);
+        GzipCompressor::SetMaximumUncompressedFileSize(size);
       }
       else
       {
