@@ -10,6 +10,7 @@ if [ $# -ge 1 ]; then
 fi
 
 cat <<EOF > /tmp/cppcheck-suppressions.txt
+assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:453
 assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1026
 assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:277
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
@@ -34,7 +35,7 @@ syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
 unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1173
-useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:92
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
 EOF
