@@ -800,7 +800,8 @@ namespace Orthanc
 
 
   void JobsRegistry::SubmitInternal(std::string& id,
-                                    JobHandler* handler)
+                                    JobHandler* handler,
+                                    bool fromSerialization)
   {
     if (handler == NULL)
     {
@@ -851,7 +852,14 @@ namespace Orthanc
       std::string jobType;
       handler->GetJob().GetJobType(jobType);
 
-      LOG(INFO) << "New " << jobType << " job submitted with priority " << priority << ": " << id;
+      if (fromSerialization)
+      {
+        LOG(INFO) << "Loaded " << jobType << " job (" << EnumerationToString(handler->GetState()) << ") with priority " << priority << ": " << id;
+      }
+      else
+      {
+        LOG(INFO) << "New " << jobType << " job submitted with priority " << priority << ": " << id;
+      }
 
       if (observer_ != NULL)
       {
@@ -876,7 +884,7 @@ namespace Orthanc
                             IJob* job,        // Takes ownership
                             int priority)
   {
-    SubmitInternal(id, new JobHandler(job, priority));
+    SubmitInternal(id, new JobHandler(job, priority), false);
   }
 
 
@@ -884,7 +892,7 @@ namespace Orthanc
                             int priority)
   {
     std::string id;
-    SubmitInternal(id, new JobHandler(job, priority));
+    SubmitInternal(id, new JobHandler(job, priority), false);
   }
 
 
@@ -1614,7 +1622,7 @@ namespace Orthanc
       const boost::posix_time::ptime lastChangeTime = job->GetLastStateChangeTime();
 
       std::string id;
-      SubmitInternal(id, job.release());
+      SubmitInternal(id, job.release(), true);
 
       // Check whether the job has not been removed (which could be
       // the case if the "maxCompletedJobs_" value gets smaller)
