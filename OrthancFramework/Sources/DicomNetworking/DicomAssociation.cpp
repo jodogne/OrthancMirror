@@ -38,6 +38,7 @@
 #  include <winsock.h>
 #endif
 
+#include <boost/lexical_cast.hpp>
 #include <dcmtk/dcmnet/diutil.h>  // For dcmConnectionTimeout()
 #include <dcmtk/dcmdata/dcdeftag.h>
 

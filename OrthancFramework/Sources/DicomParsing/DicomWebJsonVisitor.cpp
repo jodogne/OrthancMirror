@@ -33,6 +33,7 @@
 #include "FromDcmtkBridge.h"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 
 static const char* const KEY_ALPHABETIC = "Alphabetic";

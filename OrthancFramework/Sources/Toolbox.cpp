@@ -32,6 +32,7 @@
 #include <json/reader.h>
 #include <json/version.h>
 #include <json/writer.h>
+#include <iomanip>
 #include <limits>
 
 #if !defined(JSONCPP_VERSION_MAJOR) || !defined(JSONCPP_VERSION_MINOR)
@@ -235,6 +236,13 @@ namespace Orthanc
   Toolbox::MD5Context::MD5Context() :
     pimpl_(new PImpl)
   {
+  }
+
+
+  Toolbox::MD5Context::~MD5Context()
+  {
+    assert(pimpl_ != NULL);
+    delete pimpl_;
   }
 
 
@@ -3068,83 +3076,6 @@ namespace Orthanc
     }
   }
 
-
-  Toolbox::ElapsedTimer::ElapsedTimer()
-  {
-    Restart();
-  }
-
-  void Toolbox::ElapsedTimer::Restart()
-  {
-    start_ = boost::posix_time::microsec_clock::universal_time();
-  }
-
-  uint64_t Toolbox::ElapsedTimer::GetElapsedMilliseconds()
-  {
-    return GetElapsedNanoseconds() / 1000000;
-  }
-  
-  uint64_t Toolbox::ElapsedTimer::GetElapsedMicroseconds()
-  {
-    return GetElapsedNanoseconds() / 1000;
-  }
-
-  uint64_t Toolbox::ElapsedTimer::GetElapsedNanoseconds()
-  {
-    boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
-    boost::posix_time::time_duration diff = now - start_;
-    return static_cast<uint64_t>(diff.total_nanoseconds());
-  }
-
-  std::string Toolbox::ElapsedTimer::GetHumanElapsedDuration()
-  {
-    return Toolbox::GetHumanDuration(GetElapsedNanoseconds());
-  }
-
-  // in "full" mode, returns " 26.45MB in 2.25s = 94.04Mbps"
-  // else, returns "94.04Mbps"
-  std::string Toolbox::ElapsedTimer::GetHumanTransferSpeed(bool full, uint64_t sizeInBytes)
-  {
-    return Toolbox::GetHumanTransferSpeed(full, sizeInBytes, GetElapsedNanoseconds());
-  }
-
-  Toolbox::DebugElapsedTimeLogger::DebugElapsedTimeLogger(const std::string& message)
-  : message_(message),
-    logged_(false)
-  {
-    Restart();
-  }
-
-  Toolbox::DebugElapsedTimeLogger::~DebugElapsedTimeLogger()
-  {
-    if (!logged_)
-    {
-      StopAndLog();
-    }
-  }
-
-  void Toolbox::DebugElapsedTimeLogger::Restart()
-  {
-    timer_.Restart();
-  }
-
-  void Toolbox::DebugElapsedTimeLogger::StopAndLog()
-  {
-    LOG(WARNING) << "ELAPSED TIMER: " << message_ << " (" << timer_.GetElapsedMicroseconds() << " us)";
-    logged_ = true;
-  }
-
-  Toolbox::ApiElapsedTimeLogger::ApiElapsedTimeLogger(const std::string& message) :
-    message_(message)
-  {
-    timer_.Restart();
-    CLOG(INFO, HTTP) << message_;
-  }
-  
-  Toolbox::ApiElapsedTimeLogger::~ApiElapsedTimeLogger()
-  {
-    CLOG(INFO, HTTP) << message_ << " (elapsed: " << timer_.GetElapsedMicroseconds() << " us)";
-  }
 
   std::string Toolbox::GetHumanFileSize(uint64_t sizeInBytes)
   {

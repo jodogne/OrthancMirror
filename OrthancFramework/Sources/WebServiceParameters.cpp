@@ -35,6 +35,7 @@
 #endif
 
 #include <boost/algorithm/string/find.hpp>
+#include <boost/lexical_cast.hpp>
 #include <cassert>
 
 namespace Orthanc

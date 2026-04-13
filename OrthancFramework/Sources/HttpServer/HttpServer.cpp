@@ -28,15 +28,18 @@
 #include "HttpServer.h"
 
 #include "../ChunkedBuffer.h"
+#include "../ElapsedTimer.h"
 #include "../FileBuffer.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
-#include "../TemporaryFile.h"
 #include "../SystemToolbox.h"
+#include "../TemporaryFile.h"
+
 #include "HttpToolbox.h"
 #include "IHttpHandler.h"
 #include "MultipartStreamReader.h"
 #include "StringHttpOutput.h"
+
 #include <algorithm>
 
 #if ORTHANC_ENABLE_PUGIXML == 1
@@ -1426,11 +1429,11 @@ namespace Orthanc
     
     HttpMethod filterMethod;
 
-    std::unique_ptr<Toolbox::ApiElapsedTimeLogger> apiLogTimer; // to log the time spent in the API call
+    std::unique_ptr<ApiElapsedTimeLogger> apiLogTimer; // to log the time spent in the API call
 
     if (ExtractMethod(method, request, headers, argumentsGET))
     {
-      apiLogTimer.reset(new Toolbox::ApiElapsedTimeLogger(std::string(EnumerationToString(method)) + " " + Toolbox::FlattenUri(uri)));
+      apiLogTimer.reset(new ApiElapsedTimeLogger(std::string(EnumerationToString(method)) + " " + Toolbox::FlattenUri(uri)));
       
       filterMethod = method;
     }
@@ -1439,7 +1442,7 @@ namespace Orthanc
              !strcmp(request->request_method, "PROPFIND") ||
              !strcmp(request->request_method, "HEAD"))
     {
-      apiLogTimer.reset(new Toolbox::ApiElapsedTimeLogger(std::string("Incoming read-only WebDAV request: ") + request->request_method + " " + requestUri));
+      apiLogTimer.reset(new ApiElapsedTimeLogger(std::string("Incoming read-only WebDAV request: ") + request->request_method + " " + requestUri));
       filterMethod = HttpMethod_Get;
       isWebDav = true;
     }
@@ -1448,7 +1451,7 @@ namespace Orthanc
              !strcmp(request->request_method, "UNLOCK") ||
              !strcmp(request->request_method, "MKCOL"))
     {
-      apiLogTimer.reset(new Toolbox::ApiElapsedTimeLogger(std::string("Incoming read-write WebDAV request: ") + request->request_method + " " + requestUri));
+      apiLogTimer.reset(new ApiElapsedTimeLogger(std::string("Incoming read-write WebDAV request: ") + request->request_method + " " + requestUri));
       filterMethod = HttpMethod_Put;
       isWebDav = true;
     }

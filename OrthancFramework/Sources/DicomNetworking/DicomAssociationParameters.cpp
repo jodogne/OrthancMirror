@@ -34,6 +34,7 @@
 
 #include <dcmtk/dcmnet/diutil.h>  // For ASC_DEFAULTMAXPDU
 
+#include <boost/lexical_cast.hpp>
 #include <boost/thread/mutex.hpp>
 
 // By default, the default timeout for client DICOM connections is set to 10 seconds
