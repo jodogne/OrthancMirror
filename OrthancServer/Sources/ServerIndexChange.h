@@ -25,7 +25,6 @@
 
 #include "ServerEnumerations.h"
 #include "../../OrthancFramework/Sources/IDynamicObject.h"
-#include "../../OrthancFramework/Sources/SystemToolbox.h"
 
 #include <string>
 #include <json/value.h>
@@ -44,36 +43,15 @@ namespace Orthanc
   public:
     ServerIndexChange(ChangeType changeType,
                       ResourceType resourceType,
-                      const std::string& publicId) :
-      seq_(-1),
-      changeType_(changeType),
-      resourceType_(resourceType),
-      publicId_(publicId),
-      date_(SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */))
-    {
-    }
+                      const std::string& publicId);
 
     ServerIndexChange(int64_t seq,
                       ChangeType changeType,
                       ResourceType resourceType,
                       const std::string& publicId,
-                      const std::string& date) :
-      seq_(seq),
-      changeType_(changeType),
-      resourceType_(resourceType),
-      publicId_(publicId),
-      date_(date)
-    {
-    }
+                      const std::string& date);
 
-    ServerIndexChange(const ServerIndexChange& other) 
-    : seq_(other.seq_),
-      changeType_(other.changeType_),
-      resourceType_(other.resourceType_),
-      publicId_(other.publicId_),
-      date_(other.date_)
-    {
-    }
+    ServerIndexChange(const ServerIndexChange& other);
 
     ServerIndexChange* Clone() const
     {
@@ -105,15 +83,6 @@ namespace Orthanc
       return date_;
     }
 
-    void Format(Json::Value& item) const
-    {
-      item = Json::objectValue;
-      item["Seq"] = static_cast<int>(seq_);
-      item["ChangeType"] = EnumerationToString(changeType_);
-      item["ResourceType"] = EnumerationToString(resourceType_);
-      item["ID"] = publicId_;
-      item["Path"] = GetBasePath(resourceType_, publicId_);
-      item["Date"] = date_;
-    }
+    void Format(Json::Value& item) const;
   };
 }

@@ -93,8 +93,6 @@
 #include <dcmtk/dcmdata/dcuid.h>        /* for variable dcmAllStorageSOPClassUIDs */
 #include <dcmtk/dcmnet/dcasccfg.h>      /* for class DcmAssociationConfiguration */
 
-#include <boost/lexical_cast.hpp>
-
 static OFBool    opt_rejectWithoutImplementationUID = OFFalse;
 
 

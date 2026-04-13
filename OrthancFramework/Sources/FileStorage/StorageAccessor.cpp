@@ -39,6 +39,7 @@
 #endif
 
 #include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 
 
 static const std::string METRICS_CREATE_DURATION = "orthanc_storage_create_duration_ms";

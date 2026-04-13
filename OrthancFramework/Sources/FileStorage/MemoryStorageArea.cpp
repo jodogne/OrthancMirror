@@ -30,6 +30,9 @@
 #include "../StringMemoryBuffer.h"
 #include "../Toolbox.h"
 
+#include <cassert>
+
+
 namespace Orthanc
 {
   MemoryStorageArea::~MemoryStorageArea()

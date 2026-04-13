@@ -29,8 +29,6 @@
 #include "../SerializationToolbox.h"
 #include "../Toolbox.h"
 
-#include <boost/lexical_cast.hpp>
-
 namespace Orthanc
 {
   DicomValue::DicomValue() :

@@ -43,6 +43,7 @@
 #include "../../../OrthancFramework/Sources/FileStorage/PluginStorageAreaAdapter.h"
 #include "../../../OrthancFramework/Sources/HttpServer/HttpServer.h"
 #include "../../../OrthancFramework/Sources/HttpServer/HttpToolbox.h"
+#include "../../../OrthancFramework/Sources/HttpServer/IWebDavBucket.h"
 #include "../../../OrthancFramework/Sources/Images/Image.h"
 #include "../../../OrthancFramework/Sources/Images/ImageProcessing.h"
 #include "../../../OrthancFramework/Sources/Images/JpegReader.h"

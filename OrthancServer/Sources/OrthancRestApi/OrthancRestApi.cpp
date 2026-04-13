@@ -26,13 +26,14 @@
 
 #include "../../../OrthancFramework/Sources/Compression/GzipCompressor.h"
 #include "../../../OrthancFramework/Sources/Compression/ZipReader.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
-#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../DicomInstanceToStore.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
+#include "../ServerJobs/ThreadedSetOfInstancesJob.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 

@@ -34,8 +34,8 @@
 #  error The class MetricsRegistry cannot be used in sandboxed environments
 #endif
 
+#include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <stdint.h>
 
 namespace Orthanc
@@ -165,11 +165,13 @@ namespace Orthanc
     class ORTHANC_PUBLIC Timer : public boost::noncopyable
     {
     private:
+      struct PImpl;  // To hold "boost::posix_time::ptime  start_"
+      PImpl* pimpl_;
+
       MetricsRegistry&          registry_;
       std::string               name_;
       MetricsUpdatePolicy       policy_;
       bool                      active_;
-      boost::posix_time::ptime  start_;
 
       void Start();
 

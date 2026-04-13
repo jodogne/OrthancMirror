@@ -34,7 +34,6 @@
 
 #include <cassert>
 #include <stdio.h>
-#include <boost/lexical_cast.hpp>
 
 namespace Orthanc
 {

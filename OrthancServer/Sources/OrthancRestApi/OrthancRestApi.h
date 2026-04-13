@@ -23,17 +23,16 @@
 
 #pragma once
 
-#include "../../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../../OrthancFramework/Sources/JobsEngine/SetOfCommandsJob.h"
 #include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../../OrthancFramework/Sources/RestApi/RestApi.h"
-#include "../ServerJobs/ThreadedSetOfInstancesJob.h"
 #include "../ServerEnumerations.h"
 
 #include <set>
 
 namespace Orthanc
 {
+  class ThreadedSetOfInstancesJob;
   class ServerContext;
   class ServerIndex;
   class DicomInstanceToStore;

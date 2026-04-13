@@ -30,7 +30,6 @@
 #  include "../../Plugins/Engine/PluginsEnumerations.h"
 #endif
 
-#include <boost/lexical_cast.hpp>
 #include <cassert>
 
 

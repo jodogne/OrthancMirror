@@ -44,10 +44,6 @@
 #  error The macro ORTHANC_ENABLE_PUGIXML must be defined
 #endif
 
-#if ORTHANC_ENABLE_PUGIXML == 1
-#  include "IWebDavBucket.h"
-#endif
-
 
 #include "IIncomingHttpRequestFilter.h"
 #include "../MetricsRegistry.h"
@@ -62,6 +58,8 @@
 
 namespace Orthanc
 {
+  class HttpOutput;
+  class IWebDavBucket;
   class OrthancException;
 
   class IHttpExceptionFormatter : public boost::noncopyable

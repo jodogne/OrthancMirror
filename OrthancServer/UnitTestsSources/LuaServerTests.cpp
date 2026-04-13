@@ -30,8 +30,6 @@
 
 #include <OrthancServerResources.h>
 
-#include <boost/lexical_cast.hpp>
-
 #if !defined(UNIT_TESTS_WITH_HTTP_CONNEXIONS)
 #  error "Please set UNIT_TESTS_WITH_HTTP_CONNEXIONS to 0 or 1"
 #endif

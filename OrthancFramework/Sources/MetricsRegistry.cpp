@@ -31,6 +31,8 @@
 #include "Logging.h"
 #include "OrthancException.h"
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 
 namespace Orthanc
 {
@@ -650,12 +652,18 @@ namespace Orthanc
   }
 
 
-  void  MetricsRegistry::Timer::Start()
+  struct MetricsRegistry::Timer::PImpl
+  {
+    boost::posix_time::ptime  start_;
+  };
+
+
+  void MetricsRegistry::Timer::Start()
   {
     if (registry_.IsEnabled())
     {
       active_ = true;
-      start_ = GetNow();
+      pimpl_->start_ = GetNow();
     }
     else
     {
@@ -666,6 +674,7 @@ namespace Orthanc
 
   MetricsRegistry::Timer::Timer(MetricsRegistry &registry,
                                 const std::string &name) :
+    pimpl_(new PImpl),
     registry_(registry),
     name_(name),
     policy_(MetricsUpdatePolicy_MaxOver10Seconds)
@@ -677,6 +686,7 @@ namespace Orthanc
   MetricsRegistry::Timer::Timer(MetricsRegistry &registry,
                                 const std::string &name,
                                 MetricsUpdatePolicy policy) :
+    pimpl_(new PImpl),
     registry_(registry),
     name_(name),
     policy_(policy)
@@ -689,7 +699,7 @@ namespace Orthanc
   {
     if (active_)
     {
-      boost::posix_time::time_duration diff = GetNow() - start_;
+      boost::posix_time::time_duration diff = GetNow() - pimpl_->start_;
 
       try
       {
@@ -701,5 +711,8 @@ namespace Orthanc
         LOG(ERROR) << "Exception in destructor: " << e.What();
       }
     }
+
+    assert(pimpl_ != NULL);
+    delete pimpl_;
   }
 }

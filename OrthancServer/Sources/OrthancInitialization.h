@@ -25,6 +25,7 @@
 
 #include "../../OrthancFramework/Sources/FileStorage/IStorageArea.h"
 #include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/SystemToolbox.h"
 #include "Database/IDatabaseWrapper.h"
 
 namespace Orthanc

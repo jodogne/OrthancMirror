@@ -83,8 +83,6 @@
 #include "../../Logging.h"
 #include "../../OrthancException.h"
 
-#include <boost/lexical_cast.hpp>
-
 
 namespace Orthanc
 {

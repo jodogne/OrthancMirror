@@ -29,8 +29,6 @@
 #include "../Toolbox.h"
 #include "../SystemToolbox.h"
 
-#include <boost/lexical_cast.hpp>
-
 namespace Orthanc
 {
   void HttpFileSender::SetContentType(MimeType contentType)

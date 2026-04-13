@@ -29,6 +29,7 @@
 #include "OrthancRestApi/OrthancRestApi.h"
 #include "OutgoingDicomInstance.h"
 #include "ServerContext.h"
+#include "ServerJobs/LuaJobManager.h"
 
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/HttpServer/StringHttpOutput.h"
@@ -42,6 +43,12 @@ static const char* ON_HEART_BEAT = "OnHeartBeat";
 
 namespace Orthanc
 {
+  struct LuaScripting::PImpl
+  {
+    LuaJobManager  jobManager_;
+  };
+
+
   class LuaScripting::IEvent : public IDynamicObject
   {
   public:
@@ -644,14 +651,15 @@ namespace Orthanc
   }
 
 
-  size_t LuaScripting::ParseOperation(LuaJobManager::Lock& lock,
-                                      const std::string& operation,
-                                      const Json::Value& parameters)
+  static size_t ParseOperation(ServerContext& context,
+                               LuaJobManager::Lock& lock,
+                               const std::string& operation,
+                               const Json::Value& parameters)
   {
     if (operation == "delete")
     {
       LOG(INFO) << "Lua script to delete resource " << parameters["Resource"].asString();
-      return lock.AddDeleteResourceOperation(context_);
+      return lock.AddDeleteResourceOperation(context);
     }
 
     if (operation == "store-scu")
@@ -663,7 +671,7 @@ namespace Orthanc
       }
       else
       {
-        localAet = context_.GetDefaultLocalApplicationEntityTitle();
+        localAet = context.GetDefaultLocalApplicationEntityTitle();
       }
 
       std::string name = parameters["Modality"].asString();
@@ -675,7 +683,7 @@ namespace Orthanc
       }
 
       // This is not a C-MOVE: No need to call "StoreScuCommand::SetMoveOriginator()"
-      return lock.AddStoreScuOperation(context_, localAet, modality);
+      return lock.AddStoreScuOperation(context, localAet, modality);
     }
 
     if (operation == "store-peer")
@@ -700,7 +708,7 @@ namespace Orthanc
       std::unique_ptr<DicomModification> modification(new DicomModification);
       modification->ParseModifyRequest(parameters);
 
-      return lock.AddModifyInstanceOperation(context_, modification.release());
+      return lock.AddModifyInstanceOperation(context, modification.release());
     }
 
     if (operation == "call-system")
@@ -768,7 +776,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    LuaJobManager::Lock lock(jobManager_, context_.GetJobsEngine());
+    LuaJobManager::Lock lock(pimpl_->jobManager_, context_.GetJobsEngine());
 
     bool isFirst = true;
     size_t previous = 0;  // Dummy initialization to avoid warning
@@ -788,7 +796,7 @@ namespace Orthanc
       }
 
       std::string operation = parameters["Operation"].asString();
-      size_t index = ParseOperation(lock, operation, operations[i]);
+      size_t index = ParseOperation(context_, lock, operation, operations[i]);
         
       std::string resource = parameters["Resource"].asString();
       if (!resource.empty())
@@ -806,7 +814,8 @@ namespace Orthanc
   }
 
 
-  LuaScripting::LuaScripting(ServerContext& context) : 
+  LuaScripting::LuaScripting(ServerContext& context) :
+    pimpl_(new PImpl),
     context_(context),
     state_(State_Setup),
     heartBeatPeriod_(0)
@@ -840,6 +849,9 @@ namespace Orthanc
         LOG(ERROR) << "Exception in destructor: " << e.What();
       }
     }
+
+    assert(pimpl_ != NULL);
+    delete pimpl_;
   }
 
   void LuaScripting::HeartBeatThread(LuaScripting* that)
@@ -910,7 +922,7 @@ namespace Orthanc
         }
       }
 
-      that->jobManager_.GetDicomConnectionManager().CloseIfInactive();
+      that->pimpl_->jobManager_.GetDicomConnectionManager().CloseIfInactive();
     }
   }
 
@@ -954,7 +966,7 @@ namespace Orthanc
       state_ = State_Done;
     }
 
-    jobManager_.AwakeTrailingSleep();
+    pimpl_->jobManager_.AwakeTrailingSleep();
 
     if (eventThread_.joinable())
     {
@@ -1147,5 +1159,11 @@ namespace Orthanc
   {
     // Lua has its own event thread and queue to dissociate it completely from the main JobEventsThread
     pendingEvents_.Enqueue(new LuaJobEvent(event));
+  }
+
+
+  TimeoutDicomConnectionManager& LuaScripting::GetDicomConnectionManager()
+  {
+    return pimpl_->jobManager_.GetDicomConnectionManager();
   }
 }

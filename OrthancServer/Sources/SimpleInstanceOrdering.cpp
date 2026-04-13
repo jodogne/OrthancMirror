@@ -32,7 +32,6 @@
 #include "ResourceFinder.h"
 
 #include <algorithm>
-#include <boost/lexical_cast.hpp>
 #include <boost/noncopyable.hpp>
 
 

@@ -26,7 +26,6 @@
 
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 
-#include <boost/lexical_cast.hpp>
 #include <cassert>
 
 
