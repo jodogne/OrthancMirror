@@ -393,7 +393,7 @@ namespace Orthanc
       if (includeParentResourcesField)
       {
         std::set<std::string> keys;
-        for (std::map<std::string, ResourceType>::const_iterator it = parentResources.begin(); it != parentResources.end(); ++it) 
+        for (std::map<std::string, ResourceType>::const_iterator it = parentResources.begin(); it != parentResources.end(); ++it)
         {
           keys.insert(it->first);
         }
@@ -473,7 +473,7 @@ namespace Orthanc
         }
         catch(...)
         {
-          // ignore errors, the resource might have disappear 
+          // ignore errors, the resource might have disappear
         }
       }
     }

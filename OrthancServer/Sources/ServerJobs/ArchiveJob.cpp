@@ -539,7 +539,7 @@ namespace Orthanc
             try
             {
               LOG(INFO) << "Adding instance " << instanceId_ << " in zip";
-              instancesLoader.GetDicom(content, instanceId_);
+              instancesLoader.WaitDicomInstance(content, instanceId_);
             }
             catch (OrthancException& e)
             {
@@ -658,7 +658,7 @@ namespace Orthanc
                           const std::string& instanceId,
                           const FileInfo& fileInfo)
     {
-      instancesLoader_.PrepareDicom(instanceId, fileInfo);
+      instancesLoader_.PreloadDicomInstance(instanceId, fileInfo);
       commands_.push_back(new Command(Type_WriteInstance, filename, instanceId, fileInfo));
       instancesCount_ ++;
       uncompressedSize_ += fileInfo.GetUncompressedSize();

@@ -56,6 +56,11 @@ namespace Orthanc
     
     virtual bool HandleTrailingStep() ORTHANC_OVERRIDE;
 
+    virtual const char* GetLoaderPrefix() const ORTHANC_OVERRIDE
+    {
+      return "CSTO";
+    }
+
   public:
     explicit DicomModalityStoreJob(ServerContext& context);
 
@@ -90,11 +95,6 @@ namespace Orthanc
     virtual void GetJobType(std::string& target) const ORTHANC_OVERRIDE
     {
       target = "DicomModalityStore";
-    }
-
-    virtual const char* GetLoaderPrefix() const ORTHANC_OVERRIDE
-    {
-      return "CSTO";
     }
 
     virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;

@@ -33,7 +33,7 @@
 namespace Orthanc
 {
   class ServerContext;
-  
+
   class ORTHANC_PUBLIC StoreJob : public SetOfInstancesJob
   {
   protected:
@@ -41,6 +41,8 @@ namespace Orthanc
     std::unique_ptr<ThreadedInstancesLoader>   instancesLoader_;
     std::vector<std::string>                   instancesIds_;
     std::vector<FileInfo>                      filesInfo_;
+
+    virtual const char* GetLoaderPrefix() const = 0;
 
   public:
     explicit StoreJob(ServerContext& context);
@@ -54,7 +56,5 @@ namespace Orthanc
 
     void AddInstances(const std::vector<std::string>& instancesIds,
                       const std::vector<FileInfo>& filesInfo);
-
-    virtual const char* GetLoaderPrefix() const = 0;
   };
 }

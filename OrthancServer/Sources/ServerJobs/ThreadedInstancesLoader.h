@@ -22,21 +22,31 @@
 
 #pragma once
 
+#include "../../../OrthancFramework/Sources/Compatibility.h"
+#include "../../../OrthancFramework/Sources/Enumerations.h"
+#include "../../../OrthancFramework/Sources/FileStorage/FileInfo.h"
+#include "../../../OrthancFramework/Sources/MultiThreading/BlockingSharedMessageQueue.h"
+#include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
+
 #include <string>
 #include <boost/noncopyable.hpp>
-#include "../../../OrthancFramework/Sources/Compatibility.h"
-#include "../../../OrthancFramework/Sources/MultiThreading/BlockingSharedMessageQueue.h"
-#include "../../../OrthancFramework/Sources/Enumerations.h"
-#include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
-#include "../../../OrthancFramework/Sources/FileStorage/FileInfo.h"
 
 
 namespace Orthanc
 {
   class ServerContext;
 
-  class ORTHANC_PUBLIC ThreadedInstancesLoader : public boost::noncopyable
+  class ORTHANC_PUBLIC ThreadedInstancesLoader ORTHANC_FINAL : public boost::noncopyable
   {
+  private:
+    // Parameters from the constructor
+    ServerContext&                      context_;
+    bool                                transcode_;
+    DicomTransferSyntax                 transferSyntax_;
+    unsigned int                        lossyQuality_;
+    std::string                         nameForLogs4Char_;
+
+    // Internal variables
     boost::condition_variable           condInstanceAvailable_;
     std::map<std::string, boost::shared_ptr<std::string> >  availableInstances_;
     boost::mutex                        availableInstancesMutex_;
@@ -44,29 +54,29 @@ namespace Orthanc
     BlockingSharedMessageQueue          instancesToPreload_;
     std::vector<boost::thread*>         threads_;
     bool                                loadersShouldStop_;
-    std::string                         nameForLogs4Char_;
 
-  protected:
-    ServerContext&                        context_;
-    bool                                  transcode_;
-    DicomTransferSyntax                   transferSyntax_;
-    unsigned int                          lossyQuality_;
+    static void PreloaderWorkerThread(ThreadedInstancesLoader* that);
+
+    bool TranscodeDicom(std::string& transcodedBuffer,
+                        const std::string& sourceBuffer,
+                        const std::string& instanceId);
 
   public:
-    ThreadedInstancesLoader(ServerContext& context, size_t threadCount, bool transcode, DicomTransferSyntax transferSyntax, unsigned int lossyQuality, const std::string& nameForLogs4Char);
+    ThreadedInstancesLoader(ServerContext& context,
+                            size_t threadCount,
+                            bool transcode,
+                            DicomTransferSyntax transferSyntax,
+                            unsigned int lossyQuality,
+                            const std::string& nameForLogs4Char);
 
     ~ThreadedInstancesLoader();
 
     void Clear(bool isAbort);
 
-    static void PreloaderWorkerThread(ThreadedInstancesLoader* that);
+    void PreloadDicomInstance(const std::string& instanceId,
+                              const FileInfo& fileInfo);
 
-    void PrepareDicom(const std::string& instanceId, const FileInfo& fileInfo);
-
-    void GetDicom(std::string& dicom, const std::string& instanceId);
-
-  protected:
-    bool TranscodeDicom(std::string& transcodedBuffer, const std::string& sourceBuffer, const std::string& instanceId);
+    void WaitDicomInstance(std::string& dicom,
+                           const std::string& instanceId);
   };
 }
- 

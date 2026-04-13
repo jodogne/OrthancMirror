@@ -49,6 +49,11 @@ namespace Orthanc
     
     virtual bool HandleTrailingStep() ORTHANC_OVERRIDE;
 
+    virtual const char* GetLoaderPrefix() const ORTHANC_OVERRIDE
+    {
+      return "PSTO";
+    }
+
   public:
     explicit OrthancPeerStoreJob(ServerContext& context) :
       StoreJob(context),
@@ -94,11 +99,6 @@ namespace Orthanc
     virtual void GetJobType(std::string& target) const ORTHANC_OVERRIDE
     {
       target = "OrthancPeerStore";
-    }
-
-    virtual const char* GetLoaderPrefix() const ORTHANC_OVERRIDE
-    {
-      return "PSTO";
     }
 
     virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;

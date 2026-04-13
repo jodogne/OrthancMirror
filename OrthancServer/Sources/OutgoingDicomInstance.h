@@ -37,12 +37,14 @@ namespace Orthanc
 
   class OutgoingDicomInstance : public boost::noncopyable
   {
+  private:
     DicomInstanceDestination            destination_;
     std::unique_ptr<ParsedDicomFile>    dicom_;
 
     explicit OutgoingDicomInstance(ParsedDicomFile* dicom) :
       dicom_(dicom)
-    {}
+    {
+    }
 
   public:
     // WARNING: The source in the factory methods is *not* copied and
@@ -60,8 +62,8 @@ namespace Orthanc
     const DicomInstanceDestination& GetDestination() const
     {
       return destination_;
-    } 
-    
+    }
+
     void GetSimplifiedJson(Json::Value& dicomAsJson) const;
   };
 }

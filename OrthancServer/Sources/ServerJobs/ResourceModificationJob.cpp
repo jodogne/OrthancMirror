@@ -811,13 +811,13 @@ namespace Orthanc
                 {
                   if (!modification_->IsReplaced(*mainPatientTag))
                   {
-                    throw OrthancException(ErrorCode_BadRequest, std::string("Trying to change patient tags in a study.  " 
+                    throw OrthancException(ErrorCode_BadRequest, std::string("Trying to change patient tags in a study.  "
                       "The Patient already exists and has other studies.  All the 'Replace' tags should match the existing patient main dicom tags "
                       "and you should specify all Patient MainDicomTags in your query.  Try using /patients/../modify instead to modify the patient. Missing tag in the 'Replace' tags: ") + mainPatientTag->Format());
                   }
                   else
                   {
-                    throw OrthancException(ErrorCode_BadRequest, std::string("Trying to change patient tags in a study.  " 
+                    throw OrthancException(ErrorCode_BadRequest, std::string("Trying to change patient tags in a study.  "
                       "The Patient already exists and has other studies.  All the 'Replace' tags should match the existing patient main dicom tags "
                       "and you should specify all Patient MainDicomTags in your query.  Try using /patients/../modify instead to modify the patient. Failing tag: ") + mainPatientTag->Format());
                   }
