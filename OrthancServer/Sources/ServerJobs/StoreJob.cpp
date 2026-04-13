@@ -39,7 +39,8 @@ namespace Orthanc
     context_(context)
   {
   }
-  
+
+
   StoreJob::StoreJob(ServerContext& context,
                      const Json::Value& serialized) :
     SetOfInstancesJob(serialized),
@@ -59,8 +60,8 @@ namespace Orthanc
 
       filesInfo_.push_back(fileInfo);
     }
-
   }
+
 
   void StoreJob::AddInstances(const std::vector<std::string>& instancesIds,
                               const std::vector<FileInfo>& filesInfo)
@@ -73,12 +74,13 @@ namespace Orthanc
     std::copy(instancesIds.begin(), instancesIds.end(), std::back_inserter(instancesIds_));
     std::copy(filesInfo.begin(), filesInfo.end(), std::back_inserter(filesInfo_));
 
-    // create the commands (they must be in the same order as the instancesIds_ such that the instancesLoader loads them in the right consume order)
+    // create the commands (they must be in the same order as the instancesIds_ so that the instancesLoader loads them in the right consume order)
     for (size_t i = 0; i < instancesIds.size(); ++i)
     {
       AddInstance(instancesIds[i]);
     }
   }
+
 
   void StoreJob::Start()
   {
@@ -87,16 +89,17 @@ namespace Orthanc
       OrthancConfiguration::ReaderLock lock;
       loaderThreads = lock.GetConfiguration().GetLoaderThreads();
     }
-    
-    instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads, false, DicomTransferSyntax_LittleEndianImplicit /* dummy value not used*/, 0, GetLoaderPrefix()));    
-  
+
+    instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads, false, DicomTransferSyntax_LittleEndianImplicit /* dummy value not used*/, 0, GetLoaderPrefix()));
+
     for (size_t i = 0; i < instancesIds_.size(); ++i)
     {
-      instancesLoader_->PrepareDicom(instancesIds_[i], filesInfo_[i]);
+      instancesLoader_->PreloadDicomInstance(instancesIds_[i], filesInfo_[i]);
     }
 
     SetOfInstancesJob::Start();
   }
+
 
   void StoreJob::Stop(JobStopReason reason)   // For pausing jobs
   {
@@ -112,7 +115,4 @@ namespace Orthanc
       }
     }
   }
-  
-
-
 }

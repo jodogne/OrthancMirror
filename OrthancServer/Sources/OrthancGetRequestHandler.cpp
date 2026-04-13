@@ -73,7 +73,7 @@ namespace Orthanc
     const std::string& id = instancesIds_[position_++];
 
     std::string dicom;
-    instancesLoader_->GetDicom(dicom, id);
+    instancesLoader_->WaitDicomInstance(dicom, id);
     
     if (dicom.empty())
     {
@@ -592,7 +592,7 @@ namespace Orthanc
 
     for (size_t i = 0; i < instancesIds_.size(); ++i)
     {
-      instancesLoader_->PrepareDicom(instancesIds_[i], filesInfo[i]);
+      instancesLoader_->PreloadDicomInstance(instancesIds_[i], filesInfo[i]);
     }
 
     failedUIDs_.clear();

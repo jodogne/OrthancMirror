@@ -1215,8 +1215,8 @@ namespace Orthanc
     bool isIdentical;
 
     std::unique_ptr<DatabaseDicomTagConstraint> dbConstraint(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Identifier)); // first try to look in the identifier table (that is faster !)
-    
-    if (!isIdentical) // if an exact match can not be ensured because some values contained characters that are removed from the DicomIdentifier table during normalization, 
+
+    if (!isIdentical) // if an exact match can not be ensured because some values contained characters that are removed from the DicomIdentifier table during normalization,
                       // search in the MainDicomTags table instead.
     {
       dbConstraint.reset(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Main));

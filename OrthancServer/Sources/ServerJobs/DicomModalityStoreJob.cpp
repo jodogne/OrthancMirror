@@ -55,7 +55,7 @@ namespace Orthanc
 
     try
     {
-      instancesLoader_->GetDicom(dicom, instance);
+      instancesLoader_->WaitDicomInstance(dicom, instance);
     }
     catch (OrthancException& e)
     {

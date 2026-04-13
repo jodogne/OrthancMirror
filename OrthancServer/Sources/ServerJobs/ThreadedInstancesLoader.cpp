@@ -40,31 +40,39 @@ namespace Orthanc
     FileInfo    fileInfo_;
 
   public:
-    explicit InstanceToPreload(const std::string& id, const FileInfo& fileInfo) : 
+    InstanceToPreload(const std::string& id,
+                      const FileInfo& fileInfo) :
       id_(id),
       fileInfo_(fileInfo)
     {
     }
 
-    virtual ~InstanceToPreload() ORTHANC_OVERRIDE
+    const std::string& GetId() const
     {
+      return id_;
     }
 
-    const std::string& GetId() const {return id_;};
-    const FileInfo& GetFileInfo() const {return fileInfo_;};
+    const FileInfo& GetFileInfo() const
+    {
+      return fileInfo_;
+    }
   };
 
 
-  ThreadedInstancesLoader::ThreadedInstancesLoader(ServerContext& context, size_t threadCount, bool transcode, DicomTransferSyntax transferSyntax, unsigned int lossyQuality, const std::string& nameForLogs4Char)
-  : availableInstancesSemaphore_(3*threadCount),
-    instancesToPreload_(0), // no limit on the message queue, the flow control is performed by the availableInstancesSemaphore_
-    loadersShouldStop_(false),
-    nameForLogs4Char_(nameForLogs4Char),
+  ThreadedInstancesLoader::ThreadedInstancesLoader(ServerContext& context,
+                                                   size_t threadCount,
+                                                   bool transcode,
+                                                   DicomTransferSyntax transferSyntax,
+                                                   unsigned int lossyQuality,
+                                                   const std::string& nameForLogs4Char) :
     context_(context),
     transcode_(transcode),
     transferSyntax_(transferSyntax),
-    lossyQuality_(lossyQuality)
-
+    lossyQuality_(lossyQuality),
+    nameForLogs4Char_(nameForLogs4Char),
+    availableInstancesSemaphore_(3 * threadCount),
+    instancesToPreload_(0), // no limit on the message queue, the flow control is performed by the availableInstancesSemaphore_
+    loadersShouldStop_(false)
   {
     assert(nameForLogs4Char_.size() <= 4);
 
@@ -79,16 +87,26 @@ namespace Orthanc
     }
   }
 
+
   ThreadedInstancesLoader::~ThreadedInstancesLoader()
   {
-    ThreadedInstancesLoader::Clear(false);
+    try
+    {
+      ThreadedInstancesLoader::Clear(false);
+    }
+    catch (const OrthancException& e)
+    {
+      // Don't throw exceptions in destructors
+      LOG(ERROR) << "Exception: " << e.What();
+    }
   }
+
 
   void ThreadedInstancesLoader::Clear(bool isAbort)
   {
     if (threads_.size() > 0)
     {
-      loadersShouldStop_ = true; // not need to protect this by a mutex.  This is the only "writer" and all loaders are "readers"
+      loadersShouldStop_ = true; // no need to protect this by a mutex. This is the only "writer" and all loaders are "readers"
 
       if (isAbort)
       {
@@ -125,11 +143,13 @@ namespace Orthanc
     }
   }
 
+
   void ThreadedInstancesLoader::PreloaderWorkerThread(ThreadedInstancesLoader* that)
   {
     {
       boost::mutex::scoped_lock lock(loaderThreadsCounterMutex);
-      Logging::SetCurrentThreadName(that->nameForLogs4Char_ + std::string("-LOAD-") + boost::lexical_cast<std::string>(loaderThreadsCounter++));
+      Logging::SetCurrentThreadName(that->nameForLogs4Char_ + std::string("-LOAD-") +
+                                    boost::lexical_cast<std::string>(loaderThreadsCounter++));
       loaderThreadsCounter %= 1000000;
     }
 
@@ -147,7 +167,7 @@ namespace Orthanc
       }
 
       const std::string& instanceId = instanceToPreload->GetId();
-      
+
       try
       {
         boost::shared_ptr<std::string> dicomContent(new std::string());
@@ -173,7 +193,7 @@ namespace Orthanc
         LOG(ERROR) << "Failed to load instance " << instanceId << " error: " << e.GetDetails();
         boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
         // store a NULL result to notify that we could not read the instance
-        that->availableInstances_[instanceId] = boost::shared_ptr<std::string>(); 
+        that->availableInstances_[instanceId] = boost::shared_ptr<std::string>();
         that->condInstanceAvailable_.notify_one();
       }
       catch (...)
@@ -181,47 +201,50 @@ namespace Orthanc
         LOG(ERROR) << "Failed to load instance " << instanceId << " unknown error";
         boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
         // store a NULL result to notify that we could not read the instance
-        that->availableInstances_[instanceId] = boost::shared_ptr<std::string>(); 
+        that->availableInstances_[instanceId] = boost::shared_ptr<std::string>();
         that->condInstanceAvailable_.notify_one();
       }
     }
   }
 
-  void ThreadedInstancesLoader::PrepareDicom(const std::string& instanceId, const FileInfo& fileInfo)
+
+  void ThreadedInstancesLoader::PreloadDicomInstance(const std::string& instanceId,
+                                                     const FileInfo& fileInfo)
   {
     instancesToPreload_.Enqueue(new InstanceToPreload(instanceId, fileInfo));
   }
 
-  void ThreadedInstancesLoader::GetDicom(std::string& dicom, const std::string& instanceId)
+
+  void ThreadedInstancesLoader::WaitDicomInstance(std::string& dicom,
+                                                  const std::string& instanceId)
   {
     boost::mutex::scoped_lock lock(availableInstancesMutex_);
 
-    while (true)
+    // wait for this instance to be available but this might not be the one we are waiting for !
+    while (availableInstances_.find(instanceId) == availableInstances_.end())
     {
-      // wait for this instance to be available but this might not be the one we are waiting for !
-      while (availableInstances_.find(instanceId) == availableInstances_.end())
-      {
-        condInstanceAvailable_.wait(lock);
-      }
-
-      boost::shared_ptr<std::string> dicomContent;
-
-      // this is the instance we were waiting for
-      dicomContent = availableInstances_[instanceId];
-      availableInstances_.erase(instanceId);
-      availableInstancesSemaphore_.Release(1);
-
-      if (dicomContent.get() == NULL)  // there has been an error while reading the file
-      {
-        throw OrthancException(ErrorCode_InexistentItem);
-      }
-      dicom.swap(*dicomContent);
-
-      return;
+      condInstanceAvailable_.wait(lock);
     }
-  };
 
-  bool ThreadedInstancesLoader::TranscodeDicom(std::string& transcodedBuffer, const std::string& sourceBuffer, const std::string& instanceId)
+    boost::shared_ptr<std::string> dicomContent;
+
+    // this is the instance we were waiting for
+    dicomContent = availableInstances_[instanceId];
+    availableInstances_.erase(instanceId);
+    availableInstancesSemaphore_.Release(1);
+
+    if (dicomContent.get() == NULL)  // there has been an error while reading the file
+    {
+      throw OrthancException(ErrorCode_InexistentItem);
+    }
+
+    dicom.swap(*dicomContent);
+  }
+
+
+  bool ThreadedInstancesLoader::TranscodeDicom(std::string& transcodedBuffer,
+                                               const std::string& sourceBuffer,
+                                               const std::string& instanceId)
   {
     if (transcode_)
     {
@@ -245,5 +268,4 @@ namespace Orthanc
 
     return false;
   }
-
 }

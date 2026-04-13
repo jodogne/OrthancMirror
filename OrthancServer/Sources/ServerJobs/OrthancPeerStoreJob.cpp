@@ -61,7 +61,7 @@ namespace Orthanc
       if (transcode_)
       {
         std::string dicom;
-        instancesLoader_->GetDicom(dicom, instance);
+        instancesLoader_->WaitDicomInstance(dicom, instance);
 
         std::set<DicomTransferSyntax> syntaxes;
         syntaxes.insert(transferSyntax_);

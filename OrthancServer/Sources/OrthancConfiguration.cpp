@@ -1354,13 +1354,14 @@ namespace Orthanc
   {
     // from 1.10.0 to 1.12.10, only CONFIG_ZIP_LOADER_THREADS was available -> read from it if CONFIG_LOADER_THREADS is not specified.
     unsigned int loaderThreads = GetUnsignedIntegerParameter(CONFIG_LOADER_THREADS, GetUnsignedIntegerParameter(CONFIG_ZIP_LOADER_THREADS, 1));
-    
+
     if (loaderThreads <= 1)
     {
       return 1; // 0 is not a valid internal value anymore
     }
-
-    return loaderThreads;
+    else
+    {
+      return loaderThreads;
+    }
   }
-
 }

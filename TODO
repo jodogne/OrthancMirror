@@ -71,7 +71,9 @@ General
     "admin": {
       "Password": "5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8", 
       "Hashing": "sha1"} }
-  
+* Have a single instance of "ThreadedInstancesLoader" shared by all the jobs
+  in the Orthanc server to prevent resource exhaustion.
+
 
 ============================
 Documentation (Orthanc Book)
