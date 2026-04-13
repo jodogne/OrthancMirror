@@ -295,19 +295,19 @@ namespace Orthanc
 #endif
 
 #if DCMTK_VERSION_NUMBER >= 369
-      case DicomTransferSyntax_HT2JKLossless:
+      case DicomTransferSyntax_HighThroughputJPEG2000LosslessOnly:
         target = EXS_HighThroughputJPEG2000LosslessOnly;
         return true;
 #endif
 
 #if DCMTK_VERSION_NUMBER >= 369
-      case DicomTransferSyntax_HT2JKWithRPCLOptionsLossless:
+      case DicomTransferSyntax_HighThroughputJPEG2000withRPCLOptionsLosslessOnly:
         target = EXS_HighThroughputJPEG2000withRPCLOptionsLosslessOnly;
         return true;
 #endif
 
 #if DCMTK_VERSION_NUMBER >= 369
-      case DicomTransferSyntax_HT2JK:
+      case DicomTransferSyntax_HighThroughputJPEG2000:
         target = EXS_HighThroughputJPEG2000;
         return true;
 #endif
@@ -589,19 +589,19 @@ namespace Orthanc
 
 #if DCMTK_VERSION_NUMBER >= 369
       case EXS_HighThroughputJPEG2000LosslessOnly:
-        target = DicomTransferSyntax_HT2JKLossless;
+        target = DicomTransferSyntax_HighThroughputJPEG2000LosslessOnly;
         return true;
 #endif
 
 #if DCMTK_VERSION_NUMBER >= 369
       case EXS_HighThroughputJPEG2000withRPCLOptionsLosslessOnly:
-        target = DicomTransferSyntax_HT2JKWithRPCLOptionsLossless;
+        target = DicomTransferSyntax_HighThroughputJPEG2000withRPCLOptionsLosslessOnly;
         return true;
 #endif
 
 #if DCMTK_VERSION_NUMBER >= 369
       case EXS_HighThroughputJPEG2000:
-        target = DicomTransferSyntax_HT2JK;
+        target = DicomTransferSyntax_HighThroughputJPEG2000;
         return true;
 #endif
 

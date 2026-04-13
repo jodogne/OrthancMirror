@@ -401,7 +401,7 @@
   {
     "UID" : "1.2.840.10008.1.2.4.201",
     "Name" : "HTJ2K Lossless",
-    "Value" : "HT2JKLossless",
+    "Value" : "HighThroughputJPEG2000LosslessOnly",
     "DCMTK" : "EXS_HighThroughputJPEG2000LosslessOnly",
     "SinceDCMTK" : "369"
   },
@@ -409,7 +409,7 @@
   {
     "UID" : "1.2.840.10008.1.2.4.202",
     "Name" : "HTJ2K with RPCL Options Lossless",
-    "Value" : "HT2JKWithRPCLOptionsLossless",
+    "Value" : "HighThroughputJPEG2000withRPCLOptionsLosslessOnly",
     "DCMTK" : "EXS_HighThroughputJPEG2000withRPCLOptionsLosslessOnly",
     "SinceDCMTK" : "369"
   },
@@ -417,7 +417,7 @@
   {
     "UID" : "1.2.840.10008.1.2.4.203",
     "Name" : "HTJ2K",
-    "Value" : "HT2JK",
+    "Value" : "HighThroughputJPEG2000",
     "DCMTK" : "EXS_HighThroughputJPEG2000",
     "SinceDCMTK" : "369"
   }
