@@ -21,25 +21,26 @@ constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginC
 constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp:48
 constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:447
 constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:451
-constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3367
+constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3405
 cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:108
 cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:124
 cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:140
 cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:85
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:114
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:435
+knownConditionTrueFalse:../../OrthancFramework/Sources/Images/PamReader.cpp:204
+knownConditionTrueFalse:../../OrthancFramework/Sources/Images/PamReader.cpp:207
 knownConditionTrueFalse:../../OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp:345
-knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2448
-knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2449
-knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2450
-knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2451
-knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2452
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2443
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2444
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2445
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2446
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2447
-knownConditionTrueFalse:../../OrthancFramework/Sources/Images/PamReader.cpp:204
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2448
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2449
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2450
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2451
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2452
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
@@ -55,7 +56,7 @@ variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:229
 variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
 EOF
 
-CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.7.1/
+CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.17.1/
 mkdir -p ${CPPCHECK_BUILD_DIR}
 
 ${CPPCHECK} -j8 --enable=all --quiet --std=c++11 \

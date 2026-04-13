@@ -45,7 +45,7 @@
 #include <cassert>
 #include <string>
 
-#include "sqlite3.h"
+#include <sqlite3.h>
 
 namespace Orthanc
 {

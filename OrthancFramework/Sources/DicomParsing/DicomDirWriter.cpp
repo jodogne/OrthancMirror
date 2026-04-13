@@ -110,8 +110,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dcmtk/dcmdata/dcvrui.h>
 #include <dcmtk/dcmdata/dcsequen.h>
 #include <dcmtk/dcmdata/dcostrmf.h>
-#include "dcmtk/dcmdata/dcvrda.h"     /* for class DcmDate */
-#include "dcmtk/dcmdata/dcvrtm.h"     /* for class DcmTime */
+#include <dcmtk/dcmdata/dcvrda.h>     /* for class DcmDate */
+#include <dcmtk/dcmdata/dcvrtm.h>     /* for class DcmTime */
 
 #include <memory>
 

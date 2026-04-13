@@ -66,7 +66,7 @@
 #  define LOG_APPLY(message);  // CLOG(TRACE, SQLITE) << "SQLite::Statement apply: " << message;
 #endif
 
-#include "sqlite3.h"
+#include <sqlite3.h>
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf
