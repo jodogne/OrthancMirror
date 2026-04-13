@@ -1,49 +1,26 @@
 Pending changes in the mainline
 ===============================
 
-Security
---------
-
-* Fixed 9 CVEs reported by Machine Spirits UG (https://www.machinespirits.com/):
-  - CVE-2026-5437: Out-of-Bounds read in DicomStreamReader
-  - CVE-2026-5438: Memory exhaustion via forged gzip metadata 
-    (check the new "MaximumFileSizeInArchiveMB" configuration)
-  - CVE-2026-5439: Memory exhaustion via forged zip metadata 
-    (check the new "MaximumFileSizeInArchiveMB" configuration)
-  - CVE-2026-5440: Memory exhaustion via unbounded Content-Length
-    (check the new "MaximumRequestBodySizeMB" configuration)
-  - CVE-2026-5441: Out-of-Bounds read in PMSCT_RLE1 decompression
-  - CVE-2026-5442: Out-of-Bounds read triggered by oversized image dimensions
-  - CVE-2026-5443: Out-of-Bounds read triggered by invalid palette size
-  - CVE-2026-5444: Out-of-Bounds write when calling /tools/create-dicom with a forged PAM file.
-  - CVE-2026-5444: Out-of-Bounds read triggered by invalid palette indexes
-* Fixed a security issue where one could hijack HTTP headers in the response
-  through the "filename" argument of "{...}/file" or "{...}/archive" routes.
-  (credits: Pavel Kohout, Aisle Research, https://www.aisle.com/)
-
-
 General
 -------
 
-* New configuration "LoaderThreads" that is a general configuration for all actions
-  that require loading files, possibly in parallel:
+* New configuration option "LoaderThreads", shared by actions that require loading multiple files,
+  enabling the parallel loading of multiple DICOM instances, including:
   - downloading zip archive/media,
-  - performing a C-Store to a remote modality
-  - performing a peer transfer to a remote Orthanc.
+  - performing a C-Store to a remote modality,
+  - performing a peer transfer to a remote Orthanc,
   - responding to a C-Get request from a remote modality.
-  Note: the old "ZipLoaderThreads" configuration is still available for backward 
-        compatibility reasons.
-* When performing a C-Store, a peer transfer or replying to a C-Get, the instances are now 
-  grouped per series and ordered by their InstanceNumber instead of using
-  a random order in previous Orthanc versions.
+  The old "ZipLoaderThreads" configuration option is still available for backward compatibility.
+* When performing a C-Store, a peer transfer, or replying to a C-GET, instances are now grouped
+  per series and ordered by their "InstanceNumber" tag, instead of using the internal ordering
+  implied by the Orthanc identifiers as in previous Orthanc versions.
 * New configuration option "MaximumRequestBodySizeMB" to limit the body size in HTTP requests.
   Default value is set to 8GB.
 * New configuration option "MaximumFileSizeInArchiveMB" to limit the file size in ZIP/gzip archives.
   Default value is set to 4GB.
 * New experimental configuration "PatientLevelEnabled".
-* Added basic support for HTJ2K transfer syntaxes.  Orthanc is currently not able to compress/decompress
-  or preview these images.
-
+* Added basic support for HTJ2K transfer syntaxes. Orthanc is
+  currently not able to compress/decompress or preview these images.
 
 REST API
 --------
@@ -52,8 +29,8 @@ REST API
 * Added new metrics in "/tools/metrics-prometheus":
   - "orthanc_logged_errors_count" 
   - "orthanc_logged_warnings_count"
-* In "tools/find", filtering against "LabelsConstraint": "None" with an empty "Labels" list
-  now returns all resources that do not have any label attached, instead of returning all resources.
+* In "tools/find", filtering against "LabelsConstraint": "None" with an empty "Labels" list now returns
+  all the resources that do not have any label attached, instead of returning all the resources.
   This applies to the default SQLite DB and will apply to the next PostgreSQL plugin (v10.1).
 * New option "Utf8" available in the "{...}/archive" and "/tools/create-archive" routes
   to use UTF-8 filenames in the generated ZIP archives. It defaults to the value
@@ -61,11 +38,11 @@ REST API
 * Support for OD, OF, and OL value representations in "/instances/{...}/file" with content type
   "application/dicom+json" (i.e. DICOMweb) and in "/instances/{...}/tags" (contribution by
   Yusuf Sayıta, Philips).
-* New "Content.Resources" field in "DicomModalityStore", "OrthancPeerStore" and "ResourceModification" 
-  jobs that contains JSON objects with "ID" and "Type" of each resource.  The "Content.ParentResources"
-  field that only contains the IDs is preserved for backward compatibility.
-* In /system: renamed "DefaultRetrieveMethod" into "DicomDefaultRetrieveMethod" to match the name
-  in the configuration file.  The configuration returned was actually not reflecting the configuration.
+* New "Content.Resources" field in "DicomModalityStore", "OrthancPeerStore", and "ResourceModification"
+  jobs that contains JSON objects with "ID" and "Type" of each processed resource. The
+  "Content.ParentResources" field that only contains the IDs is preserved for backward compatibility.
+* In "/system": "DefaultRetrieveMethod" renamed as "DicomDefaultRetrieveMethod" to match the name
+  in the configuration file. The returned value was not reflecting the configuration.
 
 Lua
 ---
@@ -81,17 +58,33 @@ Plugins
 Maintenance
 -----------
 
+* Fixed 9 CVEs reported by Machine Spirits UG (https://www.machinespirits.com/):
+  - CVE-2026-5437: Out-of-bounds read in DicomStreamReader
+  - CVE-2026-5438: Memory exhaustion via forged gzip metadata
+    (check the new "MaximumFileSizeInArchiveMB" configuration)
+  - CVE-2026-5439: Memory exhaustion via forged zip metadata
+    (check the new "MaximumFileSizeInArchiveMB" configuration)
+  - CVE-2026-5440: Memory exhaustion via unbounded "Content-Length" HTTP header
+    (check the new "MaximumRequestBodySizeMB" configuration)
+  - CVE-2026-5441: Out-of-bounds read in PMSCT_RLE1 decompression
+  - CVE-2026-5442: Out-of-bounds read triggered by oversized DICOM image dimensions
+  - CVE-2026-5443: Out-of-bounds read triggered by invalid palette size
+  - CVE-2026-5444: Out-of-bounds write when calling /tools/create-dicom with a forged PAM file
+  - CVE-2026-5445: Out-of-bounds read triggered by invalid palette indexes
+* Fixed a security issue where HTTP headers can be hijacked in the response
+  through the "filename" argument of "{...}/file" or "{...}/archive" routes
+  (credits: Pavel Kohout, Aisle Research, https://www.aisle.com/)
 * Fix "LimitFindResults" and "LimitFindInstances" configurations that were not
-  applied to C-FIND (bug introduced in 1.12.5).
+  applied to C-FIND (bug introduced in 1.12.5)
 * Allow multiple calls to "/queries/../answers/../retrieve" in parallel
   https://discourse.orthanc-server.org/t/synchronous-jobs-limited-to-one-at-a-time/6365
 * Fix "/tools/lookup" and "OrthancPluginLookupPatient()" that were considering
-  "1234", "_1234" and "%1234" as the same PatientID.
+  "1234", "_1234" and "%1234" as the same PatientID
 * libcurl: Enabling IPv6 if linking statically
   https://github.com/orthanc-server/orthanc-builder/issues/33
-* Fix /tools/reset fails to restart server with error "Internal error: Cannot initialize ICU: U_INVALID_FORMAT_ERROR"
+* Fix "/tools/reset" failing with error "Internal error: Cannot initialize ICU: U_INVALID_FORMAT_ERROR"
   https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=255
-* Save the jobs registry in DB only if it has changed.
+* Save the jobs registry in DB only if it has changed
   https://discourse.orthanc-server.org/t/frequent-idle-messages-between-postgres-and-orthanc/6406
 * New CMake option: "USE_SYSTEM_MINIZIP" to use the system-wide version of minizip
 * Upgraded dependencies for static builds:
