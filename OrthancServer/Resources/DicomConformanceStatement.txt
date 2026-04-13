@@ -324,9 +324,9 @@ transfer syntaxes:
   JPEGXLLosslessTransferSyntax                       | 1.2.840.10008.1.2.4.110
   JPEGXLJPEGRecompressionTransferSyntax              | 1.2.840.10008.1.2.4.111
   JPEGXLTransferSyntax                               | 1.2.840.10008.1.2.4.112
-  HTJPEG2000LosslessOnlyTransferSyntax               | 1.2.840.10008.1.2.4.201
-  HTJPEG2000WithRPCLLosslessOnlyTransferSyntax       | 1.2.840.10008.1.2.4.202
-  HTJPEG2000TransferSyntax                           | 1.2.840.10008.1.2.4.203
+  HT2JKLosslessTransferSyntax                        | 1.2.840.10008.1.2.4.201
+  HT2JKWithRPCLOptionsLosslessTransferSyntax         | 1.2.840.10008.1.2.4.202
+  HT2JKTransferSyntax                                | 1.2.840.10008.1.2.4.203
   JPEGProcess1TransferSyntax                         | 1.2.840.10008.1.2.4.50
   JPEGProcess2_4TransferSyntax                       | 1.2.840.10008.1.2.4.51
   JPEGProcess3_5TransferSyntax                       | 1.2.840.10008.1.2.4.52
