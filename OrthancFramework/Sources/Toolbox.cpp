@@ -220,7 +220,7 @@ namespace Orthanc
 #if ORTHANC_ENABLE_MD5 == 1
 #  if BOOST_VERSION >= 106600
   
-  struct Toolbox::MD5Context::PImpl
+  struct Toolbox::MD5Context::PImpl : public boost::noncopyable
   {
     boost::uuids::detail::md5  md5_;
     bool                       done_;
@@ -341,7 +341,7 @@ namespace Orthanc
   }
 
 
-  struct Toolbox::MD5Context::PImpl
+  struct Toolbox::MD5Context::PImpl : public boost::noncopyable
   {
     md5_state_s  state_;
     bool         done_;
