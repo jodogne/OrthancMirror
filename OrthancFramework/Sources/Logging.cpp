@@ -444,11 +444,11 @@ namespace Orthanc
       }
     }
 
-    void InitializePluginContext(void* pluginContext)
+    void InitializePluginContext(const void* pluginContext)
     {
     }
 
-    void InitializePluginContext(void* pluginContext, const char* pluginName)
+    void InitializePluginContext(const void* pluginContext, const char* pluginName)
     {
     }
 

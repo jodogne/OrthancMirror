@@ -295,10 +295,10 @@ namespace Orthanc
       return extendedSopClass_;
     }
 
-    void FillPatient(DcmDirectoryRecord& record,
-                     DcmDataset& dicom,
-                     Encoding encoding,
-                     bool hasCodeExtensions)
+    static void FillPatient(DcmDirectoryRecord& record,
+                            DcmDataset& dicom,
+                            Encoding encoding,
+                            bool hasCodeExtensions)
     {
       // cf. "DicomDirInterface::buildPatientRecord()"
 
@@ -366,12 +366,12 @@ namespace Orthanc
       }
     }
 
-    void FillInstance(DcmDirectoryRecord& record,
-                      DcmDataset& dicom,
-                      Encoding encoding,
-                      bool hasCodeExtensions,
-                      DcmMetaInfo& metaInfo,
-                      const char* path)
+    static void FillInstance(DcmDirectoryRecord& record,
+                             DcmDataset& dicom,
+                             Encoding encoding,
+                             bool hasCodeExtensions,
+                             DcmMetaInfo& metaInfo,
+                             const char* path)
     {
       // cf. "DicomDirInterface::buildImageRecord()"
 

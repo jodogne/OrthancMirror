@@ -10,6 +10,23 @@ if [ $# -ge 1 ]; then
 fi
 
 cat <<EOF > /tmp/cppcheck-suppressions.txt
+assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
+assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
+assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:287
+constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3405
+missingInclude:../../OrthancServer/Plugins/Engine/OrthancPluginDatabaseV4.cpp:41
+nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
+stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
+stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
+stlFindInsert:../../OrthancServer/Sources/Database/ResourcesContent.h:141
+syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h
+syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
+syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:92
+useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
+variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:229
+variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
 EOF
 
 CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.20.0/
@@ -19,7 +36,8 @@ ${CPPCHECK} -j8 --enable=all --quiet --std=c++11 \
             --cppcheck-build-dir=${CPPCHECK_BUILD_DIR} \
             --platform=unix64 \
             --language=c++ --suppress=missingIncludeSystem --library=boost \
-            --suppress=unusedFunction --suppress=normalCheckLevelMaxBranches --suppress=useStlAlgorithm \
+            --suppress=unusedFunction --suppress=normalCheckLevelMaxBranches \
+            --suppress=useStlAlgorithm --suppress=constParameterCallback --suppress=knownConditionTrueFalse \
             --suppressions-list=/tmp/cppcheck-suppressions.txt \
             -D__BYTE_ORDER=__LITTLE_ENDIAN \
             -D__GNUC__ \
@@ -31,6 +49,8 @@ ${CPPCHECK} -j8 --enable=all --quiet --std=c++11 \
             -DDCMTK_VERSION_NUMBER=370 \
             -DHAS_ORTHANC_EXCEPTION=1 \
             -DHAVE_MALLOPT=1 \
+            -DJSONCPP_VERSION_MAJOR=1 \
+            -DJSONCPP_VERSION_MINOR=0 \
             -DORTHANC_BUILDING_FRAMEWORK_LIBRARY=0 \
             -DORTHANC_BUILD_UNIT_TESTS=1 \
             -DORTHANC_ENABLE_BASE64=1 \

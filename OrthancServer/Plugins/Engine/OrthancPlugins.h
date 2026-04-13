@@ -152,13 +152,13 @@ private:
 
     void RegisterAuditLogHandler(const void* parameters);
 
-    void AnswerBuffer(const void* parameters);
+    static void AnswerBuffer(const void* parameters);
 
-    void Redirect(const void* parameters);
+    static void Redirect(const void* parameters);
 
-    void CompressAndAnswerPngImage(const void* parameters);
+    static void CompressAndAnswerPngImage(const void* parameters);
 
-    void CompressAndAnswerImage(const void* parameters);
+    static void CompressAndAnswerImage(const void* parameters);
 
     void GetDicomForInstance(const void* parameters);
 
@@ -186,58 +186,58 @@ private:
     void AccessDicomConnection(_OrthancPluginService service,
                                const void* parameters);
 
-    void SendHttpStatusCode(const void* parameters);
+    static void SendHttpStatusCode(const void* parameters);
 
-    void SendHttpStatus(const void* parameters);
+    static void SendHttpStatus(const void* parameters);
 
-    void SendUnauthorized(const void* parameters);
+    static void SendUnauthorized(const void* parameters);
 
-    void SendMethodNotAllowed(const void* parameters);
+    static void SendMethodNotAllowed(const void* parameters);
 
-    void SetCookie(const void* parameters);
+    static void SetCookie(const void* parameters);
 
-    void SetHttpHeader(const void* parameters);
+    static void SetHttpHeader(const void* parameters);
 
-    void SetHttpErrorDetails(const void* parameters);
+    static void SetHttpErrorDetails(const void* parameters);
 
-    void BufferCompression(const void* parameters);
+    static void BufferCompression(const void* parameters);
 
     void UncompressImage(const void* parameters);
 
-    void CompressImage(const void* parameters);
+    static void CompressImage(const void* parameters);
 
-    void ConvertPixelFormat(const void* parameters);
+    static void ConvertPixelFormat(const void* parameters);
 
-    void CallHttpClient(const void* parameters);
+    static void CallHttpClient(const void* parameters);
 
-    void CallHttpClient2(const void* parameters);
+    static void CallHttpClient2(const void* parameters);
 
     void ChunkedHttpClient(const void* parameters);
 
     void CallRestApi(const void* parameters);
 
-    void CallPeerApi(const void* parameters);
+    static void CallPeerApi(const void* parameters);
   
-    void GetFontInfo(const void* parameters);
+    static void GetFontInfo(const void* parameters);
 
-    void DrawText(const void* parameters);
+    static void DrawText(const void* parameters);
 
     void DatabaseAnswer(const void* parameters);
 
     void ApplyDicomToJson(_OrthancPluginService service,
                           const void* parameters);
 
-    void ApplyCreateDicom(const _OrthancPluginCreateDicom& parameters,
-                          const char* privateCreatorC);
+    static void ApplyCreateDicom(const _OrthancPluginCreateDicom& parameters,
+                                 const char* privateCreatorC);
 
     void ApplyCreateImage(_OrthancPluginService service,
                           const void* parameters);
 
-    void ApplyLookupDictionary(const void* parameters);
+    static void ApplyLookupDictionary(const void* parameters);
 
-    void ApplySendMultipartItem(const void* parameters);
+    static void ApplySendMultipartItem(const void* parameters);
 
-    void ApplySendMultipartItem2(const void* parameters);
+    static void ApplySendMultipartItem2(const void* parameters);
 
     void ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& parameters);
 
@@ -269,10 +269,10 @@ private:
 
     void ApplyEmitAuditLog(const _OrthancPluginEmitAuditLog& parameters);
 
-    void ComputeHash(_OrthancPluginService service,
-                     const void* parameters);
+    static void ComputeHash(_OrthancPluginService service,
+                            const void* parameters);
 
-    void GetTagName(const void* parameters);
+    static void GetTagName(const void* parameters);
 
     void SignalChangeInternal(OrthancPluginChangeType changeType,
                               OrthancPluginResourceType resourceType,

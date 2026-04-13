@@ -82,7 +82,7 @@ namespace Orthanc
      **/
 
     Initialize initialize;
-    *(void **) (&initialize) = plugin.GetFunction("OrthancPluginInitialize");
+    *reinterpret_cast<void**>(&initialize) = plugin.GetFunction("OrthancPluginInitialize");
 #endif
 
     assert(initialize != NULL);
@@ -105,7 +105,7 @@ namespace Orthanc
     Finalize finalize = (Finalize) plugin.GetFunction("OrthancPluginFinalize");
 #else
     Finalize finalize;
-    *(void **) (&finalize) = plugin.GetFunction("OrthancPluginFinalize");
+    *reinterpret_cast<void**>(&finalize) = plugin.GetFunction("OrthancPluginFinalize");
 #endif
 
     assert(finalize != NULL);
@@ -121,7 +121,7 @@ namespace Orthanc
     GetName getName = (GetName) plugin.GetFunction("OrthancPluginGetName");
 #else
     GetName getName;
-    *(void **) (&getName) = plugin.GetFunction("OrthancPluginGetName");
+    *reinterpret_cast<void**>(&getName) = plugin.GetFunction("OrthancPluginGetName");
 #endif
 
     assert(getName != NULL);
@@ -137,7 +137,7 @@ namespace Orthanc
     GetVersion getVersion = (GetVersion) plugin.GetFunction("OrthancPluginGetVersion");
 #else
     GetVersion getVersion;
-    *(void **) (&getVersion) = plugin.GetFunction("OrthancPluginGetVersion");
+    *reinterpret_cast<void**>(&getVersion) = plugin.GetFunction("OrthancPluginGetVersion");
 #endif
 
     assert(getVersion != NULL);

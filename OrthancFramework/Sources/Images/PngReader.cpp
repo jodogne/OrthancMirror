@@ -32,6 +32,7 @@
 #  include "../SystemToolbox.h"
 #endif
 
+#include <boost/noncopyable.hpp>
 #include <png.h>
 #include <string.h>  // For memcpy()
 
@@ -40,7 +41,7 @@ namespace Orthanc
 #if ORTHANC_SANDBOXED == 0
   namespace 
   {
-    struct FileRabi
+    struct FileRabi : public boost::noncopyable
     {
       FILE* fp_;
 
@@ -65,7 +66,7 @@ namespace Orthanc
 #endif
 
 
-  struct PngReader::PngRabi
+  struct PngReader::PngRabi : public boost::noncopyable
   {
     png_structp png_;
     png_infop info_;
@@ -244,7 +245,7 @@ namespace Orthanc
 
   namespace
   {
-    struct MemoryBuffer
+    struct MemoryBuffer : public boost::noncopyable
     {
       const uint8_t* buffer_;
       size_t size_;
