@@ -1526,7 +1526,8 @@
                             "size": "The size of the DICOM file."
                         },
                         "description": [
-                            "This function adds one worklist (encoded as a DICOM file) to the set of answers corresponding to some C-Find SCP request against modality worklists."
+                            "This function adds one worklist (encoded as a DICOM file) to the set of answers corresponding to some C-Find SCP request against modality worklists.",
+                            "Note that the provided worklist is still reprocessed by Orthanc, which matches the worklist again against the query and removes the fields that have not been requested by the SCU. Therefore, the returned worklist might have some parts removed, either because they were not requested or because Orthanc failed to match them against the query. For instance, Orthanc is currently not able to match both a ScheduledProcedureStepStartDate AND a ScheduledProcedureStepStartTime."
                         ],
                         "return": "0 if success, other value if error.",
                         "summary": "Add one answer to some modality worklist request."

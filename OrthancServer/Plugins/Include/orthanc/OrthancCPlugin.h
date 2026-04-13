@@ -5718,13 +5718,15 @@ extern "C"
    * This function adds one worklist (encoded as a DICOM file) to the
    * set of answers corresponding to some C-Find SCP request against
    * modality worklists.
-   * 
-   * Note that the provided answer is still processed by Orthanc that matches
-   * it again against the query and remove fields that are not requested.
-   * Therefore, the answer that is actually returned might have some parts removed
-   * either because they were not requested or because Orthanc fails to match it with the
-   * query.  E.g: Orthanc is currently not able to match against a ScheduledProcedureStepStartDate
-   * AND a ScheduledProcedureStepStartTime
+   *
+   * Note that the provided worklist is still reprocessed by Orthanc,
+   * which matches the worklist again against the query and removes
+   * the fields that have not been requested by the SCU. Therefore,
+   * the returned worklist might have some parts removed, either
+   * because they were not requested or because Orthanc failed to
+   * match them against the query. For instance, Orthanc is currently
+   * not able to match both a ScheduledProcedureStepStartDate AND a
+   * ScheduledProcedureStepStartTime.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param answers The set of answers.
