@@ -6,7 +6,7 @@ General
 
 * New configuration option "LoaderThreads", shared by actions that require loading multiple files,
   enabling the parallel loading of multiple DICOM instances, including:
-  - downloading zip archive/media,
+  - downloading ZIP archive/media,
   - performing a C-Store to a remote modality,
   - performing a peer transfer to a remote Orthanc,
   - responding to a C-Get request from a remote modality.
