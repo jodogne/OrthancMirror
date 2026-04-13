@@ -464,13 +464,13 @@ TEST(Toolbox, BoundMemorySizeToCurrentArchitecture)
 {
   if (sizeof(void*) == 4)
   {
-    ASSERT_EQ(Toolbox::BoundMemorySizeToCurrentArchitecture(4294967295llu), 4294967295llu);
-    ASSERT_EQ(Toolbox::BoundMemorySizeToCurrentArchitecture(4294967296llu), 4294967295llu);
+    ASSERT_EQ(Toolbox::BoundMemorySizeToCurrentArchitecture(4294967295ull), 4294967295ull);
+    ASSERT_EQ(Toolbox::BoundMemorySizeToCurrentArchitecture(4294967296ull), 4294967295ull);
   }
   else if (sizeof(void*) == 8)
   {
-    ASSERT_EQ(Toolbox::BoundMemorySizeToCurrentArchitecture(4294967295llu), 4294967295llu);
-    ASSERT_EQ(Toolbox::BoundMemorySizeToCurrentArchitecture(4294967296llu), 4294967296llu);
+    ASSERT_EQ(Toolbox::BoundMemorySizeToCurrentArchitecture(4294967295ull), 4294967295ull);
+    ASSERT_EQ(Toolbox::BoundMemorySizeToCurrentArchitecture(4294967296ull), 4294967296ull);
   }
   else
   {
