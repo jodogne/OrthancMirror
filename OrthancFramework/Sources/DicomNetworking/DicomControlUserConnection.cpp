@@ -341,7 +341,7 @@ namespace Orthanc
     DcmDataset* statusDetail = NULL;
 
 #if DCMTK_VERSION_NUMBER >= 364
-    int responseCount;
+    int responseCount = 0;
 #endif
 
     {
