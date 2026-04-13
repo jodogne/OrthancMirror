@@ -1563,7 +1563,17 @@ namespace Orthanc
       size = extensionsSize;  // Not all the extensions are available
     }
 
-    memcpy(&extensions_, extensions, size);
+    if (extensions == NULL)
+    {
+      if (size > 0)
+      {
+        throw OrthancException(ErrorCode_Plugin);
+      }
+    }
+    else
+    {
+      memcpy(&extensions_, extensions, size);
+    }
 
     bool isOptimal = true;
 

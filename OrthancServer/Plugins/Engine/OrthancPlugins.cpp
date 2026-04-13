@@ -653,8 +653,8 @@ namespace Orthanc
         remove_(remove),
         errorDictionary_(errorDictionary)
       {
-        if (create_ == NULL ||
-            remove_ == NULL)
+        if (create == NULL ||
+            remove == NULL)
         {
           throw OrthancException(ErrorCode_Plugin, "Storage area plugin doesn't implement all the required primitives");
         }
@@ -703,7 +703,7 @@ namespace Orthanc
         read_(callbacks.read),
         free_(callbacks.free)
       {
-        if (read_ == NULL)
+        if (callbacks.read == NULL)
         {
           throw OrthancException(ErrorCode_Plugin, "Storage area plugin doesn't implement the \"Read\" primitive");
         }
@@ -757,7 +757,7 @@ namespace Orthanc
         readWhole_(callbacks.readWhole),
         readRange_(callbacks.readRange)
       {
-        if (readWhole_ == NULL)
+        if (callbacks.readWhole == NULL)
         {
           throw OrthancException(ErrorCode_Plugin, "Storage area plugin doesn't implement the \"ReadWhole\" primitive");
         }
@@ -848,9 +848,9 @@ namespace Orthanc
         remove_(callbacks.remove),
         errorDictionary_(errorDictionary)
       {
-        if (create_ == NULL ||
-            readRange_ == NULL ||
-            remove_ == NULL)
+        if (callbacks.create == NULL ||
+            callbacks.readRange == NULL ||
+            callbacks.remove == NULL)
         {
           throw OrthancException(ErrorCode_Plugin, "Storage area plugin does not implement all the required primitives (create, remove, and readRange)");
         }

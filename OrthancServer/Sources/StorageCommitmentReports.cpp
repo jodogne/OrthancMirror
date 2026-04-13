@@ -184,11 +184,11 @@ namespace Orthanc
   {
     while (!content_.IsEmpty())
     {
-      Report* report = NULL;
-
       try
       {
+        Report* report = NULL;
         content_.RemoveOldest(report);
+
         assert(report != NULL);
         delete report;
       }

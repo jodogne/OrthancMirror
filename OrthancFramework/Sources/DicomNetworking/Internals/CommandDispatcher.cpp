@@ -141,7 +141,6 @@ static OFCondition acceptUnknownContextsWithTransferSyntax(
   T_ASC_SC_ROLE acceptedRole)
 {
   int n, i, k;
-  const DUL_PRESENTATIONCONTEXT *dpc;
   T_ASC_PresentationContext pc;
 
   n = ASC_countPresentationContexts(params);
@@ -176,8 +175,8 @@ static OFCondition acceptUnknownContextsWithTransferSyntax(
       T_ASC_P_ResultReason reason;
 
       /* do not refuse if already accepted */
-      dpc = findPresentationContextID(params->DULparams.acceptedPresentationContext,
-                                      pc.presentationContextID);
+      const DUL_PRESENTATIONCONTEXT *dpc = findPresentationContextID(params->DULparams.acceptedPresentationContext,
+                                                                     pc.presentationContextID);
       if (dpc == NULL || dpc->result != ASC_P_ACCEPTANCE)
       {
 

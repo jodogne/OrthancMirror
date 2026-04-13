@@ -98,7 +98,7 @@ namespace Orthanc
       {
       }
 
-      int GetPeriodDuration(const MetricsUpdatePolicy& policy)
+      static int GetPeriodDuration(const MetricsUpdatePolicy& policy)
       {
         switch (policy)
         {

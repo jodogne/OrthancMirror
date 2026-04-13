@@ -685,8 +685,6 @@ namespace Orthanc
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);  // because we access the parentResources_
 
-    std::set<DicomTag> emptyRequestedTags;
-
     if (modification_.get() == NULL)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);

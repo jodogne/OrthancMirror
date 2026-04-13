@@ -87,10 +87,9 @@ namespace Orthanc
     {
       while (!index_.IsEmpty())
       {
-        Page* element = NULL;
-
         try
         {
+          Page* element = NULL;
           index_.RemoveOldest(element);
 
           assert(element != NULL);

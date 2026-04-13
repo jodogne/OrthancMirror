@@ -3732,7 +3732,9 @@ namespace Orthanc
     db_(db),
     state_(State_Waiting),
     storeId_(storeId),
-    limit_(100)
+    limit_(100),
+    currentKey_(keys_.end()),
+    currentValue_(keys_.end())
   {
     if (storeId.empty())
     {

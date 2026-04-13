@@ -771,7 +771,7 @@ namespace Orthanc
         path = std::string("Unknown ") + EnumerationToString(GetResourceLevel(level));
       }
 
-      commands_.AddOpenDirectory(path.c_str());
+      commands_.AddOpenDirectory(path);
     }
 
     virtual void Close() ORTHANC_OVERRIDE
