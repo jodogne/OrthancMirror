@@ -40,11 +40,16 @@ BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 # Read the current version of DCMTK
 with open(os.path.join(BASE, 'OrthancFramework', 'Resources', 'CMake', 'OrthancFrameworkParameters.cmake'), 'r') as f:
     version = None
-    for match in re.findall(r'set\(DCMTK_STATIC_VERSION_DEFAULT "([0-9.]+)"\)', f.read()):
+    for match in re.findall(r'^set\(DCMTK_STATIC_VERSION "([0-9.]+)"', f.read(), re.MULTILINE):
         if version != None:
             raise Exception('Two versions of DCMTK were found')
         elif match != '3.6.9':  # Ignore the version for Windows XP
             version = match
+
+    if version == None:
+        raise Exception('Unable to detect the DCMTK version')
+
+    print('Detected DCMTK version: %s' % version)
 
     url = 'https://orthanc.uclouvain.be/downloads/third-party-downloads/dcmtk-%s.tar.gz' % version
     r = requests.get(url)
