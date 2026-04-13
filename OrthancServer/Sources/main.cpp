@@ -1129,7 +1129,7 @@ static bool StartHttpServer(ServerContext& context,
       httpServer.SetRequestTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpRequestTimeout", 30));
 
       // New in Orthanc 1.12.11
-      static const uint64_t MEGABYTE = 1024llu * 1024llu;
+      static const uint64_t MEGABYTE = 1024ull * 1024ull;
       const unsigned int maxBodySize = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumRequestBodySizeMB", 8192);
       if (maxBodySize != 0)
       {

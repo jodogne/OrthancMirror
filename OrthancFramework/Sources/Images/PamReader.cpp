@@ -40,8 +40,8 @@
 #include <limits>
 
 static const uint64_t MAX_PAM_IMAGE_BUFFER_SIZE = (sizeof(void*) == 4
-                                                   ? 1llu * 1024llu * 1024llu * 1024llu   // 1 GB on 32 bits system
-                                                   : 4llu * 1024llu * 1024llu * 1024llu); // 4 GB on 64 bits system
+                                                   ? 1ull * 1024ull * 1024ull * 1024ull   // 1 GB on 32 bits system
+                                                   : 4ull * 1024ull * 1024ull * 1024ull); // 4 GB on 64 bits system
 
 
 namespace Orthanc
