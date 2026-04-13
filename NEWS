@@ -19,7 +19,7 @@ General
 * New configuration option "MaximumFileSizeInArchiveMB" to limit the file size in ZIP/gzip archives.
   Default value is set to 4GB.
 * New experimental configuration "PatientLevelEnabled".
-* Added basic support for HTJ2K transfer syntaxes. Orthanc is
+* Added basic support for High Throughput JPEG 2000 transfer syntaxes. Orthanc is
   currently not able to compress/decompress or preview these images.
 
 REST API

@@ -164,13 +164,13 @@ namespace Orthanc
       case DicomTransferSyntax_JPEGXL:
         return "1.2.840.10008.1.2.4.112";
 
-      case DicomTransferSyntax_HT2JKLossless:
+      case DicomTransferSyntax_HighThroughputJPEG2000LosslessOnly:
         return "1.2.840.10008.1.2.4.201";
 
-      case DicomTransferSyntax_HT2JKWithRPCLOptionsLossless:
+      case DicomTransferSyntax_HighThroughputJPEG2000withRPCLOptionsLosslessOnly:
         return "1.2.840.10008.1.2.4.202";
 
-      case DicomTransferSyntax_HT2JK:
+      case DicomTransferSyntax_HighThroughputJPEG2000:
         return "1.2.840.10008.1.2.4.203";
 
       default:
@@ -318,13 +318,13 @@ namespace Orthanc
       case DicomTransferSyntax_JPEGXL:
         return false;
 
-      case DicomTransferSyntax_HT2JKLossless:
+      case DicomTransferSyntax_HighThroughputJPEG2000LosslessOnly:
         return false;
 
-      case DicomTransferSyntax_HT2JKWithRPCLOptionsLossless:
+      case DicomTransferSyntax_HighThroughputJPEG2000withRPCLOptionsLosslessOnly:
         return false;
 
-      case DicomTransferSyntax_HT2JK:
+      case DicomTransferSyntax_HighThroughputJPEG2000:
         return false;
 
       default:
@@ -608,19 +608,19 @@ namespace Orthanc
     
     if (uid == "1.2.840.10008.1.2.4.201")
     {
-      target = DicomTransferSyntax_HT2JKLossless;
+      target = DicomTransferSyntax_HighThroughputJPEG2000LosslessOnly;
       return true;
     }
     
     if (uid == "1.2.840.10008.1.2.4.202")
     {
-      target = DicomTransferSyntax_HT2JKWithRPCLOptionsLossless;
+      target = DicomTransferSyntax_HighThroughputJPEG2000withRPCLOptionsLosslessOnly;
       return true;
     }
     
     if (uid == "1.2.840.10008.1.2.4.203")
     {
-      target = DicomTransferSyntax_HT2JK;
+      target = DicomTransferSyntax_HighThroughputJPEG2000;
       return true;
     }
     
@@ -676,8 +676,8 @@ namespace Orthanc
     target.insert(DicomTransferSyntax_JPEGXLLossless);
     target.insert(DicomTransferSyntax_JPEGXLJPEGRecompression);
     target.insert(DicomTransferSyntax_JPEGXL);
-    target.insert(DicomTransferSyntax_HT2JKLossless);
-    target.insert(DicomTransferSyntax_HT2JKWithRPCLOptionsLossless);
-    target.insert(DicomTransferSyntax_HT2JK);
+    target.insert(DicomTransferSyntax_HighThroughputJPEG2000LosslessOnly);
+    target.insert(DicomTransferSyntax_HighThroughputJPEG2000withRPCLOptionsLosslessOnly);
+    target.insert(DicomTransferSyntax_HighThroughputJPEG2000);
   }
 }
