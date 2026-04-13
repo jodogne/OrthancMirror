@@ -29,6 +29,7 @@
 // http://stackoverflow.com/questions/1576272/storing-large-number-of-files-in-file-system
 // http://stackoverflow.com/questions/446358/storing-a-large-number-of-images
 
+#include "../ElapsedTimer.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../StringMemoryBuffer.h"
@@ -124,7 +125,7 @@ namespace Orthanc
                                  size_t size,
                                  FileContentType type)
   {
-    Toolbox::ElapsedTimer timer;
+    ElapsedTimer timer;
     LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
               << "\" type";
 
@@ -190,7 +191,7 @@ namespace Orthanc
   IMemoryBuffer* FilesystemStorage::ReadWhole(const std::string& uuid,
                                               FileContentType type)
   {
-    Toolbox::ElapsedTimer timer;
+    ElapsedTimer timer;
     LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
               << "\" content type";
 
@@ -208,7 +209,7 @@ namespace Orthanc
                                               uint64_t start /* inclusive */,
                                               uint64_t end /* exclusive */)
   {
-    Toolbox::ElapsedTimer timer;
+    ElapsedTimer timer;
     LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
               << "\" content type (range from " << start << " to " << end << ")";
 

@@ -67,6 +67,7 @@
 
 #include <OrthancServerResources.h>
 
+#include <boost/lexical_cast.hpp>
 #include <dcmtk/dcmnet/diutil.h>  // For DCM_dcmnetLogger
 
 

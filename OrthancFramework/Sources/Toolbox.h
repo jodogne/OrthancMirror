@@ -68,7 +68,7 @@
 #  include <pugixml.hpp>
 #endif
 
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/noncopyable.hpp>
 
 
 namespace Orthanc
@@ -87,10 +87,12 @@ namespace Orthanc
     {
     private:
       class PImpl;
-      boost::shared_ptr<PImpl> pimpl_;
+      PImpl* pimpl_;  // Don't use "boost::shared_ptr<PImpl>" here to speed up compilation time of this common header
 
     public:
       MD5Context();
+
+      ~MD5Context();
 
       void Append(const void* data,
                   size_t size);
@@ -414,57 +416,6 @@ namespace Orthanc
                                      bool allowSlashes);
 
     static size_t BoundMemorySizeToCurrentArchitecture(uint64_t size);
-
-    class ORTHANC_PUBLIC ElapsedTimer : public boost::noncopyable
-    {
-    private:
-      boost::posix_time::ptime  start_;
-
-    public:
-      ElapsedTimer();
-
-      uint64_t GetElapsedMilliseconds();
-      uint64_t GetElapsedMicroseconds();
-      uint64_t GetElapsedNanoseconds();
-      
-      std::string GetHumanElapsedDuration();
-      std::string GetHumanTransferSpeed(bool full, uint64_t sizeInBytes);
-      
-      void Restart();
-    };
-
-    // This is a helper class to measure and log time spend e.g in a method.
-    // This should be used only during debugging and should likely not ever be used in a release.
-    // By default, you should use it as a RAII but you may force Restart/StopAndLog manually if needed.
-    class ORTHANC_PUBLIC DebugElapsedTimeLogger : public boost::noncopyable
-    {
-    private:
-      ElapsedTimer      timer_;
-      const std::string message_;
-      bool              logged_;
-
-    public:
-      explicit DebugElapsedTimeLogger(const std::string& message);
-
-      ~DebugElapsedTimeLogger();  
-
-      void Restart();
-      void StopAndLog();
-    };
-
-    // This variant logs the same message when entering the method and when exiting (with the elapsed time).
-    // Logs goes to verbose-http.
-    class ORTHANC_PUBLIC ApiElapsedTimeLogger : public boost::noncopyable
-    {
-    private:
-      ElapsedTimer      timer_;
-      const std::string message_;
-
-    public:
-      explicit ApiElapsedTimeLogger(const std::string& message);
-
-      ~ApiElapsedTimeLogger();
-    };
 
     static std::string GetHumanFileSize(uint64_t sizeInBytes);
 

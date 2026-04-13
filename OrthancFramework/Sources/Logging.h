@@ -224,7 +224,6 @@ namespace Orthanc
      ORTHANC_ENABLE_LOGGING_STDIO == 1)
 // This is notably for WebAssembly
 
-#include <boost/lexical_cast.hpp>
 #include <boost/noncopyable.hpp>
 #include <sstream>
 
@@ -252,10 +251,9 @@ namespace Orthanc
 
       ~InternalLogger();
       
-      template <typename T>
-        std::ostream& operator<< (const T& message)
+      std::ostream& operator<< (const std::string& message)
       {
-        return messageStream_ << boost::lexical_cast<std::string>(message);
+        return messageStream_ << message;
       }
     };
   }
@@ -268,7 +266,6 @@ namespace Orthanc
 #if (ORTHANC_ENABLE_LOGGING == 1 &&             \
      ORTHANC_ENABLE_LOGGING_STDIO == 0)
 
-#include <boost/lexical_cast.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
 #include <sstream>
@@ -297,10 +294,9 @@ namespace Orthanc
 
       ~InternalLogger();
       
-      template <typename T>
-        std::ostream& operator<< (const T& message)
+      std::ostream& operator<< (const std::string& message)
       {
-        return messageStream_ << boost::lexical_cast<std::string>(message);
+        return messageStream_ << message;
       }
     };
 

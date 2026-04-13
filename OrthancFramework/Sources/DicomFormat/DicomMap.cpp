@@ -25,9 +25,10 @@
 #include "../PrecompiledHeaders.h"
 #include "DicomMap.h"
 
-#include <stdio.h>
-#include <memory>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/lexical_cast.hpp>
+#include <memory>
+#include <stdio.h>
 
 #include "../Compatibility.h"
 #include "../Endianness.h"

@@ -39,6 +39,8 @@
 #include "../../OrthancException.h"
 #include "../../SystemToolbox.h"
 #include "../../Toolbox.h"
+
+#include <boost/lexical_cast.hpp>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 

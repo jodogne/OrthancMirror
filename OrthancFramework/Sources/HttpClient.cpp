@@ -31,10 +31,11 @@
 #include "ChunkedBuffer.h"
 #include "SystemToolbox.h"
 
-#include <string.h>
-#include <curl/curl.h>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/thread/mutex.hpp>
+#include <curl/curl.h>
+#include <string.h>
 
 // Default timeout = 60 seconds (in Orthanc <= 1.5.6, it was 10 seconds)
 static const unsigned int DEFAULT_HTTP_TIMEOUT = 60;
