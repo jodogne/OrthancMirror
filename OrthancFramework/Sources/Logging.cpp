@@ -29,6 +29,7 @@
 
 #include <cassert>
 #include <stdint.h>
+#include <string.h>
 
 #if defined(__linux__) && !defined(NDEBUG)
 #  include <pthread.h>
