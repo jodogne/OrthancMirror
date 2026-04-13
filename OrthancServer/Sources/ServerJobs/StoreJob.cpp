@@ -92,7 +92,8 @@ namespace Orthanc
 
     instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads, false, DicomTransferSyntax_LittleEndianImplicit /* dummy value not used*/, 0, GetLoaderPrefix()));
 
-    for (size_t i = 0; i < instancesIds_.size(); ++i)
+    size_t position = GetPosition(); // in case we reload a job in progress, we shall not preload the first instances
+    for (size_t i = position; i < instancesIds_.size(); ++i)
     {
       instancesLoader_->PreloadDicomInstance(instancesIds_[i], filesInfo_[i]);
     }
