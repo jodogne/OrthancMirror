@@ -19,13 +19,7 @@ constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/
 constParameterCallback:../../OrthancFramework/Sources/Pkcs11.cpp:125
 constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3545
 constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp:48
-constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:447
-constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:451
 constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3405
-cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:108
-cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:124
-cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:140
-cstyleCast:../../OrthancServer/Plugins/Engine/PluginsManager.cpp:85
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:114
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:435
 knownConditionTrueFalse:../../OrthancFramework/Sources/Images/PamReader.cpp:204
@@ -49,7 +43,7 @@ syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
-useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:92
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
 variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:229
