@@ -19,13 +19,14 @@ constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/
 constParameterCallback:../../OrthancFramework/Sources/Pkcs11.cpp:125
 constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3545
 constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp:48
-constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3405
-knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:114
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:448
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:452
+constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3343
+knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:112
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:435
 knownConditionTrueFalse:../../OrthancFramework/Sources/Images/PamReader.cpp:204
 knownConditionTrueFalse:../../OrthancFramework/Sources/Images/PamReader.cpp:207
 knownConditionTrueFalse:../../OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp:345
-knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2443
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2444
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2445
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2446
@@ -35,6 +36,7 @@ knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:24
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2450
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2451
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2452
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2453
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
@@ -46,7 +48,7 @@ syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:92
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
-variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:229
+variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:230
 variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
 EOF
 

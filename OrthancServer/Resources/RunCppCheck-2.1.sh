@@ -10,18 +10,18 @@ if [ $# -ge 1 ]; then
 fi
 
 cat <<EOF > /tmp/cppcheck-suppressions.txt
-assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:453
-assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1026
-assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:277
+assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:451
+assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1028
+assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:279
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
-assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3077
+assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3078
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:287
 constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
 knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
-stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1535
+stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1536
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
 stlFindInsert:../../OrthancServer/Sources/Database/MainDicomTagsRegistry.cpp:65

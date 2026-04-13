@@ -13,7 +13,9 @@ cat <<EOF > /tmp/cppcheck-suppressions.txt
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:287
-constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3405
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:448
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:452
+constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3343
 missingInclude:../../OrthancServer/Plugins/Engine/OrthancPluginDatabaseV4.cpp:41
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
@@ -25,7 +27,7 @@ syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:92
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
-variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:229
+variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:230
 variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
 EOF
 
