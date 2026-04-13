@@ -33,8 +33,17 @@
 
 namespace Orthanc
 {
-  // Compared to SharedMessageQueue that is discarding old messages when it is full,
-  // this queue blocks the Enqueue method until there is room for a new message.
+  /**
+   * There are 2 main differences between BlockingSharedMessageQueue
+   * and SharedMessageQueue:
+   *
+   * 1. In the "Enqueue()" method, if "maxSize != 0" and the queue is
+   * full, SharedMessageQueue discards one item, while
+   * BlockingSharedMessageQueue blocks until there is room for a new
+   * item.
+   *
+   * 2. BlockingSharedMessageQueue only works in FIFO mode.
+   **/
   class ORTHANC_PUBLIC BlockingSharedMessageQueue : public boost::noncopyable
   {
   private:
@@ -52,8 +61,10 @@ namespace Orthanc
     
     ~BlockingSharedMessageQueue();
 
-    // This transfers the ownership of the message only if it is actually pushed in the queue (hence the unique_ptr)
-    bool Enqueue(std::unique_ptr<IDynamicObject>& message, int32_t millisecondsTimeout);
+    // This transfers the ownership of the message only if it is
+    // actually pushed in the queue (hence the unique_ptr)
+    bool Enqueue(std::unique_ptr<IDynamicObject>& message,
+                 int32_t millisecondsTimeout);
 
     // This transfers the ownership of the message
     void Enqueue(IDynamicObject* message);

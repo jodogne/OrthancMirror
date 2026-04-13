@@ -2,7 +2,7 @@
   /**
    * General configuration of Orthanc
    *
-   * As a general recommendation, you should always favor absoluteq
+   * As a general recommendation, you should always favor absolute
    * paths when you need to provide a path to a file or a directory.  
    * This is not done in this configuration file since we don't know 
    * where Orthanc is going to be installed.
