@@ -36,7 +36,9 @@
 
 #include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
+#include <map>
 #include <stdint.h>
+
 
 namespace Orthanc
 {
