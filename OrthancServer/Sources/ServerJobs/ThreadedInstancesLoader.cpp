@@ -167,6 +167,7 @@ namespace Orthanc
       }
 
       const std::string& instanceId = instanceToPreload->GetId();
+      LOG(INFO) << "Loader thread is loading instance " << instanceId;
 
       try
       {
