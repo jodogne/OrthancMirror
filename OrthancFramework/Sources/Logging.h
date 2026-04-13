@@ -267,7 +267,6 @@ namespace Orthanc
      ORTHANC_ENABLE_LOGGING_STDIO == 0)
 
 #include <boost/noncopyable.hpp>
-#include <boost/thread/mutex.hpp>
 #include <sstream>
 
 namespace Orthanc
@@ -277,7 +276,9 @@ namespace Orthanc
     class ORTHANC_PUBLIC InternalLogger : public boost::noncopyable
     {
     private:
-      boost::mutex::scoped_lock           lock_;
+      struct PImpl;
+      PImpl* pimpl_;  // This encapsulates a "boost::mutex::scoped_lock", which is a heavyweight structure
+
       LogLevel                            level_;
       std::ostream*                       stream_;
       LogCategory                         category_;
