@@ -28,7 +28,6 @@
 
 #include <map>
 #include <list>
-#include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
 
 #if ORTHANC_BUILD_UNIT_TESTS == 1

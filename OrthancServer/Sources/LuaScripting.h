@@ -25,16 +25,16 @@
 
 #include "ServerIndexChange.h"
 #include "JobEvent.h"
-#include "ServerJobs/LuaJobManager.h"
 
 #include "../../OrthancFramework/Sources/MultiThreading/SharedMessageQueue.h"
 #include "../../OrthancFramework/Sources/Lua/LuaContext.h"
 
 namespace Orthanc
 {
-  class ServerContext;
-  class OutgoingDicomInstance;
   class DicomInstanceToStore;
+  class OutgoingDicomInstance;
+  class ServerContext;
+  class TimeoutDicomConnectionManager;
 
   class LuaScripting : public boost::noncopyable
   {
@@ -65,18 +65,16 @@ namespace Orthanc
     static int GetOrthancConfiguration(lua_State *state);
     static int SetStableStatus(lua_State* state);
 
-    size_t ParseOperation(LuaJobManager::Lock& lock,
-                          const std::string& operation,
-                          const Json::Value& parameters);
-
     void InitializeJob();
 
     void SubmitJob();
 
+    struct PImpl;
+    PImpl *pimpl_;  // To store the heavyweight "LuaJobManager"
+
     boost::recursive_mutex   mutex_;
     LuaContext               lua_;
     ServerContext&           context_;
-    LuaJobManager            jobManager_;
     State                    state_;
     boost::thread            eventThread_;
     boost::thread            heartBeatThread_;
@@ -137,9 +135,6 @@ namespace Orthanc
 
     void SignalJobEvent(const JobEvent& event);
 
-    TimeoutDicomConnectionManager& GetDicomConnectionManager()
-    {
-      return jobManager_.GetDicomConnectionManager();
-    }
+    TimeoutDicomConnectionManager& GetDicomConnectionManager();
   };
 }

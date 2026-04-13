@@ -32,6 +32,7 @@
 #include "../../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/SystemToolbox.h"
 #include "../OrthancConfiguration.h"
 #include "../Search/DatabaseLookup.h"
 #include "../ServerIndexChange.h"

@@ -29,30 +29,21 @@
 #include "ServerIndex.h"
 #include "ServerJobs/IStorageCommitmentFactory.h"
 
-#include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/IDicomTranscoder.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomCache.h"
+#include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
 #include "../../OrthancFramework/Sources/FileStorage/StorageCache.h"
+#include "../../OrthancFramework/Sources/JobsEngine/JobsEngine.h"
 #include "../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-
-#include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
 
 namespace Orthanc
 {
-  class DicomInstanceToStore;
-  class OutgoingDicomInstance;
-  class IPluginStorageArea;
-  class JobsEngine;
-  class MetricsRegistry;
+  class DicomElement;
+  class DicomStoreUserConnection;
   class OrthancPlugins;
-  class ParsedDicomFile;
-  class RestApiOutput;
-  class SetOfInstancesJob;
   class SharedArchive;
-  class SharedMessageQueue;
   class StorageCommitmentReports;
   
   

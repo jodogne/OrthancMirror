@@ -134,20 +134,21 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/ResourceFinder.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Search/DatabaseDicomTagConstraint.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Search/DatabaseDicomTagConstraints.cpp
-  ${CMAKE_SOURCE_DIR}/Sources/Search/DatabaseMetadataConstraint.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Search/DatabaseLookup.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Search/DatabaseMetadataConstraint.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Search/DicomTagConstraint.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Search/HierarchicalMatcher.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Search/ISqlLookupFormatter.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerContext.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerEnumerations.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerIndex.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerIndexChange.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ArchiveJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/CleaningInstancesJob.cpp
-  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomModalityStoreJob.cpp
-  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomRetrieveScuBaseJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomGetScuJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomModalityStoreJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomMoveScuJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomRetrieveScuBaseJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/LuaJobManager.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/MergeStudyJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/Operations/DeleteResourceOperation.cpp
@@ -160,8 +161,8 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/OrthancPeerStoreJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ResourceModificationJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/SplitStudyJob.cpp
-  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/StoreJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/StorageCommitmentScpJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/StoreJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ThreadedInstancesLoader.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ThreadedSetOfInstancesJob.cpp  
   ${CMAKE_SOURCE_DIR}/Sources/ServerToolbox.cpp

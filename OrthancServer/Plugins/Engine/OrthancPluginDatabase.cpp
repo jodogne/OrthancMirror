@@ -40,6 +40,8 @@
 #include "PluginsEnumerations.h"
 
 #include <cassert>
+#include <boost/lexical_cast.hpp>
+
 
 namespace Orthanc
 {

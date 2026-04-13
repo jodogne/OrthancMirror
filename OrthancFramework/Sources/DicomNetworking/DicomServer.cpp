@@ -33,6 +33,7 @@
 #include "DicomAssociationParameters.h"
 #include "Internals/CommandDispatcher.h"
 
+#include <boost/lexical_cast.hpp>
 #include <boost/thread.hpp>
 
 #if ORTHANC_ENABLE_SSL == 1
