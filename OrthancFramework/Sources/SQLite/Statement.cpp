@@ -45,6 +45,7 @@
 #include "Statement.h"
 #include "Connection.h"
 
+#include <cassert>
 #include <string.h>
 #include <stdio.h>
 #include <algorithm>

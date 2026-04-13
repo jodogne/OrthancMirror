@@ -912,12 +912,22 @@ namespace Orthanc
     }
 
 
+    struct InternalLogger::PImpl
+    {
+      boost::mutex::scoped_lock  lock_;
+
+      PImpl() : lock_(loggingStreamsMutex_, boost::defer_lock_t())
+      {
+      }
+    };
+
+
     InternalLogger::InternalLogger(LogLevel level,
                                    LogCategory category,
                                    const char* pluginName,
                                    const char* file,
                                    int line) :
-      lock_(loggingStreamsMutex_, boost::defer_lock_t()),
+      pimpl_(new PImpl),
       level_(level),
       stream_(&nullStream_),  // By default, logging to "/dev/null" is simulated
       category_(category),
@@ -953,14 +963,14 @@ namespace Orthanc
         {
           // We lock the global mutex. The mutex is locked until the
           // destructor is called: No change in the output can be done.
-          lock_.lock();
+          pimpl_->lock_.lock();
       
           if (loggingStreamsContext_.get() == NULL)
           {
             // Have you called Orthanc::Logging::InitializePluginContext()?
             fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine "
                     "(or did you forgot to initialize it?)\n");
-            lock_.unlock();
+            pimpl_->lock_.unlock();
             return;
           }
 
@@ -988,7 +998,7 @@ namespace Orthanc
           {
             // The logging is disabled for this level, we can release
             // the global mutex.
-            lock_.unlock();
+            pimpl_->lock_.unlock();
           }
           else
           {
@@ -1064,8 +1074,10 @@ namespace Orthanc
         {
           (*it)->HandleLog(level_, category_, pluginName_, file_, line_, messageStream_.str());
         }
-
       }
+
+      assert(pimpl_ != NULL);
+      delete pimpl_;
     }
       
 
