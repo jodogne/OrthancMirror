@@ -368,6 +368,13 @@ namespace Orthanc
   }
 
 
+  Toolbox::MD5Context::~MD5Context()
+  {
+    assert(pimpl_ != NULL);
+    delete pimpl_;
+  }
+
+
   void Toolbox::MD5Context::Append(const void* data,
                                    size_t size)
   {
