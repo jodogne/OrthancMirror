@@ -102,7 +102,7 @@ namespace Orthanc
 
   ImageAccessor::ImageAccessor()
   {
-    AssignEmpty(PixelFormat_Grayscale8);
+    AssignEmpty(PixelFormat_Invalid);
   }
 
   ImageAccessor::~ImageAccessor()

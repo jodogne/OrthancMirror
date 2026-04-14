@@ -300,6 +300,12 @@ namespace Orthanc
   enum PixelFormat
   {
     /**
+     * {summary}{Invalid pixel format.}
+     * {description}{Invalid pixel format.}
+     **/
+    PixelFormat_Invalid = 0,
+
+    /**
      * {summary}{Color image in RGB24 format.}
      * {description}{This format describes a color image. The pixels are stored in 3
      * consecutive bytes. The memory layout is RGB.}
