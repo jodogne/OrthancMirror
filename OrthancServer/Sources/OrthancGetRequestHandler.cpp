@@ -250,7 +250,7 @@ namespace Orthanc
     }
 
     T_ASC_PresentationContextID presId = 0;  // Unnecessary initialization, makes code clearer
-    DicomTransferSyntax selectedSyntax;
+    DicomTransferSyntax selectedSyntax = DicomTransferSyntax_LittleEndianImplicit;  // dummy initialization
     if (!SelectPresentationContext(presId, selectedSyntax, assoc, sopClassUid,
                                    sourceSyntax, allowTranscoding_) ||
         presId == 0)
