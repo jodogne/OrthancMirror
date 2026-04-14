@@ -160,10 +160,22 @@ namespace Orthanc
     caseSensitive_(constraint.IsCaseSensitive()),
     mandatory_(constraint.IsMandatory())
   {
-#if defined(ORTHANC_ENABLE_LUA) && ORTHANC_ENABLE_LUA != 0
-    assert(constraint.IsIdentifier() ==
-           ServerToolbox::IsIdentifier(constraint.GetTag(), constraint.GetLevel()));
-#endif
+    /**
+     * WARNING: Since Orthanc 1.12.11, the following assumption
+     * doesn't always hold anymore:
+     *
+     * assert(constraint.IsIdentifier() == ServerToolbox::IsIdentifier(constraint.GetTag(), constraint.GetLevel()))
+     *
+     * This is a consequence of the following changeset that applies
+     * some normalization to the PatientID tag:
+     * https://orthanc.uclouvain.be/hg/orthanc/rev/72aca3bddaf7
+     *
+     * Note that all the identifier tags (PatientID, StudyInstanceUID,
+     * AccessionNumber, SeriesInstanceUID, and SOPInstanceUID) are
+     * duplicated between the "DicomIdentifiers" and "MainDicomTags"
+     * tables in the database (since at least Orthanc 1.3.2), so this
+     * shouldn't be an issue.
+     **/
     
     if (constraint.IsIdentifier())
     {

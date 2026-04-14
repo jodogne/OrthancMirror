@@ -1220,7 +1220,7 @@ namespace Orthanc
     if (!isIdentical) // if an exact match can not be ensured because some values contained characters that are removed from the DicomIdentifier table during normalization,
                       // search in the MainDicomTags table instead.
     {
-      dbConstraint.reset(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Identifier));
+      dbConstraint.reset(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Main));
     }
 
     request.GetDicomTagConstraints().AddConstraint(dbConstraint.release());

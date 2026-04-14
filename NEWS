@@ -4,8 +4,8 @@ Pending changes in the mainline
 General
 -------
 
-* New configuration option "LoaderThreads", shared by actions that require loading multiple files,
-  enabling the parallel loading of multiple DICOM instances, including:
+* New configuration option "LoaderThreads", shared by actions that require loading multiple
+  DICOM instances, enabling the parallel loading of files from the storage area, including:
   - downloading ZIP archive/media,
   - performing a C-Store to a remote modality,
   - performing a peer transfer to a remote Orthanc,
@@ -19,8 +19,8 @@ General
 * New configuration option "MaximumFileSizeInArchiveMB" to limit the file size in ZIP/gzip archives.
   Default value is set to 4GB.
 * New experimental configuration "PatientLevelEnabled".
-* Added basic support for High Throughput JPEG 2000 transfer syntaxes. Orthanc is
-  currently not able to compress/decompress or preview these images.
+* Basic support for High Throughput JPEG 2000 transfer syntaxes. Orthanc will not be able to
+  compress/decompress or preview these images without a plugin.
 
 REST API
 --------
@@ -47,7 +47,7 @@ REST API
 Lua
 ---
 
-* Added a new "OutgoingCStoreInstanceFilter()" function.
+* Added a new "OutgoingCStoreInstanceFilter()" callback.
 
 Plugins
 -------
@@ -75,7 +75,7 @@ Maintenance
   through the "filename" argument of "{...}/file" or "{...}/archive" routes
   (credits: Pavel Kohout, Aisle Research, https://www.aisle.com/)
 * Fix "LimitFindResults" and "LimitFindInstances" configurations that were not
-  applied to C-FIND (bug introduced in 1.12.5)
+  properly applied to C-Find (bug introduced in 1.12.5)
 * Allow multiple calls to "/queries/../answers/../retrieve" in parallel
   https://discourse.orthanc-server.org/t/synchronous-jobs-limited-to-one-at-a-time/6365
 * Fix "/tools/lookup" and "OrthancPluginLookupPatient()" that were considering
