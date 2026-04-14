@@ -623,3 +623,25 @@ TEST(PngWriter, Gray16Then8)
     Orthanc::IImageWriter::WriteToMemory(w, s, image8);  // Problem here
   }  
 }
+
+
+TEST(ImageAccessor, Broken)
+{
+  // This test checks whether ImageAccessor was broken by the
+  // following changeset, which was part of Orthanc 1.12.11:
+  // https://orthanc.uclouvain.be/hg/orthanc/rev/68675600a967
+
+  std::vector<uint8_t> row(64);
+
+  {
+    Orthanc::ImageAccessor accessor;
+    accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale16, 32, 1, 64, &row[0]);
+    accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale8, 64, 1, 64, &row[0]);
+  }
+
+  {
+    Orthanc::ImageAccessor accessor;
+    accessor.AssignWritable(Orthanc::PixelFormat_Grayscale16, 32, 1, 64, &row[0]);
+    accessor.AssignWritable(Orthanc::PixelFormat_Grayscale8, 64, 1, 64, &row[0]);
+  }
+}

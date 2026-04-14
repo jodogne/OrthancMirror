@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+Maintenance
+-----------
+
+* Fix Orthanc::ImageAccessor that was broken in Orthanc Framework 1.12.11
+
 
 Version 1.12.11 (2026-04-14)
 ============================
