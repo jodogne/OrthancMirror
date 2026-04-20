@@ -972,7 +972,7 @@ TEST(ServerIndex, Overwrite)
       ASSERT_EQ(id, hasher.HashInstance());
 
       std::string id2;
-      ServerContext::StoreResult result = context.Store(id2, *toStore, StoreInstanceMode_Default);
+      ServerContext::StoreResult result = context.Store(id2, *toStore);
       ASSERT_EQ(StoreStatus_Success, result.GetStatus());
       ASSERT_EQ(id, id2);
     }
@@ -1022,7 +1022,7 @@ TEST(ServerIndex, Overwrite)
       toStore->SetOrigin(DicomInstanceOrigin::FromPlugins());
 
       std::string id2;
-      ServerContext::StoreResult result = context.Store(id2, *toStore, StoreInstanceMode_Default);
+      ServerContext::StoreResult result = context.Store(id2, *toStore);
       ASSERT_EQ(overwriteMode != OverwriteInstancesMode_Never ? StoreStatus_Success : StoreStatus_AlreadyStored, result.GetStatus());  // the PatientName has changed -> the result is Success in both overwrite modes
       ASSERT_EQ(id, id2);
     }
@@ -1122,7 +1122,7 @@ TEST(ServerIndex, DicomUntilPixelData)
         std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(dicom));
         dicomSize = toStore->GetBufferSize();
         toStore->SetOrigin(DicomInstanceOrigin::FromPlugins());
-        ServerContext::StoreResult result = context.Store(id, *toStore, StoreInstanceMode_Default);
+        ServerContext::StoreResult result = context.Store(id, *toStore);
         ASSERT_EQ(StoreStatus_Success, result.GetStatus());
       }
 

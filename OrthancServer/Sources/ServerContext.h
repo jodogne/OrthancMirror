@@ -266,12 +266,10 @@ namespace Orthanc
     
     StoreResult StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
-                                      StoreInstanceMode mode,
                                       bool isReconstruct);
 
     StoreResult StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
-                                      StoreInstanceMode mode,
                                       bool isReconstruct,
                                       bool isAdoption,
                                       const FileInfo& adoptedFile);
@@ -368,17 +366,14 @@ namespace Orthanc
                        const std::string& oldMD5);
 
     StoreResult Store(std::string& resultPublicId,
-                      DicomInstanceToStore& dicom,
-                      StoreInstanceMode mode);
+                      DicomInstanceToStore& dicom);
 
     StoreResult AdoptDicomInstance(std::string& resultPublicId,
                                    DicomInstanceToStore& dicom,
-                                   StoreInstanceMode mode,
                                    const FileInfo& adoptedFile);
 
     StoreResult TranscodeAndStore(std::string& resultPublicId,
                                   DicomInstanceToStore* dicom,
-                                  StoreInstanceMode mode,
                                   bool isReconstruct = false);
 
     void AnswerAttachment(RestApiOutput& output,

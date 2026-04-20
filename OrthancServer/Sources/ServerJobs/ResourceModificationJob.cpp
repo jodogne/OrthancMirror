@@ -326,7 +326,7 @@ namespace Orthanc
      **/
 
     std::string modifiedInstance;
-    ServerContext::StoreResult result = GetContext().Store(modifiedInstance, *toStore, StoreInstanceMode_Default);
+    ServerContext::StoreResult result = GetContext().Store(modifiedInstance, *toStore);
     if (result.GetStatus() != StoreStatus_Success && result.GetStatus() != StoreStatus_AlreadyStored) // when retrying a job, we might save the same data again
     {
       throw OrthancException(ErrorCode_CannotStoreInstance,

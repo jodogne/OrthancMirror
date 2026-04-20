@@ -57,7 +57,7 @@ namespace Orthanc
                          (remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str()));
 
       std::string id;
-      ServerContext::StoreResult result = job->GetContext().Store(id, *toStore, StoreInstanceMode_Default);
+      ServerContext::StoreResult result = job->GetContext().Store(id, *toStore);
 
       // keep track of the received instances in the job
       if (result.GetStatus() == StoreStatus_Success || result.GetStatus() == StoreStatus_AlreadyStored)

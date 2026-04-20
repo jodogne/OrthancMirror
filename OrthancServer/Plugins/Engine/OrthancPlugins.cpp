@@ -4893,7 +4893,7 @@ namespace Orthanc
 
     {
       PImpl::ServerContextReference lock(*pimpl_);
-      result = lock.GetContext().AdoptDicomInstance(instanceId, *dicom, StoreInstanceMode_Default, adoptedFile);
+      result = lock.GetContext().AdoptDicomInstance(instanceId, *dicom, adoptedFile);
     }
 
     CopyToMemoryBuffer(parameters.attachmentUuid, attachmentUuid);

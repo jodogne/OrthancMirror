@@ -649,14 +649,12 @@ namespace Orthanc
 
   ServerContext::StoreResult ServerContext::StoreAfterTranscoding(std::string& resultPublicId,
                                                                   DicomInstanceToStore& dicom,
-                                                                  StoreInstanceMode mode,
                                                                   bool isReconstruct)
   {
     FileInfo adoptedFileNotUsed;
 
     return StoreAfterTranscoding(resultPublicId,
                                  dicom,
-                                 mode,
                                  isReconstruct,
                                  false,
                                  adoptedFileNotUsed);
@@ -664,12 +662,10 @@ namespace Orthanc
 
   ServerContext::StoreResult ServerContext::AdoptDicomInstance(std::string& resultPublicId,
                                                                DicomInstanceToStore& dicom,
-                                                               StoreInstanceMode mode,
                                                                const FileInfo& adoptedFile)
   {
     return StoreAfterTranscoding(resultPublicId,
                                  dicom,
-                                 mode,
                                  false,
                                  true,
                                  adoptedFile);
@@ -678,24 +674,16 @@ namespace Orthanc
 
   ServerContext::StoreResult ServerContext::StoreAfterTranscoding(std::string& resultPublicId,
                                                                   DicomInstanceToStore& dicom,
-                                                                  StoreInstanceMode mode,
                                                                   bool isReconstruct,
                                                                   bool isAdoption,
                                                                   const FileInfo& adoptedFile)
   {
-    OverwriteInstancesMode overwriteMode;
+    OverwriteInstancesMode overwriteMode = overwriteInstances_;
     bool overwriteInDb = IsOverwriteInstances();
 
-    switch (mode)
+    if (isReconstruct)
     {
-      case StoreInstanceMode_Default:
-        overwriteMode = overwriteInstances_;
-        break;
-      case StoreInstanceMode_AlwaysOverwrite:
-        overwriteMode = OverwriteInstancesMode_Always;
-        break;
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      overwriteMode = OverwriteInstancesMode_Always;
     }
 
     bool hasPixelDataOffset;
@@ -968,8 +956,7 @@ namespace Orthanc
 
 
   ServerContext::StoreResult ServerContext::Store(std::string& resultPublicId,
-                                                  DicomInstanceToStore& receivedDicom,
-                                                  StoreInstanceMode mode)
+                                                  DicomInstanceToStore& receivedDicom)
   { 
     DicomInstanceToStore* dicom = &receivedDicom;
 
@@ -1021,19 +1008,18 @@ namespace Orthanc
     }
 #endif
 
-    return TranscodeAndStore(resultPublicId, dicom, mode);
+    return TranscodeAndStore(resultPublicId, dicom);
   }
 
   ServerContext::StoreResult ServerContext::TranscodeAndStore(std::string& resultPublicId,
                                                               DicomInstanceToStore* dicom,
-                                                              StoreInstanceMode mode,
                                                               bool isReconstruct)
   {
 
     if (!isIngestTranscoding_ || dicom->SkipIngestTranscoding())
     {
       // No automated transcoding. This was the only path in Orthanc <= 1.6.1.
-      return StoreAfterTranscoding(resultPublicId, *dicom, mode, isReconstruct);
+      return StoreAfterTranscoding(resultPublicId, *dicom, isReconstruct);
     }
     else
     {
@@ -1069,7 +1055,7 @@ namespace Orthanc
       if (!transcode)
       {
         // No transcoding
-        return StoreAfterTranscoding(resultPublicId, *dicom, mode, isReconstruct);
+        return StoreAfterTranscoding(resultPublicId, *dicom, isReconstruct);
       }
       else
       {
@@ -1099,7 +1085,7 @@ namespace Orthanc
           toStore->SetOrigin(dicom->GetOrigin());
           toStore->CopyMetadata(dicom->GetMetadata());
 
-          StoreResult result = StoreAfterTranscoding(resultPublicId, *toStore, mode, isReconstruct);
+          StoreResult result = StoreAfterTranscoding(resultPublicId, *toStore, isReconstruct);
           assert(resultPublicId == tmp->GetHasher().HashInstance());
 
           return result;
@@ -1107,7 +1093,7 @@ namespace Orthanc
         else
         {
           // Cannot transcode => store the original file
-          return StoreAfterTranscoding(resultPublicId, *dicom, mode, isReconstruct);
+          return StoreAfterTranscoding(resultPublicId, *dicom, isReconstruct);
         }
       }
     }

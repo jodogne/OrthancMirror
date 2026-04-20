@@ -616,7 +616,7 @@ namespace Orthanc
     toStore->SetOrigin(DicomInstanceOrigin::FromRest(call));
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-    ServerContext::StoreResult result = context.Store(id, *toStore, StoreInstanceMode_Default);
+    ServerContext::StoreResult result = context.Store(id, *toStore);
 
     if (result.GetStatus() == StoreStatus_Failure)
     {

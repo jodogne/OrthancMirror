@@ -1226,7 +1226,7 @@ namespace Orthanc
             {
               std::string publicId;
               
-              context_.Store(publicId, *instance, StoreInstanceMode_Default);
+              context_.Store(publicId, *instance);
             }
             catch (OrthancException& e)
             {
@@ -1248,7 +1248,7 @@ namespace Orthanc
         try
         {
           std::string publicId;
-          ServerContext::StoreResult result = context_.Store(publicId, *instance, StoreInstanceMode_Default);
+          ServerContext::StoreResult result = context_.Store(publicId, *instance);
           if (result.GetStatus() == StoreStatus_Success ||
               result.GetStatus() == StoreStatus_AlreadyStored)
           {

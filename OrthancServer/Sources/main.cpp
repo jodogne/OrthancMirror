@@ -102,7 +102,7 @@ public:
                          (remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str()));
 
       std::string id;
-      ServerContext::StoreResult result = context_.Store(id, *toStore, StoreInstanceMode_Default);
+      ServerContext::StoreResult result = context_.Store(id, *toStore);
 
       if (result.GetStatus() == StoreStatus_Success || result.GetStatus() == StoreStatus_AlreadyStored)
       {

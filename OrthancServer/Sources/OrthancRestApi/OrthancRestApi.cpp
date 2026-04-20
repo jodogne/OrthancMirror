@@ -192,7 +192,7 @@ namespace Orthanc
           {
             std::string publicId;
 
-            ServerContext::StoreResult result = context.Store(publicId, *toStore, StoreInstanceMode_Default);
+            ServerContext::StoreResult result = context.Store(publicId, *toStore);
 
             Json::Value info;
             SetupResourceAnswer(info, *toStore, result.GetStatus(), publicId);
@@ -245,7 +245,7 @@ namespace Orthanc
       toStore->SetOrigin(DicomInstanceOrigin::FromRest(call));
 
       std::string publicId;
-      ServerContext::StoreResult result = context.Store(publicId, *toStore, StoreInstanceMode_Default);
+      ServerContext::StoreResult result = context.Store(publicId, *toStore);
 
       OrthancRestApi::GetApi(call).AnswerStoredInstance(call, *toStore, result.GetStatus(), publicId);
     }
