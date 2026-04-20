@@ -589,7 +589,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_DatabasePlugin);
+      throw OrthancException(ErrorCode_DatabasePlugin, "ExecuteSingleResource should return 0 or 1 row");
     }
   }
 
@@ -628,6 +628,38 @@ namespace Orthanc
     return ExecuteSingleResource(response, request).LookupAttachment(attachment, revision, contentType);
   }
 
+
+  bool StatelessDatabaseOperations::LookupAttachmentNoThrowIfResourceNotFound(FileInfo& attachment,
+                                                                              int64_t& revision,
+                                                                              ResourceType level,
+                                                                              const std::string& publicId,
+                                                                              FileContentType contentType)
+  {
+    FindRequest request(level);
+    request.SetOrthancId(level, publicId);
+    request.SetRetrieveAttachments(true);
+
+    FindResponse response;
+    ExecuteFind(response, request);
+    
+    if (response.GetSize() == 0)
+    {
+      return false;
+    }
+    else if (response.GetSize() == 1)
+    {
+      if (response.GetResourceByIndex(0).GetLevel() != request.GetLevel())
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+
+      return response.GetResourceByIndex(0).LookupAttachment(attachment, revision, contentType);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin, "LookupAttachmentNoThrow should return 0 or 1 row");
+    }
+  }
 
   void StatelessDatabaseOperations::GetAllUuids(std::list<std::string>& target,
                                                 ResourceType resourceType)

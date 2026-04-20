@@ -8,9 +8,9 @@ General
   was a boolean and it is now a string whose allowed values are "Never", "Always"
   and "IfChanged".  For backward compatibility, you may still provide a boolean value
   (true = "Always" and false = "Never").
-  The new "IfChanged" mode avoids writing and deleting from disk + reduces the workload on the 
-  DB when resending the same data.  Disk and DB operations have also been reduced in the "Never" 
-  mode when resending the same instance.
+  Compared to previous versions, in the "Never" and "IfChanged" mode, the number of disks and 
+  DB operations are reduced when uploading the same instance again.
+  However, there is one additionnal DB operation when uploading a new instance.
 
 
 REST API

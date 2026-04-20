@@ -615,6 +615,12 @@ namespace Orthanc
                           const std::string& publicId,
                           FileContentType contentType);
 
+    bool LookupAttachmentNoThrowIfResourceNotFound(FileInfo& attachment,
+                                                   int64_t& revision,
+                                                   ResourceType level,
+                                                   const std::string& publicId,
+                                                   FileContentType contentType);
+
     void GetChanges(Json::Value& target,
                     int64_t since,
                     uint32_t limit);

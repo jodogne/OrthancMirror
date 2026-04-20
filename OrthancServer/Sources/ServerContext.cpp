@@ -710,43 +710,35 @@ namespace Orthanc
       resultPublicId = hasher.HashInstance();
 
       StoreResult result;
-
       std::string dicomMd5;
+
+      // check if the instance already exists or is identical to quit as soon as possible to avoid unnecessary disk and DB operations
       if (overwriteMode == OverwriteInstancesMode_IfChanged || overwriteMode == OverwriteInstancesMode_Never)
       {
         FileInfo existingDicomAttachment;
         int64_t revision;
-        try
-        {
-          if (index_.LookupAttachment(existingDicomAttachment, revision, ResourceType_Instance, resultPublicId, FileContentType_Dicom))
-          {
-            if (overwriteMode == OverwriteInstancesMode_IfChanged)
-            {
-              assert(storeMD5_); // this is supposed to be enforced in the configuration
-              Toolbox::ComputeMD5(dicomMd5, dicom.GetBufferData(), dicom.GetBufferSize());
 
-              if (existingDicomAttachment.GetUncompressedMD5() == dicomMd5)
-              {
-                LOG(INFO) << "An incoming instance " << resultPublicId << " has been discarded because it is already stored with the same MD5";
-                result.SetStatus(StoreStatus_AlreadyStored);
-                result.SetCStoreStatusCode(STATUS_Success); // this is equivalent to a 'success' since the same instance is already stored
-                return result;
-              }
-            }
-            else if (overwriteMode == OverwriteInstancesMode_Never)
+        if (index_.LookupAttachmentNoThrowIfResourceNotFound(existingDicomAttachment, revision, ResourceType_Instance, resultPublicId, FileContentType_Dicom))  // avoid throwing exceptions in the happy path (the instance not existing is the nominal case !)
+        {
+          if (overwriteMode == OverwriteInstancesMode_IfChanged)
+          {
+            assert(storeMD5_); // this is supposed to be enforced in the configuration
+            Toolbox::ComputeMD5(dicomMd5, dicom.GetBufferData(), dicom.GetBufferSize());
+
+            if (existingDicomAttachment.GetUncompressedMD5() == dicomMd5)
             {
-              LOG(INFO) << "An incoming instance " << resultPublicId << " has been discarded because it is already stored";
+              LOG(INFO) << "An incoming instance " << resultPublicId << " has been discarded because it is already stored with the same MD5";
               result.SetStatus(StoreStatus_AlreadyStored);
               result.SetCStoreStatusCode(STATUS_Success); // this is equivalent to a 'success' since the same instance is already stored
               return result;
             }
           }
-        }
-        catch (const OrthancException& ex)
-        {
-          if (ex.GetErrorCode() != ErrorCode_UnknownResource) // ignore resource not found error since this is actually the nominal case // TODO: refactor LookupAttachment to avoid an exception in the happy path
+          else if (overwriteMode == OverwriteInstancesMode_Never)
           {
-            throw ex;
+            LOG(INFO) << "An incoming instance " << resultPublicId << " has been discarded because it is already stored";
+            result.SetStatus(StoreStatus_AlreadyStored);
+            result.SetCStoreStatusCode(STATUS_Success); // this is equivalent to a 'success' since the same instance is already stored
+            return result;
           }
         }
       }
