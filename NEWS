@@ -10,7 +10,7 @@ General
   (true = "Always" and false = "Never").
   Compared to previous versions, in the "Never" and "IfChanged" mode, the number of disks and 
   DB operations are reduced when uploading the same instance again.
-  However, there is one additionnal DB operation when uploading a new instance.
+  However, there is one additional DB operation when uploading a new instance.
 
 
 REST API

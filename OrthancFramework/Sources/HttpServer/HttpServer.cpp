@@ -2001,7 +2001,7 @@ namespace Orthanc
             errorMsgDetails = listeningPorts;
           }
           
-          if (errno != 0) // there might be additionnal details about the error in errno
+          if (errno != 0) // there might be additional details about the error in errno
           {
             errorMsgDetails += ", errno = " + boost::lexical_cast<std::string>(errno) + ", " + strerror(errno);
           }
