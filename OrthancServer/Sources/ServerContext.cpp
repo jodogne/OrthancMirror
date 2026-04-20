@@ -395,7 +395,7 @@ namespace Orthanc
     isHttpServerSecure_(true),
     isExecuteLuaEnabled_(false),
     isRestApiWriteToFileSystemEnabled_(false),
-    overwriteInstances_(false),
+    overwriteInstances_(OverwriteInstancesMode_Never),
     dcmtkTranscoder_(new DcmtkTranscoder(maxConcurrentDcmtkTranscoder)),
     isIngestTranscoding_(false),
     ingestTranscodingOfUncompressed_(true),
@@ -683,21 +683,17 @@ namespace Orthanc
                                                                   bool isAdoption,
                                                                   const FileInfo& adoptedFile)
   {
-    bool overwrite;
+    OverwriteInstancesMode overwriteMode;
+    bool overwriteInDb = IsOverwriteInstances();
+
     switch (mode)
     {
       case StoreInstanceMode_Default:
-        overwrite = overwriteInstances_;
+        overwriteMode = overwriteInstances_;
         break;
-        
-      case StoreInstanceMode_OverwriteDuplicate:
-        overwrite = true;
+      case StoreInstanceMode_AlwaysOverwrite:
+        overwriteMode = OverwriteInstancesMode_Always;
         break;
-        
-      case StoreInstanceMode_IgnoreDuplicate:
-        overwrite = false;
-        break;
-
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -725,6 +721,48 @@ namespace Orthanc
       DicomInstanceHasher hasher(summary);
       resultPublicId = hasher.HashInstance();
 
+      StoreResult result;
+
+      std::string dicomMd5;
+      if (overwriteMode == OverwriteInstancesMode_IfChanged || overwriteMode == OverwriteInstancesMode_Never)
+      {
+        FileInfo existingDicomAttachment;
+        int64_t revision;
+        try
+        {
+          if (index_.LookupAttachment(existingDicomAttachment, revision, ResourceType_Instance, resultPublicId, FileContentType_Dicom))
+          {
+            if (overwriteMode == OverwriteInstancesMode_IfChanged)
+            {
+              assert(storeMD5_); // this is supposed to be enforced in the configuration
+              Toolbox::ComputeMD5(dicomMd5, dicom.GetBufferData(), dicom.GetBufferSize());
+
+              if (existingDicomAttachment.GetUncompressedMD5() == dicomMd5)
+              {
+                LOG(INFO) << "An incoming instance " << resultPublicId << " has been discarded because it is already stored with the same MD5";
+                result.SetStatus(StoreStatus_AlreadyStored);
+                result.SetCStoreStatusCode(STATUS_Success); // this is equivalent to a 'success' since the same instance is already stored
+                return result;
+              }
+            }
+            else if (overwriteMode == OverwriteInstancesMode_Never)
+            {
+              LOG(INFO) << "An incoming instance " << resultPublicId << " has been discarded because it is already stored";
+              result.SetStatus(StoreStatus_AlreadyStored);
+              result.SetCStoreStatusCode(STATUS_Success); // this is equivalent to a 'success' since the same instance is already stored
+              return result;
+            }
+          }
+        }
+        catch (const OrthancException& ex)
+        {
+          if (ex.GetErrorCode() != ErrorCode_UnknownResource) // ignore resource not found error since this is actually the nominal case // TODO: refactor LookupAttachment to avoid an exception in the happy path
+          {
+            throw ex;
+          }
+        }
+      }
+
       Json::Value dicomAsJson;
       dicom.GetDicomAsJson(dicomAsJson, allMainDicomTags);  // don't crop any main dicom tags
 
@@ -732,7 +770,6 @@ namespace Orthanc
       Toolbox::SimplifyDicomAsJson(simplifiedTags, dicomAsJson, DicomToJsonFormat_Human);
 
       // Test if the instance must be filtered out
-      StoreResult result;
 
       if (!isReconstruct) // skip all filters if this is a reconstruction
       {
@@ -778,8 +815,10 @@ namespace Orthanc
         return result;
       }
 
-      // Remove the file from the DicomCache (useful if
-      // "OverwriteInstances" is set to "true")
+      // Remove the file from the DicomCache
+      // If this is a new instance, this is a no-op
+      // If overwriteMode == OverwriteInstancesMode_IfChanged and the file has not changed, we won't reach this point
+      // If overwriteMode == OverwriteInstancesMode_Always, then, let's always invalidate even if it is meaningful only if the file has changed (note: there is a TODO about cache and MD5)
       dicomCache_.Invalidate(resultPublicId);
 
       // TODO Should we use "gzip" instead?
@@ -790,7 +829,7 @@ namespace Orthanc
 
       if (!isAdoption)
       {
-        accessor.Write(dicomInfo, dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom, compression, storeMD5_, &dicom);
+        accessor.Write(dicomInfo, dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom, compression, dicomMd5, storeMD5_, &dicom);
         attachments.push_back(dicomInfo);
       }
       else
@@ -813,7 +852,7 @@ namespace Orthanc
       try 
       {
         result.SetStatus(index_.Store(
-          instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
+          instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwriteInDb,
           hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset, pixelDataVR, isReconstruct));
       }
       catch (OrthancException& ex)

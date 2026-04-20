@@ -667,4 +667,40 @@ namespace Orthanc
                              "Unrecognized value for \"ResponseContent\": " + value);
     }    
   }
+
+  OverwriteInstancesMode StringToOverwriteInstancesMode(const std::string& value)
+  {
+    if (value == "Never")
+    {
+      return OverwriteInstancesMode_Never;
+    }
+    else if (value == "Always")
+    {
+      return OverwriteInstancesMode_Always;
+    }
+    else if (value == "IfChanged")
+    {
+      return OverwriteInstancesMode_IfChanged;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Unrecognized value for \"OverwriteInstances\": " + value);
+    }    
+  }
+
+  const char* EnumerationToString(OverwriteInstancesMode mode)
+  {
+    switch(mode)
+    {
+      case OverwriteInstancesMode_Never:
+        return "Never";
+      case OverwriteInstancesMode_Always:
+        return "Always";
+      case OverwriteInstancesMode_IfChanged:
+        return "IfChanged";
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);     
+    }
+  }
 }

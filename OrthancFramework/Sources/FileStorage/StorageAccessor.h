@@ -141,6 +141,15 @@ namespace Orthanc
                bool storeMd5,
                const DicomInstanceToStore* instance);
 
+    void Write(FileInfo& info /* out */,
+               const void* data,
+               size_t size,
+               FileContentType type,
+               CompressionType compression,
+               const std::string& precomputedMd5,
+               bool storeMd5,
+               const DicomInstanceToStore* instance);
+
     void Read(std::string& content,
               const FileInfo& info);
 

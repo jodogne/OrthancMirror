@@ -1719,8 +1719,29 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       context.SetCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("StorageCompression", false));
       context.SetStoreMD5ForAttachments(lock.GetConfiguration().GetBooleanParameter("StoreMD5ForAttachments", true));
 
-      // New option in Orthanc 1.4.2
-      context.SetOverwriteInstances(lock.GetConfiguration().GetBooleanParameter("OverwriteInstances", false));
+      // New option in Orthanc 1.4.2 (bool), changed to a string in 1.12.12
+      OverwriteInstancesMode overwriteInstancesMode = OverwriteInstancesMode_Never;
+      if (lock.GetJson().isMember("OverwriteInstances"))
+      {
+        std::string strOverwriteInstancesMode;
+
+        if (lock.GetJson()["OverwriteInstances"].isString() &&
+          lock.GetConfiguration().LookupStringParameter(strOverwriteInstancesMode, "OverwriteInstances"))
+        {
+          overwriteInstancesMode = StringToOverwriteInstancesMode(strOverwriteInstancesMode);
+          if (overwriteInstancesMode == OverwriteInstancesMode_IfChanged && !context.IsStoreMD5ForAttachments())
+          {
+            LOG(ERROR) << "Can not set \"OverwriteInstances\" to \"IfChanged\" when \"StoreMD5ForAttachments\" is set to false.";
+            return false;
+          }
+        }
+        else if (lock.GetJson()["OverwriteInstances"].isBool())
+        {
+          bool overwriteInstancesLegacy = lock.GetConfiguration().GetBooleanParameter("OverwriteInstances", false);
+          overwriteInstancesMode = (overwriteInstancesLegacy ? OverwriteInstancesMode_Always : OverwriteInstancesMode_Never);
+        }
+      }
+      context.SetOverwriteInstances(overwriteInstancesMode);
 
       unsigned int maximumPatientCount = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumPatientCount", 0);
       unsigned int maximumStorageSize = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumStorageSize", 0);
@@ -1728,6 +1749,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       if (!context.IsPatientLevelEnabled() && (maximumPatientCount != 0 || maximumStorageSize != 0))
       {
         LOG(ERROR) << "Can not set MaximumPatientCount or MaximumStorageSize when PatientLevelEnabled is set to false since these options require patient recycling.";
+        return false;
       }
 
       try

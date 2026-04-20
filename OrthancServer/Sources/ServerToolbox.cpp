@@ -317,7 +317,7 @@ namespace Orthanc
 
             // TODO: TranscodeAndStore and specifically ServerIndex::Store have been "poluted" by the isReconstruct parameter
             // we should very likely refactor it
-            context.TranscodeAndStore(resultPublicId, dicomInstancetoStore.get(), StoreInstanceMode_OverwriteDuplicate, true);
+            context.TranscodeAndStore(resultPublicId, dicomInstancetoStore.get(), StoreInstanceMode_AlwaysOverwrite, true);
           }
         }
       }

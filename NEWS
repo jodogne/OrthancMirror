@@ -1,6 +1,27 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* New values for "OverwriteInstances" configuration.  In previous versions, this configuration
+  was a boolean and it is now a string whose allowed values are "Never", "Always"
+  and "IfChanged".  For backward compatibility, you may still provide a boolean value
+  (true = "Always" and false = "Never").
+  The new "IfChanged" mode avoids writing and deleting from disk + reduces the workload on the 
+  DB when resending the same data.  Disk and DB operations have also been reduced in the "Never" 
+  mode when resending the same instance.
+
+
+REST API
+--------
+
+* API version upgraded to 31
+* new fields reported in the /system route:
+  - "OverwriteInstancesMode" (note, the boolean "OverwriteInstances" field is kept for backward
+    compatibility)
+
+
 Maintenance
 -----------
 

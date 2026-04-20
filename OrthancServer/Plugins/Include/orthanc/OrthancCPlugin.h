@@ -1206,7 +1206,7 @@ extern "C"
   typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.12.8")
   {
     OrthancPluginStoreStatus_Success = 0,         /*!< The file has been stored/adopted */
-    OrthancPluginStoreStatus_AlreadyStored = 1,   /*!< The file has already been stored/adopted (only if OverwriteInstances is set to false)*/
+    OrthancPluginStoreStatus_AlreadyStored = 1,   /*!< The file has already been stored/adopted (only if OverwriteInstances is set to "Never" or false)*/
     OrthancPluginStoreStatus_Failure = 2,         /*!< The file could not be stored/adopted */
     OrthancPluginStoreStatus_FilteredOut = 3,     /*!< The file has been filtered out by a Lua script or a plugin */
     OrthancPluginStoreStatus_StorageFull = 4,     /*!< The storage is full (only if MaximumStorageSize/MaximumPatientCount is set and MaximumStorageMode is Reject)*/

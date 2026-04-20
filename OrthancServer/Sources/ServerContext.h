@@ -243,7 +243,7 @@ namespace Orthanc
     bool isHttpServerSecure_;
     bool isExecuteLuaEnabled_;
     bool isRestApiWriteToFileSystemEnabled_;
-    bool overwriteInstances_;
+    OverwriteInstancesMode overwriteInstances_;
 
     std::unique_ptr<StorageCommitmentReports>  storageCommitmentReports_;
 
@@ -548,16 +548,21 @@ namespace Orthanc
       return isRestApiWriteToFileSystemEnabled_;
     }
 
-    void SetOverwriteInstances(bool overwrite)
+    void SetOverwriteInstances(OverwriteInstancesMode overwrite)
     {
       overwriteInstances_ = overwrite;
     }
     
-    bool IsOverwriteInstances() const
+    OverwriteInstancesMode GetOverwriteInstances() const
     {
       return overwriteInstances_;
     }
-    
+
+    bool IsOverwriteInstances() const // for backward compatibility
+    {
+      return overwriteInstances_ != OverwriteInstancesMode_Never;
+    }
+
     virtual IStorageCommitmentFactory::ILookupHandler*
     CreateStorageCommitment(const std::string& jobId,
                             const std::string& transactionUid,

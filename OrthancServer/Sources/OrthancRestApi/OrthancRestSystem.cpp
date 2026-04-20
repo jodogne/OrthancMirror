@@ -87,6 +87,7 @@ namespace Orthanc
     static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
     static const char* const STORAGE_COMPRESSION = "StorageCompression";
     static const char* const OVERWRITE_INSTANCES = "OverwriteInstances";
+    static const char* const OVERWRITE_INSTANCES_MODE = "OverwriteInstancesMode";
     static const char* const INGEST_TRANSCODING = "IngestTranscoding";
     static const char* const MAXIMUM_STORAGE_SIZE = "MaximumStorageSize";
     static const char* const MAXIMUM_PATIENT_COUNT = "MaximumPatientCount";
@@ -135,7 +136,9 @@ namespace Orthanc
         .SetAnswerField(STORAGE_COMPRESSION, RestApiCallDocumentation::Type_Boolean,
                         "Whether storage compression is enabled (new in Orthanc 1.11.0)")
         .SetAnswerField(OVERWRITE_INSTANCES, RestApiCallDocumentation::Type_Boolean,
-                        "Whether instances are overwritten when re-ingested (new in Orthanc 1.11.0)")
+                        "Whether instances are overwritten when re-ingested (new in Orthanc 1.11.0 and kept as a bool for backward compatibility)")
+        .SetAnswerField(OVERWRITE_INSTANCES_MODE, RestApiCallDocumentation::Type_String,
+                        "Whether instances are overwritten when re-ingested (new in Orthanc 1.12.12)")
         .SetAnswerField(INGEST_TRANSCODING, RestApiCallDocumentation::Type_String,
                         "Whether instances are transcoded when ingested into Orthanc (`""` if no transcoding is performed) (new in Orthanc 1.11.0)")
         .SetAnswerField(MAXIMUM_STORAGE_SIZE, RestApiCallDocumentation::Type_Number,
@@ -177,7 +180,8 @@ namespace Orthanc
       result[NAME] = lock.GetConfiguration().GetStringParameter(NAME, "");
       result[CHECK_REVISIONS] = lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false);  // New in Orthanc 1.9.2
       result[STORAGE_COMPRESSION] = lock.GetConfiguration().GetBooleanParameter(STORAGE_COMPRESSION, false); // New in Orthanc 1.11.0
-      result[OVERWRITE_INSTANCES] = lock.GetConfiguration().GetBooleanParameter(OVERWRITE_INSTANCES, false); // New in Orthanc 1.11.0
+      result[OVERWRITE_INSTANCES] = context.IsOverwriteInstances(); // New in Orthanc 1.11.0
+      result[OVERWRITE_INSTANCES_MODE] = EnumerationToString(context.GetOverwriteInstances()); // New in Orthanc 1.12.12
       result[INGEST_TRANSCODING] = lock.GetConfiguration().GetStringParameter(INGEST_TRANSCODING, ""); // New in Orthanc 1.11.0
       result[DATABASE_SERVER_IDENTIFIER] = lock.GetConfiguration().GetDatabaseServerIdentifier();
       result[MAXIMUM_STORAGE_SIZE] = lock.GetConfiguration().GetUnsignedIntegerParameter(MAXIMUM_STORAGE_SIZE, 0); // New in Orthanc 1.11.3

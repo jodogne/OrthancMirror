@@ -319,11 +319,24 @@ namespace Orthanc
                               bool storeMd5,
                               const DicomInstanceToStore* instance)
   {
+    std::string emptyMd5;
+    Write(info, data, size, type, compression, emptyMd5, storeMd5, instance);
+  }
+
+  void StorageAccessor::Write(FileInfo& info,
+                              const void* data,
+                              size_t size,
+                              FileContentType type,
+                              CompressionType compression,
+                              const std::string& precomputedMd5,
+                              bool storeMd5,
+                              const DicomInstanceToStore* instance)
+  {
     const std::string uuid = Toolbox::GenerateUuid();
 
-    std::string md5;
+    std::string md5 = precomputedMd5;
 
-    if (storeMd5)
+    if (storeMd5 && md5.empty()) // if it has not been precomputed, compute it now
     {
       Toolbox::ComputeMD5(md5, data, size);
     }

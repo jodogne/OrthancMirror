@@ -88,8 +88,15 @@ namespace Orthanc
   enum StoreInstanceMode
   {
     StoreInstanceMode_Default,
-    StoreInstanceMode_OverwriteDuplicate,
-    StoreInstanceMode_IgnoreDuplicate
+    StoreInstanceMode_AlwaysOverwrite
+  };
+
+  // New in Orthanc 1.12.12
+  enum OverwriteInstancesMode
+  {
+    OverwriteInstancesMode_Never,
+    OverwriteInstancesMode_Always,
+    OverwriteInstancesMode_IfChanged
   };
 
   // This enum was previously part of Orthanc framework (until 1.8.2)
@@ -321,4 +328,8 @@ namespace Orthanc
 
   void GetTransferSyntaxGroup(std::set<DicomTransferSyntax>& target,
                               TransferSyntaxGroup source);
+
+  OverwriteInstancesMode StringToOverwriteInstancesMode(const std::string& value);
+
+  const char* EnumerationToString(OverwriteInstancesMode mode);
 }

@@ -922,9 +922,15 @@ TEST(ServerIndex, Overwrite)
   Image image(PixelFormat_Grayscale8, 1, 1, false);
   reinterpret_cast<uint8_t*>(image.GetBuffer()) [0] = 128;
 
-  for (unsigned int i = 0; i < 2; i++)
+  for (unsigned int i = 0; i < 3; i++)
   {
-    bool overwrite = (i == 0);
+    OverwriteInstancesMode overwriteMode;
+    if (i == 0) 
+      overwriteMode = OverwriteInstancesMode_Always;
+    else if (i == 1)
+      overwriteMode = OverwriteInstancesMode_Never;
+    else if (i == 2)
+      overwriteMode = OverwriteInstancesMode_IfChanged;
 
     PluginStorageAreaAdapter storage(new MemoryStorageArea);
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
@@ -943,7 +949,7 @@ TEST(ServerIndex, Overwrite)
 
     DicomInstanceHasher hasher(instance);
     std::string id = hasher.HashInstance();
-    context.SetOverwriteInstances(overwrite);
+    context.SetOverwriteInstances(overwriteMode);
 
     uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
@@ -1002,7 +1008,7 @@ TEST(ServerIndex, Overwrite)
       ASSERT_EQ("name", tmp);
     }
 
-    {
+    { // upload the same file with a new PatientName
       DicomMap instance2;
       instance2.Assign(instance);
       instance2.SetValue(DICOM_TAG_PATIENT_NAME, "overwritten", false);
@@ -1017,7 +1023,7 @@ TEST(ServerIndex, Overwrite)
 
       std::string id2;
       ServerContext::StoreResult result = context.Store(id2, *toStore, StoreInstanceMode_Default);
-      ASSERT_EQ(overwrite ? StoreStatus_Success : StoreStatus_AlreadyStored, result.GetStatus());
+      ASSERT_EQ(overwriteMode != OverwriteInstancesMode_Never ? StoreStatus_Success : StoreStatus_AlreadyStored, result.GetStatus());  // the PatientName has changed -> the result is Success in both overwrite modes
       ASSERT_EQ(id, id2);
     }
 
@@ -1040,7 +1046,7 @@ TEST(ServerIndex, Overwrite)
     ASSERT_EQ(dicom2.GetCompressedSize() + pixelData2.GetCompressedSize(), diskSize);
     ASSERT_EQ(dicom2.GetUncompressedSize() + pixelData2.GetUncompressedSize(), uncompressedSize);
 
-    if (overwrite)
+    if (overwriteMode == OverwriteInstancesMode_Always || overwriteMode == OverwriteInstancesMode_IfChanged)
     {
       ASSERT_NE(dicom1.GetUuid(), dicom2.GetUuid());
       ASSERT_NE(pixelData1.GetUuid(), pixelData2.GetUuid());
@@ -1057,7 +1063,7 @@ TEST(ServerIndex, Overwrite)
         ASSERT_EQ("overwritten", tmp);
       }
     }
-    else
+    else if (overwriteMode == OverwriteInstancesMode_Never)
     {
       ASSERT_EQ(dicom1.GetUuid(), dicom2.GetUuid());
       ASSERT_EQ(pixelData1.GetUuid(), pixelData2.GetUuid());
