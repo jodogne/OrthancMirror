@@ -81,6 +81,14 @@ namespace Orthanc
     }
   }
 
+  void StoreJob::Reset()  // called in case of "resubmit"
+  {
+    SetOfInstancesJob::Reset();
+    
+    // restart the loader threads here (this can happen quite long before the job starts actually being executed but this is the only place where we can do this)
+    Start();
+  }
+
 
   void StoreJob::Start()
   {

@@ -224,7 +224,7 @@ namespace Orthanc
 
   void DicomModalityStoreJob::Reset()
   {
-    SetOfInstancesJob::Reset();
+    StoreJob::Reset();
 
     /**
      * "After the N-EVENT-REPORT has been sent, the Transaction UID is

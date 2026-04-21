@@ -50,6 +50,8 @@ namespace Orthanc
     StoreJob(ServerContext& context,
              const Json::Value& serialized);
 
+    virtual void Reset() ORTHANC_OVERRIDE;
+    
     virtual void Start() ORTHANC_OVERRIDE;
 
     virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
