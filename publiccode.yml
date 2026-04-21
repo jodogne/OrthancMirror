@@ -1,0 +1,48 @@
+publiccodeYmlVersion: 0.5.0
+name: Orthanc
+url: https://orthanc.uclouvain.be/hg/orthanc/
+landingURL: https://www.orthanc-server.com/
+softwareVersion: 1.12.11
+releaseDate: 2026-04-14
+platforms:
+  - web
+  - windows
+  - mac
+  - linux
+organisation:
+  uri: https://orthanc.uclouvain.be/
+  name: UCLouvain
+developmentStatus: stable
+softwareType: standalone/backend
+intendedAudience:
+  scope:
+    - education
+    - healthcare
+    - government
+    - infrastructures
+    - research
+description:
+  en:
+    shortDescription: Orthanc is a lightweight DICOM server for medical imaging
+    longDescription: Orthanc is a standalone DICOM software server. It is designed
+      to improve the DICOM flows in hospitals and to support research about the
+      automated analysis of medical images. Orthanc lets its users focus on the
+      content of the DICOM files, hiding the complexity of the DICOM format and
+      of the DICOM protocol.
+    documentation: https://orthanc.uclouvain.be/book/
+    apiDocumentation: https://orthanc.uclouvain.be/api/
+    features:
+      - DICOM
+      - VNA
+legal:
+  license: GPL-3.0-or-later
+maintenance:
+  type: community
+  contacts:
+    - name: Sébastien Jodogne
+      email: sebastien.jodogne@uclouvain.be
+      affiliation: UCLouvain
+localisation:
+  localisationReady: false
+  availableLanguages:
+    - en
