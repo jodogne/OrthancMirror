@@ -2469,6 +2469,7 @@ namespace Orthanc
 
   void HttpServer::UpdateCurrentThreadName()
   {
+    // threads are created in CivetWeb -> assign them a name the first time they are used
     if (!Logging::HasCurrentThreadName())
     {
       boost::mutex::scoped_lock lock(threadCounterMutex_);

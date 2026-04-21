@@ -6143,6 +6143,12 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_ClearCurrentThreadName:
+      {
+        Logging::ClearCurrentThreadName();
+        return true;
+      }
+
       case _OrthancPluginService_AdoptDicomInstance:
       {
         const _OrthancPluginAdoptDicomInstance& p = *reinterpret_cast<const _OrthancPluginAdoptDicomInstance*>(parameters);

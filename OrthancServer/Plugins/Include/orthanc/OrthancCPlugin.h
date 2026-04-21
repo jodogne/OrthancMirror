@@ -528,6 +528,7 @@ extern "C"
     _OrthancPluginService_EmitAuditLog = 61,                        /* New in Orthanc 1.12.9 */
     _OrthancPluginService_ReserveQueueValue = 62,                   /* New in Orthanc 1.12.10 */
     _OrthancPluginService_AcknowledgeQueueValue = 63,               /* New in Orthanc 1.12.10 */
+    _OrthancPluginService_ClearCurrentThreadName = 64,              /* New in Orthanc 1.12.12 */
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -11186,6 +11187,24 @@ extern "C"
     params.destructor = destructor;
     params.lookup = lookup;
     return context->InvokeService(context, _OrthancPluginService_RegisterStorageCommitmentScpCallback2, &params);
+  }
+
+  /**
+   * @brief Clear the name of the current thread.
+   *
+   * This function releases the resources allocated to store the threa
+   * name.  This function must only be called from threads that the plugin 
+   * has created itself when the thread is reaching its end of life.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return 0 if success, other value if error.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_SINCE_SDK("1.12.12")
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginClearCurrentThreadName(
+    OrthancPluginContext*  context)
+  {
+    return context->InvokeService(context, _OrthancPluginService_ClearCurrentThreadName, NULL);
   }
 
 #ifdef  __cplusplus

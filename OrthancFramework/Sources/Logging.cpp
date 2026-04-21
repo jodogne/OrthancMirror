@@ -504,6 +504,7 @@ namespace
     _OrthancPluginService_LogError = 3,
     _OrthancPluginService_SetCurrentThreadName = 44,
     _OrthancPluginService_LogMessage = 45,
+    _OrthancPluginService_ClearCurrentThreadName = 64,
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
 
@@ -570,6 +571,7 @@ static Orthanc::Logging::NullStream             nullStream_;
 static OrthancPluginContext*                    pluginContext_ = NULL;    // this is != NULL only when running from a plugin
 static std::string                              pluginName_;              // this string can only be non-empty if running from a plugin
 static bool                                     hasOrthancAdvancedLogging_ = false;  // Whether the Orthanc runtime is >= 1.12.4
+static bool                                     hasClearThreadName_ = false;  // Whether the Orthanc runtime is >= 1.12.12
 static boost::recursive_mutex                   threadNamesMutex_;
 static std::map<boost::thread::id, std::string> threadNames_;
 static bool                                     enableThreadNames_ = true;
@@ -695,10 +697,18 @@ namespace Orthanc
 
     void ClearCurrentThreadName()
     {
-      boost::thread::id threadId = boost::this_thread::get_id();
+      if (pluginContext_ == NULL)
+      {
+        boost::thread::id threadId = boost::this_thread::get_id();
 
-      boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
-      threadNames_.erase(threadId);
+        boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
+        threadNames_.erase(threadId);
+      }
+      else if (hasClearThreadName_) // only recent runtimes support it (from 1.12.12)
+      {
+        pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_ClearCurrentThreadName, NULL);
+      }
+
     }
 
     static std::string GetCurrentThreadName()
@@ -848,6 +858,7 @@ namespace Orthanc
 
       // The value "hasOrthancAdvancedLogging_" is cached to avoid computing it on every logged message
       hasOrthancAdvancedLogging_ = Toolbox::IsVersionAbove(pluginContext_->orthancVersion, 1, 12, 4);
+      hasClearThreadName_ = Toolbox::IsVersionAbove(pluginContext_->orthancVersion, 1, 12, 12);
 
       EnableInfoLevel(true);  // allow the plugin to log at info level (but the Orthanc Core still decides of the level)
     }

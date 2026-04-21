@@ -30,6 +30,13 @@ Maintenance
 * Fix Orthanc::ImageAccessor that was broken in Orthanc Framework 1.12.11
 
 
+Plugin SDK
+----------
+
+* Added OrthancPluginClearCurrentThreadName() to avoid storing thousands of thread
+  names when dynamically creating/killing threads in a plugin.
+
+
 Version 1.12.11 (2026-04-14)
 ============================
 
