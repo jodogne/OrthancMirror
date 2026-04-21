@@ -34,6 +34,14 @@
 static boost::mutex instanceWorkerThreadsCounterMutex;
 static uint32_t instanceWorkerThreadsCounter = 0;
 
+static std::string GetInstanceWorkerThreadName()
+{
+  boost::mutex::scoped_lock lock(instanceWorkerThreadsCounterMutex);
+  std::string threadName = std::string("JOB-INS-WORK-") + boost::lexical_cast<std::string>(instanceWorkerThreadsCounter++);
+  instanceWorkerThreadsCounter %= 1000;
+
+  return threadName;
+}
 
 namespace Orthanc
 {
@@ -248,11 +256,7 @@ namespace Orthanc
 
   void ThreadedSetOfInstancesJob::InstanceWorkerThread(ThreadedSetOfInstancesJob* that)
   {
-    {
-      boost::mutex::scoped_lock lock(instanceWorkerThreadsCounterMutex);
-      Logging::SetCurrentThreadName(std::string("JOB-INS-WORK-") + boost::lexical_cast<std::string>(instanceWorkerThreadsCounter++));
-      instanceWorkerThreadsCounter %= 1000;
-    }
+    Logging::ScopedThreadNameSetter setter(::GetInstanceWorkerThreadName());
 
     while (true)
     {

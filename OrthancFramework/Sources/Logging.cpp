@@ -693,6 +693,14 @@ namespace Orthanc
       return threadNames_.find(threadId) != threadNames_.end();
     }
 
+    void ClearCurrentThreadName()
+    {
+      boost::thread::id threadId = boost::this_thread::get_id();
+
+      boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
+      threadNames_.erase(threadId);
+    }
+
     static std::string GetCurrentThreadName()
     {
       boost::thread::id threadId = boost::this_thread::get_id();
@@ -707,6 +715,17 @@ namespace Orthanc
 
       return threadNames_[threadId];
     }    
+
+    ScopedThreadNameSetter::ScopedThreadNameSetter(const std::string& threadName)
+    {
+      SetCurrentThreadName(threadName);
+    }
+
+    ScopedThreadNameSetter::~ScopedThreadNameSetter()
+    {
+      ClearCurrentThreadName();
+    }
+
 
     void AddLoggingListener(ILoggingListener* listener)
     {

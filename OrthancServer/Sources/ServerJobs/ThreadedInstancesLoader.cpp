@@ -30,6 +30,15 @@
 static boost::mutex loaderThreadsCounterMutex;
 static uint32_t loaderThreadsCounter = 0;
 
+static std::string GetLoaderThreadName(const std::string& prefix)
+{
+  boost::mutex::scoped_lock lock(loaderThreadsCounterMutex);
+  std::string threadName = prefix + std::string("-LOAD-") +
+                                boost::lexical_cast<std::string>(loaderThreadsCounter++);
+  loaderThreadsCounter %= 1000000;
+
+  return threadName;
+}
 
 namespace Orthanc
 {
@@ -146,12 +155,7 @@ namespace Orthanc
 
   void ThreadedInstancesLoader::PreloaderWorkerThread(ThreadedInstancesLoader* that)
   {
-    {
-      boost::mutex::scoped_lock lock(loaderThreadsCounterMutex);
-      Logging::SetCurrentThreadName(that->nameForLogs4Char_ + std::string("-LOAD-") +
-                                    boost::lexical_cast<std::string>(loaderThreadsCounter++));
-      loaderThreadsCounter %= 1000000;
-    }
+    Logging::ScopedThreadNameSetter setter(::GetLoaderThreadName(that->nameForLogs4Char_));
 
     LOG(INFO) << "Loader thread has started";
 

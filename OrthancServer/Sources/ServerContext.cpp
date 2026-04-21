@@ -116,7 +116,7 @@ namespace Orthanc
   void ServerContext::MemoryTrimmingThread(ServerContext* that,
                                            unsigned int intervalInSeconds)
   {
-    Logging::SetCurrentThreadName("MEMORY-TRIM");
+    Logging::ScopedThreadNameSetter setter("MEMORY-TRIM");
 
     boost::posix_time::ptime lastExecution = boost::posix_time::second_clock::universal_time();
 
@@ -146,7 +146,7 @@ namespace Orthanc
   void ServerContext::ChangeThread(ServerContext* that,
                                    unsigned int sleepDelay)
   {
-    Logging::SetCurrentThreadName("CHANGES");
+    Logging::ScopedThreadNameSetter setter("CHANGES");
 
     while (!that->done_)
     {
@@ -190,7 +190,7 @@ namespace Orthanc
   void ServerContext::JobEventsThread(ServerContext* that,
                                       unsigned int sleepDelay)
   {
-    Logging::SetCurrentThreadName("JOB-EVENTS");
+    Logging::ScopedThreadNameSetter setter("JOB-EVENTS");
 
     while (!that->done_)
     {
@@ -234,7 +234,7 @@ namespace Orthanc
   void ServerContext::SaveJobsThread(ServerContext* that,
                                      unsigned int sleepDelay)
   {
-    Logging::SetCurrentThreadName("SAVE-JOBS");
+    Logging::ScopedThreadNameSetter setter("SAVE-JOBS");
 
     static const boost::posix_time::time_duration PERIODICITY =
       boost::posix_time::seconds(10);

@@ -109,7 +109,7 @@ namespace Orthanc
     
   void JobsEngine::RetryHandler(JobsEngine* engine)
   {
-    Logging::SetCurrentThreadName("JOBS-RETRY");
+    Logging::ScopedThreadNameSetter setter("JOBS-RETRY");
 
     assert(engine != NULL);
 
@@ -125,7 +125,7 @@ namespace Orthanc
                           size_t workerIndex)
   {
     assert(engine != NULL);
-    Logging::SetCurrentThreadName(std::string("JOBS-WORKER-") + boost::lexical_cast<std::string>(workerIndex));
+    Logging::ScopedThreadNameSetter setter(std::string("JOBS-WORKER-") + boost::lexical_cast<std::string>(workerIndex));
     CLOG(INFO, JOBS) << "Worker thread " << workerIndex << " has started";
 
     while (engine->IsRunning())
