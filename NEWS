@@ -238,7 +238,7 @@ REST API
     it is more convenient to configure alerts on. "orthanc_rest_api_active_requests"
     also monitors the internal requests coming from plugins while "orthanc_available_http_threads"
     monitors the requests received by the external HTTP server.
-  - Fixed the "orthanc_rest_api_active_requests" metrix that was not 
+  - Fixed the "orthanc_rest_api_active_requests" metrics that was not 
     reset after 10 seconds.
 
 Plugin SDK
