@@ -44,15 +44,13 @@ namespace Orthanc
 
     virtual const char* GetLoaderPrefix() const = 0;
 
+    void StartLoaderThreads();
+
   public:
     explicit StoreJob(ServerContext& context);
 
     StoreJob(ServerContext& context,
              const Json::Value& serialized);
-
-    virtual void Reset() ORTHANC_OVERRIDE;
-    
-    virtual void Start() ORTHANC_OVERRIDE;
 
     virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
 

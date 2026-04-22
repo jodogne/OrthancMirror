@@ -25,8 +25,10 @@ REST API
 Maintenance
 -----------
 
-* Fix /jobs/.../resubmit for OrthancPeerStore and DicomModalityStore jobs 
+* Fix resubmit/pause/cancel and reloading of OrthancPeerStore and DicomModalityStore jobs 
   (bug introduced in 1.12.10)
+* Fix OrthancPeerStore jobs that was using the loader threads only if transcoding
+  was required.
 * Fix Orthanc::ImageAccessor that was broken in Orthanc Framework 1.12.11
 
 

@@ -48,6 +48,11 @@ namespace Orthanc
     assert(IsStarted());
     OpenConnection();
 
+    if (instancesLoader_.get() == NULL)
+    {
+      StartLoaderThreads();
+    }
+
     LOG(INFO) << "Sending instance " << instance << " to modality \"" 
               << parameters_.GetRemoteModality().GetApplicationEntityTitle() << "\"";
 

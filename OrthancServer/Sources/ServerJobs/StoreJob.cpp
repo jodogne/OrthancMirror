@@ -81,16 +81,8 @@ namespace Orthanc
     }
   }
 
-  void StoreJob::Reset()  // called in case of "resubmit"
-  {
-    SetOfInstancesJob::Reset();
-    
-    // restart the loader threads here (this can happen quite long before the job starts actually being executed but this is the only place where we can do this)
-    Start();
-  }
 
-
-  void StoreJob::Start()
+  void StoreJob::StartLoaderThreads()
   {
     size_t loaderThreads = 1;
     {
@@ -105,23 +97,12 @@ namespace Orthanc
     {
       instancesLoader_->PreloadDicomInstance(instancesIds_[i], filesInfo_[i]);
     }
-
-    SetOfInstancesJob::Start();
   }
 
-
-  void StoreJob::Stop(JobStopReason reason)   // For pausing jobs
+  
+  void StoreJob::Stop(JobStopReason reason)
   {
-    if (reason == JobStopReason_Canceled ||
-        reason == JobStopReason_Failure ||
-        reason == JobStopReason_Retry ||
-        reason == JobStopReason_Success)
-    {
-      // clear the loader threads
-      if (instancesLoader_.get() != NULL)
-      {
-        instancesLoader_->Clear(true);
-      }
-    }
+    // clear the loader threads (also when simply pausing the job)
+    instancesLoader_.reset(NULL);
   }
 }

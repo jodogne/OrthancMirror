@@ -36,7 +36,10 @@ namespace Orthanc
 {
   bool OrthancPeerStoreJob::HandleInstance(const std::string& instance)
   {
-    //boost::this_thread::sleep(boost::posix_time::milliseconds(500));
+    if (instancesLoader_.get() == NULL)
+    {
+      StartLoaderThreads();
+    }
 
     if (client_.get() == NULL)
     {
@@ -58,11 +61,11 @@ namespace Orthanc
 
     try
     {
+      std::string dicom;
+      instancesLoader_->WaitDicomInstance(dicom, instance);
+
       if (transcode_)
       {
-        std::string dicom;
-        instancesLoader_->WaitDicomInstance(dicom, instance);
-
         std::set<DicomTransferSyntax> syntaxes;
         syntaxes.insert(transferSyntax_);
         
@@ -81,7 +84,7 @@ namespace Orthanc
       }
       else
       {
-        context_.ReadDicom(body, instance);
+        body.swap(dicom);
       }
     }
     catch (OrthancException& e)
