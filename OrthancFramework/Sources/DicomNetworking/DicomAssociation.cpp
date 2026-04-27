@@ -265,10 +265,6 @@ namespace Orthanc
     }
 
     std::string localAet = parameters.GetLocalApplicationEntityTitle();
-    if (parameters.GetRemoteModality().HasLocalAet())
-    {
-      localAet = parameters.GetRemoteModality().GetLocalAet();
-    }
 
     CLOG(INFO, DICOM) << "Opening a DICOM SCU connection "
                       << (parameters.GetRemoteModality().IsDicomTlsEnabled() ? "using DICOM TLS" : "without DICOM TLS")

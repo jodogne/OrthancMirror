@@ -46,7 +46,7 @@ namespace Orthanc
     {
     private:
       ServerContext& context_;
-      const std::string& localAet_;
+      std::string localAet_;
       std::vector<std::string> instancesIds_;
       // std::vector<FileInfo> filesInfo_;
       std::unique_ptr<ThreadedInstancesLoader> instancesLoader_;
@@ -64,7 +64,7 @@ namespace Orthanc
                       const std::string& originatorAet,
                       uint16_t originatorId) :
         context_(context),
-        localAet_(context.GetDefaultLocalApplicationEntityTitle()),
+        localAet_(context.GetDefaultLocalApplicationEntityTitle()),  // from the global config
         position_(0),
         originatorAet_(originatorAet),
         originatorId_(originatorId)
@@ -75,6 +75,11 @@ namespace Orthanc
           OrthancConfiguration::ReaderLock lock;
           remote_ = lock.GetConfiguration().GetModalityUsingAet(targetAet);
           loaderThreads = lock.GetConfiguration().GetLoaderThreads();
+        }
+
+        if (remote_.HasLocalAet())
+        {
+          localAet_ = remote_.GetLocalAet();  // from the DicomModalities config
         }
 
         instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads, false, DicomTransferSyntax_BigEndianExplicit /* dummy value*/, 0, "CSTO"));
@@ -150,12 +155,20 @@ namespace Orthanc
         job_->SetDescription("C-MOVE");
         //job_->SetPermissive(true);  // This was the behavior of Orthanc < 1.6.0
         job_->SetPermissive(false);
-        job_->SetLocalAet(context.GetDefaultLocalApplicationEntityTitle());
+
+        std::string localAet = context.GetDefaultLocalApplicationEntityTitle(); // from the global configuration
 
         {
           OrthancConfiguration::ReaderLock lock;
-          job_->SetRemoteModality(lock.GetConfiguration().GetModalityUsingAet(targetAet));
+          Orthanc::RemoteModalityParameters remoteModality = lock.GetConfiguration().GetModalityUsingAet(targetAet);
+          job_->SetRemoteModality(remoteModality);
+          if (remoteModality.HasLocalAet())
+          {
+            localAet = remoteModality.GetLocalAet(); // from the DicomModalities config
+          }
         }
+
+        job_->SetLocalAet(localAet);
 
         if (originatorId != 0)
         {

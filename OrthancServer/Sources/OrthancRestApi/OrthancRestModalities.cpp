@@ -681,8 +681,7 @@ namespace Orthanc
                          "Whether to normalize the query, i.e. whether to wipe out from the query, the DICOM tags "
                          "that are not applicable for the query-retrieve level of interest", false)
         .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
-                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
-                         "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
+                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option or `LocalAet` in the `DicomModalities`. ", false)
         .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
                          "Timeout for the C-FIND command and subsequent C-GET/C-MOVE retrievals, in seconds (new in Orthanc 1.9.1).  Orthanc will close the related DICOM associations if no DICOM messages are received within this time period.", false)
         .SetAnswerField("ID", RestApiCallDocumentation::Type_String,
@@ -920,20 +919,26 @@ namespace Orthanc
                                 size_t index)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
+    QueryAccessor query(call);
+    RemoteModalityParameters remoteModality = query.GetHandler().GetRemoteModality();
 
-    std::string targetAet;
+    std::string targetAet = context.GetDefaultLocalApplicationEntityTitle(); // from the global configuration
+    if (remoteModality.HasLocalAet())
+    {
+      targetAet = remoteModality.GetLocalAet();
+    }
+
     int timeout = -1;
 
-    QueryAccessor query(call);
-
-    RetrieveMethod retrieveMethod = query.GetHandler().GetRemoteModality().GetRetrieveMethod();
+    RetrieveMethod retrieveMethod = remoteModality.GetRetrieveMethod();
 
     Json::Value body;
     if (call.ParseJsonRequest(body))
     {
       OrthancConfiguration::ReaderLock lock;
 
-      targetAet = Toolbox::GetJsonStringField(body, KEY_TARGET_AET, context.GetDefaultLocalApplicationEntityTitle());
+      targetAet = Toolbox::GetJsonStringField(body, KEY_TARGET_AET, targetAet); 
+
       timeout = Toolbox::GetJsonIntegerField(body, KEY_TIMEOUT, -1);
       
       std::string strRetrieveMethod = SerializationToolbox::ReadString(body, KEY_RETRIEVE_METHOD, "");
@@ -949,10 +954,6 @@ namespace Orthanc
       if (call.GetBodySize() > 0)
       {
         call.BodyToString(targetAet);
-      }
-      else
-      {
-        targetAet = context.GetDefaultLocalApplicationEntityTitle();
       }
     }
     
@@ -1484,8 +1485,7 @@ namespace Orthanc
         .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of all the DICOM resources to be sent", true)
         .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
-                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
-                         "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
+                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option or `LocalAet` in the `DicomModalities`. ", false)
         .SetRequestField(KEY_CALLED_AET, RestApiCallDocumentation::Type_String,
                          "Called AET that is used for this commands, defaults to `AET` configuration option. "
                          "Allows you to overwrite the destination AET for a specific operation.", false)
@@ -1517,14 +1517,19 @@ namespace Orthanc
 
     GetInstancesToExport(request, *job, remote, call);
 
-    std::string localAet = Toolbox::GetJsonStringField
-      (request, KEY_LOCAL_AET, context.GetDefaultLocalApplicationEntityTitle());
+    RemoteModalityParameters remoteModality = MyGetModalityUsingSymbolicName(remote);
+
+    std::string localAet = context.GetDefaultLocalApplicationEntityTitle(); // from the global configuration file
+    if (remoteModality.HasLocalAet()) // from the DicomModalities configuration
+    {
+      localAet = remoteModality.GetLocalAet();
+    }
+    localAet = Toolbox::GetJsonStringField(request, KEY_LOCAL_AET, localAet);  // from the payload
+    
     std::string moveOriginatorAET = Toolbox::GetJsonStringField
       (request, KEY_MOVE_ORIGINATOR_AET, context.GetDefaultLocalApplicationEntityTitle());
     int moveOriginatorID = Toolbox::GetJsonIntegerField
       (request, KEY_MOVE_ORIGINATOR_ID, 0 /* By default, not a C-MOVE */);
-
-    RemoteModalityParameters remoteModality = MyGetModalityUsingSymbolicName(remote);
 
     remoteModality.SetApplicationEntityTitle(Toolbox::GetJsonStringField
       (request, KEY_CALLED_AET, remoteModality.GetApplicationEntityTitle()));
@@ -1609,16 +1614,21 @@ namespace Orthanc
     }
 
     ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
-    
-    std::string localAet = Toolbox::GetJsonStringField
-      (request, KEY_LOCAL_AET, context.GetDefaultLocalApplicationEntityTitle());
 
-    const RemoteModalityParameters source =
+    const RemoteModalityParameters sourceModality =
       MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+
+    std::string localAet = context.GetDefaultLocalApplicationEntityTitle(); // from the global configuration file
+    if (sourceModality.HasLocalAet()) // from the DicomModalities configuration
+    {
+      localAet = sourceModality.GetLocalAet();
+    }
+    localAet = Toolbox::GetJsonStringField(request, KEY_LOCAL_AET, localAet);  // from the payload
+
 
     job.SetQueryFormat(DicomToJsonFormat_Short);
     job.SetLocalAet(localAet);
-    job.SetRemoteModality(source);
+    job.SetRemoteModality(sourceModality);
 
     if (request.isMember(KEY_TIMEOUT))
     {
@@ -1656,8 +1666,7 @@ namespace Orthanc
         .SetRequestField(KEY_LEVEL, RestApiCallDocumentation::Type_String,
                          "Level of the query (`Patient`, `Study`, `Series` or `Instance`)", true)
         .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
-                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
-                         "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
+                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option or `LocalAet` in the `DicomModalities`. ", false)
         .SetRequestField(KEY_TARGET_AET, RestApiCallDocumentation::Type_String,
                          "Target AET that will be used by the remote DICOM modality as a target for its C-STORE SCU "
                          "commands, defaults to `DicomAet` configuration option in order to do a simple query/retrieve", false)
@@ -1709,8 +1718,7 @@ namespace Orthanc
         .SetRequestField(KEY_LEVEL, RestApiCallDocumentation::Type_String,
                          "Level of the query (`Patient`, `Study`, `Series` or `Instance`)", true)
         .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
-                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
-                         "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
+                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option or `LocalAet` in the `DicomModalities`. ", false)
         .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
                          "Timeout for the C-GET command, in seconds.  Orthanc will close the DICOM association if no DICOM messages are received within this time period.", false)
         .SetUriArgument("id", "Identifier of the modality of interest");

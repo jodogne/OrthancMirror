@@ -17,9 +17,12 @@ REST API
 --------
 
 * API version upgraded to 31
-* new fields reported in the /system route:
+* New fields reported in the /system route:
   - "OverwriteInstancesMode" (note, the boolean "OverwriteInstances" field is kept for backward
     compatibility)
+* The "LocalAet" field of the payload to "/modalities/../move", "/modalities/../store", 
+  "/modalities/../get", "queries/../answers/../retrieve" now always overwrites the "DicomAet"
+  and the "DicomModalities.LocalAet" configurations.
 
 
 Maintenance
@@ -29,6 +32,7 @@ Maintenance
   (bug introduced in 1.12.10)
 * Fix OrthancPeerStore jobs that was using the loader threads only if transcoding
   was required.
+* Fix usage of "LocalAet" in C-Find and "queries/../answers/../retrieve".
 * Fix Orthanc::ImageAccessor that was broken in Orthanc Framework 1.12.11
 
 

@@ -30,11 +30,6 @@
 #include <dcmtk/dcmnet/dimse.h>
 #include <algorithm>
 
-static const char* const LOCAL_AET = "LocalAet";
-static const char* const QUERY = "Query";
-static const char* const QUERY_FORMAT = "QueryFormat";  // New in 1.9.5
-static const char* const REMOTE = "Remote";
-static const char* const TIMEOUT = "Timeout";
 
 namespace Orthanc
 {

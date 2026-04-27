@@ -108,6 +108,11 @@ namespace Orthanc
     {
       OrthancConfiguration::ReaderLock lock;
       lock.GetConfiguration().GetDicomModalityUsingSymbolicName(modality_, symbolicName);
+
+      if (modality_.HasLocalAet())
+      {
+        SetLocalAet(modality_.GetLocalAet());
+      }
     }
   }
 
