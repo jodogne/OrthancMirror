@@ -543,22 +543,76 @@ namespace
 
 namespace
 {
-  struct LoggingStreamsContext
+  class LoggingStreamsContext : public boost::noncopyable
   {
-    std::string  targetFile_;
-    std::string  targetFolder_;
-
+  private:
     std::ostream* error_;
     std::ostream* warning_;
     std::ostream* info_;
 
     std::unique_ptr<std::ofstream> file_;
 
+  public:
     LoggingStreamsContext() : 
       error_(&std::cerr),
       warning_(&std::cerr),
       info_(&std::cerr)
     {
+    }
+
+    LoggingStreamsContext(std::ostream& errorStream,
+                          std::ostream& warningStream,
+                          std::ostream& infoStream) :
+      error_(&errorStream),
+      warning_(&warningStream),
+      info_(&infoStream)
+    {
+    }
+
+    void SetOutputFile(std::ofstream* target)
+    {
+      std::unique_ptr<std::ofstream> protection(target);
+
+      if (target == NULL)
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_NullPointer);
+      }
+      else if (!protection->is_open())
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_CannotWriteFile);
+      }
+      else
+      {
+        file_.reset(protection.release());
+        warning_ = target;
+        error_ = target;
+        info_ = target;
+      }
+    }
+
+    std::ostream& GetError() const
+    {
+      assert(error_ != NULL);
+      return *error_;
+    }
+
+    std::ostream& GetWarning() const
+    {
+      assert(warning_ != NULL);
+      return *warning_;
+    }
+
+    std::ostream& GetInfo() const
+    {
+      assert(info_ != NULL);
+      return *info_;
+    }
+
+    void Flush()
+    {
+      GetError().flush();
+      GetWarning().flush();
+      GetInfo().flush();
     }
   };
 }
@@ -631,9 +685,8 @@ namespace Orthanc
     }
 
 
-    static void PrepareLogFolder(std::unique_ptr<std::ofstream>& file,
-                                 const std::string& suffix,
-                                 const std::string& directory)
+    static std::ofstream* PrepareLogFolder(const std::string& suffix,
+                                           const std::string& directory)
     {
       boost::filesystem::path log, link;
       GetLogPath(log, link, suffix, directory);
@@ -643,19 +696,9 @@ namespace Orthanc
       boost::filesystem::create_symlink(log.filename(), link);
 #endif
 
-      file.reset(new std::ofstream(log.string().c_str()));
+      return new std::ofstream(log.string().c_str());
     }
 
-
-    // "loggingStreamsMutex_" must be locked
-    static void CheckFile(std::unique_ptr<std::ofstream>& f)
-    {
-      if (loggingStreamsContext_->file_.get() == NULL ||
-          !loggingStreamsContext_->file_->is_open())
-      {
-        throw OrthancException(ErrorCode_CannotWriteFile);
-      }
-    }
 
     void SetCurrentThreadNameInternal(const boost::thread::id& id, const std::string& name)
     {
@@ -909,16 +952,11 @@ namespace Orthanc
     void SetTargetFolder(const std::string& path)
     {
       boost::mutex::scoped_lock lock(loggingStreamsMutex_);
+
       if (loggingStreamsContext_.get() != NULL)
       {
-        PrepareLogFolder(loggingStreamsContext_->file_, "" /* no suffix */, path);
-        CheckFile(loggingStreamsContext_->file_);
-
-        loggingStreamsContext_->targetFile_.clear();
-        loggingStreamsContext_->targetFolder_ = path;
-        loggingStreamsContext_->warning_ = loggingStreamsContext_->file_.get();
-        loggingStreamsContext_->error_ = loggingStreamsContext_->file_.get();
-        loggingStreamsContext_->info_ = loggingStreamsContext_->file_.get();
+        loggingStreamsContext_->SetOutputFile(PrepareLogFolder("" /* no suffix */, path));
+        logTargetFile_.clear();
         logTargetFolder_ = path;
       }
     }
@@ -930,15 +968,9 @@ namespace Orthanc
 
       if (loggingStreamsContext_.get() != NULL)
       {
-        loggingStreamsContext_->file_.reset(new std::ofstream(path.c_str(), std::fstream::app));
-        CheckFile(loggingStreamsContext_->file_);
-
-        loggingStreamsContext_->targetFile_ = path;
-        loggingStreamsContext_->targetFolder_.clear();
-        loggingStreamsContext_->warning_ = loggingStreamsContext_->file_.get();
-        loggingStreamsContext_->error_ = loggingStreamsContext_->file_.get();
-        loggingStreamsContext_->info_ = loggingStreamsContext_->file_.get();
+        loggingStreamsContext_->SetOutputFile(new std::ofstream(path.c_str(), std::fstream::app));
         logTargetFile_ = path;
+        logTargetFolder_.clear();
       }
     }
 
@@ -1008,20 +1040,20 @@ namespace Orthanc
           switch (level_)
           {
             case LogLevel_ERROR:
-              stream_ = loggingStreamsContext_->error_;
+              stream_ = &loggingStreamsContext_->GetError();
               break;
               
             case LogLevel_WARNING:
-              stream_ = loggingStreamsContext_->warning_;
+              stream_ = &loggingStreamsContext_->GetWarning();
               break;
               
             case LogLevel_INFO:
             case LogLevel_TRACE:
-              stream_ = loggingStreamsContext_->info_;
+              stream_ = &loggingStreamsContext_->GetInfo();
               break;
               
             default:  // Should not occur
-              stream_ = loggingStreamsContext_->error_;
+              stream_ = &loggingStreamsContext_->GetError();
               break;              
           }
 
@@ -1041,7 +1073,7 @@ namespace Orthanc
             { 
               // Something is going really wrong, probably running out of
               // memory. Fallback to a degraded mode.
-              stream_ = loggingStreamsContext_->error_;
+              stream_ = &loggingStreamsContext_->GetError();
               (*stream_) << "E???? ??:??:??.?????? ] ";
             }
           }
@@ -1114,15 +1146,11 @@ namespace Orthanc
 
     void Flush()
     {
-      if (pluginContext_ != NULL)
-      {
-        boost::mutex::scoped_lock lock(loggingStreamsMutex_);
+      boost::mutex::scoped_lock lock(loggingStreamsMutex_);
 
-        if (loggingStreamsContext_.get() != NULL &&
-            loggingStreamsContext_->file_.get() != NULL)
-        {
-          loggingStreamsContext_->file_->flush();
-        }
+      if (loggingStreamsContext_.get() != NULL)
+      {
+        loggingStreamsContext_->Flush();
       }
     }
     
@@ -1132,11 +1160,7 @@ namespace Orthanc
                                         std::ostream& infoStream)
     {
       boost::mutex::scoped_lock lock(loggingStreamsMutex_);
-
-      loggingStreamsContext_.reset(new LoggingStreamsContext);
-      loggingStreamsContext_->error_ = &errorStream;
-      loggingStreamsContext_->warning_ = &warningStream;
-      loggingStreamsContext_->info_ = &infoStream;
+      loggingStreamsContext_.reset(new LoggingStreamsContext(errorStream, warningStream, infoStream));
     }
   }
 }

@@ -130,8 +130,8 @@ extern char** environ;
 
 namespace Orthanc
 {
-  static bool finish_;
-  static ServerBarrierEvent barrierEvent_;
+  static volatile bool finish_;
+  static volatile ServerBarrierEvent barrierEvent_;
 
 #if defined(_WIN32)
   static BOOL WINAPI ConsoleControlHandler(DWORD dwCtrlType)
