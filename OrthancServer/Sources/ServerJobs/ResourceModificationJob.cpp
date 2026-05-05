@@ -805,9 +805,12 @@ namespace Orthanc
               for (std::set<DicomTag>::const_iterator mainPatientTag = mainPatientTags.begin();
                    mainPatientTag != mainPatientTags.end(); ++mainPatientTag)
               {
+                // if the target patient has this tag AND
+                //   if it is either missing from the Replace OR
+                //   if it is in the Replace but different from the current patient tag
                 if (targetPatientTags.HasTag(*mainPatientTag) &&
                     ((!modification_->IsReplaced(*mainPatientTag) && targetPatientTags.GetStringValue(*mainPatientTag, "", false).size() > 0) ||
-                     modification_->GetReplacementAsString(*mainPatientTag) != targetPatientTags.GetStringValue(*mainPatientTag, "", false)))
+                     (modification_->IsReplaced(*mainPatientTag) && modification_->GetReplacementAsString(*mainPatientTag) != targetPatientTags.GetStringValue(*mainPatientTag, "", false))))
                 {
                   if (!modification_->IsReplaced(*mainPatientTag))
                   {
