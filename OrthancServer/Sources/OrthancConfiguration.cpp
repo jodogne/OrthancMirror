@@ -44,7 +44,6 @@ static const char* const DICOM_MODALITIES_IN_DB = "DicomModalitiesInDatabase";
 static const char* const ORTHANC_PEERS = "OrthancPeers";
 static const char* const ORTHANC_PEERS_IN_DB = "OrthancPeersInDatabase";
 static const char* const TEMPORARY_DIRECTORY = "TemporaryDirectory";
-static const char* const DATABASE_SERVER_IDENTIFIER = "DatabaseServerIdentifier";
 static const char* const WARNINGS = "Warnings";
 static const char* const JOBS_ENGINE_THREADS_COUNT = "JobsEngineThreadsCount";
 static const char* const DICOM_LOSSY_TRANSCODING_QUALITY = "DicomLossyTranscodingQuality";
@@ -1143,12 +1142,12 @@ namespace Orthanc
   {
     std::string id;
 
-    if (LookupStringParameter(id, DATABASE_SERVER_IDENTIFIER))
+    if (LookupStringParameter(id, ORTHANC_CONFIG_DATABASE_SERVER_IDENTIFIER))
     {
       if (id.empty())
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange, "Global configuration option \"" +
-                               std::string(DATABASE_SERVER_IDENTIFIER) + "\" cannot be empty");
+                               std::string(ORTHANC_CONFIG_DATABASE_SERVER_IDENTIFIER) + "\" cannot be empty");
       }
       else
       {
@@ -1169,9 +1168,9 @@ namespace Orthanc
         }
       }
 
-      items.insert("aet=" + GetStringParameter("DicomAet", "ORTHANC"));
-      items.insert("dicom-port=" + boost::lexical_cast<std::string>(GetUnsignedIntegerParameter("DicomPort", 4242)));
-      items.insert("http-port=" + boost::lexical_cast<std::string>(GetUnsignedIntegerParameter("HttpPort", 8042)));
+      items.insert("aet=" + GetOrthancAET());
+      items.insert("dicom-port=" + boost::lexical_cast<std::string>(GetDicomPort()));
+      items.insert("http-port=" + boost::lexical_cast<std::string>(GetHttpPort()));
 
       for (std::set<std::string>::const_iterator it = items.begin(); it != items.end(); ++it)
       {

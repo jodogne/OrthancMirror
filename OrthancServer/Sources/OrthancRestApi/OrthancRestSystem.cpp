@@ -71,27 +71,14 @@ namespace Orthanc
   static void GetSystemInformation(RestApiGetCall& call)
   {
     static const char* const API_VERSION = "ApiVersion";
-    static const char* const CHECK_REVISIONS = "CheckRevisions";
     static const char* const DATABASE_BACKEND_PLUGIN = "DatabaseBackendPlugin";
     static const char* const DATABASE_VERSION = "DatabaseVersion";
-    static const char* const DATABASE_SERVER_IDENTIFIER = "DatabaseServerIdentifier";
-    static const char* const DICOM_DEFAULT_RETRIEVE_METHOD = "DicomDefaultRetrieveMethod";
-    static const char* const DICOM_AET = "DicomAet";
-    static const char* const DICOM_PORT = "DicomPort";
-    static const char* const HTTP_PORT = "HttpPort";
     static const char* const IS_HTTP_SERVER_SECURE = "IsHttpServerSecure";
-    static const char* const NAME = "Name";
     static const char* const PLUGINS_ENABLED = "PluginsEnabled";
     static const char* const STORAGE_AREA_PLUGIN = "StorageAreaPlugin";
     static const char* const VERSION = "Version";
     static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
-    static const char* const STORAGE_COMPRESSION = "StorageCompression";
-    static const char* const OVERWRITE_INSTANCES = "OverwriteInstances";
     static const char* const OVERWRITE_INSTANCES_MODE = "OverwriteInstancesMode";
-    static const char* const INGEST_TRANSCODING = "IngestTranscoding";
-    static const char* const MAXIMUM_STORAGE_SIZE = "MaximumStorageSize";
-    static const char* const MAXIMUM_PATIENT_COUNT = "MaximumPatientCount";
-    static const char* const MAXIMUM_STORAGE_MODE = "MaximumStorageMode";
     static const char* const USER_METADATA = "UserMetadata";
     static const char* const HAS_LABELS = "HasLabels";
     static const char* const CAPABILITIES = "Capabilities";
@@ -99,9 +86,7 @@ namespace Orthanc
     static const char* const HAS_KEY_VALUE_STORES = "HasKeyValueStores";
     static const char* const HAS_QUEUES = "HasQueues";
     static const char* const HAS_EXTENDED_FIND = "HasExtendedFind";
-    static const char* const READ_ONLY = "ReadOnly";
     static const char* const HAS_RESERVE_QUEUE_VALUE = "HasReserveQueueValue";
-    static const char* const PATIENT_LEVEL_ENABLED = "PatientLevelEnabled";
 
     if (call.IsDocumentation())
     {
@@ -113,7 +98,7 @@ namespace Orthanc
         .SetAnswerField(VERSION, RestApiCallDocumentation::Type_String, "Version of Orthanc")
         .SetAnswerField(DATABASE_VERSION, RestApiCallDocumentation::Type_Number,
                         "Version of the database: https://orthanc.uclouvain.be/book/developers/db-versioning.html")
-        .SetAnswerField(DATABASE_SERVER_IDENTIFIER, RestApiCallDocumentation::Type_String,
+        .SetAnswerField(ORTHANC_CONFIG_DATABASE_SERVER_IDENTIFIER, RestApiCallDocumentation::Type_String,
                         "ID of the server in the database (when running multiple Orthanc on the same DB)")
         .SetAnswerField(IS_HTTP_SERVER_SECURE, RestApiCallDocumentation::Type_Boolean,
                         "Whether the REST API is properly secured (assuming no reverse proxy is in use): https://orthanc.uclouvain.be/book/faq/security.html#securing-the-http-server")
@@ -121,32 +106,36 @@ namespace Orthanc
                         "Information about the installed storage area plugin (`null` if no such plugin is installed)")
         .SetAnswerField(DATABASE_BACKEND_PLUGIN, RestApiCallDocumentation::Type_String,
                         "Information about the installed database index plugin (`null` if no such plugin is installed)")
-        .SetAnswerField(DICOM_DEFAULT_RETRIEVE_METHOD, RestApiCallDocumentation::Type_String, "The DicomDefaultRetrieveMethod configuration")
-        .SetAnswerField(DICOM_AET, RestApiCallDocumentation::Type_String, "The DICOM AET of Orthanc")
-        .SetAnswerField(DICOM_PORT, RestApiCallDocumentation::Type_Number, "The port to the DICOM server of Orthanc")
-        .SetAnswerField(HTTP_PORT, RestApiCallDocumentation::Type_Number, "The port to the HTTP server of Orthanc")
-        .SetAnswerField(NAME, RestApiCallDocumentation::Type_String,
-                        "The name of the Orthanc server, cf. the `Name` configuration option")
+        .SetAnswerField(ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD, RestApiCallDocumentation::Type_String, "The " + std::string(ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD) + " configuration")
+        .SetAnswerField(ORTHANC_CONFIG_DICOM_AET, RestApiCallDocumentation::Type_String, "The DICOM AET of Orthanc")
+        .SetAnswerField(ORTHANC_CONFIG_DICOM_PORT, RestApiCallDocumentation::Type_Number, "The port to the DICOM server of Orthanc")
+        .SetAnswerField(ORTHANC_CONFIG_HTTP_PORT, RestApiCallDocumentation::Type_Number, "The port to the HTTP server of Orthanc")
+        .SetAnswerField(ORTHANC_CONFIG_NAME, RestApiCallDocumentation::Type_String,
+                        "The name of the Orthanc server, cf. the `" + std::string(ORTHANC_CONFIG_NAME) + "` configuration option")
         .SetAnswerField(PLUGINS_ENABLED, RestApiCallDocumentation::Type_Boolean,
                         "Whether Orthanc was built with support for plugins")
-        .SetAnswerField(CHECK_REVISIONS, RestApiCallDocumentation::Type_Boolean,
+        .SetAnswerField(ORTHANC_CONFIG_CHECK_REVISIONS, RestApiCallDocumentation::Type_Boolean,
                         "Whether Orthanc handle revisions of metadata and attachments to deal with multiple writers (new in Orthanc 1.9.2)")
         .SetAnswerField(MAIN_DICOM_TAGS, RestApiCallDocumentation::Type_JsonObject,
                         "The list of MainDicomTags saved in DB for each resource level (new in Orthanc 1.11.0)")
-        .SetAnswerField(STORAGE_COMPRESSION, RestApiCallDocumentation::Type_Boolean,
+        .SetAnswerField(ORTHANC_CONFIG_STORAGE_COMPRESSION, RestApiCallDocumentation::Type_Boolean,
                         "Whether storage compression is enabled (new in Orthanc 1.11.0)")
-        .SetAnswerField(OVERWRITE_INSTANCES, RestApiCallDocumentation::Type_Boolean,
+        .SetAnswerField(ORTHANC_CONFIG_OVERWRITE_INSTANCES, RestApiCallDocumentation::Type_Boolean,
                         "Whether instances are overwritten when re-ingested (new in Orthanc 1.11.0 and kept as a bool for backward compatibility)")
         .SetAnswerField(OVERWRITE_INSTANCES_MODE, RestApiCallDocumentation::Type_String,
                         "Whether instances are overwritten when re-ingested (new in Orthanc 1.12.12)")
-        .SetAnswerField(INGEST_TRANSCODING, RestApiCallDocumentation::Type_String,
+        .SetAnswerField(ORTHANC_CONFIG_INGEST_TRANSCODING, RestApiCallDocumentation::Type_String,
                         "Whether instances are transcoded when ingested into Orthanc (`""` if no transcoding is performed) (new in Orthanc 1.11.0)")
-        .SetAnswerField(MAXIMUM_STORAGE_SIZE, RestApiCallDocumentation::Type_Number,
-                        "The configured MaximumStorageSize in MB (new in Orthanc 1.11.3)")
-        .SetAnswerField(MAXIMUM_PATIENT_COUNT, RestApiCallDocumentation::Type_Number,
-                        "The configured MaximumPatientCount (new in Orthanc 1.12.4)")
-        .SetAnswerField(MAXIMUM_STORAGE_MODE, RestApiCallDocumentation::Type_String,
-                        "The configured MaximumStorageMode (new in Orthanc 1.11.3)")
+        .SetAnswerField(ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE, RestApiCallDocumentation::Type_Number,
+                        std::string("The configured ") + ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE + " in MB (new in Orthanc 1.12.12)")
+        .SetAnswerField(ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS, RestApiCallDocumentation::Type_Boolean,
+                        std::string("The configured ") + ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS + " (new in Orthanc 1.12.12)")
+        .SetAnswerField(ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE, RestApiCallDocumentation::Type_Number,
+                        "The configured " + std::string(ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE) + " in MB (new in Orthanc 1.11.3)")
+        .SetAnswerField(ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT, RestApiCallDocumentation::Type_Number,
+                        "The configured " + std::string(ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT) + " (new in Orthanc 1.12.4)")
+        .SetAnswerField(ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE, RestApiCallDocumentation::Type_String,
+                        "The configured " + std::string(ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE) + " (new in Orthanc 1.11.3)")
         .SetAnswerField(USER_METADATA, RestApiCallDocumentation::Type_JsonObject,
                         "The configured UserMetadata (new in Orthanc 1.12.0)")
         .SetAnswerField(HAS_LABELS, RestApiCallDocumentation::Type_Boolean,
@@ -155,9 +144,9 @@ namespace Orthanc
                         "Whether the database back-end supports optional features like 'HasExtendedChanges', 'HasExtendedFind' "
                         "(new in Orthanc 1.12.5), 'HasKeyValueStores', 'HasQueues' (new in Orthanc 1.12.8), "
                         "and 'HasReserveQueueValue' (new in Orthanc 1.12.10)")
-        .SetAnswerField(READ_ONLY, RestApiCallDocumentation::Type_Boolean,
+        .SetAnswerField(ORTHANC_CONFIG_READ_ONLY, RestApiCallDocumentation::Type_Boolean,
                         "Whether Orthanc is running in read only mode (new in Orthanc 1.12.5)")
-        .SetAnswerField(PATIENT_LEVEL_ENABLED, RestApiCallDocumentation::Type_Boolean,
+        .SetAnswerField(ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED, RestApiCallDocumentation::Type_Boolean,
                         "Whether Patient level routes and sanity checks are enabled (new in Orthanc 1.12.11)")
         .SetHttpGetSample("https://orthanc.uclouvain.be/demo/system", true);
       return;
@@ -174,26 +163,29 @@ namespace Orthanc
 
     {
       OrthancConfiguration::ReaderLock lock;
-      result[DICOM_AET] = lock.GetConfiguration().GetOrthancAET();
-      result[DICOM_PORT] = lock.GetConfiguration().GetUnsignedIntegerParameter(DICOM_PORT, 4242);
-      result[HTTP_PORT] = lock.GetConfiguration().GetUnsignedIntegerParameter(HTTP_PORT, 8042);
-      result[NAME] = lock.GetConfiguration().GetStringParameter(NAME, "");
-      result[CHECK_REVISIONS] = lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false);  // New in Orthanc 1.9.2
-      result[STORAGE_COMPRESSION] = lock.GetConfiguration().GetBooleanParameter(STORAGE_COMPRESSION, false); // New in Orthanc 1.11.0
-      result[OVERWRITE_INSTANCES] = context.IsOverwriteInstances(); // New in Orthanc 1.11.0
-      result[OVERWRITE_INSTANCES_MODE] = EnumerationToString(context.GetOverwriteInstances()); // New in Orthanc 1.12.12
-      result[INGEST_TRANSCODING] = lock.GetConfiguration().GetStringParameter(INGEST_TRANSCODING, ""); // New in Orthanc 1.11.0
-      result[DATABASE_SERVER_IDENTIFIER] = lock.GetConfiguration().GetDatabaseServerIdentifier();
-      result[MAXIMUM_STORAGE_SIZE] = lock.GetConfiguration().GetUnsignedIntegerParameter(MAXIMUM_STORAGE_SIZE, 0); // New in Orthanc 1.11.3
-      result[MAXIMUM_PATIENT_COUNT] = lock.GetConfiguration().GetUnsignedIntegerParameter(MAXIMUM_PATIENT_COUNT, 0); // New in Orthanc 1.12.4
-      result[MAXIMUM_STORAGE_MODE] = lock.GetConfiguration().GetStringParameter(MAXIMUM_STORAGE_MODE, "Recycle"); // New in Orthanc 1.11.3
-      result[DICOM_DEFAULT_RETRIEVE_METHOD] = lock.GetConfiguration().GetStringParameter(DICOM_DEFAULT_RETRIEVE_METHOD, "C-MOVE");
+      result[ORTHANC_CONFIG_NAME] = lock.GetConfiguration().GetOrthancName();
+      result[ORTHANC_CONFIG_DICOM_AET] = lock.GetConfiguration().GetOrthancAET();
+      result[ORTHANC_CONFIG_DICOM_PORT] = lock.GetConfiguration().GetDicomPort();
+      result[ORTHANC_CONFIG_HTTP_PORT] = lock.GetConfiguration().GetHttpPort();
+      result[ORTHANC_CONFIG_CHECK_REVISIONS] = lock.GetConfiguration().HasCheckRevisions();  // New in Orthanc 1.9.2
+      result[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = lock.GetConfiguration().GetMaximumStorageCacheSize(); // New in Orthanc 1.12.12
+      result[ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS] = lock.GetConfiguration().HasStoreMD5ForAttachments(); // New in Orthanc 1.12.12
+      result[ORTHANC_CONFIG_STORAGE_COMPRESSION] = lock.GetConfiguration().HasStorageCompression(); // New in Orthanc 1.11.0
+      result[ORTHANC_CONFIG_INGEST_TRANSCODING] = lock.GetConfiguration().GetIngestTranscoding(); // New in Orthanc 1.11.0
+      result[ORTHANC_CONFIG_DATABASE_SERVER_IDENTIFIER] = lock.GetConfiguration().GetDatabaseServerIdentifier();
+      result[ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE] = lock.GetConfiguration().GetMaximumStorageSize(); // New in Orthanc 1.11.3
+      result[ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT] = lock.GetConfiguration().GetMaximumPatientCount(); // New in Orthanc 1.12.4
+      result[ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE] = lock.GetConfiguration().GetMaximumStorageMode(); // New in Orthanc 1.11.3
+      result[ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD] = lock.GetConfiguration().GetDicomDefaultRetrieveMethod();
     }
+
+    result[ORTHANC_CONFIG_OVERWRITE_INSTANCES] = context.IsOverwriteInstances(); // New in Orthanc 1.11.0
+    result[OVERWRITE_INSTANCES_MODE] = EnumerationToString(context.GetOverwriteInstances()); // New in Orthanc 1.12.12
+    result[ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED] = context.IsPatientLevelEnabled(); // New in Orthanc 1.12.11
 
     result[STORAGE_AREA_PLUGIN] = Json::nullValue;
     result[DATABASE_BACKEND_PLUGIN] = Json::nullValue;
-    result[READ_ONLY] = context.IsReadOnly();
-    result[PATIENT_LEVEL_ENABLED] = context.IsPatientLevelEnabled();
+    result[ORTHANC_CONFIG_READ_ONLY] = context.IsReadOnly();
 
 #if ORTHANC_ENABLE_PLUGINS == 1
     result[PLUGINS_ENABLED] = true;

@@ -71,7 +71,6 @@ static const char* const KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED = "DicomTlsRe
 static const char* const KEY_DICOM_TLS_MINIMUM_PROTOCOL_VERSION = "DicomTlsMinimumProtocolVersion";
 static const char* const KEY_DICOM_TLS_ACCEPTED_CIPHERS = "DicomTlsCiphersAccepted";
 static const char* const KEY_MAXIMUM_PDU_LENGTH = "MaximumPduLength";
-static const char* const KEY_READ_ONLY = "ReadOnly";
 static const char* const KEY_MAXIMUM_CONCURRENT_DCMTK_TRANSCODERS = "MaximumConcurrentDcmtkTranscoders";
 
 
@@ -1117,7 +1116,7 @@ static bool StartHttpServer(ServerContext& context,
   
       // HTTP server
       httpServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpThreadsCount", 50));
-      httpServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpPort", 8042));
+      httpServer.SetPortNumber(lock.GetConfiguration().GetHttpPort());
       std::set<std::string> httpBindAddresses;
       lock.GetConfiguration().GetSetOfStringsParameter(httpBindAddresses, "HttpBindAddresses");
       httpServer.SetBindAddresses(httpBindAddresses);
@@ -1394,7 +1393,7 @@ static bool StartDicomServer(ServerContext& context,
       OrthancConfiguration::ReaderLock lock;
       dicomServer.SetCalledApplicationEntityTitleCheck(lock.GetConfiguration().GetBooleanParameter("DicomCheckCalledAet", false));
       dicomServer.SetAssociationTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScpTimeout", 30));
-      dicomServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomPort", 4242));
+      dicomServer.SetPortNumber(lock.GetConfiguration().GetDicomPort());
       dicomServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomThreadsCount", 4));
       dicomServer.SetApplicationEntityTitle(lock.GetConfiguration().GetOrthancAET());
 
@@ -1680,7 +1679,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     }
 
     // New option in Orthanc 1.12.5
-    readOnly = lock.GetConfiguration().GetBooleanParameter(KEY_READ_ONLY, false);
+    readOnly = lock.GetConfiguration().GetBooleanParameter(ORTHANC_CONFIG_READ_ONLY, false);
     
     // New option in Orthanc 1.12.6
     maxDcmtkConcurrentTranscoders = lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_CONCURRENT_DCMTK_TRANSCODERS, 0);
@@ -1708,43 +1707,43 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
   {
     OrthancConfiguration::ReaderLock lock;
 
-    context.SetPatientLevelEnabled(lock.GetConfiguration().GetBooleanParameter("PatientLevelEnabled", true));
+    context.SetPatientLevelEnabled(lock.GetConfiguration().HasPatientLevelEnabled());
 
     if (context.IsReadOnly())
     {
-      LOG(WARNING) << "READ-ONLY SYSTEM: ignoring these configurations: StorageCompression, StoreMD5ForAttachments, OverwriteInstances, MaximumPatientCount, MaximumStorageSize, MaximumStorageMode, SaveJobs"; 
+      LOG(WARNING) << "READ-ONLY SYSTEM: ignoring these configurations: " << ORTHANC_CONFIG_STORAGE_COMPRESSION << ", " << ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS << ", " << ORTHANC_CONFIG_OVERWRITE_INSTANCES << ", " << ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT << ", " << ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE <<", " << ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE << ", SaveJobs"; 
     }
     else
     {
-      context.SetCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("StorageCompression", false));
-      context.SetStoreMD5ForAttachments(lock.GetConfiguration().GetBooleanParameter("StoreMD5ForAttachments", true));
+      context.SetCompressionEnabled(lock.GetConfiguration().HasStorageCompression());
+      context.SetStoreMD5ForAttachments(lock.GetConfiguration().HasStoreMD5ForAttachments());
 
       // New option in Orthanc 1.4.2 (bool), changed to a string in 1.12.12
       OverwriteInstancesMode overwriteInstancesMode = OverwriteInstancesMode_Never;
-      if (lock.GetJson().isMember("OverwriteInstances"))
+      if (lock.GetJson().isMember(ORTHANC_CONFIG_OVERWRITE_INSTANCES))
       {
         std::string strOverwriteInstancesMode;
 
-        if (lock.GetJson()["OverwriteInstances"].isString() &&
-          lock.GetConfiguration().LookupStringParameter(strOverwriteInstancesMode, "OverwriteInstances"))
+        if (lock.GetJson()[ORTHANC_CONFIG_OVERWRITE_INSTANCES].isString() &&
+          lock.GetConfiguration().LookupStringParameter(strOverwriteInstancesMode, ORTHANC_CONFIG_OVERWRITE_INSTANCES))
         {
           overwriteInstancesMode = StringToOverwriteInstancesMode(strOverwriteInstancesMode);
           if (overwriteInstancesMode == OverwriteInstancesMode_IfChanged && !context.IsStoreMD5ForAttachments())
           {
-            LOG(ERROR) << "Can not set \"OverwriteInstances\" to \"IfChanged\" when \"StoreMD5ForAttachments\" is set to false.";
+            LOG(ERROR) << "Can not set \"" << ORTHANC_CONFIG_OVERWRITE_INSTANCES << "\" to \"IfChanged\" when \"" << ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS << "\" is set to false.";
             return false;
           }
         }
-        else if (lock.GetJson()["OverwriteInstances"].isBool())
+        else if (lock.GetJson()[ORTHANC_CONFIG_OVERWRITE_INSTANCES].isBool())
         {
-          bool overwriteInstancesLegacy = lock.GetConfiguration().GetBooleanParameter("OverwriteInstances", false);
+          bool overwriteInstancesLegacy = lock.GetConfiguration().GetBooleanParameter(ORTHANC_CONFIG_OVERWRITE_INSTANCES, false);
           overwriteInstancesMode = (overwriteInstancesLegacy ? OverwriteInstancesMode_Always : OverwriteInstancesMode_Never);
         }
       }
       context.SetOverwriteInstances(overwriteInstancesMode);
 
-      unsigned int maximumPatientCount = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumPatientCount", 0);
-      unsigned int maximumStorageSize = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumStorageSize", 0);
+      unsigned int maximumPatientCount = lock.GetConfiguration().GetMaximumPatientCount();
+      unsigned int maximumStorageSize = lock.GetConfiguration().GetMaximumStorageSize();
 
       if (!context.IsPatientLevelEnabled() && (maximumPatientCount != 0 || maximumStorageSize != 0))
       {
@@ -1773,7 +1772,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
       try
       {
-        std::string mode = lock.GetConfiguration().GetStringParameter("MaximumStorageMode", "Recycle");
+        std::string mode = lock.GetConfiguration().GetMaximumStorageMode();
         context.GetIndex().SetMaximumStorageMode(StringToMaxStorageMode(mode));
       }
       catch (...)
@@ -1785,7 +1784,16 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     // note: this config is valid in ReadOnlyMode
     try
     {
-      uint64_t size = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumStorageCacheSize", 128);
+      uint64_t size = lock.GetConfiguration().GetMaximumStorageCacheSize();
+      if (size == 0)
+      {
+        LOG(WARNING) << "Storage cache is disabled";
+      }
+      else
+      {
+        LOG(WARNING) << "Storage cache size is " << size << " MB";
+      }
+      
       context.SetMaximumStorageCacheSize(size * 1024 * 1024);
     }
     catch (...)
@@ -1833,11 +1841,9 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
   }
 
   {
-    static const char* const CHECK_REVISIONS = "CheckRevisions";
-    
     OrthancConfiguration::ReaderLock lock;
     
-    if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
+    if (lock.GetConfiguration().HasCheckRevisions())
     {
       if (database.GetDatabaseCapabilities().HasRevisionsSupport())
       {
@@ -1847,17 +1853,15 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
       else
       {
         LOG(WARNING) << "The custom database back-end has *no* support for revisions of metadata and attachments, "
-                     << "but configuration option \"" << CHECK_REVISIONS << "\" is set to \"true\"";
+                     << "but configuration option \"" << ORTHANC_CONFIG_CHECK_REVISIONS << "\" is set to \"true\"";
       }
       
-      static const char* const STORE_MD5 = "StoreMD5ForAttachments";
-
-      if (!lock.GetConfiguration().GetBooleanParameter(STORE_MD5, true))
+      if (!lock.GetConfiguration().HasStoreMD5ForAttachments())
       {
         throw OrthancException(
           ErrorCode_ParameterOutOfRange,
-          "The revision system is enabled by configuration option \"" + std::string(CHECK_REVISIONS) +
-          "\", but won't work properly for attachments if \"" + std::string(STORE_MD5) + "\" is set to \"false\"");
+          "The revision system is enabled by configuration option \"" + std::string(ORTHANC_CONFIG_CHECK_REVISIONS) +
+          "\", but won't work properly for attachments if \"" + std::string(ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS) + "\" is set to \"false\"");
       }
     }
   }

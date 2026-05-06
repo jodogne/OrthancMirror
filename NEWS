@@ -20,6 +20,7 @@ REST API
 * New fields reported in the /system route:
   - "OverwriteInstancesMode" (note, the boolean "OverwriteInstances" field is kept for backward
     compatibility)
+  - "MaximumStorageCacheSize", "StoreMD5ForAttachments"
 * The "LocalAet" field of the payload to "/modalities/../move", "/modalities/../store", 
   "/modalities/../get", "queries/../answers/../retrieve" now always overwrites the "DicomAet"
   and the "DicomModalities.LocalAet" configurations.

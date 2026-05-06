@@ -37,6 +37,25 @@
 
 class DcmDataset;
 
+#define ORTHANC_CONFIG_NAME "Name"
+#define ORTHANC_CONFIG_DICOM_AET "DicomAet"
+#define ORTHANC_CONFIG_DICOM_PORT "DicomPort"
+#define ORTHANC_CONFIG_HTTP_PORT "HttpPort"
+#define ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE "MaximumStorageCacheSize"
+#define ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE "MaximumStorageSize"
+#define ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE "MaximumStorageMode"
+#define ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT "MaximumPatientCount"
+#define ORTHANC_CONFIG_CHECK_REVISIONS "CheckRevisions"
+#define ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS "StoreMD5ForAttachments"
+#define ORTHANC_CONFIG_STORAGE_COMPRESSION "StorageCompression"
+#define ORTHANC_CONFIG_OVERWRITE_INSTANCES "OverwriteInstances"
+#define ORTHANC_CONFIG_INGEST_TRANSCODING "IngestTranscoding"
+#define ORTHANC_CONFIG_DATABASE_SERVER_IDENTIFIER "DatabaseServerIdentifier"
+#define ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD "DicomDefaultRetrieveMethod"
+#define ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED "PatientLevelEnabled"
+#define ORTHANC_CONFIG_READ_ONLY "ReadOnly"
+
+
 namespace Orthanc
 {
   class DicomMap;
@@ -264,11 +283,6 @@ namespace Orthanc
 
     std::string GetDefaultPrivateCreator() const;
 
-    std::string GetOrthancAET() const
-    {
-      return GetStringParameter("DicomAet", "ORTHANC");
-    }
-
     void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target) const;
 
     std::string GetDatabaseServerIdentifier() const;
@@ -276,6 +290,75 @@ namespace Orthanc
     bool IsWarningEnabled(Warnings warning) const
     {
       return disabledWarnings_.count(warning) == 0;
+    }
+
+    std::string GetOrthancAET() const
+    {
+      return GetStringParameter(ORTHANC_CONFIG_DICOM_AET, "ORTHANC");
+    }
+
+    std::string GetOrthancName() const
+    {
+      return GetStringParameter(ORTHANC_CONFIG_NAME, "ORTHANC");
+    }
+
+    std::string GetIngestTranscoding() const
+    {
+      return GetStringParameter(ORTHANC_CONFIG_INGEST_TRANSCODING, "");
+    }
+
+    std::string GetMaximumStorageMode() const
+    {
+      return GetStringParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE, "Recycle");
+    }
+
+    std::string GetDicomDefaultRetrieveMethod() const
+    {
+      return GetStringParameter(ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD, "C-MOVE");
+    }
+    unsigned int GetMaximumStorageCacheSize() const
+    {
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE, 128);
+    }
+
+    unsigned int GetMaximumStorageSize() const
+    {
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE, 0);
+    }
+
+    unsigned int GetMaximumPatientCount() const
+    {
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT, 0);
+    }
+    
+    unsigned int GetDicomPort() const
+    {
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_PORT, 4242);
+    }
+
+    unsigned int GetHttpPort() const
+    {
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_HTTP_PORT, 8042);
+    }
+
+    bool HasCheckRevisions() const
+    {
+      return GetBooleanParameter(ORTHANC_CONFIG_CHECK_REVISIONS, false);
+    }
+
+    bool HasStoreMD5ForAttachments() const
+    {
+      return GetBooleanParameter(ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS, true);
+    }
+
+    bool HasStorageCompression() const
+    {
+      return GetBooleanParameter(ORTHANC_CONFIG_STORAGE_COMPRESSION, false);
+    }
+
+    bool HasPatientLevelEnabled() const
+    {
+      return GetBooleanParameter(ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED, true);
     }
 
     static void DefaultExtractDicomSummary(DicomMap& target,

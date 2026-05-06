@@ -440,7 +440,7 @@ namespace Orthanc
         builtinDecoderTranscoderOrder_ = StringToBuiltinDecoderTranscoderOrder(lock.GetConfiguration().GetStringParameter("BuiltinDecoderTranscoderOrder", "After"));
 
         std::string s;
-        if (lock.GetConfiguration().LookupStringParameter(s, "IngestTranscoding"))
+        if (lock.GetConfiguration().LookupStringParameter(s, ORTHANC_CONFIG_INGEST_TRANSCODING))
         {
           if (LookupTransferSyntax(ingestTransferSyntax_, s))
           {
@@ -533,7 +533,7 @@ namespace Orthanc
 
         SetAcceptedSopClasses(acceptedSopClasses, rejectedSopClasses);
 
-        defaultDicomRetrieveMethod_ = StringToRetrieveMethod(lock.GetConfiguration().GetStringParameter("DicomDefaultRetrieveMethod", "C-MOVE"));
+        defaultDicomRetrieveMethod_ = StringToRetrieveMethod(lock.GetConfiguration().GetDicomDefaultRetrieveMethod());
 
         dynamic_cast<DcmtkTranscoder&>(*dcmtkTranscoder_).SetDefaultLossyQuality(lock.GetConfiguration().GetDicomLossyTranscodingQuality());
       }

@@ -60,8 +60,6 @@
 static Orthanc::Semaphore throttlingSemaphore_(4);  // TODO => PARAMETER?
 
 
-static const std::string CHECK_REVISIONS = "CheckRevisions";
-
 static const char* const IGNORE_LENGTH = "ignore-length";
 static const char* const RECONSTRUCT_FILES = "ReconstructFiles";
 static const char* const LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS = "LimitToThisLevelMainDicomTags";
@@ -1949,7 +1947,7 @@ namespace Orthanc
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetUriArgument("name", "The name of the metadata, or its index (cf. `UserMetadata` configuration option)")
         .SetHttpHeader("If-Match", "Revision of the metadata, to check if its content has not changed and can "
-                       "be deleted. This header is mandatory if `CheckRevisions` option is `true`.");
+                       "be deleted. This header is mandatory if `" + std::string(ORTHANC_CONFIG_CHECK_REVISIONS) + "` option is `true`.");
       return;
     }
 
@@ -1971,10 +1969,10 @@ namespace Orthanc
       else
       {
         OrthancConfiguration::ReaderLock lock;
-        if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
+        if (lock.GetConfiguration().HasCheckRevisions())
         {
           throw OrthancException(ErrorCode_Revision,
-                                 "HTTP header \"If-Match\" is missing, as \"CheckRevisions\" is \"true\"");
+                                 "HTTP header \"If-Match\" is missing, as \"" + std::string(ORTHANC_CONFIG_CHECK_REVISIONS) + "\" is \"true\"");
         }
         else
         {
@@ -2034,7 +2032,7 @@ namespace Orthanc
       if (!hasOldRevision)
       {
         OrthancConfiguration::ReaderLock lock;
-        if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
+        if (lock.GetConfiguration().HasCheckRevisions())
         {
           // "StatelessDatabaseOperations::SetMetadata()" will ignore
           // the actual value of "oldRevision" if the metadata is
@@ -2654,7 +2652,7 @@ namespace Orthanc
       if (!hasOldRevision)
       {
         OrthancConfiguration::ReaderLock lock;
-        if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
+        if (lock.GetConfiguration().HasCheckRevisions())
         {
           // "StatelessDatabaseOperations::AddAttachment()" will ignore
           // the actual value of "oldRevision" if the metadata is
@@ -2738,10 +2736,10 @@ namespace Orthanc
       else
       {
         OrthancConfiguration::ReaderLock lock;
-        if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
+        if (lock.GetConfiguration().HasCheckRevisions())
         {
           throw OrthancException(ErrorCode_Revision,
-                                 "HTTP header \"If-Match\" is missing, as \"CheckRevisions\" is \"true\"");
+                                 "HTTP header \"If-Match\" is missing, as \"" + std::string(ORTHANC_CONFIG_CHECK_REVISIONS) + "\" is \"true\"");
         }
         else
         {
