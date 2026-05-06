@@ -34,6 +34,12 @@ Maintenance
   was required.
 * Fix usage of "LocalAet" in C-Find and "queries/../answers/../retrieve".
 * Fix Orthanc::ImageAccessor that was broken in Orthanc Framework 1.12.11
+* Fix a Denial of Service via Deeply Nested DICOM Sequences
+  https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=258
+  Security issue reported by Jose Lopez Martinez (aka elpe_pinillo) from Deloitte.
+* Upgraded dependencies for static builds:
+  - dcmtk 3.7.0 (hot-fix: https://github.com/DCMTK/dcmtk/commit/847d50e83ae5bbfbc731c99c142ee1410303d222)
+
 
 
 Plugin SDK

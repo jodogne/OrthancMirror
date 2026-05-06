@@ -1,0 +1,729 @@
+Only in dcmtk-3.7.0/: .gitignore
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/config/docs/macros.txt dcmtk-3.7.0/config/docs/macros.txt
+--- dcmtk-3.7.0.orig/config/docs/macros.txt	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/config/docs/macros.txt	2026-05-06 10:47:14.137800800 +0200
+@@ -109,6 +109,21 @@
+     dcmtk::log4cplus::threadCleanup() should be called by the user code in
+     order to clean-up oflog's thread local storage.
+ 
++DCMTK_MAX_SEQUENCE_NESTING
++  Affected: dcmdata
++  Type of modification: Compile-time tunable
++  Explanation: Defines the default maximum permitted sequence nesting depth
++    during DICOM parsing.  Deeply nested sequences can cause a stack overflow
++    by exhausting the call stack through unbounded recursion.  When this macro
++    is not defined, the default limit of 64 nested sequence levels is used.
++    Real-world DICOM data rarely exceeds 5-10 nesting levels.  The limit can
++    be changed at runtime per parse operation via
++    DcmInputStream::setMaxNestingDepth(), DcmItem::setMaxNestingDepth(), or
++    DcmFileFormat::setMaxNestingDepth().  Setting the runtime value to -1
++    disables the check entirely.
++    Minimum value: 1.  Values less than 1 cause a compile-time error.
++    Maximum value: 2147483647 (aligned to 32-bit signed integer runtime API).
++
+ DCMTK_MERGE_STDERR_TO_STDOUT
+   Affected: dcmdata
+   Type of modification: Activates feature
+Only in dcmtk-3.7.0.orig/config/include/dcmtk/config: osconfig.h
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmdata/include/dcmtk/dcmdata/dcerror.h dcmtk-3.7.0/dcmdata/include/dcmtk/dcmdata/dcerror.h
+--- dcmtk-3.7.0.orig/dcmdata/include/dcmtk/dcmdata/dcerror.h	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmdata/include/dcmtk/dcmdata/dcerror.h	2026-05-06 10:47:14.137800800 +0200
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 1994-2025, OFFIS e.V.
++ *  Copyright (C) 1994-2026, OFFIS e.V.
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation were developed by
+@@ -200,6 +200,8 @@
+ extern DCMTK_DCMDATA_EXPORT const OFConditionConst EC_UnsupportedURIType;
+ /// Execution of command line failed
+ extern DCMTK_DCMDATA_EXPORT const OFConditionConst EC_CommandLineFailed;
++/// Maximum sequence nesting depth exceeded (stack overflow protection)
++extern DCMTK_DCMDATA_EXPORT const OFConditionConst EC_NestingDepthLimitExceeded;
+ 
+ ///@}
+ 
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmdata/include/dcmtk/dcmdata/dcfilefo.h dcmtk-3.7.0/dcmdata/include/dcmtk/dcmdata/dcfilefo.h
+--- dcmtk-3.7.0.orig/dcmdata/include/dcmtk/dcmdata/dcfilefo.h	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmdata/include/dcmtk/dcmdata/dcfilefo.h	2026-05-06 10:47:14.137800800 +0200
+@@ -514,6 +514,35 @@
+ 
+     /// implementation version name to write in the meta-header
+     OFString ImplementationVersionName;
++
++    /// maximum sequence nesting depth for parsing
++    /// (0 = compile-time default DCMTK_MAX_SEQUENCE_NESTING, -1 = unlimited)
++    Sint32 MaxNestingDepth;
++
++  public:
++
++    /** set the maximum permitted sequence nesting depth for parsing.
++     *  Applied to the input stream in loadFile() and read(), and also
++     *  forwarded to the contained dataset.
++     *  - Value 0 (default): apply the compile-time default
++     *    (DCMTK_MAX_SEQUENCE_NESTING, default is 64)
++     *  - Value -1: disable the check (allow unlimited nesting)
++     *  - Value > 0: use this value as the maximum permitted nesting depth
++     *  @param maxDepth maximum nesting depth setting
++     */
++    void setMaxNestingDepth(Sint32 maxDepth)
++    {
++        MaxNestingDepth = maxDepth;
++        DcmDataset* dset = getDataset();
++        if (dset)
++            dset->setMaxNestingDepth(maxDepth);
++    }
++
++    /** return the maximum permitted sequence nesting depth for parsing.
++     *  @return maximum nesting depth setting
++     *    (0 = compile-time default DCMTK_MAX_SEQUENCE_NESTING, -1 = unlimited)
++     */
++    Sint32 getMaxNestingDepth() const { return MaxNestingDepth; }
+ };
+ 
+ 
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmdata/include/dcmtk/dcmdata/dcistrma.h dcmtk-3.7.0/dcmdata/include/dcmtk/dcmdata/dcistrma.h
+--- dcmtk-3.7.0.orig/dcmdata/include/dcmtk/dcmdata/dcistrma.h	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmdata/include/dcmtk/dcmdata/dcistrma.h	2026-05-06 10:47:14.137800800 +0200
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 1994-2018, OFFIS e.V.
++ *  Copyright (C) 1994-2026, OFFIS e.V.
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation were developed by
+@@ -224,6 +224,40 @@
+    */
+   virtual DcmInputStreamFactory *newFactory() const = 0;
+ 
++  /** returns the current sequence nesting depth.
++   *  This counter is used to prevent stack overflow from deeply nested
++   *  DICOM sequences in malicious input files.
++   *  @return current nesting depth
++   */
++  Uint32 nestingDepth() const;
++
++  /** increments the sequence nesting depth counter.
++   *  @return the new nesting depth after incrementing
++   */
++  Uint32 incrementNestingDepth();
++
++  /** decrements the sequence nesting depth counter.
++   *  Does nothing if the counter is already zero.
++   */
++  void decrementNestingDepth();
++
++  /** returns the maximum permitted sequence nesting depth for this stream.
++   *  A value of 0 means the compile-time default (DCMTK_MAX_SEQUENCE_NESTING) applies.
++   *  A value of -1 means the check is disabled (unlimited nesting).
++   *  @return maximum nesting depth setting
++   */
++  Sint32 maxNestingDepth() const;
++
++  /** sets the maximum permitted sequence nesting depth for this stream.
++   *  Must be called before parsing begins.
++   *  - Value 0 (default): apply the compile-time default
++   *    (DCMTK_MAX_SEQUENCE_NESTING, default is 64)
++   *  - Value -1: disable the check (allow unlimited nesting)
++   *  - Value > 0: use this value as the maximum permitted nesting depth
++   *  @param maxDepth maximum nesting depth setting
++   */
++  void setMaxNestingDepth(Sint32 maxDepth);
++
+   /** marks the current stream position for a later putback operation,
+    *  overwriting a possibly existing prior putback mark.
+    *  The DcmObject read methods rely on the possibility to putback
+@@ -272,6 +306,12 @@
+ 
+   /// putback marker
+   offile_off_t mark_;
++
++  /// current sequence nesting depth (for stack overflow protection)
++  Uint32 nestingDepth_;
++
++  /// maximum permitted sequence nesting depth (0 = default 64, -1 = unlimited)
++  Sint32 maxNestingDepth_;
+ };
+ 
+ 
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmdata/include/dcmtk/dcmdata/dcitem.h dcmtk-3.7.0/dcmdata/include/dcmtk/dcmdata/dcitem.h
+--- dcmtk-3.7.0.orig/dcmdata/include/dcmtk/dcmdata/dcitem.h	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmdata/include/dcmtk/dcmdata/dcitem.h	2026-05-06 10:47:14.137800800 +0200
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 1994-2025, OFFIS e.V.
++ *  Copyright (C) 1994-2026, OFFIS e.V.
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation were developed by
+@@ -1573,6 +1573,29 @@
+ 
+     /// cache for private creator tags and identifiers
+     DcmPrivateTagCache privateCreatorCache;
++
++    /// maximum sequence nesting depth for parsing
++    /// (0 = compile-time default DCMTK_MAX_SEQUENCE_NESTING, -1 = unlimited)
++    Sint32 maxNestingDepth;
++
++  public:
++
++    /** set the maximum permitted sequence nesting depth for parsing.
++     *  This limit is applied to the input stream before parsing in
++     *  loadFile() and read().
++     *  - Value 0 (default): apply the compile-time default
++     *    (DCMTK_MAX_SEQUENCE_NESTING, default is 64)
++     *  - Value -1: disable the check (allow unlimited nesting)
++     *  - Value > 0: use this value as the maximum permitted nesting depth
++     *  @param maxDepth maximum nesting depth setting
++     */
++    void setMaxNestingDepth(Sint32 maxDepth) { maxNestingDepth = maxDepth; }
++
++    /** return the maximum permitted sequence nesting depth for parsing.
++     *  @return maximum nesting depth setting
++     *    (0 = compile-time default DCMTK_MAX_SEQUENCE_NESTING, -1 = unlimited)
++     */
++    Sint32 getMaxNestingDepth() const { return maxNestingDepth; }
+ };
+ 
+ /** Checks whether left hand side item is smaller than right hand side
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmdata/include/dcmtk/dcmdata/dcobject.h dcmtk-3.7.0/dcmdata/include/dcmtk/dcmdata/dcobject.h
+--- dcmtk-3.7.0.orig/dcmdata/include/dcmtk/dcmdata/dcobject.h	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmdata/include/dcmtk/dcmdata/dcobject.h	2026-05-06 10:47:14.137800800 +0200
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 1994-2024, OFFIS e.V.
++ *  Copyright (C) 1994-2026, OFFIS e.V.
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation were developed by
+@@ -50,6 +50,18 @@
+ 
+ // Undefined Length Identifier now defined in dctypes.h
+ 
++// Default maximum sequence nesting depth (can be overridden at compile time).
++// Must be in the range [1, 2147483647].
++#ifndef DCMTK_MAX_SEQUENCE_NESTING
++#define DCMTK_MAX_SEQUENCE_NESTING 64
++#endif
++#if DCMTK_MAX_SEQUENCE_NESTING < 1
++#error "DCMTK_MAX_SEQUENCE_NESTING must be >= 1"
++#endif
++#if DCMTK_MAX_SEQUENCE_NESTING > 2147483647
++#error "DCMTK_MAX_SEQUENCE_NESTING must be <= 2147483647"
++#endif
++
+ // Maximum number of read bytes for a Value Element
+ const Uint32 DCM_MaxReadLength = 4096;
+ 
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmdata/libsrc/dcdatset.cc dcmtk-3.7.0/dcmdata/libsrc/dcdatset.cc
+--- dcmtk-3.7.0.orig/dcmdata/libsrc/dcdatset.cc	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmdata/libsrc/dcdatset.cc	2026-05-06 10:47:14.141581926 +0200
+@@ -647,6 +647,9 @@
+         {
+             /* use stdin stream */
+             DcmStdinStream inStream;
++            /* apply configured nesting depth limit */
++            if (getMaxNestingDepth() > 0)
++                inStream.setMaxNestingDepth(getMaxNestingDepth());
+ 
+             /* clear this object */
+             l_error = clear();
+@@ -670,6 +673,9 @@
+         } else {
+             /* open file for input */
+             DcmInputFileStream fileStream(fileName);
++            /* apply configured nesting depth limit */
++            if (getMaxNestingDepth() > 0)
++                fileStream.setMaxNestingDepth(getMaxNestingDepth());
+ 
+             /* check stream status */
+             l_error = fileStream.status();
+Only in dcmtk-3.7.0.orig/dcmdata/libsrc: dcdict_orthanc.cc
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmdata/libsrc/dcerror.cc dcmtk-3.7.0/dcmdata/libsrc/dcerror.cc
+--- dcmtk-3.7.0.orig/dcmdata/libsrc/dcerror.cc	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmdata/libsrc/dcerror.cc	2026-05-06 10:47:14.141581926 +0200
+@@ -91,6 +91,7 @@
+ makeOFConditionConst(EC_BulkDataURINotSupported,         OFM_dcmdata, 66, OF_error, "BulkDataURI not yet supported"              );
+ makeOFConditionConst(EC_UnsupportedURIType,              OFM_dcmdata, 67, OF_error, "Unsupported URI type"                       );
+ makeOFConditionConst(EC_CommandLineFailed,               OFM_dcmdata, 68, OF_error, "Execution of command line failed"           );
++makeOFConditionConst(EC_NestingDepthLimitExceeded,       OFM_dcmdata, 69, OF_error, "Maximum sequence nesting depth exceeded"    );
+ 
+ const unsigned short EC_CODE_CannotSelectCharacterSet     = 35;
+ const unsigned short EC_CODE_CannotConvertCharacterSet    = 36;
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmdata/libsrc/dcfilefo.cc dcmtk-3.7.0/dcmdata/libsrc/dcfilefo.cc
+--- dcmtk-3.7.0.orig/dcmdata/libsrc/dcfilefo.cc	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmdata/libsrc/dcfilefo.cc	2026-05-06 10:48:15.265234129 +0200
+@@ -54,7 +54,8 @@
+   : DcmSequenceOfItems(DCM_InternalUseTag),
+     FileReadMode(ERM_autoDetect),
+     ImplementationClassUID(OFFIS_IMPLEMENTATION_CLASS_UID),
+-    ImplementationVersionName(OFFIS_DTK_IMPLEMENTATION_VERSION_NAME)
++    ImplementationVersionName(OFFIS_DTK_IMPLEMENTATION_VERSION_NAME),
++    MaxNestingDepth(0)
+ {
+     DcmMetaInfo *MetaInfo = new DcmMetaInfo();
+     DcmSequenceOfItems::itemList->insert(MetaInfo);
+@@ -71,7 +72,8 @@
+   : DcmSequenceOfItems(DCM_InternalUseTag),
+     FileReadMode(ERM_autoDetect),
+     ImplementationClassUID(OFFIS_IMPLEMENTATION_CLASS_UID),
+-    ImplementationVersionName(OFFIS_DTK_IMPLEMENTATION_VERSION_NAME)
++    ImplementationVersionName(OFFIS_DTK_IMPLEMENTATION_VERSION_NAME),
++    MaxNestingDepth(0)
+ {
+     DcmMetaInfo *MetaInfo = new DcmMetaInfo();
+     DcmSequenceOfItems::itemList->insert(MetaInfo);
+@@ -99,7 +101,8 @@
+   : DcmSequenceOfItems(old),
+     FileReadMode(old.FileReadMode),
+     ImplementationClassUID(old.ImplementationClassUID),
+-    ImplementationVersionName(old.ImplementationVersionName)
++    ImplementationVersionName(old.ImplementationVersionName),
++    MaxNestingDepth(old.MaxNestingDepth)
+ {
+ }
+ 
+@@ -128,8 +131,8 @@
+     FileReadMode = obj.FileReadMode;
+     ImplementationClassUID = obj.ImplementationClassUID;
+     ImplementationVersionName = obj.ImplementationVersionName;
++        MaxNestingDepth = obj.MaxNestingDepth;
+   }
+-
+   return *this;
+ }
+ 
+@@ -942,6 +945,9 @@
+         {
+             /* use stdin stream */
+             DcmStdinStream inStream;
++            /* apply configured nesting depth limit */
++            if (MaxNestingDepth != 0)
++                inStream.setMaxNestingDepth(MaxNestingDepth);
+ 
+             /* clear this object */
+             l_error = clear();
+@@ -972,6 +978,9 @@
+         } else {
+             /* open file for output */
+             DcmInputFileStream fileStream(fileName);
++            /* apply configured nesting depth limit */
++            if (MaxNestingDepth > 0)
++                fileStream.setMaxNestingDepth(MaxNestingDepth);
+ 
+             /* check stream status */
+             l_error = fileStream.status();
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmdata/libsrc/dcistrma.cc dcmtk-3.7.0/dcmdata/libsrc/dcistrma.cc
+--- dcmtk-3.7.0.orig/dcmdata/libsrc/dcistrma.cc	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmdata/libsrc/dcistrma.cc	2026-05-06 10:47:14.141581926 +0200
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 1994-2010, OFFIS e.V.
++ *  Copyright (C) 1994-2026, OFFIS e.V.
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation were developed by
+@@ -29,6 +29,8 @@
+ , compressionFilter_(NULL)
+ , tell_(0)
+ , mark_(0)
++, nestingDepth_(0)
++, maxNestingDepth_(0)
+ {
+ }
+ 
+@@ -94,6 +96,32 @@
+   return current_;
+ }
+ 
++Uint32 DcmInputStream::nestingDepth() const
++{
++  return nestingDepth_;
++}
++
++Uint32 DcmInputStream::incrementNestingDepth()
++{
++  return ++nestingDepth_;
++}
++
++void DcmInputStream::decrementNestingDepth()
++{
++  if (nestingDepth_ > 0)
++    --nestingDepth_;
++}
++
++Sint32 DcmInputStream::maxNestingDepth() const
++{
++  return maxNestingDepth_;
++}
++
++void DcmInputStream::setMaxNestingDepth(Sint32 maxDepth)
++{
++  maxNestingDepth_ = maxDepth;
++}
++
+ OFCondition DcmInputStream::installCompressionFilter(E_StreamCompression filterType)
+ {
+   OFCondition result = EC_Normal;
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmdata/libsrc/dcitem.cc dcmtk-3.7.0/dcmdata/libsrc/dcitem.cc
+--- dcmtk-3.7.0.orig/dcmdata/libsrc/dcitem.cc	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmdata/libsrc/dcitem.cc	2026-05-06 10:47:14.141581926 +0200
+@@ -83,7 +83,8 @@
+     elementList(NULL),
+     lastElementComplete(OFTrue),
+     fStartPosition(0),
+-    privateCreatorCache()
++    privateCreatorCache(),
++    maxNestingDepth(0)
+ {
+     elementList = new DcmList;
+ }
+@@ -95,7 +96,8 @@
+     elementList(NULL),
+     lastElementComplete(OFTrue),
+     fStartPosition(0),
+-    privateCreatorCache()
++    privateCreatorCache(),
++    maxNestingDepth(0)
+ {
+     elementList = new DcmList;
+ }
+@@ -106,7 +108,8 @@
+     elementList(new DcmList),
+     lastElementComplete(old.lastElementComplete),
+     fStartPosition(old.fStartPosition),
+-    privateCreatorCache()
++    privateCreatorCache(),
++    maxNestingDepth(old.maxNestingDepth)
+ {
+     if (!old.elementList->empty())
+     {
+@@ -136,6 +139,7 @@
+         // copy DcmItem's member variables
+         lastElementComplete = obj.lastElementComplete;
+         fStartPosition = obj.fStartPosition;
++        maxNestingDepth = obj.maxNestingDepth;
+         if (!obj.elementList->empty())
+         {
+             elementList->seek(ELP_first);
+@@ -1394,6 +1398,10 @@
+         return errorFlag;
+     }
+ 
++    /* apply configured nesting depth limit to the input stream (0 = use default, skip override) */
++    if (getMaxNestingDepth() != 0)
++        inStream.setMaxNestingDepth(getMaxNestingDepth());
++
+     /* figure out if the stream reported an error */
+     errorFlag = inStream.status();
+     /* if the stream reported an error or if it is the end of the */
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmdata/libsrc/dcsequen.cc dcmtk-3.7.0/dcmdata/libsrc/dcsequen.cc
+--- dcmtk-3.7.0.orig/dcmdata/libsrc/dcsequen.cc	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmdata/libsrc/dcsequen.cc	2026-05-06 10:47:14.141581926 +0200
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 1994-2023, OFFIS e.V.
++ *  Copyright (C) 1994-2026, OFFIS e.V.
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation were developed by
+@@ -704,6 +704,23 @@
+         errorFlag = EC_IllegalCall;
+     else
+     {
++        const Uint32 depth = inStream.incrementNestingDepth();
++        const Sint32 maxDepthSetting = inStream.maxNestingDepth();
++        /* -1 = unlimited; 0 = use built-in default (DCMTK_MAX_SEQUENCE_NESTING); > 0 = custom limit */
++        const Uint32 effectiveMax = (maxDepthSetting == 0) ? DCMTK_MAX_SEQUENCE_NESTING
++                                  : (maxDepthSetting < 0)  ? 0   /* unlimited */
++                                  : OFstatic_cast(Uint32, maxDepthSetting);
++        if (effectiveMax > 0 && depth > effectiveMax)
++        {
++            DCMDATA_ERROR("DcmSequenceOfItems: Maximum nesting depth (" << effectiveMax
++                << ") exceeded while parsing sequence " << getTagName() << " " << getTag());
++            inStream.decrementNestingDepth();
++            errorFlag = EC_NestingDepthLimitExceeded;
++            // dump information if required
++            DCMDATA_TRACE("DcmSequenceOfItems::read() returns error = " << errorFlag.text());
++            return errorFlag;
++        }
++
+         errorFlag = inStream.status();
+ 
+         if (errorFlag.good() && inStream.eos())
+@@ -773,6 +790,7 @@
+             errorFlag = EC_Normal;
+         if (errorFlag.good())
+             setTransferState(ERW_ready);      // sequence is complete
++        inStream.decrementNestingDepth();
+     }
+     // dump information if required
+     DCMDATA_TRACE("DcmSequenceOfItems::read() returns error = " << errorFlag.text());
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmnet/include/dcmtk/dcmnet/scp.h dcmtk-3.7.0/dcmnet/include/dcmtk/dcmnet/scp.h
+--- dcmtk-3.7.0.orig/dcmnet/include/dcmtk/dcmnet/scp.h	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmnet/include/dcmtk/dcmnet/scp.h	2026-05-06 10:47:14.145363052 +0200
+@@ -360,6 +360,17 @@
+      */
+     void setAlwaysAcceptDefaultRole(const OFBool enabled);
+ 
++    /** Set the maximum permitted sequence nesting depth for parsing
++     *  datasets received over the network. This limit is applied to
++     *  each dataset received via receiveDIMSEDataset().
++     *  - Value 0 (default): apply the compile-time default
++     *    (DCMTK_MAX_SEQUENCE_NESTING)
++     *  - Value -1: disable the check (allow unlimited nesting)
++     *  - Value > 0: use this value as the maximum nesting depth
++     *  @param maxDepth maximum nesting depth setting
++     */
++    void setMaxNestingDepth(const Sint32 maxDepth);
++
+     /* Get methods for SCP settings */
+ 
+     /** Returns TCP/IP port number SCP listens for new connection requests
+@@ -434,6 +445,14 @@
+      */
+     OFBool getProgressNotificationMode() const;
+ 
++    /** Return the maximum permitted sequence nesting depth for
++     *  parsing datasets received over the network.
++     *  @return maximum nesting depth setting
++     *    (0 = compile-time default DCMTK_MAX_SEQUENCE_NESTING,
++     *    -1 = unlimited)
++     */
++    Sint32 getMaxNestingDepth() const;
++
+     /** Get access to the configuration of the SCP. Note that the functionality
+      *  on the configuration object is shadowed by other API functions of DcmSCP.
+      *  The existing functions are provided in order to not break users of this
+@@ -1157,6 +1176,11 @@
+     /// it, e.g. in the context of the DcmSCPPool class.
+     DcmSharedSCPConfig m_cfg;
+ 
++    /// Maximum sequence nesting depth for parsing received datasets
++    /// (0 = compile-time default DCMTK_MAX_SEQUENCE_NESTING,
++    /// -1 = unlimited)
++    Sint32 m_maxNestingDepth;
++
+     /** Drops association and clears internal structures to free memory
+      */
+     void dropAndDestroyAssociation();
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmnet/include/dcmtk/dcmnet/scu.h dcmtk-3.7.0/dcmnet/include/dcmtk/dcmnet/scu.h
+--- dcmtk-3.7.0.orig/dcmnet/include/dcmtk/dcmnet/scu.h	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmnet/include/dcmtk/dcmnet/scu.h	2026-05-06 10:47:14.145363052 +0200
+@@ -739,6 +739,17 @@
+      */
+     void setProgressNotificationMode(const OFBool mode);
+ 
++    /** Set the maximum permitted sequence nesting depth for parsing
++     *  datasets received over the network. This limit is applied to
++     *  each dataset received via receiveDIMSEDataset().
++     *  - Value 0 (default): apply the compile-time default
++     *    (DCMTK_MAX_SEQUENCE_NESTING)
++     *  - Value -1: disable the check (allow unlimited nesting)
++     *  - Value > 0: use this value as the maximum nesting depth
++     *  @param maxDepth maximum nesting depth setting
++     */
++    void setMaxNestingDepth(const Sint32 maxDepth);
++
+     /* Get methods */
+ 
+     /** Get current connection status
+@@ -831,6 +842,14 @@
+      */
+     OFBool getProgressNotificationMode() const;
+ 
++    /** Return the maximum permitted sequence nesting depth for
++     *  parsing datasets received over the network.
++     *  @return maximum nesting depth setting
++     *    (0 = compile-time default DCMTK_MAX_SEQUENCE_NESTING,
++     *    -1 = unlimited)
++     */
++    Sint32 getMaxNestingDepth() const;
++
+     /** Returns whether SCU is configured to create a TLS connection with the SCP
+      *  @return OFTrue if TLS mode has been enabled, OFFalse otherwise
+      */
+@@ -1136,6 +1155,11 @@
+     /// Progress notification mode (default: enabled)
+     OFBool m_progressNotificationMode;
+ 
++    /// Maximum sequence nesting depth for parsing received datasets
++    /// (0 = compile-time default DCMTK_MAX_SEQUENCE_NESTING,
++    /// -1 = unlimited)
++    Sint32 m_maxNestingDepth;
++
+     /// Flag indicating whether secure mode has been enabled (default: disabled)
+     OFBool m_secureConnectionEnabled;
+ 
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmnet/libsrc/dimse.cc dcmtk-3.7.0/dcmnet/libsrc/dimse.cc
+--- dcmtk-3.7.0.orig/dcmnet/libsrc/dimse.cc	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmnet/libsrc/dimse.cc	2026-05-06 10:47:14.145363052 +0200
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 1994-2025, OFFIS e.V.
++ *  Copyright (C) 1994-2026, OFFIS e.V.
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation were partly developed by
+@@ -1536,7 +1536,8 @@
+         dset = *dataObject;
+     }
+ 
+-    /* check if there is still no DcmDataset object which can be used to store the data set. */
++    /* check if there is still no DcmDataset object (i.e. if allocation fails) */
++    /* which can be used to store the data set. */
+     if (dset == NULL)
+     {
+         /* if this is the case, just go ahead an receive data, but do not store it anywhere */
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmnet/libsrc/scp.cc dcmtk-3.7.0/dcmnet/libsrc/scp.cc
+--- dcmtk-3.7.0.orig/dcmnet/libsrc/scp.cc	2025-12-15 08:28:13.000000000 +0100
++++ dcmtk-3.7.0/dcmnet/libsrc/scp.cc	2026-05-06 10:47:14.145363052 +0200
+@@ -32,6 +32,7 @@
+ : m_network(NULL)
+ , m_assoc(NULL)
+ , m_cfg()
++, m_maxNestingDepth(0)
+ {
+     OFStandard::initializeNetwork();
+ }
+@@ -1590,6 +1591,19 @@
+     if (m_assoc == NULL)
+         return DIMSE_ILLEGALASSOCIATION;
+ 
++    /* if a custom nesting depth limit is configured, pre-allocate
++     * the dataset and apply the setting before parsing starts.
++     * DIMSE_receiveDataSetInMemory() will use this dataset instead
++     * of creating a new one internally. */
++    OFBool weAllocated = OFFalse;
++    if (dataObject != NULL && *dataObject == NULL
++        && m_maxNestingDepth != 0)
++    {
++        *dataObject = new DcmDataset();
++        (*dataObject)->setMaxNestingDepth(m_maxNestingDepth);
++        weAllocated = OFTrue;
++    }
++
+     OFCondition cond;
+     /* call the corresponding DIMSE function to receive the dataset */
+     if (m_cfg->getProgressNotificationMode())
+@@ -1619,6 +1633,14 @@
+     }
+     else
+     {
++        /* if we pre-allocated the dataset, clean up on error since
++         * DIMSE_receiveDataSetInMemory() won't delete a dataset
++         * that was passed in by the caller */
++        if (weAllocated && dataObject != NULL)
++        {
++            delete *dataObject;
++            *dataObject = NULL;
++        }
+         OFString tempStr;
+         DCMNET_ERROR("Unable to receive dataset on presentation context "
+                      << OFstatic_cast(unsigned int, *presID) << ": " << DimseCondition::dump(tempStr, cond));
+@@ -1910,6 +1932,13 @@
+ 
+ // ----------------------------------------------------------------------------
+ 
++void DcmSCP::setMaxNestingDepth(const Sint32 maxDepth)
++{
++    m_maxNestingDepth = maxDepth;
++}
++
++// ----------------------------------------------------------------------------
++
+ /* Get methods for SCP settings and current association information */
+ 
+ OFBool DcmSCP::getRefuseAssociation() const
+@@ -2002,6 +2031,13 @@
+ }
+ 
+ // ----------------------------------------------------------------------------
++
++Sint32 DcmSCP::getMaxNestingDepth() const
++{
++    return m_maxNestingDepth;
++}
++
++// ----------------------------------------------------------------------------
+ 
+ OFBool DcmSCP::isConnected() const
+ {
+diff -urEb '--exclude=.git' dcmtk-3.7.0.orig/dcmnet/libsrc/scu.cc dcmtk-3.7.0/dcmnet/libsrc/scu.cc
+--- dcmtk-3.7.0.orig/dcmnet/libsrc/scu.cc	2026-05-06 11:24:55.427982600 +0200
++++ dcmtk-3.7.0/dcmnet/libsrc/scu.cc	2026-05-06 10:47:14.145363052 +0200
+@@ -61,6 +61,7 @@
+     , m_verbosePCMode(OFFalse)
+     , m_datasetConversionMode(OFFalse)
+     , m_progressNotificationMode(OFTrue)
++    , m_maxNestingDepth(0)
+     , m_secureConnectionEnabled(OFFalse)
+     , m_protocolVersion(ASC_AF_Default)
+ {
+@@ -2505,6 +2506,19 @@
+     if (!isConnected())
+         return DIMSE_ILLEGALASSOCIATION;
+ 
++    /* if a custom nesting depth limit is configured, pre-allocate
++     * the dataset and apply the setting before parsing starts.
++     * DIMSE_receiveDataSetInMemory() will use this dataset instead
++     * of creating a new one internally. */
++    OFBool weAllocated = OFFalse;
++    if (dataObject != NULL && *dataObject == NULL
++        && m_maxNestingDepth != 0)
++    {
++        *dataObject = new DcmDataset();
++        (*dataObject)->setMaxNestingDepth(m_maxNestingDepth);
++        weAllocated = OFTrue;
++    }
++
+     OFCondition cond;
+     /* call the corresponding DIMSE function to receive the dataset */
+     if (m_progressNotificationMode)
+@@ -2524,6 +2538,14 @@
+     }
+     else
+     {
++        /* if we pre-allocated the dataset, clean up on error since
++         * DIMSE_receiveDataSetInMemory() won't delete a dataset
++         * that was passed in by the caller */
++        if (weAllocated && dataObject != NULL)
++        {
++            delete *dataObject;
++            *dataObject = NULL;
++        }
+         OFString tempStr;
+         DCMNET_ERROR("Unable to receive dataset on presentation context "
+                      << OFstatic_cast(unsigned int, *presID) << ": " << DimseCondition::dump(tempStr, cond));
+@@ -2612,6 +2634,11 @@
+     m_progressNotificationMode = mode;
+ }
+ 
++void DcmSCU::setMaxNestingDepth(const Sint32 maxDepth)
++{
++    m_maxNestingDepth = maxDepth;
++}
++
+ void DcmSCU::setProtocolVersion(T_ASC_ProtocolFamily protocolVersion)
+ {
+     m_protocolVersion = protocolVersion;
+@@ -2699,6 +2726,11 @@
+     return m_progressNotificationMode;
+ }
+ 
++Sint32 DcmSCU::getMaxNestingDepth() const
++{
++    return m_maxNestingDepth;
++}
++
+ OFCondition DcmSCU::getDatasetInfo(DcmDataset* dataset,
+                                    OFString& sopClassUID,
+                                    OFString& sopInstanceUID,

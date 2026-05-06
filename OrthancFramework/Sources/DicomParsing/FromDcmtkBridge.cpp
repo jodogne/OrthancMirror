@@ -1248,6 +1248,11 @@ namespace Orthanc
   {
     assert(parent.type() == Json::objectValue);
 
+    if (depth >= 64)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Too many levels of nested Sequences (max 64)");
+    }
+
     for (unsigned long i = 0; i < item.card(); i++)
     {
       DcmElement* element = item.getElement(i);
