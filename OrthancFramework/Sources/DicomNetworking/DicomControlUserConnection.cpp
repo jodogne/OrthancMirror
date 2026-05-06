@@ -689,15 +689,17 @@ namespace Orthanc
           }
 
           Uint16 desiredCStoreReturnStatus = 0;
-          DcmDataset* dataObject = NULL;
+          DcmDataset* dataObjectRawPtr = NULL;
 
           // Receive dataset
           result = DIMSE_receiveDataSetInMemory(&(association_->GetDcmtkAssociation()),
                                                   (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                                                   parameters_.GetTimeout(),
                                                   &cmdPresId,
-                                                  &dataObject,
+                                                  &dataObjectRawPtr,
                                                   NULL, NULL);
+
+          std::unique_ptr<DcmDataset> dataObject(dataObjectRawPtr); // to handle deallocation correctly
 
           if (result.bad())
           {
