@@ -219,6 +219,10 @@ namespace Orthanc
         }
 
         assert(offset + fragment->getLength() <= frame.size());
+        if (static_cast<uint64_t>(offset) + fragment->getLength() > static_cast<uint64_t>(frame.size()))
+        {
+          throw OrthancException(ErrorCode_CorruptedFile, "Fragment too large to fit in frame");
+        }
 
         memcpy(target + offset, content, fragment->getLength());
         offset += fragment->getLength();

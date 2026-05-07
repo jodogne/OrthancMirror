@@ -36,6 +36,11 @@
 #include <png.h>
 #include <string.h>  // For memcpy()
 
+static const uint64_t MAX_DECODED_PNG_IMAGE_SIZE = (sizeof(void*) == 4
+                                                    ? 1ull * 1024ull * 1024ull * 1024ull   // 1 GB on 32 bits system
+                                                    : 4ull * 1024ull * 1024ull * 1024ull); // 4 GB on 64 bits system
+
+
 namespace Orthanc
 {
 #if ORTHANC_SANDBOXED == 0
@@ -150,17 +155,17 @@ namespace Orthanc
                  &compression_type, &filter_method);
 
     PixelFormat format;
-    unsigned int pitch;
+    uint64_t pitch;
 
     if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth == 8)
     {
       format = PixelFormat_Grayscale8;
-      pitch = width;
+      pitch = static_cast<uint64_t>(width);
     }
     else if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth == 16)
     {
       format = PixelFormat_Grayscale16;
-      pitch = 2 * width;
+      pitch = static_cast<uint64_t>(width) * 2;
 
       if (Toolbox::DetectEndianness() == Endianness_Little)
       {
@@ -170,17 +175,17 @@ namespace Orthanc
     else if (color_type == PNG_COLOR_TYPE_RGB && bit_depth == 8)
     {
       format = PixelFormat_RGB24;
-      pitch = 3 * width;
+      pitch = static_cast<uint64_t>(width) * 3;
     }
     else if (color_type == PNG_COLOR_TYPE_RGBA && bit_depth == 8)
     {
       format = PixelFormat_RGBA32;
-      pitch = 4 * width;
+      pitch = static_cast<uint64_t>(width) * 4;
     }
     else if (color_type == PNG_COLOR_TYPE_RGBA && bit_depth == 16)
     {
       format = PixelFormat_RGBA64;
-      pitch = 8 * width;
+      pitch = static_cast<uint64_t>(width) * 8;
 
       if (Toolbox::DetectEndianness() == Endianness_Little)
       {
@@ -192,7 +197,16 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    data_.resize(height * pitch);
+    uint64_t totalSize = pitch * height;
+    if (totalSize > MAX_DECODED_PNG_IMAGE_SIZE ||
+        static_cast<uint64_t>(static_cast<size_t>(totalSize)) != totalSize)
+    {
+      std::ostringstream errorMessage;
+      errorMessage << "PNG IMAGE size overflow  (" << totalSize << " vs " << MAX_DECODED_PNG_IMAGE_SIZE << ")";
+      throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
+    }
+
+    data_.resize(static_cast<size_t>(totalSize));
 
     if (height == 0 || width == 0)
     {

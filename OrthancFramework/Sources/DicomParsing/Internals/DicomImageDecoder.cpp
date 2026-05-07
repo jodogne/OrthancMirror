@@ -123,6 +123,11 @@
 #  define EXS_JPEGProcess14SV1  EXS_JPEGProcess14SV1TransferSyntax
 #endif
 
+static const uint64_t MAX_DECODED_FRAME_SIZE = (sizeof(void*) == 4
+                                                ? 1ull * 1024ull * 1024ull * 1024ull   // 1 GB on 32 bits system
+                                                : 4ull * 1024ull * 1024ull * 1024ull); // 4 GB on 64 bits system
+
+
 namespace Orthanc
 {
   static const Endianness ENDIANNESS = Toolbox::DetectEndianness();
@@ -528,11 +533,13 @@ namespace Orthanc
 
       case PixelFormat_RGB48:
       {
+        const uint64_t expectedSize = static_cast<uint64_t>(target->GetWidth()) * target->GetHeight() * 2;
+
         if (r != "0\\0\\16" ||
             rc != 65536 ||
             gc != 65536 ||
             bc != 65536 ||
-            pixelLength != 2 * target->GetWidth() * target->GetHeight())
+            pixelLength != expectedSize)
         {
           throw OrthancException(ErrorCode_NotImplemented, std::string("Palette Color Lookup Table Descriptor not supported: '") + r.c_str() + "'");
         }
@@ -610,8 +617,26 @@ namespace Orthanc
     {
       try
       {
-        size_t frameSize = info.GetHeight() * info.GetWidth() * GetBytesPerPixel(sourceFormat);
-        if ((frame + 1) * frameSize <= source.GetSize())
+        uint64_t frameSize = static_cast<uint64_t>(info.GetHeight()) * info.GetWidth() * GetBytesPerPixel(sourceFormat);
+
+        if (frameSize > MAX_DECODED_FRAME_SIZE ||
+            static_cast<uint64_t>(static_cast<size_t>(frameSize)) != frameSize)
+        {
+          std::ostringstream errorMessage;
+          errorMessage << "ImageDecoder: max decoded frame size overflow  (" << frameSize << " vs " << MAX_DECODED_FRAME_SIZE << ")";
+          throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
+        }
+
+        uint64_t frameEnd = frameSize * (frame + 1);
+
+        if (static_cast<uint64_t>(static_cast<size_t>(frameEnd)) != frameEnd)
+        {
+          std::ostringstream errorMessage;
+          errorMessage << "ImageDecoder: frameEnd platform overflow (" << frameEnd << ")"; // can only happen on 32 bits
+          throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
+        }
+
+        if (frameEnd <= static_cast<uint64_t>(source.GetSize()))
         {
           const uint8_t* buffer = reinterpret_cast<const uint8_t*>(source.GetAccessor().GetPixelData());
 
@@ -728,12 +753,11 @@ namespace Orthanc
   }
 
 
-  ImageAccessor* DicomImageDecoder::ApplyCodec
-  (const DcmCodec& codec,
-   const DcmCodecParameter& parameters,
-   const DcmRepresentationParameter& representationParameter,
-   DcmDataset& dataset,
-   unsigned int frame)
+  ImageAccessor* DicomImageDecoder::ApplyCodec(const DcmCodec& codec,
+                                               const DcmCodecParameter& parameters,
+                                               const DcmRepresentationParameter& representationParameter,
+                                               DcmDataset& dataset,
+                                               unsigned int frame)
   {
     DcmPixelSequence* pixelSequence = FromDcmtkBridge::GetPixelSequence(dataset);
     if (pixelSequence == NULL)
@@ -757,7 +781,24 @@ namespace Orthanc
         info.GetChannelCount() == 1)
     {
       std::string uncompressed;
-      uncompressed.resize(info.GetWidth() * info.GetHeight() * info.GetBytesPerValue());
+      uint64_t frameSize = static_cast<uint64_t>(info.GetWidth()) * info.GetHeight() * info.GetBytesPerValue();
+
+      if (frameSize > MAX_DECODED_FRAME_SIZE ||
+          static_cast<uint64_t>(static_cast<size_t>(frameSize)) != frameSize)
+      {
+        std::ostringstream errorMessage;
+        errorMessage << "ImageDecoder: max decoded frame size overflow  (" << frameSize << " vs " << MAX_DECODED_FRAME_SIZE << ")";
+        throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
+      }
+
+      uncompressed.resize(frameSize);
+
+      if (static_cast<uint64_t>(static_cast<Uint32>(frameSize)) != frameSize) // in case, some day, MAX_DECODED_FRAME_SIZE gets larger than 4GB
+      {
+        std::ostringstream errorMessage;
+        errorMessage << "ImageDecoder: frameSize too large for DCMTK interface (" << frameSize << ")";
+        throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
+      }
 
       if (uncompressed.size() == 0 ||
           !codec.decodeFrame(&representationParameter, 
@@ -775,6 +816,13 @@ namespace Orthanc
     }
     else
     {
+      if (static_cast<uint64_t>(static_cast<Uint32>(target->GetSize())) != target->GetSize()) // in case, some day, MAX_DECODED_FRAME_SIZE gets larger than 4GB
+      {
+        std::ostringstream errorMessage;
+        errorMessage << "ImageDecoder: target->GetSize() too large for DCMTK interface (" << target->GetSize() << ")";
+        throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
+      }
+
       if (!codec.decodeFrame(&representationParameter, 
                              pixelSequence, &parameters, 
                              &dataset, frame, startFragment, target->GetBuffer(), 

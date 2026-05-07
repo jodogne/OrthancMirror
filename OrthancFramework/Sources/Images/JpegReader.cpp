@@ -33,6 +33,9 @@
 #  include "../SystemToolbox.h"
 #endif
 
+static const uint64_t MAX_DECODED_JPEG_IMAGE_SIZE = (sizeof(void*) == 4
+                                                     ? 1ull * 1024ull * 1024ull * 1024ull   // 1 GB on 32 bits system
+                                                     : 4ull * 1024ull * 1024ull * 1024ull); // 4 GB on 64 bits system
 
 namespace Orthanc
 {
@@ -62,7 +65,16 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    unsigned int pitch = cinfo.output_width * cinfo.output_components;
+    uint64_t pitch = static_cast<uint64_t>(cinfo.output_width) * cinfo.output_components;
+    uint64_t totalSize = pitch * cinfo.output_height;
+
+    if (totalSize > MAX_DECODED_JPEG_IMAGE_SIZE ||
+        static_cast<uint64_t>(static_cast<size_t>(totalSize)) != totalSize)
+    {
+      std::ostringstream errorMessage;
+      errorMessage << "JPEG IMAGE size overflow  (" << totalSize << " vs " << MAX_DECODED_JPEG_IMAGE_SIZE << ")";
+      throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
+    }
 
     /* Make a one-row-high sample array that will go away when done with image */
     JSAMPARRAY buffer = (*cinfo.mem->alloc_sarray) ((j_common_ptr) &cinfo, JPOOL_IMAGE, pitch, 1);
