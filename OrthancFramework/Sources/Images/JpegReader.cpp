@@ -81,7 +81,7 @@ namespace Orthanc
 
     try
     {
-      content.resize(pitch * cinfo.output_height);
+      content.resize(static_cast<size_t>(totalSize));
     }
     catch (...)
     {
@@ -95,7 +95,7 @@ namespace Orthanc
     while (cinfo.output_scanline < cinfo.output_height) 
     {
       jpeg_read_scanlines(&cinfo, buffer, 1);
-      memcpy(target, buffer[0], pitch);
+      memcpy(target, buffer[0], static_cast<size_t>(pitch));
       target += pitch;
     }
 

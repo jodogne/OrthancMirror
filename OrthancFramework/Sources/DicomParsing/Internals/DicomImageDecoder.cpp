@@ -632,7 +632,7 @@ namespace Orthanc
         if (static_cast<uint64_t>(static_cast<size_t>(frameEnd)) != frameEnd)
         {
           std::ostringstream errorMessage;
-          errorMessage << "ImageDecoder: frameEnd platform overflow (" << frameEnd << ")"; // can only happen on 32 bits
+          errorMessage << "ImageDecoder: frameEnd larger than 4GB, which is too large for Orthanc running in 32bits (" << frameEnd << ")"; // can only happen on 32 bits
           throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
         }
 

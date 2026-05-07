@@ -236,7 +236,7 @@ namespace Orthanc
     if (static_cast<uint64_t>(GetBytesPerPixel() * width) > static_cast<uint64_t>(pitch) ||
         static_cast<uint64_t>(static_cast<size_t>(size)) != size)
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "Buffer larger than 4GB, which is too large for Orthanc running in 32bits");
     }
   }
 
@@ -264,7 +264,7 @@ namespace Orthanc
     if (static_cast<uint64_t>(GetBytesPerPixel() * width) > static_cast<uint64_t>(pitch) ||
         static_cast<uint64_t>(static_cast<size_t>(size)) != size)
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "Buffer larger than 4GB, which is too large for Orthanc running in 32bits");
     }
   }
 
