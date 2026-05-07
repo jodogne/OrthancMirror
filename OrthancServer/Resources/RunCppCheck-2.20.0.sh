@@ -24,11 +24,11 @@ stlFindInsert:../../OrthancServer/Sources/Database/ResourcesContent.h:141
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
-useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:92
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:97
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
-useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:280
 variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:230
-variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
+variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:97
 EOF
 
 CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.20.0/

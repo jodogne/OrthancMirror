@@ -23,7 +23,7 @@ constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:448
 constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:452
 constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3343
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:112
-knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:435
+knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:440
 knownConditionTrueFalse:../../OrthancFramework/Sources/Images/PamReader.cpp:204
 knownConditionTrueFalse:../../OrthancFramework/Sources/Images/PamReader.cpp:207
 knownConditionTrueFalse:../../OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp:345
@@ -45,11 +45,11 @@ syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
-useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:92
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:97
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
-useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:280
 variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:230
-variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:94
+variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:97
 EOF
 
 CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.17.1/

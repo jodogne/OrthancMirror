@@ -78,7 +78,7 @@ namespace Orthanc
     class ScopedThreadNameSetter
     {
     public:
-      ScopedThreadNameSetter(const std::string& threadName);
+      explicit ScopedThreadNameSetter(const std::string& threadName);
 
       ~ScopedThreadNameSetter();
     };
