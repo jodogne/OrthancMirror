@@ -140,7 +140,7 @@ namespace Orthanc
   void NumpyWriter::WritePixels(ChunkedBuffer& target,
                                 const ImageAccessor& image)
   {
-    size_t rowSize = image.GetBytesPerPixel() * image.GetWidth();
+    size_t rowSize = static_cast<size_t>(image.GetBytesPerPixel()) * image.GetWidth();
 
     for (unsigned int y = 0; y < image.GetHeight(); y++)
     {

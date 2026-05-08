@@ -26,6 +26,7 @@
 #include "StreamBlockReader.h"
 
 #include "../OrthancException.h"
+#include <limits>
 
 
 namespace Orthanc
@@ -74,8 +75,8 @@ namespace Orthanc
          * "DicomStreamReader::LookupPixelDataOffset()" for buffers)
          **/
         
-        size_t remainingBytes = block_.size() - blockPos_;
-        stream_.read(&block_[blockPos_], remainingBytes);
+        size_t remainingBytes = std::max(block_.size() - blockPos_, static_cast<size_t>(std::numeric_limits<std::streamsize>::max())); // avoid overflowing std::streamsize
+        stream_.read(&block_[blockPos_], static_cast<std::streamsize>(remainingBytes));
         
         std::streamsize r = stream_.gcount();
         if (r == 0)

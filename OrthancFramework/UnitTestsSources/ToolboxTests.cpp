@@ -87,10 +87,10 @@ TEST(Toolbox, Base64_allByteValues)
   std::string base64Result;
   std::string decodedResult;
 
-  size_t size = 2*256;
+  size_t size = static_cast<size_t>(2)*256;
   toEncode.reserve(size);
   for (size_t i = 0; i < size; i++)
-    toEncode.push_back(i % 256);
+    toEncode.push_back(static_cast<char>(i % 256));
 
   Toolbox::EncodeBase64(base64Result, toEncode);
   Toolbox::DecodeBase64(decodedResult, base64Result);
@@ -404,9 +404,9 @@ TEST(Toolbox, GetHumanDuration)
 TEST(Toolbox, GetHumanTransferSpeed)
 {
   ASSERT_EQ("8.00Mbps", Toolbox::GetHumanTransferSpeed(false, 1000, 1000000));
-  ASSERT_EQ("8.59Gbps", Toolbox::GetHumanTransferSpeed(false, 1024*1024*1024, 1000000000));
-  ASSERT_EQ("1.00GB in 1.00s = 8.59Gbps", Toolbox::GetHumanTransferSpeed(true, 1024*1024*1024, 1000000000));
-  ASSERT_EQ("976.56KB in 1.00s = 8.00Mbps", Toolbox::GetHumanTransferSpeed(true, 1000*1000, 1000000000));
+  ASSERT_EQ("8.59Gbps", Toolbox::GetHumanTransferSpeed(false, 1024ull*1024*1024, 1000000000));
+  ASSERT_EQ("1.00GB in 1.00s = 8.59Gbps", Toolbox::GetHumanTransferSpeed(true, 1024ull*1024*1024, 1000000000));
+  ASSERT_EQ("976.56KB in 1.00s = 8.00Mbps", Toolbox::GetHumanTransferSpeed(true, 1000ull*1000, 1000000000));
 }
 
 TEST(Toolbox, DISABLED_JapaneseBackslashes)

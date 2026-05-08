@@ -354,7 +354,7 @@ namespace Orthanc
 
         if (metrics_ != NULL)
         {
-          metrics_->IncrementIntegerValue(METRICS_WRITTEN_BYTES, size);
+          metrics_->IncrementIntegerValue(METRICS_WRITTEN_BYTES, static_cast<int64_t>(size));
         }
         
         if (cache_ != NULL)
@@ -397,7 +397,7 @@ namespace Orthanc
 
         if (metrics_ != NULL)
         {
-          metrics_->IncrementIntegerValue(METRICS_WRITTEN_BYTES, compressed.size());
+          metrics_->IncrementIntegerValue(METRICS_WRITTEN_BYTES, static_cast<int64_t>(compressed.size()));
         }
 
         if (cache_ != NULL)
@@ -463,7 +463,7 @@ namespace Orthanc
 
         if (metrics_ != NULL)
         {
-          metrics_->IncrementIntegerValue(METRICS_READ_BYTES, buffer->GetSize());
+          metrics_->IncrementIntegerValue(METRICS_READ_BYTES, static_cast<int64_t>(buffer->GetSize()));
         }
 
         buffer->MoveToString(content);
@@ -484,7 +484,7 @@ namespace Orthanc
         
         if (metrics_ != NULL)
         {
-          metrics_->IncrementIntegerValue(METRICS_READ_BYTES, compressed->GetSize());
+          metrics_->IncrementIntegerValue(METRICS_READ_BYTES, static_cast<int64_t>(compressed->GetSize()));
         }
 
         zlib.Uncompress(content, compressed->GetData(), compressed->GetSize());
@@ -543,7 +543,7 @@ namespace Orthanc
 
     if (metrics_ != NULL)
     {
-      metrics_->IncrementIntegerValue(METRICS_READ_BYTES, buffer->GetSize());
+      metrics_->IncrementIntegerValue(METRICS_READ_BYTES, static_cast<int64_t>(buffer->GetSize()));
     }
 
     buffer->MoveToString(content);
@@ -635,7 +635,7 @@ namespace Orthanc
 
     if (metrics_ != NULL)
     {
-      metrics_->IncrementIntegerValue(METRICS_READ_BYTES, buffer->GetSize());
+      metrics_->IncrementIntegerValue(METRICS_READ_BYTES, static_cast<int64_t>(buffer->GetSize()));
     }
 
     buffer->MoveToString(target);

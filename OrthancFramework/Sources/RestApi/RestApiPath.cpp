@@ -118,7 +118,7 @@ namespace Orthanc
 
     if (hasTrailing_)
     {
-      trailing.assign(uri.begin() + uri_.size(), uri.end());
+      trailing.assign(uri.begin() + static_cast<UriComponents::difference_type>(uri_.size()), uri.end());
     }
 
     return true;

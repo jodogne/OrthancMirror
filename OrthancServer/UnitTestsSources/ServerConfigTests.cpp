@@ -36,8 +36,6 @@ using namespace Orthanc;
 
 TEST(ServerConfig, AcceptedSopClasses)
 {
-  const std::string path = "UnitTestsStorage";
-
   PluginStorageAreaAdapter storage(new MemoryStorageArea);
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();

@@ -103,7 +103,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    size_t targetPitch = channelCount * bytesPerChannel * width;
+    size_t targetPitch = static_cast<size_t>(channelCount) * bytesPerChannel * width;
     size_t offset = target.size();
 
     target.resize(offset + targetPitch * height);
@@ -117,9 +117,9 @@ namespace Orthanc
       for (unsigned int h = 0; h < height; ++h)
       {
         const uint16_t* p = reinterpret_cast<const uint16_t*>
-          (reinterpret_cast<const uint8_t*>(buffer) + h * sourcePitch);
+          (reinterpret_cast<const uint8_t*>(buffer) + static_cast<size_t>(h) * sourcePitch);
         uint16_t* q = reinterpret_cast<uint16_t*>
-          (reinterpret_cast<uint8_t*>(&target[offset]) + h * targetPitch);
+          (reinterpret_cast<uint8_t*>(&target[offset]) + static_cast<size_t>(h) * targetPitch);
 
         for (unsigned int w = 0; w < width * channelCount; ++w)
         {
@@ -152,8 +152,8 @@ namespace Orthanc
       
       for (unsigned int h = 0; h < height; ++h)
       {
-        const void* p = reinterpret_cast<const uint8_t*>(buffer) + h * sourcePitch;
-        void* q = reinterpret_cast<uint8_t*>(&target[offset]) + h * targetPitch;
+        const void* p = reinterpret_cast<const uint8_t*>(buffer) + static_cast<size_t>(h) * sourcePitch;
+        void* q = reinterpret_cast<uint8_t*>(&target[offset]) + static_cast<size_t>(h) * targetPitch;
         memcpy(q, p, targetPitch);
       }
     }

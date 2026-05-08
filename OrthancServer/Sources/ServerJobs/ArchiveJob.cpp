@@ -45,8 +45,8 @@
 #define snprintf _snprintf
 #endif
 
-static const uint64_t MEGA_BYTES = 1024 * 1024;
-static const uint64_t GIGA_BYTES = 1024 * 1024 * 1024;
+static const uint64_t MEGA_BYTES = 1024ull * 1024;
+static const uint64_t GIGA_BYTES = 1024ull * 1024 * 1024;
 
 static const char* const MEDIA_IMAGES_FOLDER = "IMAGES"; 
 static const char* const KEY_DESCRIPTION = "Description";

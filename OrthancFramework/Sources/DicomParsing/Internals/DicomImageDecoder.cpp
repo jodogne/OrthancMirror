@@ -148,7 +148,7 @@ namespace Orthanc
         !e->isaString() ||
         !e->getString(c).good() ||
         c == NULL ||
-        strcmp("PMSCT_RLE1", c))
+        strcmp("PMSCT_RLE1", c) != 0)
     {
       return false;
     }
@@ -240,8 +240,8 @@ namespace Orthanc
         value = delta + (int8_t) temp[i];
       }
 
-      output.push_back(value & 0xff);
-      output.push_back(value >> 8);
+      output.push_back(static_cast<char>(value & 0xff));
+      output.push_back(static_cast<char>(value >> 8));
       delta = value;
     }
 

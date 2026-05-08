@@ -1,0 +1,17 @@
+# ~/o/orthanc$ clear && find . -name "*.cpp" -print | xargs run-clang-tidy -p ../build/orthanc -config-file=/home/alain/o/orthanc/OrthancServer/Resources/orthanc.clang-tidy
+# TODO: reactivate bugprone-implicit-widening-of-multiplication-result
+Checks: >
+  -*,
+  clang-analyzer-*,
+  -clang-analyzer-optin.core.EnumCastOutOfRange,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-branch-clone,
+  -bugprone-suspicious-include,
+  -bugprone-implicit-widening-of-multiplication-result,
+  -performance-*,
+  -readability-*,
+  -modernize-*
+
+HeaderFilterRegex: '^(OrthancServer|OrthancFramework)/'
+SystemHeaders: false

@@ -56,10 +56,10 @@ TEST(PngWriter, ColorPattern)
   unsigned int height = 61;
   unsigned int pitch = width * 3;
 
-  std::vector<uint8_t> image(height * pitch);
+  std::vector<uint8_t> image(static_cast<size_t>(height) * pitch);
   for (unsigned int y = 0; y < height; y++)
   {
-    uint8_t *p = &image[0] + y * pitch;
+    uint8_t *p = &image[0] + static_cast<size_t>(y) * pitch;
     for (unsigned int x = 0; x < width; x++, p += 3)
     {
       p[0] = (y % 3 == 0) ? 255 : 0;
@@ -92,10 +92,10 @@ TEST(PngWriter, Color16Pattern)
   unsigned int height = 61;
   unsigned int pitch = width * 8;
 
-  std::vector<uint8_t> image(height * pitch);
+  std::vector<uint8_t> image(static_cast<size_t>(height) * pitch);
   for (unsigned int y = 0; y < height; y++)
   {
-    uint8_t *p = &image[0] + y * pitch;
+    uint8_t *p = &image[0] + static_cast<size_t>(y) * pitch;
     for (unsigned int x = 0; x < width; x++, p += 8)
     {
       switch (Orthanc::Toolbox::DetectEndianness())
@@ -153,10 +153,10 @@ TEST(PngWriter, Gray8Pattern)
   int height = 256;
   int pitch = width;
 
-  std::vector<uint8_t> image(height * pitch);
+  std::vector<uint8_t> image(static_cast<size_t>(height) * pitch);
   for (int y = 0; y < height; y++)
   {
-    uint8_t *p = &image[0] + y * pitch;
+    uint8_t *p = &image[0] + static_cast<size_t>(y) * pitch;
     for (int x = 0; x < width; x++, p++)
     {
       *p = y;
@@ -187,12 +187,12 @@ TEST(PngWriter, Gray16Pattern)
   int height = 256;
   int pitch = width * 2 + 16;
 
-  std::vector<uint8_t> image(height * pitch);
+  std::vector<uint8_t> image(static_cast<size_t>(height) * pitch);
 
   int v = 0;
   for (int y = 0; y < height; y++)
   {
-    uint16_t *p = reinterpret_cast<uint16_t*>(&image[0] + y * pitch);
+    uint16_t *p = reinterpret_cast<uint16_t*>(&image[0] + static_cast<size_t>(y) * pitch);
     for (int x = 0; x < width; x++, p++, v++)
     {
       *p = v;
@@ -223,12 +223,12 @@ TEST(PngWriter, EndToEnd)
   unsigned int height = 256;
   unsigned int pitch = width * 2 + 16;
 
-  std::vector<uint8_t> image(height * pitch);
+  std::vector<uint8_t> image(static_cast<size_t>(height) * pitch);
 
   int v = 0;
   for (unsigned int y = 0; y < height; y++)
   {
-    uint16_t *p = reinterpret_cast<uint16_t*>(&image[0] + y * pitch);
+    uint16_t *p = reinterpret_cast<uint16_t*>(&image[0] + static_cast<size_t>(y) * pitch);
     for (unsigned int x = 0; x < width; x++, p++, v++)
     {
       *p = v;
@@ -252,7 +252,7 @@ TEST(PngWriter, EndToEnd)
     v = 0;
     for (unsigned int y = 0; y < height; y++)
     {
-      const uint16_t *p = reinterpret_cast<const uint16_t*>(reinterpret_cast<const uint8_t*>(r.GetConstBuffer()) + y * r.GetPitch());
+      const uint16_t *p = reinterpret_cast<const uint16_t*>(reinterpret_cast<const uint8_t*>(r.GetConstBuffer()) + static_cast<size_t>(y) * r.GetPitch());
       ASSERT_EQ(p, r.GetConstRow(y));
       for (unsigned int x = 0; x < width; x++, p++, v++)
       {
@@ -276,7 +276,7 @@ TEST(PngWriter, EndToEnd)
     v = 0;
     for (unsigned int y = 0; y < height; y++)
     {
-      const uint16_t *p = reinterpret_cast<const uint16_t*>(reinterpret_cast<const uint8_t*>(r2.GetConstBuffer()) + y * r2.GetPitch());
+      const uint16_t *p = reinterpret_cast<const uint16_t*>(reinterpret_cast<const uint8_t*>(r2.GetConstBuffer()) + static_cast<size_t>(y) * r2.GetPitch());
       ASSERT_EQ(p, r2.GetConstRow(y));
       for (unsigned int x = 0; x < width; x++, p++, v++)
       {
@@ -364,10 +364,10 @@ TEST(PamWriter, ColorPattern)
   unsigned int height = 61;
   unsigned int pitch = width * 3;
 
-  std::vector<uint8_t> image(height * pitch);
+  std::vector<uint8_t> image(static_cast<size_t>(height) * pitch);
   for (unsigned int y = 0; y < height; y++)
   {
-    uint8_t *p = &image[0] + y * pitch;
+    uint8_t *p = &image[0] + static_cast<size_t>(y) * pitch;
     for (unsigned int x = 0; x < width; x++, p += 3)
     {
       p[0] = (y % 3 == 0) ? 255 : 0;
@@ -400,10 +400,10 @@ TEST(PamWriter, Gray8Pattern)
   int height = 256;
   int pitch = width;
 
-  std::vector<uint8_t> image(height * pitch);
+  std::vector<uint8_t> image(static_cast<size_t>(height) * pitch);
   for (int y = 0; y < height; y++)
   {
-    uint8_t *p = &image[0] + y * pitch;
+    uint8_t *p = &image[0] + static_cast<size_t>(y) * pitch;
     for (int x = 0; x < width; x++, p++)
     {
       *p = y;
@@ -434,12 +434,12 @@ TEST(PamWriter, Gray16Pattern)
   int height = 256;
   int pitch = width * 2 + 16;
 
-  std::vector<uint8_t> image(height * pitch);
+  std::vector<uint8_t> image(static_cast<size_t>(height) * pitch);
 
   int v = 0;
   for (int y = 0; y < height; y++)
   {
-    uint16_t *p = reinterpret_cast<uint16_t*>(&image[0] + y * pitch);
+    uint16_t *p = reinterpret_cast<uint16_t*>(&image[0] + static_cast<size_t>(y) * pitch);
     for (int x = 0; x < width; x++, p++, v++)
     {
       *p = v;
@@ -470,12 +470,12 @@ TEST(PamWriter, EndToEnd)
   unsigned int height = 256;
   unsigned int pitch = width * 2 + 16;
 
-  std::vector<uint8_t> image(height * pitch);
+  std::vector<uint8_t> image(static_cast<size_t>(height) * pitch);
 
   int v = 0;
   for (unsigned int y = 0; y < height; y++)
   {
-    uint16_t *p = reinterpret_cast<uint16_t*>(&image[0] + y * pitch);
+    uint16_t *p = reinterpret_cast<uint16_t*>(&image[0] + static_cast<size_t>(y) * pitch);
     for (unsigned int x = 0; x < width; x++, p++, v++)
     {
       *p = v;
@@ -500,7 +500,7 @@ TEST(PamWriter, EndToEnd)
     for (unsigned int y = 0; y < height; y++)
     {
       const uint16_t *p = reinterpret_cast<const uint16_t*>
-        (reinterpret_cast<const uint8_t*>(r.GetConstBuffer()) + y * r.GetPitch());
+        (reinterpret_cast<const uint8_t*>(r.GetConstBuffer()) + static_cast<size_t>(y) * r.GetPitch());
       ASSERT_EQ(p, r.GetConstRow(y));
       for (unsigned int x = 0; x < width; x++, p++, v++)
       {
@@ -522,7 +522,7 @@ TEST(PamWriter, EndToEnd)
     for (unsigned int y = 0; y < height; y++)
     {
       const uint16_t* p = reinterpret_cast<const uint16_t*>
-        (reinterpret_cast<const uint8_t*>(r.GetConstBuffer()) + y * r.GetPitch());
+        (reinterpret_cast<const uint8_t*>(r.GetConstBuffer()) + static_cast<size_t>(y) * r.GetPitch());
       ASSERT_EQ(p, r.GetConstRow(y));
       for (unsigned int x = 0; x < width; x++, p++, v++)
       {
@@ -547,7 +547,7 @@ TEST(PamWriter, EndToEnd)
     for (unsigned int y = 0; y < height; y++)
     {
       const uint16_t *p = reinterpret_cast<const uint16_t*>
-        (reinterpret_cast<const uint8_t*>(r2.GetConstBuffer()) + y * r2.GetPitch());
+        (reinterpret_cast<const uint8_t*>(r2.GetConstBuffer()) + static_cast<size_t>(y) * r2.GetPitch());
       ASSERT_EQ(p, r2.GetConstRow(y));
       for (unsigned int x = 0; x < width; x++, p++, v++)
       {
@@ -574,7 +574,7 @@ TEST(PamWriter, EndToEnd)
     for (unsigned int y = 0; y < height; y++)
     {
       const uint16_t* p = reinterpret_cast<const uint16_t*>
-        (reinterpret_cast<const uint8_t*>(r2.GetConstBuffer()) + y * r2.GetPitch());
+        (reinterpret_cast<const uint8_t*>(r2.GetConstBuffer()) + static_cast<size_t>(y) * r2.GetPitch());
       ASSERT_EQ(p, r2.GetConstRow(y));
       for (unsigned int x = 0; x < width; x++, p++, v++)
       {
@@ -591,8 +591,8 @@ TEST(PngWriter, Gray16Then8)
   Orthanc::Image image16(Orthanc::PixelFormat_Grayscale16, 32, 32, false);
   Orthanc::Image image8(Orthanc::PixelFormat_Grayscale8, 32, 32, false);
 
-  memset(image16.GetBuffer(), 0, image16.GetHeight() * image16.GetPitch());
-  memset(image8.GetBuffer(), 0, image8.GetHeight() * image8.GetPitch());
+  memset(image16.GetBuffer(), 0, static_cast<size_t>(image16.GetHeight()) * image16.GetPitch());
+  memset(image8.GetBuffer(), 0, static_cast<size_t>(image8.GetHeight()) * image8.GetPitch());
 
   {
     Orthanc::PamWriter w;
