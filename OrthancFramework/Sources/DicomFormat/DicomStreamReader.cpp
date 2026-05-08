@@ -34,6 +34,7 @@
 
 
 #include <iostream>
+#include <limits>
 
 namespace Orthanc
 {
@@ -694,11 +695,16 @@ namespace Orthanc
         // Sanity check if we face an unsupported DICOM file: Make
         // sure that we can read DICOM_TAG_PIXEL_DATA at the reported
         // position in the stream
-        stream.seekg(visitor.GetPixelDataOffset(), stream.beg);
+        if (visitor.GetPixelDataOffset() > static_cast<uint64_t>(std::numeric_limits<off_t>::max()))
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "PixelDataOffset too large");
+        }
+
+        stream.seekg(static_cast<off_t>(visitor.GetPixelDataOffset()), stream.beg);
         
         std::string s;
         s.resize(4);
-        stream.read(&s[0], s.size());
+        stream.read(&s[0], static_cast<std::streamsize>(s.size()));
 
         if (!isLittleEndian)
         {

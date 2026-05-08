@@ -318,7 +318,7 @@ namespace Orthanc
       cond = DIMSE_storeUser(
         assoc, presId, &req, NULL /* imageFileName */, dicom->getDataset(),
         ProgressCallback, NULL /* callbackData */,
-        (timeout_ > 0 ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), timeout_,
+        (timeout_ > 0 ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), static_cast<int>(timeout_),
         &rsp, &stDetailTmp, &cancelParameters);
       stDetail.reset(stDetailTmp);
     }
@@ -339,7 +339,7 @@ namespace Orthanc
           assoc, presId, &req, NULL /* imageFileName */,
           transcoded.GetParsed().getDataset(),
           ProgressCallback, NULL /* callbackData */,
-          (timeout_ > 0 ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), timeout_,
+          (timeout_ > 0 ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), static_cast<int>(timeout_),
           &rsp, &stDetailTmp, &cancelParameters);
         stDetail.reset(stDetailTmp);
       }

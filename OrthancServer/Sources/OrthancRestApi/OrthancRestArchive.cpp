@@ -430,7 +430,12 @@ namespace Orthanc
         {
           try
           {
-            file_.write(chunk.c_str(), chunk.size());
+            if (chunk.size() > std::numeric_limits<std::streamsize>::max())
+            {
+              throw OrthancException(ErrorCode_InternalError, "Chunk too large");
+            } 
+            
+            file_.write(chunk.c_str(), static_cast<std::streamsize>(chunk.size()));
             
             if (!file_.good())
             {

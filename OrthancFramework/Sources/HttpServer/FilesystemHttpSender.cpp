@@ -89,7 +89,7 @@ namespace Orthanc
       chunk_.resize(CHUNK_SIZE);
     }
 
-    file_.read(&chunk_[0], chunk_.size());
+    file_.read(&chunk_[0], static_cast<std::streamsize>(chunk_.size()));
 
     if ((file_.flags() & std::istream::failbit) ||
         file_.gcount() < 0)

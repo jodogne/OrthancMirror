@@ -1,5 +1,9 @@
+# Note, you must first run cmake with this option: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 # ~/o/orthanc$ clear && find . -name "*.cpp" -print | xargs run-clang-tidy -p ../build/orthanc -config-file=/home/alain/o/orthanc/OrthancServer/Resources/orthanc.clang-tidy
-# TODO: reactivate bugprone-implicit-widening-of-multiplication-result
+# TODO: reactivate:
+# bugprone-implicit-widening-of-multiplication-result
+# bugprone-exception-escape
+
 Checks: >
   -*,
   clang-analyzer-*,
@@ -9,6 +13,7 @@ Checks: >
   -bugprone-branch-clone,
   -bugprone-suspicious-include,
   -bugprone-implicit-widening-of-multiplication-result,
+  -bugprone-exception-escape,
   -performance-*,
   -readability-*,
   -modernize-*

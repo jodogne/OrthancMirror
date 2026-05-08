@@ -667,7 +667,7 @@ namespace Orthanc
                           FileContentType type) ORTHANC_OVERRIDE
       {
         OrthancPluginErrorCode error = create_
-          (uuid.c_str(), content, size, Plugins::Convert(type));
+          (uuid.c_str(), content, static_cast<int64_t>(size), Plugins::Convert(type));
 
         if (error != OrthancPluginErrorCode_Success)
         {
@@ -3830,7 +3830,7 @@ namespace Orthanc
         return;
 
       case _OrthancPluginService_GetInstanceSize:
-        *p.resultInt64 = instance.GetBufferSize();
+        *p.resultInt64 = static_cast<int64_t>(instance.GetBufferSize());
         return;
 
       case _OrthancPluginService_GetInstanceData:

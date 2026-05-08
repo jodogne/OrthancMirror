@@ -239,7 +239,7 @@ TEST(ZipWriter, Stream)
   large.resize(4 * 65536);
   for (size_t i = 0; i < large.size(); i++)
   {
-    large[i] = rand() % 256;
+    large[i] = static_cast<char>(rand() % 256);
   }
 
   for (int i = 0; i < 2; i++)

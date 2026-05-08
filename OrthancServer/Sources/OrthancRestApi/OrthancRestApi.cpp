@@ -352,7 +352,7 @@ namespace Orthanc
   }
 
   
-  unsigned int OrthancRestApi::GetJobRequestPriority(const Json::Value& body)
+  int OrthancRestApi::GetJobRequestPriority(const Json::Value& body)
   {
     if (body.type() != Json::objectValue ||
         !body.isMember(KEY_PRIORITY))

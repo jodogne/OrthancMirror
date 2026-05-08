@@ -264,7 +264,7 @@ namespace OrthancPlugins
     }
     else
     {
-      if (size > 0)
+      if (buffer != NULL && size > 0)
       {
         memcpy(buffer_.data, buffer, size);
       }

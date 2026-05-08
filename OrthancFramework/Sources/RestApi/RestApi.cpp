@@ -597,7 +597,7 @@ namespace Orthanc
               else if (isupper(tag[i]) &&
                        tag[i - 1] == ' ')
               {
-                s.push_back(tolower(tag[i]));
+                s.push_back(static_cast<char>(tolower(tag[i])));
               }
               else
               {

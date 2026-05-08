@@ -704,7 +704,10 @@ namespace Orthanc
                            size_t size)
   {
     MD5Context context;
-    context.Append(data, size);
+    if (data != NULL && size > 0)
+    {
+      context.Append(data, size);
+    }
     context.Export(result);
   }
 
@@ -1927,7 +1930,7 @@ namespace Orthanc
       // http://userguide.icu-project.org/icudata#TOC-Alignment
 
       {
-        static const size_t ALIGN = 16;
+        static const intptr_t ALIGN = 16;
 
         UErrorCode status = U_ZERO_ERROR;
 

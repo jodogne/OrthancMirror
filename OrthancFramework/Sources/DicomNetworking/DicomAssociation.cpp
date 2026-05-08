@@ -233,7 +233,7 @@ namespace Orthanc
     }
 
     // Timeout used during association negociation and ASC_releaseAssociation()
-    uint32_t acseTimeout = parameters.GetTimeout();
+    Sint32 acseTimeout = static_cast<Sint32>(parameters.GetTimeout());
     if (acseTimeout == 0)
     {
       /**
@@ -357,7 +357,9 @@ namespace Orthanc
       assert(!transferSyntaxes.empty());
       CheckConnecting(parameters, ASC_addPresentationContext(
                         params_, presentationContextId, abstractSyntax,
-                        &transferSyntaxes[0], transferSyntaxes.size(), GetDcmtkRole(proposed_[i].role_)));
+                        &transferSyntaxes[0], 
+                        static_cast<int>(transferSyntaxes.size()), 
+                        GetDcmtkRole(proposed_[i].role_)));
 
       presentationContextId += 2;
     }
@@ -797,7 +799,7 @@ namespace Orthanc
 
       if (!DIMSE_receiveCommand(&association.GetDcmtkAssociation(),
                                 (parameters.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
-                                parameters.GetTimeout(), &presID, &message,
+                                static_cast<Sint32>(parameters.GetTimeout()), &presID, &message,
                                 NULL /* no statusDetail */).good() ||
           message.CommandField != DIMSE_N_EVENT_REPORT_RSP)
       {
@@ -960,7 +962,7 @@ namespace Orthanc
         
       if (!DIMSE_receiveCommand(&association.GetDcmtkAssociation(),
                                 (parameters.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
-                                parameters.GetTimeout(), &presID, &message,
+                                static_cast<Sint32>(parameters.GetTimeout()), &presID, &message,
                                 NULL /* no statusDetail */).good() ||
           message.CommandField != DIMSE_N_ACTION_RSP)
       {
