@@ -35,6 +35,8 @@
 #include <boost/noncopyable.hpp>
 #include <png.h>
 #include <string.h>  // For memcpy()
+#include <sstream>
+
 
 static const uint64_t MAX_DECODED_PNG_IMAGE_SIZE = (sizeof(void*) == 4
                                                     ? 1ull * 1024ull * 1024ull * 1024ull   // 1 GB on 32 bits system
