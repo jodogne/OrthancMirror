@@ -34,7 +34,7 @@ namespace Orthanc
 {
   class ServerContext;
 
-  class ORTHANC_PUBLIC StoreJob : public SetOfInstancesJob
+  class StoreJob : public SetOfInstancesJob
   {
   protected:
     ServerContext&                             context_;

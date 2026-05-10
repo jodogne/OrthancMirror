@@ -36,7 +36,7 @@ namespace Orthanc
   class ServerContext;
 
   // This class is a threaded version of SetOfInstancesJob merged with CleaningInstancesJob
-  class ORTHANC_PUBLIC ThreadedSetOfInstancesJob : public IJob
+  class ThreadedSetOfInstancesJob : public IJob
   {
   public:
     enum ThreadedJobStep  // cannot use "Step" since there is a method with this name !

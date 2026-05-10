@@ -36,7 +36,7 @@ namespace Orthanc
 {
   class ServerContext;
 
-  class ORTHANC_PUBLIC ThreadedInstancesLoader ORTHANC_FINAL : public boost::noncopyable
+  class ThreadedInstancesLoader ORTHANC_FINAL : public boost::noncopyable
   {
   private:
     // Parameters from the constructor
