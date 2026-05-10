@@ -430,7 +430,7 @@ namespace Orthanc
         {
           try
           {
-            if (chunk.size() > std::numeric_limits<std::streamsize>::max())
+            if (static_cast<int64_t>(chunk.size()) > std::numeric_limits<std::streamsize>::max())
             {
               throw OrthancException(ErrorCode_InternalError, "Chunk too large");
             } 
