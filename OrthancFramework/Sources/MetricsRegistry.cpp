@@ -323,7 +323,7 @@ namespace Orthanc
 
     virtual void SetInitialValue(int64_t value) ORTHANC_OVERRIDE
     {
-      value_.Update(value, MetricsUpdatePolicy_Directly);
+      value_.Update(static_cast<float>(value), MetricsUpdatePolicy_Directly);
     }
   };
 

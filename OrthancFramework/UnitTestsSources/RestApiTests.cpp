@@ -318,7 +318,7 @@ namespace
                        const HttpToolbox::Arguments& components,
                        const UriComponents& trailing) ORTHANC_OVERRIDE
     {
-      return resource.Handle(*(RestApiGetCall*) NULL);
+      return resource.Handle(*(RestApiGetCall*) NULL);  // NOLINT(clang-analyzer-core.NonNullParamChecker)
     }
   };
 }
@@ -1208,7 +1208,7 @@ TEST(ChunkedBuffer, Pending)
       chunk.resize(chunkSize);
       for (size_t i = 0; i < chunkSize; i++)
       {
-        chunk[i] = '0' + (pos % 10);
+        chunk[i] = static_cast<char>('0' + (pos % 10));
         pos++;
       }
 
@@ -1266,7 +1266,7 @@ namespace
       while (pos_ < size_ &&
              i < chunk.size())
       {
-        chunk[i] = '0' + (pos_ % 7);
+        chunk[i] = static_cast<char>('0' + (pos_ % 7));
         pos_++;
         i++;
       }

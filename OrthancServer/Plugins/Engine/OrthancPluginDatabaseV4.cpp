@@ -148,7 +148,7 @@ namespace Orthanc
     target.set_is_case_sensitive(source.IsCaseSensitive());
     target.set_is_mandatory(source.IsMandatory());
 
-    target.mutable_values()->Reserve(source.GetValuesCount());
+    target.mutable_values()->Reserve(static_cast<int>(source.GetValuesCount()));
     for (size_t j = 0; j < source.GetValuesCount(); j++)
     {
       target.add_values(source.GetValue(j));
@@ -189,7 +189,7 @@ namespace Orthanc
     target.set_is_case_sensitive(source.IsCaseSensitive());
     target.set_is_mandatory(source.IsMandatory());
 
-    target.mutable_values()->Reserve(source.GetValuesCount());
+    target.mutable_values()->Reserve(static_cast<int>(source.GetValuesCount()));
     for (size_t j = 0; j < source.GetValuesCount(); j++)
     {
       target.add_values(source.GetValue(j));
@@ -383,7 +383,12 @@ namespace Orthanc
                    requestSerialized.empty() ? NULL : requestSerialized.c_str(),
                    requestSerialized.size()));
 
-    bool success = response.ParseFromArray(responseSerialized.data, responseSerialized.size);
+    if (responseSerialized.size > static_cast<size_t>(std::numeric_limits<int>::max()))
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin, "Cannot unserialize protobuf originating from the database plugin, response size too large");
+    }
+
+    bool success = response.ParseFromArray(responseSerialized.data, static_cast<int>(responseSerialized.size));
 
     if (responseSerialized.size > 0)
     {
@@ -1307,7 +1312,7 @@ namespace Orthanc
       request.mutable_lookup_resources()->set_limit(limit);
       request.mutable_lookup_resources()->set_retrieve_instances_ids(instancesId != NULL);
 
-      request.mutable_lookup_resources()->mutable_lookup()->Reserve(lookup.GetSize());
+      request.mutable_lookup_resources()->mutable_lookup()->Reserve(static_cast<int>(lookup.GetSize()));
       
       for (size_t i = 0; i < lookup.GetSize(); i++)
       {
@@ -1387,7 +1392,7 @@ namespace Orthanc
     {
       DatabasePluginMessages::TransactionRequest request;
 
-      request.mutable_set_resources_content()->mutable_tags()->Reserve(content.GetListTags().size());
+      request.mutable_set_resources_content()->mutable_tags()->Reserve(static_cast<int>(content.GetListTags().size()));
       for (ResourcesContent::ListTags::const_iterator it = content.GetListTags().begin(); it != content.GetListTags().end(); ++it)
       {
         DatabasePluginMessages::SetResourcesContent_Request_Tag* tag = request.mutable_set_resources_content()->add_tags();
@@ -1398,7 +1403,7 @@ namespace Orthanc
         tag->set_value(it->GetValue());
       }
       
-      request.mutable_set_resources_content()->mutable_metadata()->Reserve(content.GetListMetadata().size());
+      request.mutable_set_resources_content()->mutable_metadata()->Reserve(static_cast<int>(content.GetListMetadata().size()));
       for (ResourcesContent::ListMetadata::const_iterator it = content.GetListMetadata().begin(); it != content.GetListMetadata().end(); ++it)
       {
         DatabasePluginMessages::SetResourcesContent_Request_Metadata* metadata = request.mutable_set_resources_content()->add_metadata();

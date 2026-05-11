@@ -2349,7 +2349,7 @@ namespace Orthanc
           }
 
           const DicomValue* value;
-          if ((value = summary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
+          if ((value = summary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&   // NOLINT(bugprone-assignment-in-if-condition)
               !value->IsNull() &&
               !value->IsBinary())
           {
@@ -2574,10 +2574,10 @@ namespace Orthanc
           const DicomValue* value;
           const DicomValue* value2;
           
-          if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL &&
+          if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL &&              // NOLINT(bugprone-assignment-in-if-condition)
               !value->IsNull() &&
               !value->IsBinary() &&
-              (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS)) != NULL &&
+              (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS)) != NULL &&      // NOLINT(bugprone-assignment-in-if-condition)
               !value2->IsNull() &&
               !value2->IsBinary())
           {
@@ -2588,10 +2588,10 @@ namespace Orthanc
             return (target > 0);
           }
 
-          else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_SLICES)) != NULL &&
+          else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_SLICES)) != NULL &&            // NOLINT(bugprone-assignment-in-if-condition)
                    !value->IsNull() &&
                    !value->IsBinary() &&
-                   (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TIME_SLICES)) != NULL &&
+                   (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TIME_SLICES)) != NULL &&      // NOLINT(bugprone-assignment-in-if-condition)
                    !value2->IsBinary() &&
                    !value2->IsNull())
           {
@@ -2602,7 +2602,7 @@ namespace Orthanc
             return (target > 0);
           }
 
-          else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL &&
+          else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL &&    // NOLINT(bugprone-assignment-in-if-condition)
                    !value->IsNull() &&
                    !value->IsBinary())
           {
@@ -2610,10 +2610,10 @@ namespace Orthanc
             return (target > 0);
           }
         }
-        catch (OrthancException&)
+        catch (OrthancException&)           // NOLINT(bugprone-empty-catch)
         {
         }
-        catch (boost::bad_lexical_cast&)
+        catch (boost::bad_lexical_cast&)    // NOLINT(bugprone-empty-catch)
         {
         }
 
@@ -2928,7 +2928,7 @@ namespace Orthanc
         }
     
         const DicomValue* value;
-        if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
+        if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&              // NOLINT(bugprone-assignment-in-if-condition)
             !value->IsNull() &&
             !value->IsBinary())
         {
@@ -2937,8 +2937,8 @@ namespace Orthanc
         }
 
 
-        if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
-            (value = dicomSummary_.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
+        if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||           // NOLINT(bugprone-assignment-in-if-condition)
+            (value = dicomSummary_.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)                 // NOLINT(bugprone-assignment-in-if-condition)
         {
           if (!value->IsNull() && 
               !value->IsBinary())

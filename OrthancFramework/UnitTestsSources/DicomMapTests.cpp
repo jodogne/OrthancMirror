@@ -157,9 +157,9 @@ namespace Orthanc
     ASSERT_NE(defaultSeriesSignature, defaultStudySignature);
     ASSERT_NE(defaultSeriesSignature, defaultPatientSignature);
 
-    std::string patientSignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Patient);
-    std::string studySignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Study);
-    std::string seriesSignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Series);
+    // std::string patientSignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Patient);
+    // std::string studySignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Study);
+    // std::string seriesSignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Series);
     std::string instanceSignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Instance);
 
     // // at start, default and current signature should be equal  !! This is not true anymore since we have added new MainDicomTags in 1.12.5
@@ -473,7 +473,7 @@ TEST(DicomMap, Parse)
 
 
   // "800\0" in US COLMUNS tag
-  m.SetValue(DICOM_TAG_COLUMNS, "800\0", false);
+  m.SetValue(DICOM_TAG_COLUMNS, "800\\0", false);
   ASSERT_TRUE(m.GetValue(DICOM_TAG_COLUMNS).ParseFirstUnsignedInteger(ui));
   ASSERT_EQ(800u, ui);
   m.SetValue(DICOM_TAG_COLUMNS, "800", false);
@@ -1505,7 +1505,7 @@ TEST(DicomStreamReader, DISABLED_Tutu3)
           }
         }
       }
-      catch (boost::filesystem::filesystem_error&)
+      catch (boost::filesystem::filesystem_error&) // NOLINT(bugprone-empty-catch)
       {
       }
     }
