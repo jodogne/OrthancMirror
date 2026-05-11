@@ -1381,7 +1381,7 @@ TEST(ParsedDicomFile, FloatPrecision)
     Float32 u;
     ASSERT_TRUE(f.GetDcmtkObject().getDataset()->findAndGetFloat32(DCM_ExaminedBodyThickness, u).good());
     ASSERT_FLOAT_EQ(u, v);
-    ASSERT_TRUE(memcmp(&u, &v, 4) == 0);
+    ASSERT_TRUE(memcmp(&u, &v, 4) == 0);  // NOLINT(bugprone-suspicious-memory-comparison)
   }
 
   {
@@ -1402,7 +1402,7 @@ TEST(ParsedDicomFile, FloatPrecision)
     f.Apply(visitor);
     Float32 u = visitor.GetResult() ["00109431"]["Value"][0].asFloat();
     ASSERT_FLOAT_EQ(u, v);
-    ASSERT_TRUE(memcmp(&u, &v, 4) == 0);
+    ASSERT_TRUE(memcmp(&u, &v, 4) == 0);  // NOLINT(bugprone-suspicious-memory-comparison)
   }
 }
 
@@ -1578,7 +1578,7 @@ static std::string DecodeFromSpecification(const std::string& s)
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    result[i] = static_cast<uint8_t>(a * 16 + b);
+    result[i] = static_cast<char>(a * 16 + b);
   }
 
   return result;
@@ -3564,7 +3564,7 @@ TEST(ParsedDicomFile, DISABLED_InjectEmptyPixelData2)
   {
     DicomTransferSyntax a = (DicomTransferSyntax) i;
 
-    std::string path = (std::string(getenv("HOME")) +
+    std::string path = (std::string(getenv("HOME")) +                                     // NOLINT(clang-analyzer-cplusplus.StringChecker)
                         "/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
                         std::string(GetTransferSyntaxUid(a)) + ".dcm");
     if (Orthanc::SystemToolbox::IsRegularFile(SystemToolbox::PathFromUtf8(path)))
@@ -3629,7 +3629,7 @@ TEST(Toto, DISABLED_Transcode3)
     {
       DicomTransferSyntax a = (DicomTransferSyntax) i;
 
-      std::string path = (std::string(getenv("HOME")) +
+      std::string path = (std::string(getenv("HOME")) +                                 // NOLINT(clang-analyzer-cplusplus.StringChecker)
                           "/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
                           std::string(GetTransferSyntaxUid(a)) + ".dcm");
       if (Orthanc::SystemToolbox::IsRegularFile(SystemToolbox::PathFromUtf8(path)))
@@ -3668,7 +3668,7 @@ TEST(Toto, DISABLED_Transcode4)
 
   {
     std::string source;
-    Orthanc::SystemToolbox::ReadFile(source, std::string(getenv("HOME")) +
+    Orthanc::SystemToolbox::ReadFile(source, std::string(getenv("HOME")) +                        // NOLINT(clang-analyzer-cplusplus.StringChecker)
                                      "/Subversion/orthanc-tests/Database/KarstenHilbertRF.dcm");
     toto.reset(FromDcmtkBridge::LoadFromMemoryBuffer(source.c_str(), source.size()));
   }

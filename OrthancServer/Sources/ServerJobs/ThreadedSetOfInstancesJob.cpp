@@ -475,7 +475,7 @@ namespace Orthanc
           context.GetIndex().LookupResourceType(level, *it);
           parentResources_[*it] = level;
         }
-        catch(...)
+        catch(...) // NOLINT(bugprone-empty-catch)
         {
           // ignore errors, the resource might have disappear
         }

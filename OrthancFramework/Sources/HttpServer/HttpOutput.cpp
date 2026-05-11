@@ -802,7 +802,7 @@ namespace Orthanc
       std::string header = "--" + multipartBoundary_ + "--\r\n";
       stream_.Send(false, header.c_str(), header.size());
     }
-    catch (OrthancException&)
+    catch (OrthancException&) //NOLINT(bugprone-empty-catch)
     {
     }
 

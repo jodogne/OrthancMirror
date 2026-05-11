@@ -404,7 +404,7 @@ namespace Orthanc
     {
       // https://man7.org/linux/man-pages/man3/mallopt.3.html
       LOG(INFO) << "Calling mallopt(M_ARENA_MAX, " << maxArena << ")";
-      if (mallopt(M_ARENA_MAX, maxArena) != 1 /* success */)
+      if (mallopt(M_ARENA_MAX, static_cast<int>(maxArena)) != 1 /* success */)
       {
         throw OrthancException(ErrorCode_InternalError, "The call to mallopt(M_ARENA_MAX, " +
                                boost::lexical_cast<std::string>(maxArena) + ") has failed");
@@ -449,8 +449,9 @@ namespace Orthanc
     {
       boost::filesystem::create_directories(indexDirectory);
     }
-    catch (boost::filesystem::filesystem_error&)
+    catch (boost::filesystem::filesystem_error& e)
     {
+      LOG(WARNING) << "Error encountered while creating IndexDirectory: " << e.what(); // the exception was ignored before 1.12.12; let's log it
     }
 
     return new SQLiteDatabaseWrapper(Orthanc::SystemToolbox::PathToUtf8(indexDirectory) + "/index");

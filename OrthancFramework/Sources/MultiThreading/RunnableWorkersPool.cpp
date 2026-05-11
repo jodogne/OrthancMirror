@@ -174,7 +174,7 @@ namespace Orthanc
     std::unique_ptr<MetricsRegistry::SharedMetrics> availableWorkers(
       new MetricsRegistry::SharedMetrics(registry, availableWorkersMetricsName, MetricsUpdatePolicy_MinOver10Seconds));
 
-    availableWorkers->Add(countWorkers); // mark all workers as available
+    availableWorkers->Add(static_cast<int64_t>(countWorkers)); // mark all workers as available in the metrics
 
     Start(countWorkers, baseThreadName, availableWorkers.release());
   }

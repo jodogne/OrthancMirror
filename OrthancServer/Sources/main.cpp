@@ -2268,7 +2268,7 @@ int main(int argc, char* argv[])
         boost::posix_time::ptime converted(boost::posix_time::from_time_t(creation));
         version += " (" + boost::posix_time::to_iso_string(converted) + ")";
       }
-      catch (...)
+      catch (...) // NOLINT(bugprone-empty-catch)
       {
       }
     }

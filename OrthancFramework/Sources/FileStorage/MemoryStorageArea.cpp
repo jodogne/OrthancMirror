@@ -119,7 +119,7 @@ namespace Orthanc
         range.resize(static_cast<size_t>(size));
         assert(!range.empty());
 
-        memcpy(&range[0], &found->second[start], range.size());
+        memcpy(&range[0], &found->second[start], range.size()); // NOLINT(bugprone-undefined-memory-manipulation)
         
         return StringMemoryBuffer::CreateFromSwap(range);
       }

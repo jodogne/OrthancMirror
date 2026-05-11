@@ -301,7 +301,7 @@ namespace Orthanc
       return ss.str();
     }
 
-    
+    // NOLINTBEGIN(bugprone-macro-parentheses)
 #define DCMTK_TO_CTYPE_CONVERTER(converter, cType, dcmtkType, getter, toStringFunction) \
                                                                         \
     struct converter                                                    \
@@ -322,6 +322,7 @@ namespace Orthanc
         return toStringFunction(value);                                 \
       }                                                                 \
     };
+    // NOLINTEND(bugprone-macro-parentheses)
 
     DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint32Converter, Sint32, DcmSignedLong, getSint32, boost::lexical_cast<std::string>)
     DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint16Converter, Sint16, DcmSignedShort, getSint16, boost::lexical_cast<std::string>)
@@ -2611,7 +2612,7 @@ namespace Orthanc
     DcmInputBufferStream is;
     if (size > 0)
     {
-      is.setBuffer(buffer, size);
+      is.setBuffer(buffer, static_cast<offile_off_t>(size));
     }
     is.setEos();
 
