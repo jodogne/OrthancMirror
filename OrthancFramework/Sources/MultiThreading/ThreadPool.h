@@ -44,12 +44,12 @@ namespace Orthanc
 
     class Task;
 
-    SharedMessageQueue   queue_;
-    boost::thread_group  workers_;
-    boost::mutex         mutex_;
-    unsigned int         countThreads_;
-    State                state_;
-    unsigned int         dequeueTimeoutMilliseconds_;
+    SharedMessageQueue                    queue_;
+    std::unique_ptr<boost::thread_group>  workers_;
+    boost::mutex                          mutex_;
+    unsigned int                          countThreads_;
+    State                                 state_;
+    unsigned int                          dequeueTimeoutMilliseconds_;
 
     void StopInternal(bool throws);
 

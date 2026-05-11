@@ -133,7 +133,9 @@ namespace Orthanc
       }
     }
 
-    workers_.join_all();
+    assert(workers_.get() != NULL);
+    workers_->join_all();
+    workers_.reset(NULL);
 
     // Cancel all the remaining tasks in the queue
     for (;;)
@@ -270,9 +272,12 @@ namespace Orthanc
 
       state_ = State_Running;
 
+      assert(workers_.get() == NULL);
+      workers_.reset(new boost::thread_group);
+
       for (unsigned int i = 0; i < countThreads_; i++)
       {
-        workers_.create_thread(boost::bind(&ThreadPool::WorkerLoop, this));
+        workers_->create_thread(boost::bind(&ThreadPool::WorkerLoop, this));
       }
     }
     else
