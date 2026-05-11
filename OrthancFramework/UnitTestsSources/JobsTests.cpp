@@ -1722,6 +1722,18 @@ TEST(JobsSerialization, DicomAssociationParameters)
 TEST(SerializationToolbox, Numbers)
 {
   {
+    Json::Value v;
+
+    v["field"] = -1;
+    ASSERT_THROW(SerializationToolbox::ReadUnsignedInteger(v, "field"), OrthancException);
+    ASSERT_EQ(-1, SerializationToolbox::ReadInteger(v, "field"));
+
+    v["field"] = Json::Value(3000000000ul);
+    ASSERT_THROW(SerializationToolbox::ReadInteger(v, "field"), OrthancException);
+    ASSERT_EQ(3000000000ul, SerializationToolbox::ReadUnsignedInteger(v, "field"));
+  }
+
+  {
     int32_t i;
     ASSERT_FALSE(SerializationToolbox::ParseInteger32(i, ""));
     ASSERT_FALSE(SerializationToolbox::ParseInteger32(i, "ee"));

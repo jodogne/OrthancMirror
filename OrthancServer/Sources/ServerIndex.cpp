@@ -460,14 +460,14 @@ namespace Orthanc
   {
     Logging::ScopedThreadNameSetter setter("UNSTABLE-MON");
 
-    int stableAge;
+    unsigned int stableAge = 0;
     
     {
       OrthancConfiguration::ReaderLock lock;
       stableAge = lock.GetConfiguration().GetUnsignedIntegerParameter("StableAge", 60);
     }
 
-    if (stableAge <= 0)
+    if (stableAge <= 1)
     {
       stableAge = 60;
     }

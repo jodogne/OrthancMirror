@@ -29,9 +29,8 @@
 #include "../../DicomFormat/DicomImageInformation.h"
 #include "../FromDcmtkBridge.h"
 #include "../../Endianness.h"
+#include "../../SerializationToolbox.h"
 #include "DicomImageDecoder.h"
-
-#include <boost/lexical_cast.hpp>
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcpxitem.h>
@@ -378,22 +377,15 @@ namespace Orthanc
       return 1;
     }
 
-    int count = -1;
-    try
-    {
-      count = boost::lexical_cast<int>(tmp);
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-    }
+    unsigned int count = 0;
 
-    if (count < 0)
+    if (SerializationToolbox::ParseUnsignedInteger(count, tmp))
     {
-      throw OrthancException(ErrorCode_BadFileFormat);        
+      return count;
     }
     else
     {
-      return static_cast<unsigned int>(count);
+      throw OrthancException(ErrorCode_BadFileFormat, "Invalid number of frames");
     }
   }
 

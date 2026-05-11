@@ -430,8 +430,8 @@ TEST(JobsSerialization, GenericOperations)
     operation.Serialize(s);
   }
 
-  ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException);
-  ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
+  ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException); // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
+  ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException); // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 
   {
     std::unique_ptr<IJobOperation> operation;

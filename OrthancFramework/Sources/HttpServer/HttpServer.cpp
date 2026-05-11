@@ -1695,7 +1695,7 @@ namespace Orthanc
             server->GetExceptionFormatter()->Format(output, e, method, requestUri);
           }
         }
-        catch (OrthancException&)
+        catch (OrthancException&) // NOLINT(bugprone-empty-catch)
         {
           // An exception here reflects the fact that the status code
           // was already set by the HTTP handler.

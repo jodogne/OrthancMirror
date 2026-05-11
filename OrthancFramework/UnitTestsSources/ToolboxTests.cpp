@@ -110,7 +110,7 @@ TEST(Toolbox, Base64_multipleSizes)
     toEncode.clear();
     toEncode.reserve(size);
     for (size_t i = 0; i < size; i++)
-      toEncode.push_back(i % 256);
+      toEncode.push_back(static_cast<char>(i % 256));
 
     Toolbox::EncodeBase64(base64Result, toEncode);
     Toolbox::DecodeBase64(decodedResult, base64Result);

@@ -33,6 +33,7 @@
 #endif
 
 #include <boost/lexical_cast.hpp>
+#include <limits>
 
 
 namespace Orthanc
@@ -92,16 +93,21 @@ namespace Orthanc
                                         const std::string& field)
   {
     if (value.type() != Json::objectValue ||
-        !value.isMember(field.c_str()) ||
-        (value[field.c_str()].type() != Json::intValue &&
-         value[field.c_str()].type() != Json::uintValue))
+        !value.isMember(field) ||
+        (value[field].type() != Json::intValue &&
+         value[field].type() != Json::uintValue))
     {
       throw OrthancException(ErrorCode_BadFileFormat,
                              "Integer value expected in field: " + field);
     }
     else
     {
-      return value[field.c_str()].asInt();
+      int64_t v64 = value[field].asInt64();
+      if (v64 > static_cast<int64_t>(std::numeric_limits<int>::max()))
+      {
+        throw OrthancException(ErrorCode_BadParameterType, "Value too large to fit in an integer in field '" + field + "'"); 
+      }
+      return static_cast<int>(v64);
     }    
   }
 
@@ -124,17 +130,25 @@ namespace Orthanc
   unsigned int SerializationToolbox::ReadUnsignedInteger(const Json::Value& value,
                                                          const std::string& field)
   {
-    int tmp = ReadInteger(value, field);
-
-    if (tmp < 0)
+    if (value.type() != Json::objectValue ||
+        !value.isMember(field) ||
+        (value[field].type() != Json::intValue &&
+         value[field].type() != Json::uintValue))
     {
       throw OrthancException(ErrorCode_BadFileFormat,
-                             "Unsigned integer value expected in field: " + field);
+                             "Integer value expected in field: " + field);
     }
     else
     {
-      return static_cast<unsigned int>(tmp);
-    }
+      int64_t v64 = value[field].asInt64();
+
+      if (v64 < 0)
+      {
+        throw OrthancException(ErrorCode_BadParameterType, "Negative value found while expecting an unsigned int in field '" + field + "'"); 
+      }
+
+      return static_cast<unsigned int>(v64);
+    }    
   }
 
 
@@ -621,7 +635,14 @@ namespace Orthanc
   {
     return ParseValue<uint64_t, false>(target, source);
   }
+
   
+  bool SerializationToolbox::ParseUnsignedInteger(unsigned int& target,
+                                                  const std::string& source)
+  {
+    return ParseValue<unsigned int, false>(target, source);
+  }
+
 
   bool SerializationToolbox::ParseFloat(float& target,
                                         const std::string& source)

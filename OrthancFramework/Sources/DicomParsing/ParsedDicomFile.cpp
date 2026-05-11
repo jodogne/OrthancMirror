@@ -346,8 +346,12 @@ namespace Orthanc
         return true;
       }
 
-
-      unsigned int block = boost::lexical_cast<unsigned int>(*blockUri);
+      unsigned int block;
+      
+      if (!SerializationToolbox::ParseUnsignedInteger(block, *blockUri))
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "Invalid Block URI: not a number");
+      }
 
       if (block < GetPixelDataBlockCount(pixelData, transferSyntax))
       {
@@ -385,13 +389,9 @@ namespace Orthanc
         }
       }
     }
-    catch (boost::bad_lexical_cast&)
-    {
-      // The URI entered by the user is not a number
-    }
     catch (std::bad_cast&)
     {
-      // This should never happen
+      throw OrthancException(ErrorCode_InternalError); // This should never happen / but I don't know why this std::bad_cast has been introduced (probably a std::bad_cast from DCMTK)
     }
 
     return false;
@@ -453,12 +453,8 @@ namespace Orthanc
     // Go down in the tag hierarchy according to the URI
     for (size_t pos = 0; pos < uri.size() / 2; pos++)
     {
-      size_t index;
-      try
-      {
-        index = boost::lexical_cast<size_t>(uri[2 * pos + 1]);
-      }
-      catch (boost::bad_lexical_cast&)
+      unsigned int index;
+      if (!SerializationToolbox::ParseUnsignedInteger(index, uri[2 * pos + 1]))
       {
         return;
       }
@@ -466,7 +462,7 @@ namespace Orthanc
       DcmTagKey k;
       DcmItem *child = NULL;
       ParseTagAndGroup(k, uri[2 * pos]);
-      if (!dicom->findAndGetSequenceItem(k, child, index).good() ||
+      if (!dicom->findAndGetSequenceItem(k, child, static_cast<signed long>(index)).good() ||
           child == NULL)
       {
         return;

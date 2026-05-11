@@ -1257,7 +1257,7 @@ namespace Orthanc
             success = true;
           }
         }
-        catch (const OrthancException&)
+        catch (const OrthancException&) // NOLINT(bugprone-empty-catch)
         {
         }
       }

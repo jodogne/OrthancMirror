@@ -343,7 +343,7 @@ namespace Orthanc
 
       result.remote_ = RemoteModalityParameters(serialized[REMOTE]);
       result.localAet_ = SerializationToolbox::ReadString(serialized, LOCAL_AET);
-      result.timeout_ = SerializationToolbox::ReadInteger(serialized, TIMEOUT, GetDefaultTimeout());
+      result.timeout_ = SerializationToolbox::ReadUnsignedInteger(serialized, TIMEOUT, GetDefaultTimeout());
 
       // The calls to "isMember()" below are for compatibility with Orthanc <= 1.8.2 serialization
       if (serialized.isMember(MAXIMUM_PDU_LENGTH))

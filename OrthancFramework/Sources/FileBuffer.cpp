@@ -29,6 +29,8 @@
 #include "OrthancException.h"
 
 #include <boost/filesystem/fstream.hpp>
+#include <boost/lexical_cast.hpp>
+#include <limits>
 
 
 namespace Orthanc
@@ -69,7 +71,12 @@ namespace Orthanc
 
       if (size > 0)
       {
-        stream_.write(buffer, size);
+        if (size > static_cast<size_t>(std::numeric_limits<std::streamsize>::max()))
+        {
+          throw OrthancException(ErrorCode_CannotWriteFile, "Append buffer too large " + boost::lexical_cast<std::string>(size));
+        }
+
+        stream_.write(buffer, static_cast<std::streamsize>(size));
         if (!stream_.good())
         {
           stream_.close();

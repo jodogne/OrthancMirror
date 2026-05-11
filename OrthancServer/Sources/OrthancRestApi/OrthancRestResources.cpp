@@ -400,8 +400,9 @@ namespace Orthanc
           return;
         }
       }
-      catch (OrthancException&)
+      catch (OrthancException&) // NOLINT(bugprone-empty-catch)
       {
+        // ignore any error when there is an accept header -> continue in normal mode to download the DICOM file
       }
     }
 
@@ -751,13 +752,9 @@ namespace Orthanc
         std::string v = call.GetArgument("quality", "90" /* default JPEG quality */);
         bool ok = false;
 
-        try
+        if (SerializationToolbox::ParseUnsignedInteger(quality_, v))
         {
-          quality_ = boost::lexical_cast<unsigned int>(v);
           ok = (quality_ >= 1 && quality_ <= 100);
-        }
-        catch (boost::bad_lexical_cast&)
-        {
         }
 
         if (!ok)
@@ -1865,19 +1862,15 @@ namespace Orthanc
       std::string value = Toolbox::StripSpaces(found->second);
       Toolbox::RemoveSurroundingQuotes(value);
 
-      try
+      size_t comma = value.find('-');
+      if (comma != std::string::npos)
       {
-        size_t comma = value.find('-');
-        if (comma != std::string::npos)
+        if (SerializationToolbox::ParseInteger64(revision, value.substr(0, comma)))
         {
-          revision = boost::lexical_cast<int64_t>(value.substr(0, comma));
           md5 = value.substr(comma + 1);
           return true;
-        }        
-      }
-      catch (boost::bad_lexical_cast&)
-      {
-      }
+        }
+      }        
 
       throw OrthancException(ErrorCode_ParameterOutOfRange, "The \"" + header +
                              "\" HTTP header should contain the ETag (revision followed by MD5 hash), but found: " + value);

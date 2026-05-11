@@ -301,7 +301,7 @@ namespace Orthanc
       return ss.str();
     }
 
-    
+    // NOLINTBEGIN(bugprone-macro-parentheses)
 #define DCMTK_TO_CTYPE_CONVERTER(converter, cType, dcmtkType, getter, toStringFunction) \
                                                                         \
     struct converter                                                    \
@@ -322,6 +322,7 @@ namespace Orthanc
         return toStringFunction(value);                                 \
       }                                                                 \
     };
+    // NOLINTEND(bugprone-macro-parentheses)
 
     DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint32Converter, Sint32, DcmSignedLong, getSint32, boost::lexical_cast<std::string>)
     DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint16Converter, Sint16, DcmSignedShort, getSint16, boost::lexical_cast<std::string>)
@@ -784,7 +785,7 @@ namespace Orthanc
             // "SpecificCharacterSet" tag, if present. This branch is
             // new in Orthanc 1.9.1 (cf. DICOM CP 246).
             const std::string s(reinterpret_cast<const char*>(data), length);
-            const std::string utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions, Convert(element.getVR()));
+            const std::string utf8 = Toolbox::ConvertDicomStringToUtf8(s, encoding, hasCodeExtensions, Convert(element.getVR()));
             return CreateValueFromUtf8String(GetTag(element), utf8, maxStringLength, ignoreTagLength);
           }
         }
@@ -2611,7 +2612,7 @@ namespace Orthanc
     DcmInputBufferStream is;
     if (size > 0)
     {
-      is.setBuffer(buffer, size);
+      is.setBuffer(buffer, static_cast<offile_off_t>(size));
     }
     is.setEos();
 
@@ -2701,7 +2702,7 @@ namespace Orthanc
               element->getString(c).good() && 
               c != NULL)
           {
-            std::string a = Toolbox::ConvertToUtf8(c, source, hasSourceCodeExtensions, Convert(element->getVR()));
+            std::string a = Toolbox::ConvertDicomStringToUtf8(c, source, hasSourceCodeExtensions, Convert(element->getVR()));
             std::string b = Toolbox::ConvertFromUtf8(a, target);
             element->putString(b.c_str());
           }
