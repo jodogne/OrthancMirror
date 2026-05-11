@@ -39,6 +39,7 @@
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/MallocMemoryBuffer.h"
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
+#include "../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 
 #include "DicomInstanceToStore.h"
@@ -1278,25 +1279,16 @@ namespace Orthanc
        * been computed for this instance.
        **/
     
-      bool hasPixelDataOffset;
+      bool hasPixelDataOffset = false;
       uint64_t pixelDataOffset = 0;  // dummy initialization
 
       {
         std::string s;
-        if (LookupMetadata(s, MetadataType_Instance_PixelDataOffset, instanceMetadata))
+        if (LookupMetadata(s, MetadataType_Instance_PixelDataOffset, instanceMetadata)) // This instance was created by a version of Orthanc > 1.9.0
         {
-          hasPixelDataOffset = false;
-
           if (!s.empty())
           {
-            try
-            {
-              pixelDataOffset = boost::lexical_cast<uint64_t>(s);
-              hasPixelDataOffset = true;
-            }
-            catch (boost::bad_lexical_cast&)
-            {
-            }
+            hasPixelDataOffset = SerializationToolbox::ParseUnsignedInteger64(pixelDataOffset, s);
           }
 
           if (!hasPixelDataOffset)
@@ -1304,13 +1296,7 @@ namespace Orthanc
             LOG(ERROR) << "Metadata \"PixelDataOffset\" is corrupted for instance: " << instancePublicId;
           }
         }
-        else
-        {
-          // This instance was created by a version of Orthanc <= 1.9.0
-          hasPixelDataOffset = false;
-        }
       }
-
 
       if (hasPixelDataOffset &&
           area_.HasEfficientReadRange() &&
@@ -1484,10 +1470,10 @@ namespace Orthanc
                               MetadataType_Instance_PixelDataOffset) &&
         !s.empty())
     {
-      try
-      {
-        uint64_t pixelDataOffset = boost::lexical_cast<uint64_t>(s);
+      uint64_t pixelDataOffset = 0;
 
+      if (SerializationToolbox::ParseUnsignedInteger64(pixelDataOffset, s))
+      {
         StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
 
         accessor.ReadStartRange(dicom, attachment, pixelDataOffset);
@@ -1495,7 +1481,7 @@ namespace Orthanc
         
         return true;   // Success
       }
-      catch (boost::bad_lexical_cast&)
+      else
       {
         LOG(ERROR) << "Metadata \"PixelDataOffset\" is corrupted for instance: " << instancePublicId;
       }
@@ -1583,7 +1569,7 @@ namespace Orthanc
       {
         context_.dicomCache_.Acquire(instancePublicId_, dicom_.release(), dicomSize_);
       }
-      catch (OrthancException&)
+      catch (OrthancException&) // NOLINT(bugprone-empty-catch)
       {
       }
     }
@@ -1962,7 +1948,7 @@ namespace Orthanc
           return decoded.release();
         }
       }
-      catch (const OrthancException&)
+      catch (const OrthancException&) // NOLINT(bugprone-empty-catch)
       { // ignore, we'll try other alternatives
       }
     }
@@ -1975,7 +1961,7 @@ namespace Orthanc
       {
         decoded.reset(GetPlugins().Decode(buffer, size, frameIndex));
       }
-      catch (const OrthancException&)
+      catch (const OrthancException&) // NOLINT(bugprone-empty-catch)
       {
       }
       

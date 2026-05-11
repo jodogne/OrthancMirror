@@ -53,9 +53,9 @@ namespace Orthanc
     void Enqueue(IDynamicObject* message);
 
     // The caller is responsible to delete the dequeued message!
-    IDynamicObject* Dequeue(int32_t millisecondsTimeout);
+    IDynamicObject* Dequeue(unsigned int millisecondsTimeout);
 
-    bool WaitEmpty(int32_t millisecondsTimeout);
+    bool WaitEmpty(unsigned int millisecondsTimeout);
 
     bool IsFifoPolicy() const;
 

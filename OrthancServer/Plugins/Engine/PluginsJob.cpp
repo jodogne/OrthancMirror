@@ -55,7 +55,11 @@ namespace Orthanc
         parameters_.stop == NULL ||
         parameters_.reset == NULL)
     {
-      parameters_.finalize(parameters_.job);
+      if (parameters_.finalize != NULL)
+      {
+        parameters_.finalize(parameters_.job);
+      }
+      
       throw OrthancException(ErrorCode_NullPointer);
     }
 

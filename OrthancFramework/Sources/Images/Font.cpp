@@ -289,7 +289,7 @@ namespace Orthanc
       {
         // Go to the next line
         a = x;
-        y += maxHeight_ + 1;
+        y += static_cast<int>(maxHeight_) + 1;
       }
       else
       {
@@ -297,7 +297,7 @@ namespace Orthanc
         if (c != characters_.end())
         {
           DrawCharacter(target, *c->second, a, y + static_cast<int>(c->second->top_), color);
-          a += c->second->advance_;
+          a += static_cast<int>(c->second->advance_);
         }
       }
     }

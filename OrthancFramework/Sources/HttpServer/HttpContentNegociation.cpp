@@ -28,6 +28,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
+#include "../SerializationToolbox.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -78,13 +79,9 @@ namespace Orthanc
         float quality;
         bool ok = false;
 
-        try
+        if (SerializationToolbox::ParseFloat(quality, found->second))
         {
-          quality = boost::lexical_cast<float>(found->second);
-          ok = (quality >= 0.0f && quality <= 1.0f);
-        }
-        catch (boost::bad_lexical_cast&)
-        {
+          ok = quality >= 0.0f && quality <= 1.0f;
         }
 
         if (ok)
