@@ -289,15 +289,15 @@ namespace Orthanc
       bool full = true;
 
       {
-        std::streamsize size = GetStreamSize(f);
-        if (size <= 0)
+        std::streamsize fileSize = GetStreamSize(f);
+        if (fileSize <= 0)
         {
           headerSize = 0;
           full = false;
         }
-        else if (static_cast<size_t>(size) < headerSize)
+        else if (static_cast<size_t>(fileSize) < headerSize)
         {
-          headerSize = static_cast<size_t>(size);  // Truncate to the size of the file
+          headerSize = static_cast<size_t>(fileSize);  // Truncate to the size of the file
           full = false;
         }
       }
@@ -305,7 +305,7 @@ namespace Orthanc
       header.resize(headerSize);
       if (headerSize != 0)
       {
-        f.read(&header[0], headerSize);
+        f.read(&header[0], static_cast<std::streamsize>(headerSize));
       }
 
       f.close();
@@ -340,7 +340,12 @@ namespace Orthanc
 
       if (size != 0)
       {
-        f.write(reinterpret_cast<const char*>(content), size);
+        if (size > static_cast<size_t>(std::numeric_limits<std::streamsize>::max()))
+        {
+          throw OrthancException(ErrorCode_CannotWriteFile, "Size too large to fit in a streamsize");
+        }
+
+        f.write(reinterpret_cast<const char*>(content), static_cast<std::streamsize>(size));
 
         if (!f.good())
         {
@@ -737,7 +742,7 @@ namespace Orthanc
                 status.type() == boost::filesystem::reparse_file);   // Fix BitBucket issue #11
       }
     }
-    catch (boost::filesystem::filesystem_error&)
+    catch (boost::filesystem::filesystem_error&)  // NOLINT(bugprone-empty-catch)
     {
     }
 
@@ -1101,7 +1106,7 @@ namespace Orthanc
 
       if (!content.empty())
       {
-        f.seekg(start, std::ios::beg);
+        f.seekg(static_cast<off_t>(start), std::ios::beg);
         f.read(&content[0], static_cast<std::streamsize>(content.size()));
       }
     }
@@ -1297,7 +1302,12 @@ namespace Orthanc
 
 #else
         struct ifreq ifr;
-        strcpy(ifr.ifr_name, interfaces.GetCurrentName());
+        if (strlen(interfaces.GetCurrentName()) > (IF_NAMESIZE - 1))
+        {
+          throw OrthancException(ErrorCode_InternalError, std::string("Network interface name too long: '") + interfaces.GetCurrentName() + "'");
+        }
+
+        strcpy(ifr.ifr_name, interfaces.GetCurrentName());  // NOLINT(clang-analyzer-security.insecureAPI.strcpy)
           
         if (ioctl(socket.GetDescriptor(), SIOCGIFFLAGS, &ifr) == 0 &&
             !(ifr.ifr_flags & IFF_LOOPBACK) && // ignore loopback interface
