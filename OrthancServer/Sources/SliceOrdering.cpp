@@ -26,6 +26,7 @@
 
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/Toolbox.h"
+#include "../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "ServerEnumerations.h"
 #include "ServerIndex.h"
 
@@ -151,7 +152,7 @@ namespace Orthanc
     bool          hasNormal_;
     Vector        normal_;   
     bool          hasIndexInSeries_;
-    size_t        indexInSeries_;
+    unsigned int  indexInSeries_;
     unsigned int  framesCount_;
 
   public:
@@ -171,14 +172,7 @@ namespace Orthanc
           !frames->IsNull() &&
           !frames->IsBinary())
       {
-        try
-        {
-          const std::string token = Toolbox::StripSpaces(frames->GetContent());
-          framesCount_ = boost::lexical_cast<unsigned int>(token);
-        }
-        catch (boost::bad_lexical_cast&)
-        {
-        }
+        SerializationToolbox::ParseUnsignedInteger(framesCount_, Toolbox::StripSpaces(frames->GetContent()));
       }
       
       std::vector<float> tmp;
@@ -194,18 +188,11 @@ namespace Orthanc
       hasNormal_ = ComputeNormal(normal_, instance);
       hasIndexInSeries_ = false;
 
-      try
-      {
-        std::string s;
+      std::string s;
   
-        if (index.LookupMetadata(s, instanceId, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
-        {
-          indexInSeries_ = boost::lexical_cast<size_t>(Toolbox::StripSpaces(s));
-          hasIndexInSeries_ = true;
-        }
-      }
-      catch (boost::bad_lexical_cast&)
+      if (index.LookupMetadata(s, instanceId, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
       {
+        hasIndexInSeries_ = SerializationToolbox::ParseUnsignedInteger(indexInSeries_, Toolbox::StripSpaces(s));
       }
     }
 
@@ -232,7 +219,7 @@ namespace Orthanc
       return hasIndexInSeries_;
     }
     
-    size_t GetIndexInSeries() const
+    unsigned int GetIndexInSeries() const
     {
       assert(HasIndexInSeries());
       return indexInSeries_;

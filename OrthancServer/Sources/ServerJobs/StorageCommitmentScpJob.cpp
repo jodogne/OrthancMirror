@@ -308,7 +308,7 @@ namespace Orthanc
           }
         }
       }
-      catch (OrthancException&)
+      catch (OrthancException&)  // NOLINT(bugprone-empty-catch)
       {
       }
 

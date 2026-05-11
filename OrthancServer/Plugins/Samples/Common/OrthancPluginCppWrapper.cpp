@@ -28,7 +28,7 @@
 #include <boost/move/unique_ptr.hpp>
 #include <boost/thread.hpp>
 #include <boost/algorithm/string/join.hpp>
-
+#include <limits>
 
 #include <json/reader.h>
 #include <json/version.h>
@@ -227,7 +227,7 @@ namespace OrthancPlugins
     {
       Clear();
     }
-    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS&)
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS&) // NOLINT(bugprone-empty-catch)
     {
       // Don't throw exceptions in destructors
     }
@@ -675,7 +675,7 @@ namespace OrthancPlugins
     {
       Clear();
     }
-    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS&)
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS&) // NOLINT(bugprone-empty-catch)
     {
       // Don't throw exceptions in destructors
     }
@@ -977,7 +977,15 @@ namespace OrthancPlugins
         return true;
 
       case Json::uintValue:
-        target = configuration_[key].asUInt();
+        if (configuration_[key].asUInt() > std::numeric_limits<int>::max())
+        {
+          ORTHANC_PLUGINS_LOG_ERROR("The configuration option \"" + GetPath(key) +
+                                    "\" is too large to fit in an integer");
+
+          ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);          
+        }
+
+        target = static_cast<int>(configuration_[key].asUInt());
         return true;
 
       default:
@@ -1338,7 +1346,7 @@ namespace OrthancPlugins
     {
       Clear();
     }
-    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS&)
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS&) // NOLINT(bugprone-empty-catch)
     {
       // Don't throw exceptions in destructors
     }

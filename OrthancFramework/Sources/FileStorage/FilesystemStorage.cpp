@@ -261,7 +261,7 @@ namespace Orthanc
               }
             }
           }
-          catch (fs::filesystem_error&)
+          catch (fs::filesystem_error&)  // NOLINT(bugprone-empty-catch)
           {
           }
         }
@@ -298,7 +298,7 @@ namespace Orthanc
     {
       fs::remove(p);
     }
-    catch (...)
+    catch (...) // NOLINT(bugprone-empty-catch)
     {
       // Ignore the error
     }
@@ -317,7 +317,7 @@ namespace Orthanc
       fs::remove(p.parent_path().parent_path());
 #endif
     }
-    catch (...)
+    catch (...) // NOLINT(bugprone-empty-catch)
     {
       // Ignore the error
     }

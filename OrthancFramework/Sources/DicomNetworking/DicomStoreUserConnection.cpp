@@ -435,7 +435,7 @@ namespace Orthanc
       DIMSE_storeUser(&association_->GetDcmtkAssociation(), presID, &request,
                       NULL, dicom.getDataset(), ProgressCallback, NULL,
                       /*opt_blockMode*/ (GetParameters().HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
-                      /*opt_dimse_timeout*/ GetParameters().GetTimeout(),
+                      /*opt_dimse_timeout*/ static_cast<int>(GetParameters().GetTimeout()),
                       &response, &statusDetail, NULL),
       GetParameters(), "C-STORE");
 

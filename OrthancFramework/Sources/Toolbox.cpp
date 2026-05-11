@@ -1250,8 +1250,8 @@ namespace Orthanc
 
   static char Hex2Dec(char c)
   {
-    return ((c >= '0' && c <= '9') ? c - '0' :
-            ((c >= 'a' && c <= 'f') ? c - 'a' + 10 : c - 'A' + 10));
+    return static_cast<char>(((c >= '0' && c <= '9') ? c - '0' :
+            ((c >= 'a' && c <= 'f') ? c - 'a' + 10 : c - 'A' + 10)));
   }
 
   void Toolbox::UrlDecode(std::string& s)
@@ -1275,7 +1275,7 @@ namespace Orthanc
           isalnum(s[source + 1]) &&
           isalnum(s[source + 2]))
       {
-        s[target] = (Hex2Dec(s[source + 1]) << 4) | Hex2Dec(s[source + 2]);
+        s[target] = static_cast<char>((Hex2Dec(s[source + 1]) << 4) | Hex2Dec(s[source + 2]));
         source += 3;
         target += 1;
       }
@@ -1738,8 +1738,8 @@ namespace Orthanc
         uint8_t b = byte & 0x0f;
 
         target.push_back('%');
-        target.push_back(a < 10 ? a + '0' : a - 10 + 'A');
-        target.push_back(b < 10 ? b + '0' : b - 10 + 'A');
+        target.push_back(static_cast<char>(a < 10 ? a + '0' : a - 10 + 'A'));
+        target.push_back(static_cast<char>(b < 10 ? b + '0' : b - 10 + 'A'));
       }
     }
   }
@@ -1814,7 +1814,12 @@ namespace Orthanc
                                                     const std::string& key,
                                                     unsigned int defaultValue)
   {
-    int v = GetJsonIntegerField(json, key, defaultValue);
+    if (defaultValue > std::numeric_limits<int>::max())
+    {
+      throw OrthancException(ErrorCode_InternalError, "Default value too large to fit in a int");
+    }
+
+    int v = GetJsonIntegerField(json, key, static_cast<int>(defaultValue));
 
     if (v < 0)
     {
@@ -2654,7 +2659,7 @@ namespace Orthanc
 
     for (size_t i = decimal.size(); i > start; i--)
     {
-      s.push_back(decimal[i - 1] + '0');
+      s.push_back(static_cast<char>(decimal[i - 1] + '0'));
     }
 
     return s;
@@ -3017,7 +3022,7 @@ namespace Orthanc
 
     for (size_t i = 0; i < converted.size(); i++)
     {
-      unsigned char c = converted[i];
+      char c = converted[i];
       bool allowRepetitions = true;
 
       if (isspace(c) ||

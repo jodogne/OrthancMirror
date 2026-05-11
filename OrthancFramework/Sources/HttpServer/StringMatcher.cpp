@@ -95,7 +95,7 @@ namespace Orthanc
     }
     else
     {
-      matchEnd_ = matchBegin_ + pattern_.size();
+      matchEnd_ = matchBegin_ + static_cast<off_t>(pattern_.size());
       assert(matchEnd_ <= end);
       valid_ = true;
     }

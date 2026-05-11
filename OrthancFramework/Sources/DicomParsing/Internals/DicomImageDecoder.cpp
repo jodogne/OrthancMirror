@@ -670,7 +670,7 @@ namespace Orthanc
           fastVersionSuccess = true;
         }
       }
-      catch (OrthancException&)
+      catch (OrthancException&) // NOLINT(bugprone-empty-catch)
       {
         // Unsupported conversion, use the slow version
       }
