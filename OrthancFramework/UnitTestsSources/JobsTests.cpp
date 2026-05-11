@@ -1728,7 +1728,7 @@ TEST(SerializationToolbox, Numbers)
     ASSERT_THROW(SerializationToolbox::ReadUnsignedInteger(v, "field"), OrthancException);
     ASSERT_EQ(-1, SerializationToolbox::ReadInteger(v, "field"));
 
-    v["field"] = Json::Value(3000000000ul);
+    v["field"] = Json::Value(3000000000ull);
     ASSERT_THROW(SerializationToolbox::ReadInteger(v, "field"), OrthancException);
     ASSERT_EQ(3000000000ul, SerializationToolbox::ReadUnsignedInteger(v, "field"));
   }
