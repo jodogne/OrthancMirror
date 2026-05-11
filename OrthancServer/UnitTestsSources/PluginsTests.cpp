@@ -94,7 +94,7 @@ TEST(SharedLibrary, Basic)
     ASSERT_FALSE(l.HasFunction("world"));
     return;  // Success
   }
-  catch (OrthancException&)
+  catch (OrthancException&) // NOLINT(bugprone-empty-catch)
   {
   }
   
@@ -107,7 +107,7 @@ TEST(SharedLibrary, Basic)
     ASSERT_FALSE(l.HasFunction("world"));
     return;  // Success
   }
-  catch (OrthancException&)
+  catch (OrthancException&) // NOLINT(bugprone-empty-catch)
   {
   }
   
@@ -120,7 +120,7 @@ TEST(SharedLibrary, Basic)
     ASSERT_FALSE(l.HasFunction("world"));
     return;  // Success
   }
-  catch (OrthancException&)
+  catch (OrthancException&) // NOLINT(bugprone-empty-catch)
   {
   }
   

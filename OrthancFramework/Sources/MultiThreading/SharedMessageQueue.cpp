@@ -108,7 +108,7 @@ namespace Orthanc
   }
 
 
-  IDynamicObject* SharedMessageQueue::Dequeue(int32_t millisecondsTimeout)
+  IDynamicObject* SharedMessageQueue::Dequeue(unsigned int millisecondsTimeout)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
@@ -143,7 +143,7 @@ namespace Orthanc
 
 
 
-  bool SharedMessageQueue::WaitEmpty(int32_t millisecondsTimeout)
+  bool SharedMessageQueue::WaitEmpty(unsigned int millisecondsTimeout)
   {
     boost::mutex::scoped_lock lock(mutex_);
     

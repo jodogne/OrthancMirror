@@ -361,7 +361,7 @@ namespace Orthanc
 #endif
       FindCallback, &payload,
       /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
-      /*opt_dimse_timeout*/ parameters_.GetTimeout(),
+      /*opt_dimse_timeout*/ static_cast<int>(parameters_.GetTimeout()),
       &response, &statusDetail);
     
     if (statusDetail)
@@ -479,7 +479,7 @@ namespace Orthanc
       &association_->GetDcmtkAssociation(), presID, &request, dataset, 
       (progressListener_ != NULL ? MoveProgressCallback : NULL), progressListener_,
       /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
-      /*opt_dimse_timeout*/ parameters_.GetTimeout(),
+      /*opt_dimse_timeout*/ static_cast<int>(parameters_.GetTimeout()),
       &association_->GetDcmtkNetwork(), /*subOpCallback*/ NULL, NULL,
       &response, &statusDetail, &responseIdentifiers);
 
@@ -627,7 +627,7 @@ namespace Orthanc
 
         OFCondition result = DIMSE_receiveCommand(&(association_->GetDcmtkAssociation()),
                                                   (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
-                                                  parameters_.GetTimeout(),
+                                                  static_cast<int>(parameters_.GetTimeout()),
                                                   &cmdPresId,
                                                   &rsp,
                                                   NULL /* statusDetail */,
@@ -694,7 +694,7 @@ namespace Orthanc
           // Receive dataset
           result = DIMSE_receiveDataSetInMemory(&(association_->GetDcmtkAssociation()),
                                                   (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
-                                                  parameters_.GetTimeout(),
+                                                  static_cast<int>(parameters_.GetTimeout()),
                                                   &cmdPresId,
                                                   &dataObjectRawPtr,
                                                   NULL, NULL);
@@ -713,39 +713,39 @@ namespace Orthanc
             {
               desiredCStoreReturnStatus = instanceReceivedCallback(callbackContext, *dataObject, remoteAet, remoteIp, calledAet);
             }
+          }
 
-            // send the Store response
-            T_DIMSE_Message storeResponse;
-            memset(reinterpret_cast<void*>(&storeResponse), 0, sizeof(storeResponse));
-            storeResponse.CommandField         = DIMSE_C_STORE_RSP;
+          // send the Store response
+          T_DIMSE_Message storeResponse;
+          memset(reinterpret_cast<void*>(&storeResponse), 0, sizeof(storeResponse));
+          storeResponse.CommandField         = DIMSE_C_STORE_RSP;
 
-            T_DIMSE_C_StoreRSP& storeRsp       = storeResponse.msg.CStoreRSP;
-            storeRsp.MessageIDBeingRespondedTo = storeRequest->MessageID;
-            storeRsp.DimseStatus               = desiredCStoreReturnStatus;
-            storeRsp.DataSetType               = DIMSE_DATASET_NULL;
+          T_DIMSE_C_StoreRSP& storeRsp       = storeResponse.msg.CStoreRSP;
+          storeRsp.MessageIDBeingRespondedTo = storeRequest->MessageID;
+          storeRsp.DimseStatus               = desiredCStoreReturnStatus;
+          storeRsp.DataSetType               = DIMSE_DATASET_NULL;
 
-            OFStandard::strlcpy(
-                storeRsp.AffectedSOPClassUID, storeRequest->AffectedSOPClassUID, sizeof(storeRsp.AffectedSOPClassUID));
-            OFStandard::strlcpy(
-                storeRsp.AffectedSOPInstanceUID, storeRequest->AffectedSOPInstanceUID, sizeof(storeRsp.AffectedSOPInstanceUID));
-            storeRsp.opts = O_STORE_AFFECTEDSOPCLASSUID | O_STORE_AFFECTEDSOPINSTANCEUID;
+          OFStandard::strlcpy(
+              storeRsp.AffectedSOPClassUID, storeRequest->AffectedSOPClassUID, sizeof(storeRsp.AffectedSOPClassUID));
+          OFStandard::strlcpy(
+              storeRsp.AffectedSOPInstanceUID, storeRequest->AffectedSOPInstanceUID, sizeof(storeRsp.AffectedSOPInstanceUID));
+          storeRsp.opts = O_STORE_AFFECTEDSOPCLASSUID | O_STORE_AFFECTEDSOPINSTANCEUID;
 
-            result = DIMSE_sendMessageUsingMemoryData(&(association_->GetDcmtkAssociation()), 
-                                                      cmdPresId, 
-                                                      &storeResponse, NULL /* statusDetail */, NULL /* dataObject */,
-                                                      NULL, NULL, NULL /* commandSet */);
-            if (result.bad())
-            {
-              throw OrthancException(ErrorCode_NetworkProtocol, "C-GET SCU to AET \"" +
-                                     parameters_.GetRemoteModality().GetApplicationEntityTitle() +
-                                     "\" has failed to send response message");
-            }
-            else
-            {
-              OFString tempStr;
-              CLOG(TRACE, DICOM) << "Sent C-STORE Response: " << std::endl
-                << DIMSE_dumpMessage(tempStr, storeResponse, DIMSE_OUTGOING, NULL, cmdPresId);
-            }
+          result = DIMSE_sendMessageUsingMemoryData(&(association_->GetDcmtkAssociation()), 
+                                                    cmdPresId, 
+                                                    &storeResponse, NULL /* statusDetail */, NULL /* dataObject */,
+                                                    NULL, NULL, NULL /* commandSet */);
+          if (result.bad())
+          {
+            throw OrthancException(ErrorCode_NetworkProtocol, "C-GET SCU to AET \"" +
+                                    parameters_.GetRemoteModality().GetApplicationEntityTitle() +
+                                    "\" has failed to send response message");
+          }
+          else
+          {
+            OFString tempStr;
+            CLOG(TRACE, DICOM) << "Sent C-STORE Response: " << std::endl
+              << DIMSE_dumpMessage(tempStr, storeResponse, DIMSE_OUTGOING, NULL, cmdPresId);
           }
         }
         // Handle other DIMSE command (error since other command than GET/STORE not expected)
@@ -806,7 +806,7 @@ namespace Orthanc
       DIMSE_echoUser(&association_->GetDcmtkAssociation(),
                      association_->GetDcmtkAssociation().nextMsgID++, 
                      /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
-                     /*opt_dimse_timeout*/ parameters_.GetTimeout(),
+                     /*opt_dimse_timeout*/ static_cast<int>(parameters_.GetTimeout()),
                      &status, NULL),
       parameters_, "C-ECHO");
       

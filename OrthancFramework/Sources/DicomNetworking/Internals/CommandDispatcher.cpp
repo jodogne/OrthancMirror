@@ -375,8 +375,8 @@ namespace Orthanc
 
         cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
           assoc->params,
-          &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(),
-          &genericTransferSyntaxes[0], genericTransferSyntaxes.size());
+          &knownAbstractSyntaxes[0], static_cast<int>(knownAbstractSyntaxes.size()),
+          &genericTransferSyntaxes[0], static_cast<int>(genericTransferSyntaxes.size()));
         if (cond.bad())
         {
           CLOG(INFO, DICOM) << cond.text();
@@ -396,7 +396,7 @@ namespace Orthanc
           const char* as[1] = { UID_StorageCommitmentPushModelSOPClass }; 
           cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
             assoc->params, as, 1,
-            &genericTransferSyntaxes[0], genericTransferSyntaxes.size(), ASC_SC_ROLE_SCUSCP);
+            &genericTransferSyntaxes[0], static_cast<int>(genericTransferSyntaxes.size()), ASC_SC_ROLE_SCUSCP);
           if (cond.bad())
           {
             CLOG(INFO, DICOM) << cond.text();
@@ -488,8 +488,8 @@ namespace Orthanc
             // This branch exactly corresponds to Orthanc <= 1.6.1 (in
             // which C-GET SCP was not supported)
             cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
-              assoc->params, dcmAllStorageSOPClassUIDs, count,
-              &storageTransferSyntaxesC[0], storageTransferSyntaxesC.size());
+              assoc->params, dcmAllStorageSOPClassUIDs, static_cast<int>(count),
+              &storageTransferSyntaxesC[0], static_cast<int>(storageTransferSyntaxesC.size()));
             if (cond.bad())
             {
               CLOG(INFO, DICOM) << cond.text();
@@ -563,7 +563,7 @@ namespace Orthanc
              * to be a storage SOP class.
              **/
             cond = acceptUnknownContextsWithPreferredTransferSyntaxes(
-              assoc->params, &storageTransferSyntaxesC[0], storageTransferSyntaxesC.size(), ASC_SC_ROLE_DEFAULT);
+              assoc->params, &storageTransferSyntaxesC[0], static_cast<int>(storageTransferSyntaxesC.size()), ASC_SC_ROLE_DEFAULT);
             if (cond.bad())
             {
               CLOG(INFO, DICOM) << cond.text();
@@ -861,7 +861,7 @@ namespace Orthanc
 
                 if (handler.get() != NULL)
                 {
-                  cond = Internals::storeScp(assoc_, &msg, presID, *handler, remoteIp_, associationTimeout_);
+                  cond = Internals::storeScp(assoc_, &msg, presID, *handler, remoteIp_, static_cast<int>(associationTimeout_));
                 }
               }
               break;
@@ -874,7 +874,7 @@ namespace Orthanc
 
                 if (handler.get() != NULL)
                 {
-                  cond = Internals::moveScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_, calledAet_, associationTimeout_);
+                  cond = Internals::moveScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_, calledAet_, static_cast<int>(associationTimeout_));
                 }
               }
               break;
@@ -887,7 +887,7 @@ namespace Orthanc
                 
                 if (handler.get() != NULL)
                 {
-                  cond = Internals::getScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_, calledAet_, associationTimeout_);
+                  cond = Internals::getScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_, calledAet_, static_cast<int>(associationTimeout_));
                 }
               }
               break;
@@ -910,7 +910,7 @@ namespace Orthanc
                 }
 
                 cond = Internals::findScp(assoc_, &msg, presID, findHandler.get(), worklistHandler.get(),
-                                          remoteIp_, remoteAet_, calledAet_, associationTimeout_);
+                                          remoteIp_, remoteAet_, calledAet_, static_cast<int>(associationTimeout_));
               }
               break;
 
@@ -1141,7 +1141,7 @@ namespace Orthanc
        **/
       
       std::unique_ptr<DcmDataset> dataset(
-        ReadDataset(assoc_, "Cannot read the dataset in N-ACTION SCP", associationTimeout_));
+        ReadDataset(assoc_, "Cannot read the dataset in N-ACTION SCP", static_cast<int>(associationTimeout_)));
       assert(dataset.get() != NULL);
 
       {
@@ -1278,7 +1278,7 @@ namespace Orthanc
        **/
       
       std::unique_ptr<DcmDataset> dataset(
-        ReadDataset(assoc_, "Cannot read the dataset in N-EVENT-REPORT SCP", associationTimeout_));
+        ReadDataset(assoc_, "Cannot read the dataset in N-EVENT-REPORT SCP", static_cast<int>(associationTimeout_)));
       assert(dataset.get() != NULL);
 
       {

@@ -2348,7 +2348,7 @@ namespace Orthanc
       }
       else if (sourceX >= static_cast<int>(sourceWidth))
       {
-        sourceX = sourceWidth - 1;
+        sourceX = static_cast<int>(sourceWidth) - 1;
       }
 
       lookupX[x] = static_cast<unsigned int>(sourceX);
@@ -2365,7 +2365,7 @@ namespace Orthanc
       }
       else if (sourceY >= static_cast<int>(sourceHeight))
       {
-        sourceY = sourceHeight - 1;
+        sourceY = static_cast<int>(sourceHeight) - 1;
       }
 
       lookupY[y] = static_cast<unsigned int>(sourceY);
@@ -3171,8 +3171,8 @@ namespace Orthanc
         // Use the full dynamic range of the image
         int64_t minValue, maxValue;
         GetMinMaxIntegerValue(minValue, maxValue, source);
-        double minRescaled = info.ApplyRescale(minValue);
-        double maxRescaled = info.ApplyRescale(maxValue);
+        double minRescaled = info.ApplyRescale(static_cast<double>(minValue));
+        double maxRescaled = info.ApplyRescale(static_cast<double>(maxValue));
         info.ComputeRenderingTransform(offset, scaling, Window::FromBounds(minRescaled, maxRescaled));
       }
 
