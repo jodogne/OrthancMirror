@@ -162,6 +162,7 @@ endif()
 set(ORTHANC_CORE_SOURCES_INTERNAL
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryCache.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryObjectCache.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/SharedObjectCache.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/ChunkedBuffer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomPath.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomTag.cpp
