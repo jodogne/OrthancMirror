@@ -35,19 +35,48 @@ namespace Orthanc
   class ORTHANC_PUBLIC ThreadPool : public IExecutorService
   {
   private:
+    enum State
+    {
+      State_Initialization,
+      State_Running,
+      State_Finalization
+    };
+
     class Task;
 
     SharedMessageQueue   queue_;
     boost::thread_group  workers_;
-    boost::mutex         shutdownMutex_;
-    bool                 shutdown_;
+    boost::mutex         mutex_;
+    unsigned int         countThreads_;
+    State                state_;
+    unsigned int         dequeueTimeoutMilliseconds_;
+
+    void StopInternal(bool throws);
 
     void WorkerLoop();
 
   public:
-    ThreadPool(unsigned int countThreads);
+    ThreadPool();
 
-    ~ThreadPool();
+    ~ThreadPool()
+    {
+      StopInternal(false /* don't throw in destructor */);
+    }
+
+    void SetCountThreads(unsigned int count);
+
+    unsigned int GetCountThreads();
+
+    void SetDequeueTimeout(unsigned int milliseconds);
+
+    unsigned int GetDequeueTimeout();
+
+    void Start();
+
+    void Stop()
+    {
+      StopInternal(true);
+    }
 
     virtual Future* Submit(ICallable* callable /* takes ownership */) ORTHANC_OVERRIDE;
   };
