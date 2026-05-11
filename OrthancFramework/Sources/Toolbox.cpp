@@ -3022,7 +3022,7 @@ namespace Orthanc
 
     for (size_t i = 0; i < converted.size(); i++)
     {
-      char c = converted[i];
+      unsigned char c = converted[i];
       bool allowRepetitions = true;
 
       if (isspace(c) ||
@@ -3058,14 +3058,14 @@ namespace Orthanc
 
       if (allowRepetitions)
       {
-        result.push_back(c);
+        result.push_back(static_cast<char>(c));
       }
       else
       {
         if (result.empty() ||
-            result[result.size() - 1] != c)
+            result[result.size() - 1] != static_cast<char>(c))
         {
-          result.push_back(c);
+          result.push_back(static_cast<char>(c));
         }
       }
     }
