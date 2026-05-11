@@ -25,10 +25,11 @@
 #include "../PrecompiledHeaders.h"
 #include "ThreadPool.h"
 
+#include "../Logging.h"
 #include "../OrthancException.h"
 #include "FutureState.h"
 
-static const unsigned int DEQUEUE_TIMEOUT_MS = 100;
+static const unsigned int DEFAULT_DEQUEUE_TIMEOUT_MS = 100;
 
 
 namespace Orthanc
@@ -72,24 +73,120 @@ namespace Orthanc
         // Nothing to do: The future was canceled before we even started
       }
     }
+
+    void Cancel()
+    {
+      boost::shared_ptr<Internals::FutureState> locked = state_.lock();
+
+      if (locked)
+      {
+        locked->SetError(OrthancException(ErrorCode_CanceledJob));
+      }
+      else
+      {
+        // Nothing to do: The future was canceled before we even started
+      }
+    }
   };
+
+
+  void ThreadPool::StopInternal(bool throws)
+  {
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+
+      switch (state_)
+      {
+        case State_Initialization:
+          if (throws)
+          {
+            throw OrthancException(ErrorCode_BadSequenceOfCalls, "Start() has not been called");
+          }
+          else
+          {
+            return;  // This is for the destructor
+          }
+
+        case State_Finalization:
+          if (throws)
+          {
+            throw OrthancException(ErrorCode_BadSequenceOfCalls, "Concurrent access to Stop()");
+          }
+          else
+          {
+            return;  // This is for the destructor, should never happen
+          }
+
+        case State_Running:
+          state_ = State_Finalization;
+          break;
+
+        default:
+          if (throws)
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+          else
+          {
+            return;  // This is for the destructor
+          }
+      }
+    }
+
+    workers_.join_all();
+
+    // Cancel all the remaining tasks in the queue
+    for (;;)
+    {
+      std::unique_ptr<IDynamicObject> task(queue_.Dequeue(1));
+
+      if (task.get() == NULL)
+      {
+        break;
+      }
+      else
+      {
+        try
+        {
+          dynamic_cast<Task&>(*task).Cancel();
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Error while canceling task during shutdown: " << e.What();
+        }
+      }
+    }
+
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      state_ = State_Initialization;
+    }
+  }
 
 
   void ThreadPool::WorkerLoop()
   {
     while (true)
     {
-      std::unique_ptr<IDynamicObject> task(queue_.Dequeue(DEQUEUE_TIMEOUT_MS));
+      unsigned int timeout;
 
-      if (task.get() == NULL)
       {
-        boost::mutex::scoped_lock lock(shutdownMutex_);
-        if (shutdown_)
+        boost::mutex::scoped_lock lock(mutex_);
+
+        if (state_ == State_Running)
         {
+          timeout = dequeueTimeoutMilliseconds_;
+        }
+        else
+        {
+          assert(state_ == State_Finalization);
           return;
         }
       }
-      else
+
+      std::unique_ptr<IDynamicObject> task(queue_.Dequeue(timeout));
+
+      if (task.get() != NULL)
       {
         dynamic_cast<Task&>(*task).Execute();
       }
@@ -97,34 +194,105 @@ namespace Orthanc
   }
 
 
-  ThreadPool::ThreadPool(unsigned int countThreads) :
-    shutdown_(false)
+  ThreadPool::ThreadPool() :
+    countThreads_(1),
+    state_(State_Initialization),
+    dequeueTimeoutMilliseconds_(DEFAULT_DEQUEUE_TIMEOUT_MS)
   {
-    if (countThreads < 1)
+  }
+
+
+  void ThreadPool::SetCountThreads(unsigned int count)
+  {
+    if (count < 1)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    for (unsigned int i = 0; i < countThreads; i++)
     {
-      workers_.create_thread(boost::bind(&ThreadPool::WorkerLoop, this));
+      boost::mutex::scoped_lock lock(mutex_);
+
+      if (state_ == State_Initialization)
+      {
+        countThreads_ = count;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls, "Start() has already been called");
+      }
     }
   }
 
 
-  ThreadPool::~ThreadPool()
+  unsigned int ThreadPool::GetCountThreads()
   {
+    boost::mutex::scoped_lock lock(mutex_);
+    return countThreads_;
+  }
+
+
+  void ThreadPool::SetDequeueTimeout(unsigned int milliseconds)
+  {
+    if (milliseconds < 1)
     {
-      boost::mutex::scoped_lock lock(shutdownMutex_);
-      shutdown_ = true;
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    workers_.join_all();
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+
+      if (state_ == State_Initialization)
+      {
+        dequeueTimeoutMilliseconds_ = milliseconds;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls, "Start() has already been called");
+      }
+    }
+  }
+
+
+  unsigned int ThreadPool::GetDequeueTimeout()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    return dequeueTimeoutMilliseconds_;
+  }
+
+
+  void ThreadPool::Start()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    if (state_ == State_Initialization)
+    {
+      assert(countThreads_ >= 1);
+
+      state_ = State_Running;
+
+      for (unsigned int i = 0; i < countThreads_; i++)
+      {
+        workers_.create_thread(boost::bind(&ThreadPool::WorkerLoop, this));
+      }
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls, "Start() has not been called");
+    }
   }
 
 
   Future* ThreadPool::Submit(ICallable* callable)
   {
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+
+      if (state_ != State_Running)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls, "The thread pool is not running");
+      }
+    }
+
     std::unique_ptr<ICallable> protection(callable);
 
     if (callable == NULL)

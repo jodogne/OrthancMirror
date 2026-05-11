@@ -66,15 +66,23 @@ namespace Orthanc
           case State_Failed:
             if (error_.get() == NULL)
             {
-              throw OrthancException(ErrorCode_InternalError);  // Should never happen
+              throw OrthancException(ErrorCode_BadSequenceOfCalls, "The result of the future has already been released");
             }
             else
             {
-              throw OrthancException(*error_);
+              std::unique_ptr<OrthancException> released(error_.release());
+              throw OrthancException(*released);
             }
 
           case State_Success:
-            return result_.release();
+            if (result_.get() == NULL)
+            {
+              throw OrthancException(ErrorCode_BadSequenceOfCalls, "The result of the future has already been released");
+            }
+            else
+            {
+              return result_.release();
+            }
 
           default:
             throw OrthancException(ErrorCode_InternalError);  // Should never happen
@@ -143,7 +151,7 @@ namespace Orthanc
           assert(error_.get() == NULL);
 
           error_.reset(new OrthancException(error));
-          state_ = State_Success;
+          state_ = State_Failed;
           completed_.notify_all();
           break;
 

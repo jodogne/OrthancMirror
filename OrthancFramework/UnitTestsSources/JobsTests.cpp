@@ -45,6 +45,7 @@
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/MultiThreading/BlockingSharedMessageQueue.h"
 #include "../../OrthancFramework/Sources/MultiThreading/SharedMessageQueue.h"
+#include "../../OrthancFramework/Sources/MultiThreading/ThreadPool.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "../../OrthancFramework/Sources/SerializationToolbox.h"
 
@@ -1798,4 +1799,95 @@ TEST(SerializationToolbox, Numbers)
     ASSERT_TRUE(SerializationToolbox::ParseDouble(i, "-1e-2"));  ASSERT_DOUBLE_EQ(-0.01, i);
     ASSERT_TRUE(SerializationToolbox::ParseDouble(i, "1.3671875"));  ASSERT_DOUBLE_EQ(1.3671875, i);
   }
+}
+
+
+namespace
+{
+  static boost::mutex   counterMutex_;
+  static unsigned int   counter_ = 10;
+
+  class CountCallable : public ICallable
+  {
+  public:
+    virtual IDynamicObject* Call() ORTHANC_OVERRIDE
+    {
+      boost::mutex::scoped_lock lock(counterMutex_);
+      return new SingleValueObject<unsigned int>(counter_++);
+    }
+  };
+
+  class ExceptionCallable : public ICallable
+  {
+  public:
+    virtual IDynamicObject* Call() ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NetworkProtocol);  // dummy error code
+    }
+  };
+}
+
+
+TEST(ThreadPool, Basic)
+{
+  ThreadPool pool;
+  ASSERT_THROW(pool.SetCountThreads(0), OrthancException);
+  ASSERT_THROW(pool.SetDequeueTimeout(0), OrthancException);
+  pool.SetDequeueTimeout(1);  // Ensure fast shutdown in unit tests
+  ASSERT_EQ(1u, pool.GetCountThreads());
+  ASSERT_EQ(1u, pool.GetDequeueTimeout());
+
+  pool.Start();
+  ASSERT_THROW(pool.Start(), OrthancException);
+
+  pool.Stop();
+  ASSERT_THROW(pool.Stop(), OrthancException);
+
+  ASSERT_EQ(10u, counter_);
+
+  pool.Start();
+
+  {
+    std::unique_ptr<Future> future1(pool.Submit(new CountCallable));
+    std::unique_ptr<Future> future2(pool.Submit(new ExceptionCallable));
+
+    {
+      std::unique_ptr<IDynamicObject> result(future1->ReleaseResult());
+      ASSERT_EQ(10u, dynamic_cast< SingleValueObject<unsigned int>&>(*result).GetValue());
+    }
+
+    try
+    {
+      std::unique_ptr<IDynamicObject> result(future2->ReleaseResult());
+      ASSERT_TRUE(false);
+    }
+    catch (OrthancException& e)
+    {
+      ASSERT_EQ(ErrorCode_NetworkProtocol, e.GetErrorCode());
+    }
+
+    try
+    {
+      std::unique_ptr<IDynamicObject> result(future1->ReleaseResult());
+      ASSERT_TRUE(false);
+    }
+    catch (OrthancException& e)
+    {
+      ASSERT_EQ(ErrorCode_BadSequenceOfCalls, e.GetErrorCode());
+    }
+
+    try
+    {
+      std::unique_ptr<IDynamicObject> result(future2->ReleaseResult());
+      ASSERT_TRUE(false);
+    }
+    catch (OrthancException& e)
+    {
+      ASSERT_EQ(ErrorCode_BadSequenceOfCalls, e.GetErrorCode());
+    }
+  }
+
+  pool.Stop();
+
+  ASSERT_EQ(11u, counter_);
 }
