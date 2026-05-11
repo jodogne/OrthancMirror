@@ -27,6 +27,7 @@
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/SQLite/Transaction.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../Search/ISqlLookupFormatter.h"
 #include "../ServerToolbox.h"
 #include "Compatibility/GenericFind.h"
@@ -153,7 +154,7 @@ namespace Orthanc
 
     void Bind(SQLite::Statement& statement) const
     {
-      size_t pos = 0;
+      int pos = 0;
       
       for (std::list<std::string>::const_iterator
              it = values_.begin(); it != values_.end(); ++it, pos++)
@@ -431,12 +432,12 @@ namespace Orthanc
       s.BindInt64(0, id);
       s.BindInt(1, attachment.GetContentType());
       s.BindString(2, attachment.GetUuid());
-      s.BindInt64(3, attachment.GetCompressedSize());
-      s.BindInt64(4, attachment.GetUncompressedSize());
-      s.BindInt(5, attachment.GetCompressionType());
+      s.BindInt64(3, static_cast<int64_t>(attachment.GetCompressedSize()));
+      s.BindInt64(4, static_cast<int64_t>(attachment.GetUncompressedSize()));
+      s.BindInt(5, static_cast<int>(attachment.GetCompressionType()));
       s.BindString(6, attachment.GetUncompressedMD5());
       s.BindString(7, attachment.GetCompressedMD5());
-      s.BindInt(8, revision);
+      s.BindInt(8, static_cast<int>(revision));
       s.BindBlob(9, attachment.GetCustomData());
       s.Run();
     }
@@ -1540,7 +1541,7 @@ namespace Orthanc
         s.BindInt64(paramCounter++, to);
       }
 
-      s.BindInt(paramCounter++, limit + 1); // we take limit+1 because we use the +1 to know if "Done" must be set to true
+      s.BindInt(paramCounter++, static_cast<int>(limit) + 1); // we take limit+1 because we use the +1 to know if "Done" must be set to true
       GetChangesInternal(target, done, s, limit, returnFirstResults);
     }
 
@@ -1593,7 +1594,7 @@ namespace Orthanc
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                           "SELECT * FROM ExportedResources WHERE seq>? ORDER BY seq LIMIT ?");
       s.BindInt64(0, since);
-      s.BindInt(1, limit + 1);
+      s.BindInt(1, static_cast<int>(limit) + 1);
       GetExportedResourcesInternal(target, done, s, limit);
     }
 
@@ -2085,7 +2086,7 @@ namespace Orthanc
       s.BindInt64(0, id);
       s.BindInt(1, type);
       s.BindString(2, value);
-      s.BindInt(3, revision);
+      s.BindInt(3, static_cast<int>(revision));
       s.Run();
     }
 
@@ -2243,7 +2244,7 @@ namespace Orthanc
                                 const std::string& from /* only used if "first == false" */,
                                 uint64_t limit) ORTHANC_OVERRIDE
     {
-      int64_t actualLimit = limit;
+      int64_t actualLimit = static_cast<int64_t>(limit);
       if (limit == 0)
       {
         actualLimit = -1;  // In SQLite, "if negative, there is no upper bound on the number of rows returned"
@@ -2372,7 +2373,7 @@ namespace Orthanc
       {
         SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM Queues WHERE queueId=? AND id=?");
         s.BindString(0, queueId);  // Providing "queueId" is just a safeguard
-        s.BindInt64(1, valueId);
+        s.BindInt64(1, static_cast<int64_t>(valueId));
         s.Run();
 
         if (db_.GetLastChangeCount() != 1)
@@ -2414,7 +2415,7 @@ namespace Orthanc
         const int64_t reservedUntil = GetSecondsSinceEpoch() /* now */ + releaseTimeout;
         s.BindInt64(0, reservedUntil);
         s.BindString(1, queueId);  // Providing "queueId" is just a safeguard
-        s.BindInt64(2, valueId);
+        s.BindInt64(2, static_cast<int64_t>(valueId));
         s.Run();
 
         if (db_.GetLastChangeCount() == 0)
@@ -2702,7 +2703,7 @@ namespace Orthanc
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
     dbCapabilities_.SetHasExtendedChanges(true);
-    dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
+    dbCapabilities_.SetHasFindSupport(SQLiteDatabaseWrapper::HasIntegratedFind());
     dbCapabilities_.SetKeyValueStoresSupport(true);
     dbCapabilities_.SetQueuesSupport(true);
     dbCapabilities_.SetAttachmentCustomDataSupport(true);
@@ -2720,7 +2721,7 @@ namespace Orthanc
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
     dbCapabilities_.SetHasExtendedChanges(true);
-    dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
+    dbCapabilities_.SetHasFindSupport(SQLiteDatabaseWrapper::HasIntegratedFind());
     dbCapabilities_.SetKeyValueStoresSupport(true);
     dbCapabilities_.SetQueuesSupport(true);
     dbCapabilities_.SetAttachmentCustomDataSupport(true);
@@ -2812,16 +2813,8 @@ namespace Orthanc
         tmp = "Unknown";
       }
 
-      bool ok = false;
-      try
-      {
-        LOG(INFO) << "Version of the Orthanc database: " << tmp;
-        version_ = boost::lexical_cast<unsigned int>(tmp);
-        ok = true;
-      }
-      catch (boost::bad_lexical_cast&)
-      {
-      }
+      LOG(INFO) << "Version of the Orthanc database: " << tmp;
+      bool ok = SerializationToolbox::ParseUnsignedInteger(version_, tmp);
 
       if (!ok)
       {

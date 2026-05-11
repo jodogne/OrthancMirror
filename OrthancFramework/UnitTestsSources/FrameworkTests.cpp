@@ -552,7 +552,7 @@ TEST(Toolbox, FixUtf8)
 }
 
 
-static int32_t GetUnicode(const uint8_t* data,
+static uint32_t GetUnicode(const uint8_t* data,
                           size_t size,
                           size_t expectedLength)
 {
