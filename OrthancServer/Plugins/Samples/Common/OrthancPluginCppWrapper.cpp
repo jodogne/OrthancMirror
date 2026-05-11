@@ -977,7 +977,7 @@ namespace OrthancPlugins
         return true;
 
       case Json::uintValue:
-        if (configuration_[key].asUInt() > std::numeric_limits<int>::max())
+        if (configuration_[key].asUInt() > static_cast<unsigned int>(std::numeric_limits<int>::max()))
         {
           ORTHANC_PLUGINS_LOG_ERROR("The configuration option \"" + GetPath(key) +
                                     "\" is too large to fit in an integer");

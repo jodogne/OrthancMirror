@@ -1814,7 +1814,7 @@ namespace Orthanc
                                                     const std::string& key,
                                                     unsigned int defaultValue)
   {
-    if (defaultValue > std::numeric_limits<int>::max())
+    if (defaultValue > static_cast<unsigned int>(std::numeric_limits<int>::max()))
     {
       throw OrthancException(ErrorCode_InternalError, "Default value too large to fit in a int");
     }
