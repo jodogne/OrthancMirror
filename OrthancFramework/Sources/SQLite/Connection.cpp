@@ -382,7 +382,7 @@ namespace Orthanc
     {
       int err = sqlite3_create_function_v2(db_, 
                                            func->GetName(), 
-                                           func->GetCardinality(),
+                                           static_cast<int>(func->GetCardinality()),
                                            SQLITE_UTF8, 
                                            func,
                                            ScalarFunctionCaller,

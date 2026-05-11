@@ -40,6 +40,8 @@
  * Common section
  *********************************************************/
 
+//  NOLINTBEGIN(bugprone-reserved-identifier) // for all identifiers starting with _Orthanc
+
 namespace Orthanc
 {
   namespace Logging
@@ -1165,5 +1167,5 @@ namespace Orthanc
   }
 }
 
-
 #endif   // ORTHANC_ENABLE_LOGGING
+//  NOLINTEND(bugprone-reserved-identifier)

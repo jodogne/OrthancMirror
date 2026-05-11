@@ -178,7 +178,7 @@ namespace Orthanc
       else
       {
         // Check out "dcmjpeg/apps/dcmcjpeg.cc"
-        DJ_RPLossy parameters(lossyQuality);
+        DJ_RPLossy parameters(static_cast<int>(lossyQuality));
           
         if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess1, &parameters))
         {
@@ -205,7 +205,7 @@ namespace Orthanc
       else
       {
         // Check out "dcmjpeg/apps/dcmcjpeg.cc"
-        DJ_RPLossy parameters(lossyQuality);
+        DJ_RPLossy parameters(static_cast<int>(lossyQuality));
         if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess2_4, &parameters))
         {
           fixer.Apply(dicom);

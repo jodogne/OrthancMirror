@@ -130,6 +130,9 @@ namespace Orthanc
     static bool ParseInteger64(int64_t& result,
                                const std::string& value);
 
+    static bool ParseUnsignedInteger(unsigned int& result,
+                                     const std::string& value);
+
     static bool ParseUnsignedInteger32(uint32_t& result,
                                        const std::string& value);
 
