@@ -112,7 +112,7 @@ namespace Orthanc
     if (found == content_.end())
     {
       assert(!lru_.Contains(id));
-      return NULL;
+      return boost::shared_ptr<IDynamicObject>();  // Initialization to NULL
     }
     else
     {
