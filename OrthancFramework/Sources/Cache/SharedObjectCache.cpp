@@ -59,16 +59,17 @@ namespace Orthanc
   {
     assert(newObjectSize != 0);
 
-    while (currentSize_ + newObjectSize > capacity_)
+    while (!content_.empty() &&
+           currentSize_ + newObjectSize > capacity_)
     {
       std::string oldest = lru_.RemoveOldest();
       assert(!lru_.Contains(oldest));
 
       Content::iterator found = content_.find(oldest);
       assert(found != content_.end());
-      assert(found->second == NULL);
+      assert(found->second != NULL);
 
-      assert(currentSize_ < found->second->GetSize());
+      assert(currentSize_ >= found->second->GetSize());
       currentSize_ -= found->second->GetSize();
 
       delete found->second;
@@ -133,11 +134,17 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NullPointer);
     }
 
-    assert(provider_.get() == NULL);
+    assert(provider_.get() != NULL);
     size_t size = provider_->GetSize(*value) + sizeof(Item);
 
+    // Caching items with zero size would break the logic of "MakeRoom()", hence "sizeof(Item)"
     assert(size != 0);
 
+    if (size > capacity_)
+    {
+      return;  // This value is too large to be cached
+    }
+    else
     {
       Mutex::ScopedLock lock(mutex_);
 
@@ -148,8 +155,8 @@ namespace Orthanc
       if (found == content_.end())
       {
         assert(!lru_.Contains(id));
-
         lru_.Add(id);
+
         content_[id] = new Item(value, size);
       }
       else
@@ -164,6 +171,8 @@ namespace Orthanc
       }
 
       assert(lru_.Contains(id));
+
+      currentSize_ += size;
     }
   }
 

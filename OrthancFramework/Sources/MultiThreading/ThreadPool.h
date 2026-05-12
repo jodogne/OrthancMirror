@@ -42,18 +42,21 @@ namespace Orthanc
       State_Finalization
     };
 
-    class Task;
+    class ITask;
+    class CallableTask;
+    class RunnableTask;
 
     SharedMessageQueue                    queue_;
     std::unique_ptr<boost::thread_group>  workers_;
     boost::mutex                          mutex_;
+    std::string                           loggingThreadName_;
     unsigned int                          countThreads_;
     State                                 state_;
     unsigned int                          dequeueTimeoutMilliseconds_;
 
     void StopInternal(bool throws);
 
-    void WorkerLoop();
+    void WorkerLoop(std::string threadName);
 
   public:
     ThreadPool();
@@ -62,6 +65,8 @@ namespace Orthanc
     {
       StopInternal(false /* don't throw in destructor */);
     }
+
+    void SetLoggingThreadName(const std::string& name);
 
     void SetCountThreads(unsigned int count);
 
@@ -73,11 +78,13 @@ namespace Orthanc
 
     void Start();
 
-    void Stop()
+    virtual Future* Submit(ICallable* callable /* takes ownership */) ORTHANC_OVERRIDE;
+
+    virtual void Submit(IRunnable* runnable /* takes ownership */) ORTHANC_OVERRIDE;
+
+    virtual void Stop() ORTHANC_OVERRIDE
     {
       StopInternal(true);
     }
-
-    virtual Future* Submit(ICallable* callable /* takes ownership */) ORTHANC_OVERRIDE;
   };
 }

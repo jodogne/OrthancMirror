@@ -44,13 +44,13 @@ namespace Orthanc
       {
       }
 
-      virtual size_t GetSize(const IDynamicObject& object) = 0;
+      virtual size_t GetSize(const IDynamicObject& object) const = 0;
     };
 
     class StringSizeProvider : public ISizeProvider
     {
     public:
-      virtual size_t GetSize(const IDynamicObject& object) ORTHANC_OVERRIDE
+      virtual size_t GetSize(const IDynamicObject& object) const ORTHANC_OVERRIDE
       {
         return dynamic_cast<const SingleValueObject<std::string>&>(object).GetValue().size();
       }

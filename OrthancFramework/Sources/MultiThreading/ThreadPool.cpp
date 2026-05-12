@@ -29,20 +29,36 @@
 #include "../OrthancException.h"
 #include "FutureState.h"
 
+#include <boost/lexical_cast.hpp>
+
+
 static const unsigned int DEFAULT_DEQUEUE_TIMEOUT_MS = 100;
 
 
 namespace Orthanc
 {
-  class ThreadPool::Task : public IDynamicObject
+  class ThreadPool::ITask : public IDynamicObject
+  {
+  public:
+    virtual ~ITask()
+    {
+    }
+
+    virtual void Execute() = 0;
+
+    virtual void Cancel() = 0;
+  };
+
+
+  class ThreadPool::CallableTask : public ITask
   {
   private:
     std::unique_ptr<ICallable>               callable_;
     boost::weak_ptr<Internals::FutureState>  state_;
 
   public:
-    Task(ICallable* callable,
-         boost::shared_ptr<Internals::FutureState>& state) :
+    CallableTask(ICallable* callable,
+                 boost::shared_ptr<Internals::FutureState>& state) :
       callable_(callable),
       state_(state)
     {
@@ -86,6 +102,29 @@ namespace Orthanc
       {
         // Nothing to do: The future was canceled before we even started
       }
+    }
+  };
+
+
+  class ThreadPool::RunnableTask : public ITask
+  {
+  private:
+    std::unique_ptr<IRunnable>  runnable_;
+
+  public:
+    RunnableTask(IRunnable* runnable) :
+      runnable_(runnable)
+    {
+      assert(runnable != NULL);
+    }
+
+    void Execute()
+    {
+      runnable_->Run();
+    }
+
+    void Cancel()
+    {
     }
   };
 
@@ -150,7 +189,7 @@ namespace Orthanc
       {
         try
         {
-          dynamic_cast<Task&>(*task).Cancel();
+          dynamic_cast<ITask&>(*task).Cancel();
         }
         catch (OrthancException& e)
         {
@@ -166,8 +205,10 @@ namespace Orthanc
   }
 
 
-  void ThreadPool::WorkerLoop()
+  void ThreadPool::WorkerLoop(std::string threadName)
   {
+    Logging::SetCurrentThreadName(threadName);
+
     while (true)
     {
       unsigned int timeout;
@@ -190,17 +231,33 @@ namespace Orthanc
 
       if (task.get() != NULL)
       {
-        dynamic_cast<Task&>(*task).Execute();
+        dynamic_cast<ITask&>(*task).Execute();
       }
     }
   }
 
 
   ThreadPool::ThreadPool() :
+    loggingThreadName_("POOL"),
     countThreads_(1),
     state_(State_Initialization),
     dequeueTimeoutMilliseconds_(DEFAULT_DEQUEUE_TIMEOUT_MS)
   {
+  }
+
+
+  void ThreadPool::SetLoggingThreadName(const std::string& name)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    if (state_ == State_Initialization)
+    {
+      loggingThreadName_ = name;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls, "Start() has already been called");
+    }
   }
 
 
@@ -277,7 +334,8 @@ namespace Orthanc
 
       for (unsigned int i = 0; i < countThreads_; i++)
       {
-        workers_->create_thread(boost::bind(&ThreadPool::WorkerLoop, this));
+        const std::string threadName = loggingThreadName_ + "-" + boost::lexical_cast<std::string>(i);
+        workers_->create_thread(boost::bind(&ThreadPool::WorkerLoop, this, threadName));
       }
     }
     else
@@ -289,6 +347,13 @@ namespace Orthanc
 
   Future* ThreadPool::Submit(ICallable* callable)
   {
+    std::unique_ptr<ICallable> protection(callable);
+
+    if (callable == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
     {
       boost::mutex::scoped_lock lock(mutex_);
 
@@ -298,17 +363,32 @@ namespace Orthanc
       }
     }
 
-    std::unique_ptr<ICallable> protection(callable);
+    boost::shared_ptr<Internals::FutureState> state(boost::make_shared<Internals::FutureState>());
 
-    if (callable == NULL)
+    queue_.Enqueue(new CallableTask(protection.release(), state));
+
+    return new Future(state);
+  }
+
+
+  void ThreadPool::Submit(IRunnable* runnable)
+  {
+    std::unique_ptr<IRunnable> protection(runnable);
+
+    if (runnable == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
 
-    boost::shared_ptr<Internals::FutureState> state(boost::make_shared<Internals::FutureState>());
+    {
+      boost::mutex::scoped_lock lock(mutex_);
 
-    queue_.Enqueue(new Task(protection.release(), state));
+      if (state_ != State_Running)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls, "The thread pool is not running");
+      }
+    }
 
-    return new Future(state);
+    queue_.Enqueue(new RunnableTask(protection.release()));
   }
 }
