@@ -185,7 +185,7 @@ namespace Orthanc
          * ..., G1, G2, G3, ..., B1, B2, B3, etc.
          **/
         assert(frameOffset_ % information_.GetChannelCount() == 0);
-        pixel += channel * frameOffset_ / information_.GetChannelCount() + x * information_.GetBytesPerValue();
+        pixel += static_cast<size_t>(channel) * frameOffset_ / information_.GetChannelCount() + static_cast<size_t>(x) * information_.GetBytesPerValue();
       }
       else
       {
@@ -195,7 +195,7 @@ namespace Orthanc
          * means the order of the pixel values sent shall be R1, G1, B1,
          * R2, G2, B2, ..., etc.
          **/
-        pixel += channel * information_.GetBytesPerValue() + x * information_.GetChannelCount() * information_.GetBytesPerValue();
+        pixel += static_cast<size_t>(channel) * information_.GetBytesPerValue() + static_cast<size_t>(x) * information_.GetChannelCount() * information_.GetBytesPerValue();
       }
 
       uint32_t v;

@@ -1683,7 +1683,7 @@ namespace Orthanc
       return;
     }
 
-    static const uint64_t MEGA_BYTES = 1024 * 1024;
+    static const uint64_t MEGA_BYTES = 1024ull * 1024ull;
 
     std::string publicId = call.GetUriComponent("id", "");
 

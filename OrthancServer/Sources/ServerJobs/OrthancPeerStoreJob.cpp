@@ -241,7 +241,7 @@ namespace Orthanc
       value["Transcode"] = GetTransferSyntaxUid(transferSyntax_);
     }
 
-    static const uint64_t MEGA_BYTES = 1024 * 1024;
+    static const uint64_t MEGA_BYTES = 1024ull * 1024ull;
     value["Size"] = boost::lexical_cast<std::string>(size_);
     value["SizeMB"] = static_cast<unsigned int>(size_ / MEGA_BYTES);
   }

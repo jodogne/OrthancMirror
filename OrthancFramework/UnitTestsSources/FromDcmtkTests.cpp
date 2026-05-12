@@ -986,7 +986,7 @@ TEST(TestImages, PatternRGB)
     {
       const void* a = image.GetConstRow(y);
       const void* b = decoded->GetConstRow(y);
-      ASSERT_EQ(0, memcmp(a, b, 3 * 384));
+      ASSERT_EQ(0, memcmp(a, b, static_cast<size_t>(3) * 384));
     }
   }
 }

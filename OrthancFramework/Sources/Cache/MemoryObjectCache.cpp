@@ -90,7 +90,7 @@ namespace Orthanc
 
   MemoryObjectCache::MemoryObjectCache() :
     currentSize_(0),
-    maxSize_(100 * 1024 * 1024)  // 100 MB
+    maxSize_(static_cast<size_t>(100) * 1024 * 1024)  // 100 MB
   {
   }
 

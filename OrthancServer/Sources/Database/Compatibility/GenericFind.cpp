@@ -133,7 +133,7 @@ namespace Orthanc
         }
         else if (request.GetLimitsCount() != 0)
         {
-          compatibilityTransaction_.GetAllPublicIdsCompatibility(identifiers, request.GetLevel(), request.GetLimitsSince(), request.GetLimitsCount());
+          compatibilityTransaction_.GetAllPublicIdsCompatibility(identifiers, request.GetLevel(), static_cast<int64_t>(request.GetLimitsSince()), request.GetLimitsCount());
         }
         else
         {

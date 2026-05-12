@@ -194,7 +194,7 @@ namespace Orthanc
 
     for (unsigned int cy = top; cy < height; cy++)
     {
-      uint8_t* p = reinterpret_cast<uint8_t*>(target.GetRow(y + cy)) + (x + left) * bpp;
+      uint8_t* p = reinterpret_cast<uint8_t*>(target.GetRow(y + cy)) + static_cast<size_t>(x + left) * bpp;
       unsigned int pos = cy * character.width_ + left;
 
       switch (target.GetFormat())

@@ -141,7 +141,7 @@ namespace Orthanc
       rows_.resize(height);
       for (unsigned int y = 0; y < height; y++)
       {
-        rows_[y] = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(buffer)) + y * pitch;
+        rows_[y] = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(buffer)) + static_cast<size_t>(y) * pitch;
       }
 
       switch (format)

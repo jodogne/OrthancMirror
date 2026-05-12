@@ -258,7 +258,7 @@ namespace Orthanc
       GzipRaii raii(stream);
 
       std::string chunk;
-      chunk.resize(10 * 1024 * 1024); // Read by chunks of 10MB
+      chunk.resize(static_cast<size_t>(10) * 1024 * 1024); // Read by chunks of 10MB
 
       int ret = Z_OK;
 

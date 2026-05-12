@@ -64,7 +64,7 @@
 #  include <malloc.h>
 #endif
 
-static size_t DICOM_CACHE_SIZE = 128 * 1024 * 1024;  // 128 MB
+static size_t DICOM_CACHE_SIZE = static_cast<size_t>(128) * 1024 * 1024;  // 128 MB
 
 
 /**
@@ -133,7 +133,7 @@ namespace Orthanc
         // (see OrthancServer/Resources/ImplementationNotes/memory_consumption.txt)
         {
           MetricsRegistry::Timer timer(that->GetMetricsRegistry(), "orthanc_memory_trimming_duration_ms");
-          malloc_trim(128*1024);
+          malloc_trim(static_cast<size_t>(128) * 1024);
         }
         lastExecution = boost::posix_time::second_clock::universal_time();
       }
@@ -1547,7 +1547,7 @@ namespace Orthanc
 
       // Release the throttle if loading "small" DICOM files (under
       // 50MB, which is an arbitrary value)
-      if (buffer_.size() < 50 * 1024 * 1024)
+      if (buffer_.size() < static_cast<size_t>(50) * 1024 * 1024)
       {
         largeDicomLocker_.reset(NULL);
       }

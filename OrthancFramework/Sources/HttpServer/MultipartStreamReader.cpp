@@ -246,7 +246,7 @@ namespace Orthanc
     handler_(NULL),
     headersMatcher_("\r\n\r\n"),
     boundaryMatcher_("--" + boundary),
-    blockSize_(10 * 1024 * 1024)
+    blockSize_(static_cast<size_t>(10) * 1024 * 1024)
   {
   }
 

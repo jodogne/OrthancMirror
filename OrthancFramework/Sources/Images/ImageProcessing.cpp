@@ -213,7 +213,7 @@ namespace Orthanc
   static void MemsetZeroInternal(ImageAccessor& image)
   {
     const unsigned int height = image.GetHeight();
-    const size_t lineSize = image.GetBytesPerPixel() * image.GetWidth();
+    const size_t lineSize = static_cast<size_t>(image.GetBytesPerPixel()) * image.GetWidth();
     const size_t pitch = image.GetPitch();
 
     uint8_t *p = reinterpret_cast<uint8_t*>(image.GetBuffer());

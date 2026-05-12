@@ -27,7 +27,7 @@
 #include "../OrthancException.h"
 #include "../SystemToolbox.h"
 
-static const size_t  CHUNK_SIZE = 64 * 1024;   // Use 64KB chunks
+static const size_t CHUNK_SIZE = static_cast<size_t>(64) * 1024;   // Use 64KB chunks
 
 namespace Orthanc
 {

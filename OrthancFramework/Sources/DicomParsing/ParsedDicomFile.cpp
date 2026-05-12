@@ -239,7 +239,7 @@ namespace Orthanc
         offset_(0),
         chunkSize_(0)
       {
-        static const size_t CHUNK_SIZE = 64 * 1024;  // Use chunks of max 64KB
+        static const size_t CHUNK_SIZE = static_cast<size_t>(64) * 1024;  // Use chunks of max 64KB
         chunk_.resize(CHUNK_SIZE);
       }
 
