@@ -62,6 +62,8 @@ namespace Orthanc
 
     boost::shared_ptr<DataSourceAnswer> Submit(DataSourceRequest* request /* takes ownership */);
 
+    boost::shared_ptr<IDynamicObject> ReadSingle(IDataIdentifier* id /* takes ownership */);
+
     void Stop()
     {
       executor_->Stop();

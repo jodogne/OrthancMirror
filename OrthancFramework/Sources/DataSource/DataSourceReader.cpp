@@ -190,4 +190,20 @@ namespace Orthanc
 
     return answer;
   }
+
+
+  boost::shared_ptr<IDynamicObject> DataSourceReader::ReadSingle(IDataIdentifier* id)
+  {
+    std::unique_ptr<IDataIdentifier> protection(id);
+
+    std::unique_ptr<DataSourceRequest> request(new DataSourceRequest);
+    request->Enqueue(protection.release());
+
+    boost::shared_ptr<DataSourceAnswer> answer(Submit(request.release()));
+
+    std::unique_ptr<DataSourceAnswer::Item> item(answer->Dequeue());
+    assert(answer->Dequeue() == NULL);
+
+    return item->GetValue();
+  }
 }
