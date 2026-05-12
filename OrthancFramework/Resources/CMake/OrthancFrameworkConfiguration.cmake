@@ -656,6 +656,10 @@ else()
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryStringCache.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/SharedArchive.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceAnswer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceMemoryBudget.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceReader.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceRequest.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileBuffer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/FilesystemStorage.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MetricsRegistry.cpp
