@@ -660,6 +660,7 @@ else()
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/FilesystemStorage.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MetricsRegistry.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/BlockingSharedMessageQueue.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/CallableGroup.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/Future.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/FutureState.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/RunnableWorkersPool.cpp
