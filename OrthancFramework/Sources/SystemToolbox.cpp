@@ -169,7 +169,7 @@ namespace Orthanc
     barrierEvent_ = ServerBarrierEvent_Stop;
     while (!(*stopFlag || finish_))
     {
-      SystemToolbox::USleep(100 * 1000);
+      SystemToolbox::USleep(100ull * 1000ull);
     }
 
 #if defined(_WIN32)

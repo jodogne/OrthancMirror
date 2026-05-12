@@ -25,7 +25,7 @@
 #include "../../PrecompiledHeaders.h"
 #include "DicomTls.h"
 
-
+// NOLINTBEGIN(bugprone-reserved-identifier)
 // This must be *before* the inclusion of "Logging.h"
 #if defined(__ORTHANC_FILE__)
 // Prevents the system-wide DCMTK library from leaking the
@@ -33,7 +33,7 @@
 #  undef __FILE__
 #  define __FILE__ __ORTHANC_FILE__
 #endif
-
+// NOLINTEND(bugprone-reserved-identifier)
 
 #include "../../Logging.h"
 #include "../../OrthancException.h"

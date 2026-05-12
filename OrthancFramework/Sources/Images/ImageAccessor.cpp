@@ -56,7 +56,7 @@ namespace Orthanc
         s = "; ";
       }
 
-      s.reserve(width * 8);
+      s.reserve(static_cast<size_t>(width) * 8);
 
       for (unsigned int x = 0; x < width; x++, p++)
       {
@@ -85,7 +85,7 @@ namespace Orthanc
       const uint8_t* p = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
       
       std::string s;
-      s.reserve(width * 3 * 8);
+      s.reserve(static_cast<size_t>(width) * 3 * 8);
       
       for (unsigned int x = 0; x < 3 * width; x++, p++)
       {

@@ -36,13 +36,15 @@
 
 #include <cassert>
 
-
+// NOLINTBEGIN(bugprone-macro-parentheses)
 #define CHECK_FUNCTION_EXISTS(backend, func)                            \
   if (backend.func == NULL)                                             \
   {                                                                     \
     throw OrthancException(                                             \
       ErrorCode_DatabasePlugin, "Missing primitive: " #func "()");      \
   }
+// NOLINTEND(bugprone-macro-parentheses)
+
 
 namespace Orthanc
 {

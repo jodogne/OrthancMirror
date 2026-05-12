@@ -12,7 +12,6 @@ Checks: >
   -bugprone-easily-swappable-parameters,
   -bugprone-branch-clone,
   -bugprone-suspicious-include,
-  -bugprone-implicit-widening-of-multiplication-result,
   -bugprone-exception-escape,
   -performance-*,
   -readability-*,

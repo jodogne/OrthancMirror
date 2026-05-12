@@ -304,8 +304,8 @@ namespace Orthanc
         {
           commands_[i] = unserializer->Unserialize(tmp[i]);
         }
-        catch (OrthancException&)
-        {
+        catch (OrthancException&) // NOLINT(bugprone-empty-catch)
+        { // ignore the command if it cannot be unserialized
         }
 
         if (commands_[i] == NULL)

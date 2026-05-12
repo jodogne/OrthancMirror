@@ -131,7 +131,7 @@ TEST(EnumerationDictionary, ServerEnumerations)
 TEST(FontRegistry, Basic)
 {
   Orthanc::Image s(Orthanc::PixelFormat_RGB24, 640, 480, false);
-  memset(s.GetBuffer(), 0, s.GetPitch() * s.GetHeight());
+  memset(s.GetBuffer(), 0, static_cast<size_t>(s.GetPitch()) * s.GetHeight());
 
   {
     Orthanc::OrthancConfiguration::ReaderLock lock;

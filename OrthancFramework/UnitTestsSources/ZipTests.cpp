@@ -236,7 +236,7 @@ TEST(ZipWriter, Stream)
   std::string memory;
 
   std::string large;
-  large.resize(4 * 65536);
+  large.resize(static_cast<size_t>(4) * 65536);
   for (size_t i = 0; i < large.size(); i++)
   {
     large[i] = static_cast<char>(rand() % 256);

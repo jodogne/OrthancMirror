@@ -361,7 +361,7 @@ namespace Orthanc
       if (constraints_[i]->GetTag() == tag)
       {
         delete constraints_[i];
-        constraints_.erase(constraints_.begin() + i);
+        constraints_.erase(constraints_.begin() + static_cast<std::vector<DicomTagConstraint*>::difference_type>(i));
       }
     }
   }

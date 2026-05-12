@@ -510,7 +510,7 @@ namespace Orthanc
     FileBuffer buffer;
 
     uint64_t readSoFar = 0;
-    std::string tmp(1024 * 1024, 0);
+    std::string tmp(static_cast<size_t>(1024) * 1024, 0);
 
     for (;;)
     {
@@ -550,7 +550,7 @@ namespace Orthanc
                                                   bool hasMaxBodySize,
                                                   size_t maxBodySize)
   {
-    static const size_t MAXIMUM_BODY_SIZE_IN_MEMORY = 100 * 1024 * 1024;  // 100MB
+    static const size_t MAXIMUM_BODY_SIZE_IN_MEMORY = static_cast<size_t>(100) * 1024 * 1024;  // 100MB
 
     assert(!hasMaxBodySize || maxBodySize > 0);
 
@@ -685,7 +685,7 @@ namespace Orthanc
     else
     {
       // No Content-Length: This is a chunked transfer. Stream the HTTP connection.
-      std::string tmp(1024 * 1024, 0);
+      std::string tmp(static_cast<size_t>(1024) * 1024, 0);
       
       for (;;)
       {

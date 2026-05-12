@@ -241,7 +241,7 @@ namespace Orthanc
       return;
     }
 
-    static const uint64_t MEGA_BYTES = 1024 * 1024;
+    static const uint64_t MEGA_BYTES = 1024ull * 1024ull;
 
     uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
     OrthancRestApi::GetIndex(call).GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 

@@ -348,7 +348,7 @@ namespace Orthanc
     ChunkedBuffer buffer;
 
     std::string chunk;
-    chunk.resize(10 * 1024 * 1024); // Read by chunks of 10MB
+    chunk.resize(static_cast<size_t>(10) * 1024 * 1024); // Read by chunks of 10MB
 
     for (;;)
     {

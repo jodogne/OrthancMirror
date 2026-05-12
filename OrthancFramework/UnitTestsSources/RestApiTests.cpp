@@ -1165,7 +1165,7 @@ TEST(WebServiceParameters, Url)
 
 TEST(ChunkedBuffer, DISABLED_Large)
 {
-  const size_t LARGE = 60 * 1024 * 1024;
+  const size_t LARGE = static_cast<size_t>(60) * 1024 * 1024;
   
   ChunkedBuffer b;
   for (size_t i = 0; i < LARGE; i++)
@@ -1342,7 +1342,7 @@ TEST(HttpClient, DISABLED_Issue156_Slow)
   w.SetUrl("http://localhost:5000");
 
   // This is slow in Orthanc <= 1.5.8 (issue 156)
-  TotoBody body(600 * 1024 * 1024, 6 * 1024 * 1024 - 17);
+  TotoBody body(static_cast<size_t>(600) * 1024 * 1024, static_cast<size_t>(6) * 1024 * 1024 - 17);
   
   HttpClient c(w, "toto");
   c.SetMethod(HttpMethod_Post);
@@ -1370,7 +1370,7 @@ TEST(HttpClient, DISABLED_Issue156_Crash)
   w.SetUrl("http://localhost:5000");
 
   // This crashes Orthanc 1.6.0 to 1.7.2 
-  TotoBody body(32 * 1024, 1);  
+  TotoBody body(static_cast<size_t>(32) * 1024, static_cast<size_t>(1));  
   
   HttpClient c(w, "toto");
   c.SetMethod(HttpMethod_Post);

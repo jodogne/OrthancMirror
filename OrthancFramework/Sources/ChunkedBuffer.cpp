@@ -92,7 +92,7 @@ namespace Orthanc
     numBytes_(0),
     pendingPos_(0)
   {
-    pendingBuffer_.resize(16 * 1024);  // Default size of the pending buffer: 16KB
+    pendingBuffer_.resize(static_cast<size_t>(16) * 1024);  // Default size of the pending buffer: 16KB
   }
 
 

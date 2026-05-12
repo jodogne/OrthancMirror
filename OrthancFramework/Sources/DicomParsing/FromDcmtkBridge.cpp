@@ -233,7 +233,7 @@ namespace Orthanc
         {
           // since we cannot report "unlimited", let's claim that we can still write 10MB.
           // Note that offile_off_t is a signed type.
-          return 10 * 1024 * 1024;
+          return static_cast<offile_off_t>(10) * 1024 * 1024;
         }
 
         offile_off_t write(const void *buf,

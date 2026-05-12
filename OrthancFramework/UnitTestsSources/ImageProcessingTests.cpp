@@ -301,7 +301,7 @@ TYPED_TEST(TestImageTraits, SetZero)
 {
   ImageAccessor& image = this->GetImage();
   
-  memset(image.GetBuffer(), 128, image.GetHeight() * image.GetWidth());
+  memset(image.GetBuffer(), 128, static_cast<size_t>(image.GetHeight()) * image.GetWidth());
 
   switch (image.GetFormat())
   {
@@ -338,7 +338,7 @@ TYPED_TEST(TestIntegerImageTraits, SetZeroFloat)
 {
   ImageAccessor& image = this->GetImage();
   
-  memset(image.GetBuffer(), 128, image.GetHeight() * image.GetWidth());
+  memset(image.GetBuffer(), 128, static_cast<size_t>(image.GetHeight()) * image.GetWidth());
 
   float c = 0.0f;
   for (unsigned int y = 0; y < image.GetHeight(); y++)
