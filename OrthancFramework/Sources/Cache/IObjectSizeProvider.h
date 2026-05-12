@@ -24,51 +24,18 @@
 
 #pragma once
 
-#include "../OrthancFramework.h"
+#include "../IDynamicObject.h"
 
-#include <boost/noncopyable.hpp>
-
-#if !defined(__EMSCRIPTEN__)
-#  include <boost/thread/mutex.hpp>
-#endif
 
 namespace Orthanc
 {
-  // Wrapper class for compatibility with Emscripten
-
-#if defined(__EMSCRIPTEN__)
-
-  class ORTHANC_PUBLIC Mutex : public boost::noncopyable
+  class ORTHANC_PUBLIC IObjectSizeProvider : public boost::noncopyable
   {
   public:
-    class ORTHANC_PUBLIC ScopedLock : public boost::noncopyable
+    virtual ~IObjectSizeProvider()
     {
-    public:
-      explicit ScopedLock(Mutex& mutex)
-      {
-      }
-    };
+    }
+
+    virtual size_t GetSize(const IDynamicObject& object) const = 0;
   };
-
-#else
-
-  class ORTHANC_PUBLIC Mutex : public boost::noncopyable
-  {
-  private:
-    boost::mutex mutex_;
-
-  public:
-    class ORTHANC_PUBLIC ScopedLock : public boost::noncopyable
-    {
-    private:
-      boost::mutex::scoped_lock lock_;
-
-    public:
-      explicit ScopedLock(Mutex& mutex) :
-        lock_(mutex.mutex_)
-      {
-      }
-    };
-  };
-#endif
 }

@@ -24,9 +24,8 @@
 
 #pragma once
 
-#include "../Compatibility.h"
-#include "../IDynamicObject.h"
 #include "../MultiThreading/Mutex.h"
+#include "IObjectSizeProvider.h"
 #include "LeastRecentlyUsedIndex.h"
 
 #include <boost/shared_ptr.hpp>
@@ -36,42 +35,22 @@ namespace Orthanc
 {
   class ORTHANC_PUBLIC SharedObjectCache : public boost::noncopyable
   {
-  public:
-    class ORTHANC_PUBLIC ISizeProvider : public boost::noncopyable
-    {
-    public:
-      virtual ~ISizeProvider()
-      {
-      }
-
-      virtual size_t GetSize(const IDynamicObject& object) const = 0;
-    };
-
-    class StringSizeProvider : public ISizeProvider
-    {
-    public:
-      virtual size_t GetSize(const IDynamicObject& object) const ORTHANC_OVERRIDE
-      {
-        return dynamic_cast<const SingleValueObject<std::string>&>(object).GetValue().size();
-      }
-    };
-
   private:
     class Item;
 
     typedef std::map<std::string, Item*>  Content;
 
-    Mutex                                mutex_;
-    std::unique_ptr<ISizeProvider>       provider_;
-    LeastRecentlyUsedIndex<std::string>  lru_;
-    Content                              content_;
-    size_t                               capacity_;
-    size_t                               currentSize_;
+    Mutex                                 mutex_;
+    std::unique_ptr<IObjectSizeProvider>  provider_;
+    LeastRecentlyUsedIndex<std::string>   lru_;
+    Content                               content_;
+    size_t                                capacity_;
+    size_t                                currentSize_;
 
     void MakeRoom(size_t newObjectSize);
 
   public:
-    SharedObjectCache(ISizeProvider* provider /* takes ownership */,
+    SharedObjectCache(IObjectSizeProvider* provider /* takes ownership */,
                       size_t capacity);
 
     ~SharedObjectCache();

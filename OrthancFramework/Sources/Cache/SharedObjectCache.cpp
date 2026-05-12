@@ -81,7 +81,7 @@ namespace Orthanc
   }
 
 
-  SharedObjectCache::SharedObjectCache(ISizeProvider* provider,
+  SharedObjectCache::SharedObjectCache(IObjectSizeProvider* provider,
                                        size_t capacity) :
     provider_(provider),
     capacity_(capacity),
