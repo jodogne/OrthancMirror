@@ -49,7 +49,7 @@ namespace Orthanc
 
     IPluginStorageArea& GetArea() const;
 
-    virtual size_t GetSize(const IDynamicObject& object) const ORTHANC_OVERRIDE;
+    virtual size_t GetValueSize(const IDynamicObject& value) const ORTHANC_OVERRIDE;
 
     virtual IDynamicObject* Load(const IDataIdentifier& identifier) ORTHANC_OVERRIDE;
 

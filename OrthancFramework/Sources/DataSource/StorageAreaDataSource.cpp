@@ -114,10 +114,10 @@ namespace Orthanc
     return *area_;
   }
 
-  size_t StorageAreaDataSource::GetSize(const IDynamicObject& object) const
+  size_t StorageAreaDataSource::GetValueSize(const IDynamicObject& value) const
   {
-    const Value& value = dynamic_cast<const Value&>(object);
-    return value.GetBuffer().GetSize();
+    const Value& tmp = dynamic_cast<const Value&>(value);
+    return tmp.GetBuffer().GetSize();
   }
 
   IDynamicObject* StorageAreaDataSource::Load(const IDataIdentifier& identifier)

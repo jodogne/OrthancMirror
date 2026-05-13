@@ -24,14 +24,20 @@
 
 #pragma once
 
-#include "../Cache/IObjectSizeProvider.h"
+#include "../IDynamicObject.h"
 #include "IDataIdentifier.h"
 
 namespace Orthanc
 {
-  class ORTHANC_PUBLIC IDataSource : public IObjectSizeProvider
+  class ORTHANC_PUBLIC IDataSource : public boost::noncopyable
   {
   public:
+    virtual ~IDataSource()
+    {
+    }
+
     virtual IDynamicObject* Load(const IDataIdentifier& identifier) = 0;
+
+    virtual size_t GetValueSize(const IDynamicObject& value) const = 0;
   };
 }

@@ -81,16 +81,10 @@ namespace Orthanc
   }
 
 
-  SharedObjectCache::SharedObjectCache(IObjectSizeProvider* provider,
-                                       size_t capacity) :
-    provider_(provider),
+  SharedObjectCache::SharedObjectCache(size_t capacity) :
     capacity_(capacity),
     currentSize_(0)
   {
-    if (provider == NULL)
-    {
-      throw OrthancException(ErrorCode_NullPointer);
-    }
   }
 
 
@@ -127,17 +121,16 @@ namespace Orthanc
 
 
   void SharedObjectCache::Store(const std::string& id,
-                                const boost::shared_ptr<IDynamicObject>& value)
+                                const boost::shared_ptr<IDynamicObject>& value,
+                                size_t size)
   {
     if (value.get() == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
 
-    assert(provider_.get() != NULL);
-    size_t size = provider_->GetSize(*value) + sizeof(Item);
-
     // Caching items with zero size would break the logic of "MakeRoom()", hence "sizeof(Item)"
+    size += sizeof(Item);
     assert(size != 0);
 
     if (size > capacity_)

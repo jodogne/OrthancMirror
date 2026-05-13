@@ -100,7 +100,7 @@ namespace Orthanc
 
         if (!error && cache_ && hasCacheKey)
         {
-          cache_->Store(cacheKey, value);
+          cache_->Store(cacheKey, value, source_.GetValueSize(*value));
         }
       }
 
@@ -111,7 +111,7 @@ namespace Orthanc
 
       if (!error)
       {
-        size = source_.GetSize(*value);
+        size = source_.GetValueSize(*value);
         budget_->Acquire(size);   // may block; "DataSourceAnswer" CAN be destroyed here
       }
 
@@ -167,10 +167,9 @@ namespace Orthanc
   }
 
 
-  void DataSourceReader::CreateCache(IObjectSizeProvider* provider /* takes ownership */,
-                                     size_t capacity)
+  void DataSourceReader::CreateCache(size_t capacity)
   {
-    cache_ = boost::make_shared<SharedObjectCache>(provider, capacity);
+    cache_ = boost::make_shared<SharedObjectCache>(capacity);
   }
 
 

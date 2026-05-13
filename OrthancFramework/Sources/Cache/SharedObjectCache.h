@@ -24,8 +24,8 @@
 
 #pragma once
 
+#include "../IDynamicObject.h"
 #include "../MultiThreading/Mutex.h"
-#include "IObjectSizeProvider.h"
 #include "LeastRecentlyUsedIndex.h"
 
 #include <boost/shared_ptr.hpp>
@@ -40,18 +40,16 @@ namespace Orthanc
 
     typedef std::map<std::string, Item*>  Content;
 
-    Mutex                                 mutex_;
-    std::unique_ptr<IObjectSizeProvider>  provider_;
-    LeastRecentlyUsedIndex<std::string>   lru_;
-    Content                               content_;
-    size_t                                capacity_;
-    size_t                                currentSize_;
+    Mutex                                mutex_;
+    LeastRecentlyUsedIndex<std::string>  lru_;
+    Content                              content_;
+    size_t                               capacity_;
+    size_t                               currentSize_;
 
     void MakeRoom(size_t newObjectSize);
 
   public:
-    SharedObjectCache(IObjectSizeProvider* provider /* takes ownership */,
-                      size_t capacity);
+    SharedObjectCache(size_t capacity);
 
     ~SharedObjectCache();
 
@@ -67,7 +65,8 @@ namespace Orthanc
      * be read by other threads.
      **/
     void Store(const std::string& id,
-               const boost::shared_ptr<IDynamicObject>& value);
+               const boost::shared_ptr<IDynamicObject>& value,
+               size_t size);
 
     void Invalidate(const std::string& id);
   };

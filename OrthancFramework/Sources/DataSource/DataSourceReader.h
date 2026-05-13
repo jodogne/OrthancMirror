@@ -60,8 +60,7 @@ namespace Orthanc
       return *source_;
     }
 
-    void CreateCache(IObjectSizeProvider* provider /* takes ownership */,
-                     size_t capacity);
+    void CreateCache(size_t capacity);
 
     void SetMaximumMemory(uint64_t maximumMemory);
 
