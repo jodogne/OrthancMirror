@@ -38,6 +38,7 @@ namespace Orthanc
     {
     }
 
-    virtual std::string GetCacheKey() const = 0;
+    // If this method return "false", the loaded value bypasses the reader cache (if present)
+    virtual bool GetCacheKey(std::string& key) const = 0;
   };
 }

@@ -70,9 +70,12 @@ namespace Orthanc
       boost::shared_ptr<IDynamicObject> value;
       std::unique_ptr<OrthancException> error;
 
-      if (cache_)
+      std::string cacheKey;
+      bool hasCacheKey = id_->GetCacheKey(cacheKey);
+
+      if (cache_ && hasCacheKey)
       {
-        value = cache_->GetCachedValue(id_->GetCacheKey());
+        value = cache_->GetCachedValue(cacheKey);
       }
 
       if (!value)
@@ -95,9 +98,9 @@ namespace Orthanc
           error.reset(new OrthancException(ErrorCode_NullPointer));
         }
 
-        if (!error && cache_)
+        if (!error && cache_ && hasCacheKey)
         {
-          cache_->Store(id_->GetCacheKey(), value);
+          cache_->Store(cacheKey, value);
         }
       }
 
