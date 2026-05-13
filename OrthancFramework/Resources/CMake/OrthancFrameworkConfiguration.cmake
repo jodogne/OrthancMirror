@@ -660,6 +660,7 @@ else()
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceMemoryBudget.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceReader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceRequest.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/StorageAreaDataSource.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileBuffer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/FilesystemStorage.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MetricsRegistry.cpp

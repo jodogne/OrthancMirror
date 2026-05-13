@@ -55,6 +55,11 @@ namespace Orthanc
 
     ~DataSourceReader();
 
+    IDataSource& GetSource() const
+    {
+      return *source_;
+    }
+
     void CreateCache(IObjectSizeProvider* provider /* takes ownership */,
                      size_t capacity);
 
