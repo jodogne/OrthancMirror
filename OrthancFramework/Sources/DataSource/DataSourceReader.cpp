@@ -30,6 +30,7 @@
 #include "DataSourceMemoryBudget.h"
 
 #include <boost/make_shared.hpp>
+#include <boost/weak_ptr.hpp>
 #include <cassert>
 
 

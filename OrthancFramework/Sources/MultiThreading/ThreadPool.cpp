@@ -30,6 +30,7 @@
 #include "FutureState.h"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/weak_ptr.hpp>
 
 
 static const unsigned int DEFAULT_DEQUEUE_TIMEOUT_MS = 100;
