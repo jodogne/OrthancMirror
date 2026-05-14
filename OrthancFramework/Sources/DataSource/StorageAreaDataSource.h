@@ -25,6 +25,7 @@
 #pragma once
 
 #include "../Compatibility.h"
+#include "../FileStorage/FileInfo.h"
 #include "../FileStorage/IStorageArea.h"
 #include "IDataSource.h"
 
@@ -74,5 +75,10 @@ namespace Orthanc
                             uint64_t start /* inclusive */,
                             uint64_t end /* exclusive */,
                             const std::string& customData);
+
+    static Range* ReadAttachment(DataSourceReader& reader,
+                                 const FileInfo& attachment,
+                                 bool uncompress,
+                                 bool checkMD5);
   };
 }

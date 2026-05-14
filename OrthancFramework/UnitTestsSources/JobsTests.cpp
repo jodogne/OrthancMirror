@@ -1903,3 +1903,144 @@ TEST(ThreadPool, Basic)
 
   ASSERT_EQ(11u, counter_);
 }
+
+
+
+#include "../Sources/DataSource/DataSourceReader.h"
+#include "../Sources/DataSource/StorageAreaDataSource.h"
+#include "../Sources/FileStorage/FilesystemStorage.h"
+#include "../Sources/FileStorage/PluginStorageAreaAdapter.h"
+#include "../Sources/MultiThreading/ThreadPool.h"
+
+#include <dcmtk/dcmdata/dcfilefo.h>
+
+
+class DicomDataSource : public IDataSource
+{
+private:
+  boost::shared_ptr<DataSourceReader>  storageAreaReader_;
+  bool                                 checkMD5_;
+
+  class Identifier : public IDataIdentifier
+  {
+  private:
+    FileInfo  attachment_;
+
+  public:
+    Identifier(const FileInfo& attachment) :
+      attachment_(attachment)
+    {
+    }
+
+    const FileInfo& GetAttachment() const
+    {
+      return attachment_;
+    }
+
+    virtual bool GetCacheKey(std::string& key) const
+    {
+      // TODO - Support "read until pixel data"
+      key = (attachment_.GetUuid() + "|" +
+             boost::lexical_cast<std::string>(attachment_.GetContentType()));
+      return true;
+    }
+  };
+
+  class Value : public IDynamicObject
+  {
+  private:
+    std::unique_ptr<ParsedDicomFile>  dicom_;
+    size_t                            size_;
+
+  public:
+    Value(ParsedDicomFile* dicom,
+          size_t size) :
+      dicom_(dicom),
+      size_(size)
+    {
+      if (dicom == NULL)
+      {
+        throw OrthancException(ErrorCode_NullPointer);
+      }
+    }
+
+    ParsedDicomFile& GetDicom() const
+    {
+      return *dicom_;
+    }
+
+    size_t GetSize() const
+    {
+      return size_;
+    }
+  };
+
+public:
+  DicomDataSource(const boost::shared_ptr<DataSourceReader>& storageAreaReader) :
+    storageAreaReader_(storageAreaReader),
+    checkMD5_(false)
+  {
+    if (storageAreaReader == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+  }
+
+  void SetCheckMD5(bool check)
+  {
+    checkMD5_ = check;
+  }
+
+  virtual IDynamicObject* Load(const IDataIdentifier& obj) ORTHANC_OVERRIDE
+  {
+    const Identifier& id = dynamic_cast<const Identifier&>(obj);
+
+    std::unique_ptr<StorageAreaDataSource::Range> range(
+      StorageAreaDataSource::ReadAttachment(*storageAreaReader_, id.GetAttachment(), true /* uncompress */, true /* check MD5 */));
+
+    return new Value(new ParsedDicomFile(range->GetData(), range->GetSize()), id.GetAttachment().GetUncompressedSize());
+  }
+
+  virtual size_t GetValueSize(const IDynamicObject& obj) const ORTHANC_OVERRIDE
+  {
+    const Value& value = dynamic_cast<const Value&>(obj);
+    return value.GetSize();
+  }
+
+
+  // TODO - Add mutex and accessor
+  class Dicom : public boost::noncopyable
+  {
+  private:
+    boost::shared_ptr<IDynamicObject>  value_;
+
+  public:
+    Dicom(const boost::shared_ptr<IDynamicObject>& value) :
+      value_(value)
+    {
+      if (value.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_NullPointer);
+      }
+    }
+
+    ParsedDicomFile& GetContent() const
+    {
+      return dynamic_cast<const Value&>(*value_).GetDicom();
+    }
+  };
+
+  static Dicom* ReadDicom(DataSourceReader& reader,
+                          const FileInfo& attachment)
+  {
+    if (attachment.GetCompressionType() == CompressionType_None &&
+        attachment.GetCompressedMD5() != attachment.GetUncompressedMD5())
+    {
+      throw OrthancException(ErrorCode_CorruptedFile);
+    }
+
+    std::unique_ptr<IDataIdentifier> id(new Identifier(attachment));
+    boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
+    return new Dicom(value);
+  }
+};

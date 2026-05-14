@@ -25,7 +25,10 @@
 #include "../PrecompiledHeaders.h"
 #include "StorageAreaDataSource.h"
 
+#include "../Compression/ZlibCompressor.h"
 #include "../OrthancException.h"
+#include "../StringMemoryBuffer.h"
+#include "../Toolbox.h"
 #include "DataSourceReader.h"
 
 #include <boost/lexical_cast.hpp>
@@ -163,8 +166,70 @@ namespace Orthanc
                                                                  uint64_t end,
                                                                  const std::string& customData)
   {
-    std::unique_ptr<IDataIdentifier> id(new StorageAreaDataSource::Identifier(uuid, type, start, end, customData));
+    std::unique_ptr<IDataIdentifier> id(new Identifier(uuid, type, start, end, customData));
     boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
     return new Range(value);
+  }
+
+
+  StorageAreaDataSource::Range* StorageAreaDataSource::ReadAttachment(DataSourceReader& reader,
+                                                                      const FileInfo& attachment,
+                                                                      bool uncompress,
+                                                                      bool checkMD5)
+  {
+    std::unique_ptr<StorageAreaDataSource::Range> range(ReadRange(reader,
+                                                                  attachment.GetUuid(),
+                                                                  attachment.GetContentType(),
+                                                                  0, attachment.GetCompressedSize(),
+                                                                  attachment.GetCustomData()));
+
+    if (checkMD5)
+    {
+      std::string md5;
+      Toolbox::ComputeMD5(md5, range->GetData(), range->GetSize());
+
+      if (md5 != attachment.GetCompressedMD5())
+      {
+        throw OrthancException(ErrorCode_CorruptedFile);
+      }
+    }
+
+    if (uncompress)
+    {
+      switch (attachment.GetCompressionType())
+      {
+        case CompressionType_None:
+          return range.release();
+
+        case CompressionType_ZlibWithSize:
+        {
+          ZlibCompressor zlib;
+
+          std::string content;
+          zlib.Uncompress(content, range->GetData(), range->GetSize());
+
+          if (checkMD5)
+          {
+            std::string md5;
+            Toolbox::ComputeMD5(md5, content);
+
+            if (md5 != attachment.GetUncompressedMD5())
+            {
+              throw OrthancException(ErrorCode_CorruptedFile);
+            }
+          }
+
+          boost::shared_ptr<Value> value(new Value(StringMemoryBuffer::CreateFromSwap(content)));
+          return new Range(value);
+        }
+
+        default:
+          throw OrthancException(ErrorCode_NotImplemented);
+      }
+    }
+    else
+    {
+      return range.release();
+    }
   }
 }
