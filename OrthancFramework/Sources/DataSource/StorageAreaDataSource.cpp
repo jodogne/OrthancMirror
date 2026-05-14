@@ -25,11 +25,14 @@
 #include "../PrecompiledHeaders.h"
 #include "StorageAreaDataSource.h"
 
-#include "../Compression/ZlibCompressor.h"
 #include "../OrthancException.h"
 #include "../StringMemoryBuffer.h"
 #include "../Toolbox.h"
 #include "DataSourceReader.h"
+
+#if ORTHANC_ENABLE_ZLIB == 1
+#  include "../Compression/ZlibCompressor.h"
+#endif
 
 #include <boost/lexical_cast.hpp>
 #include <cassert>
@@ -203,6 +206,7 @@ namespace Orthanc
 
         case CompressionType_ZlibWithSize:
         {
+#if ORTHANC_ENABLE_ZLIB == 1
           ZlibCompressor zlib;
 
           std::string content;
@@ -221,6 +225,9 @@ namespace Orthanc
 
           boost::shared_ptr<Value> value(new Value(StringMemoryBuffer::CreateFromSwap(content)));
           return new Range(value);
+#else
+          throw OrthancException(ErrorCode_InternalError, "Support for zlib is disabled, cannot uncompress attachment");
+#endif
         }
 
         default:
