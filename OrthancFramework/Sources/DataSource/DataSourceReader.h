@@ -29,6 +29,8 @@
 #include "DataSourceRequest.h"
 #include "IDataSource.h"
 
+#include <stdint.h>
+
 
 namespace Orthanc
 {
