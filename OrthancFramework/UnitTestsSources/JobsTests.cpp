@@ -2064,10 +2064,10 @@ public:
   }
 
 
-  // TODO - Add mutex and accessor
   class Dicom : public boost::noncopyable
   {
   private:
+    boost::mutex                       mutex_;
     boost::shared_ptr<IDynamicObject>  value_;
 
   public:
@@ -2080,10 +2080,29 @@ public:
       }
     }
 
-    ParsedDicomFile& GetContent() const
+    /**
+     * Access to the DICOM value must be protected by a mutex, as it
+     * could be shared by multiple threads if caching is enabled in
+     * the DataSourceReader.
+     **/
+    class Lock : public boost::noncopyable
     {
-      return dynamic_cast<const Value&>(*value_).GetDicom();
-    }
+    private:
+      Dicom&                     that_;
+      boost::mutex::scoped_lock  lock_;
+
+    public:
+      explicit Lock(Dicom& that) :
+        that_(that),
+        lock_(that.mutex_)
+      {
+      }
+
+      ParsedDicomFile& GetContent() const
+      {
+        return dynamic_cast<const Value&>(*that_.value_).GetDicom();
+      }
+    };
   };
 
   static Dicom* ReadWhole(DataSourceReader& reader,
