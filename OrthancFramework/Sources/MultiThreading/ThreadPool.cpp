@@ -233,7 +233,18 @@ namespace Orthanc
 
       if (task.get() != NULL)
       {
-        dynamic_cast<ITask&>(*task).Execute();
+        try
+        {
+          dynamic_cast<ITask&>(*task).Execute();
+        }
+        catch (const OrthancException& e)
+        {
+          LOG(ERROR) << "Exception while executing a task: " << e.What();
+        }
+        catch (...)
+        {
+          LOG(ERROR) << "Native exception while executing a task";
+        }
       }
     }
   }

@@ -70,48 +70,52 @@ namespace Orthanc
       boost::shared_ptr<IDynamicObject> value;
       std::unique_ptr<OrthancException> error;
 
-      std::string cacheKey;
-      bool hasCacheKey = id_->GetCacheKey(cacheKey);
+      size_t size = 0;
 
-      if (cache_ && hasCacheKey)
+      try
       {
-        value = cache_->GetCachedValue(cacheKey);
-      }
+        std::string cacheKey;
+        bool hasCacheKey = id_->GetCacheKey(cacheKey);
 
-      if (!value)
-      {
-        try
+        if (cache_ && hasCacheKey)
+        {
+          value = cache_->GetCachedValue(cacheKey);
+        }
+
+        if (!value)
         {
           value.reset(source_.Load(*id_));
-        }
-        catch (OrthancException& e)
-        {
-          error.reset(new OrthancException(e));
-        }
-        catch (...)
-        {
-          error.reset(new OrthancException(ErrorCode_InternalError));
+
+          if (!error && !value)
+          {
+            error.reset(new OrthancException(ErrorCode_NullPointer));
+          }
+
+          if (!error && cache_ && hasCacheKey)
+          {
+            cache_->Store(cacheKey, value, source_.GetValueSize(*value));
+          }
         }
 
-        if (!error && !value)
+        if (!error)
         {
-          error.reset(new OrthancException(ErrorCode_NullPointer));
+          size = source_.GetValueSize(*value);
         }
-
-        if (!error && cache_ && hasCacheKey)
-        {
-          cache_->Store(cacheKey, value, source_.GetValueSize(*value));
-        }
+      }
+      catch (OrthancException& e)
+      {
+        error.reset(new OrthancException(e));
+      }
+      catch (...)
+      {
+        error.reset(new OrthancException(ErrorCode_InternalError));
       }
 
       // Phase 2: Acquire budget WITHOUT holding a strong reference to "DataSourceAnswer".
       // If the "DataSourceAnswer" has been dropped, "answer_.lock()" below will return NULL
       // and we will immediately "Release()" to revert this.
-      size_t size = 0;
-
       if (!error)
       {
-        size = source_.GetValueSize(*value);
         budget_->Acquire(size);   // may block; "DataSourceAnswer" CAN be destroyed here
       }
 
