@@ -58,7 +58,7 @@ namespace Orthanc
       CallableGroup&  that_;
 
     public:
-      Iterator(CallableGroup& that);
+      explicit Iterator(CallableGroup& that);
 
       bool HasNext() const;
 

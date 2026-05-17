@@ -10,12 +10,13 @@ if [ $# -ge 1 ]; then
 fi
 
 cat <<EOF > /tmp/cppcheck-suppressions.txt
+assertWithSideEffect:../../OrthancFramework/Sources/DataSource/DataSourceReader.cpp:208
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:287
-constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:448
-constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:452
-constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3343
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:450
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:454
+constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3351
 missingInclude:../../OrthancServer/Plugins/Engine/OrthancPluginDatabaseV4.cpp:41
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
@@ -24,7 +25,7 @@ stlFindInsert:../../OrthancServer/Sources/Database/ResourcesContent.h:141
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
-useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:97
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:99
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:280
 variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:230

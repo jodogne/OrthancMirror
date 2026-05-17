@@ -46,7 +46,7 @@ namespace Orthanc
     std::unique_ptr<IMemoryBuffer>  buffer_;
 
   public:
-    Value(IMemoryBuffer* buffer) :
+    explicit Value(IMemoryBuffer* buffer) :
       buffer_(buffer)
     {
       if (buffer == NULL)

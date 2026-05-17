@@ -50,7 +50,7 @@ namespace Orthanc
     std::unique_ptr<IPluginStorageArea>  area_;
 
   public:
-    StorageAreaDataSource(IPluginStorageArea* area);
+    explicit StorageAreaDataSource(IPluginStorageArea* area);
 
     IPluginStorageArea& GetArea() const;
 
@@ -66,7 +66,7 @@ namespace Orthanc
       const Value& GetValue() const;
 
     public:
-      Range(const boost::shared_ptr<IDynamicObject>& value);
+      explicit Range(const boost::shared_ptr<IDynamicObject>& value);
 
       const void* GetData() const;
 

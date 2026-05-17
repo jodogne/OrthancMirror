@@ -46,7 +46,7 @@ namespace Orthanc
       uint64_t                   currentMemory_;
 
     public:
-      DataSourceMemoryBudget(uint64_t maximumMemory);
+      explicit DataSourceMemoryBudget(uint64_t maximumMemory);
 
       void Acquire(size_t memory) ORTHANC_NOEXCEPT;
 

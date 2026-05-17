@@ -54,17 +54,15 @@ namespace Orthanc
     State                                 state_;
     unsigned int                          dequeueTimeoutMilliseconds_;
 
-    void StopInternal(bool throws);
+    template <bool throws>
+    void StopInternal();
 
-    void WorkerLoop(std::string threadName);
+    void WorkerLoop(const std::string& threadName);
 
   public:
     ThreadPool();
 
-    ~ThreadPool()
-    {
-      StopInternal(false /* don't throw in destructor */);
-    }
+    virtual ~ThreadPool() ORTHANC_OVERRIDE;
 
     void SetLoggingThreadName(const std::string& name);
 
@@ -82,9 +80,6 @@ namespace Orthanc
 
     virtual void Submit(IRunnable* runnable /* takes ownership */) ORTHANC_OVERRIDE;
 
-    virtual void Stop() ORTHANC_OVERRIDE
-    {
-      StopInternal(true);
-    }
+    virtual void Stop() ORTHANC_OVERRIDE;
   };
 }

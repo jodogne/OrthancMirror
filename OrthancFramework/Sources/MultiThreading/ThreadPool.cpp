@@ -66,7 +66,7 @@ namespace Orthanc
       assert(callable != NULL);
     }
 
-    void Execute()
+    void Execute() ORTHANC_OVERRIDE
     {
       boost::shared_ptr<Internals::FutureState> locked = state_.lock();
 
@@ -91,7 +91,7 @@ namespace Orthanc
       }
     }
 
-    void Cancel()
+    void Cancel() ORTHANC_OVERRIDE
     {
       boost::shared_ptr<Internals::FutureState> locked = state_.lock();
 
@@ -113,24 +113,25 @@ namespace Orthanc
     std::unique_ptr<IRunnable>  runnable_;
 
   public:
-    RunnableTask(IRunnable* runnable) :
+    explicit RunnableTask(IRunnable* runnable) :
       runnable_(runnable)
     {
       assert(runnable != NULL);
     }
 
-    void Execute()
+    void Execute() ORTHANC_OVERRIDE
     {
       runnable_->Run();
     }
 
-    void Cancel()
+    void Cancel() ORTHANC_OVERRIDE
     {
     }
   };
 
 
-  void ThreadPool::StopInternal(bool throws)
+  template <bool throws>
+  void ThreadPool::StopInternal()
   {
     {
       boost::mutex::scoped_lock lock(mutex_);
@@ -206,7 +207,7 @@ namespace Orthanc
   }
 
 
-  void ThreadPool::WorkerLoop(std::string threadName)
+  void ThreadPool::WorkerLoop(const std::string& threadName)
   {
     Logging::SetCurrentThreadName(threadName);
 
@@ -244,6 +245,12 @@ namespace Orthanc
     state_(State_Initialization),
     dequeueTimeoutMilliseconds_(DEFAULT_DEQUEUE_TIMEOUT_MS)
   {
+  }
+
+
+  ThreadPool::~ThreadPool()
+  {
+    StopInternal<false>();  // don't throw in destructor
   }
 
 
@@ -391,5 +398,11 @@ namespace Orthanc
     }
 
     queue_.Enqueue(new RunnableTask(protection.release()));
+  }
+
+
+  void ThreadPool::Stop()
+  {
+    StopInternal<true>();
   }
 }

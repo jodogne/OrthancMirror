@@ -1927,7 +1927,7 @@ private:
     FileInfo  attachment_;
 
   public:
-    Identifier(const FileInfo& attachment) :
+    explicit Identifier(const FileInfo& attachment) :
       attachment_(attachment)
     {
     }
@@ -1937,7 +1937,7 @@ private:
       return attachment_;
     }
 
-    virtual bool GetCacheKey(std::string& key) const
+    virtual bool GetCacheKey(std::string& key) const ORTHANC_OVERRIDE
     {
       // TODO - Support "read until pixel data"
       key = (attachment_.GetUuid() + "|" +
@@ -1976,7 +1976,7 @@ private:
   };
 
 public:
-  DicomDataSource(const boost::shared_ptr<DataSourceReader>& storageAreaReader) :
+  explicit DicomDataSource(const boost::shared_ptr<DataSourceReader>& storageAreaReader) :
     storageAreaReader_(storageAreaReader),
     checkMD5_(false)
   {
@@ -2015,7 +2015,7 @@ public:
     boost::shared_ptr<IDynamicObject>  value_;
 
   public:
-    Dicom(const boost::shared_ptr<IDynamicObject>& value) :
+    explicit Dicom(const boost::shared_ptr<IDynamicObject>& value) :
       value_(value)
     {
       if (value.get() == NULL)

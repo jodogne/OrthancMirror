@@ -49,7 +49,7 @@ namespace Orthanc
     void MakeRoom(size_t newObjectSize);
 
   public:
-    SharedObjectCache(size_t capacity);
+    explicit SharedObjectCache(size_t capacity);
 
     ~SharedObjectCache();
 

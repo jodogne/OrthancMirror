@@ -85,7 +85,7 @@ namespace Orthanc
     void EnqueueInternal(Item* item);
 
   public:
-    DataSourceAnswer(unsigned int finalSize);
+    explicit DataSourceAnswer(unsigned int finalSize);
 
     ~DataSourceAnswer();
 
