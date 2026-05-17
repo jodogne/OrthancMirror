@@ -84,5 +84,9 @@ namespace Orthanc
                                  const FileInfo& attachment,
                                  bool uncompress,
                                  bool checkMD5);
+
+    static Range* ReadBeginning(DataSourceReader& reader,
+                                const FileInfo& attachment,
+                                size_t untilPosition);
   };
 }

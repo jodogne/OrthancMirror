@@ -88,6 +88,12 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
+
+      uint64_t size = end - start;
+      if (static_cast<uint64_t>(static_cast<size_t>(size)) != size)
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory);  // For 32bit architectures
+      }
     }
 
     Value* Read(IPluginStorageArea& area) const
@@ -190,6 +196,15 @@ namespace Orthanc
                                                                       bool uncompress,
                                                                       bool checkMD5)
   {
+    if (attachment.GetCompressionType() == CompressionType_None)
+    {
+      if (attachment.GetCompressedMD5() != attachment.GetUncompressedMD5() ||
+          attachment.GetCompressedSize() != attachment.GetUncompressedSize())
+      {
+        throw OrthancException(ErrorCode_CorruptedFile);
+      }
+    }
+
     std::unique_ptr<StorageAreaDataSource::Range> range(ReadRange(reader,
                                                                   attachment.GetUuid(),
                                                                   attachment.GetContentType(),
@@ -248,5 +263,30 @@ namespace Orthanc
     {
       return range.release();
     }
+  }
+
+
+  StorageAreaDataSource::Range* StorageAreaDataSource::ReadBeginning(DataSourceReader& reader,
+                                                                     const FileInfo& attachment,
+                                                                     size_t untilPosition)
+  {
+    if (attachment.GetCompressionType() != CompressionType_None)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+
+    if (attachment.GetCompressedMD5() != attachment.GetUncompressedMD5() ||
+        attachment.GetCompressedSize() != attachment.GetUncompressedSize())
+    {
+      throw OrthancException(ErrorCode_CorruptedFile);
+    }
+
+    if (untilPosition > attachment.GetUncompressedSize())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    return ReadRange(reader, attachment.GetUuid(), attachment.GetContentType(),
+                     0, untilPosition, attachment.GetCustomData());
   }
 }

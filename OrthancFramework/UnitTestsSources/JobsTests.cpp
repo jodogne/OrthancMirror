@@ -1921,25 +1921,25 @@ private:
   boost::shared_ptr<DataSourceReader>  storageAreaReader_;
   bool                                 checkMD5_;
 
-  class Identifier : public IDataIdentifier
+  class BaseIdentifier : public IDataIdentifier
+  {
+  public:
+    virtual StorageAreaDataSource::Range* ReadRange(DataSourceReader& reader) const = 0;
+  };
+
+  class WholeIdentifier : public BaseIdentifier
   {
   private:
     FileInfo  attachment_;
 
   public:
-    explicit Identifier(const FileInfo& attachment) :
+    explicit WholeIdentifier(const FileInfo& attachment) :
       attachment_(attachment)
     {
     }
 
-    const FileInfo& GetAttachment() const
-    {
-      return attachment_;
-    }
-
     virtual bool GetCacheKey(std::string& key) const ORTHANC_OVERRIDE
     {
-      // TODO - Support "read until pixel data"
       key = (attachment_.GetUuid() + "|" +
              boost::lexical_cast<std::string>(attachment_.GetContentType()));
       return true;
@@ -1947,11 +1947,53 @@ private:
 
     virtual bool EstimateValueSize(size_t& target) const ORTHANC_OVERRIDE
     {
-      // TODO - Support "read until pixel data"
       target = attachment_.GetUncompressedSize();
       return true;
     }
+
+    virtual StorageAreaDataSource::Range* ReadRange(DataSourceReader& reader) const ORTHANC_OVERRIDE
+    {
+      return StorageAreaDataSource::ReadAttachment(reader, attachment_, true /* uncompress */, true /* check MD5 */);
+    }
   };
+
+
+  class BeginningIdentifier : public BaseIdentifier
+  {
+  private:
+    FileInfo  attachment_;
+    bool      hasPixelDataOffset_;
+    size_t    pixelDataOffset_;
+
+  public:
+    BeginningIdentifier(const FileInfo& attachment,
+                        size_t pixelDataOffset) :
+      attachment_(attachment),
+      hasPixelDataOffset_(true),
+      pixelDataOffset_(pixelDataOffset)
+    {
+    }
+
+    virtual bool GetCacheKey(std::string& key) const ORTHANC_OVERRIDE
+    {
+      key = (attachment_.GetUuid() + "|" +
+             boost::lexical_cast<std::string>(attachment_.GetContentType()) + "|" +
+             boost::lexical_cast<std::string>(pixelDataOffset_));
+      return true;
+    }
+
+    virtual bool EstimateValueSize(size_t& target) const ORTHANC_OVERRIDE
+    {
+      target = pixelDataOffset_;
+      return true;
+    }
+
+    virtual StorageAreaDataSource::Range* ReadRange(DataSourceReader& reader) const ORTHANC_OVERRIDE
+    {
+      return StorageAreaDataSource::ReadBeginning(reader, attachment_, pixelDataOffset_);
+    }
+  };
+
 
   class Value : public IDynamicObject
   {
@@ -2000,12 +2042,19 @@ public:
 
   virtual IDynamicObject* Load(const IDataIdentifier& obj) ORTHANC_OVERRIDE
   {
-    const Identifier& id = dynamic_cast<const Identifier&>(obj);
+    const BaseIdentifier& id = dynamic_cast<const BaseIdentifier&>(obj);
 
-    std::unique_ptr<StorageAreaDataSource::Range> range(
-      StorageAreaDataSource::ReadAttachment(*storageAreaReader_, id.GetAttachment(), true /* uncompress */, true /* check MD5 */));
+    std::unique_ptr<StorageAreaDataSource::Range> range(id.ReadRange(*storageAreaReader_));
 
-    return new Value(new ParsedDicomFile(range->GetData(), range->GetSize()), id.GetAttachment().GetUncompressedSize());
+    // Sanity check
+    size_t size;
+    if (!obj.EstimateValueSize(size) ||
+        size != range->GetSize())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    return new Value(new ParsedDicomFile(range->GetData(), range->GetSize()), range->GetSize());
   }
 
   virtual size_t GetValueSize(const IDynamicObject& obj) const ORTHANC_OVERRIDE
@@ -2037,16 +2086,19 @@ public:
     }
   };
 
-  static Dicom* ReadDicom(DataSourceReader& reader,
+  static Dicom* ReadWhole(DataSourceReader& reader,
                           const FileInfo& attachment)
   {
-    if (attachment.GetCompressionType() == CompressionType_None &&
-        attachment.GetCompressedMD5() != attachment.GetUncompressedMD5())
-    {
-      throw OrthancException(ErrorCode_CorruptedFile);
-    }
+    std::unique_ptr<IDataIdentifier> id(new WholeIdentifier(attachment));
+    boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
+    return new Dicom(value);
+  }
 
-    std::unique_ptr<IDataIdentifier> id(new Identifier(attachment));
+  static Dicom* ReadUntilPixelData(DataSourceReader& reader,
+                                   const FileInfo& attachment,
+                                   size_t pixelDataOffset)
+  {
+    std::unique_ptr<IDataIdentifier> id(new BeginningIdentifier(attachment, pixelDataOffset));
     boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
     return new Dicom(value);
   }
