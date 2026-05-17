@@ -44,6 +44,7 @@ namespace Orthanc
       boost::condition_variable  cond_;
       const uint64_t             maximumMemory_;
       uint64_t                   currentMemory_;
+      unsigned int               reservations_;
 
     public:
       explicit DataSourceMemoryBudget(uint64_t maximumMemory);
@@ -53,6 +54,27 @@ namespace Orthanc
       void Release(size_t memory) ORTHANC_NOEXCEPT;
 
       uint64_t GetCurrentMemory() ORTHANC_NOEXCEPT;
+
+      class Lock : public boost::noncopyable
+      {
+      private:
+        DataSourceMemoryBudget&  that_;
+        size_t                   memory_;
+
+      public:
+        explicit Lock(DataSourceMemoryBudget& that,
+                      size_t memory) :
+          that_(that),
+          memory_(memory)
+        {
+          that_.Acquire(memory_);
+        }
+
+        ~Lock()
+        {
+          that_.Release(memory_);
+        }
+      };
     };
   }
 }

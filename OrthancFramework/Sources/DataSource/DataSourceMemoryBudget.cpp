@@ -32,7 +32,8 @@ namespace Orthanc
   {
     DataSourceMemoryBudget::DataSourceMemoryBudget(uint64_t maximumMemory) :
       maximumMemory_(maximumMemory),
-      currentMemory_(0)
+      currentMemory_(0),
+      reservations_(0)
     {
     }
 
@@ -41,13 +42,14 @@ namespace Orthanc
     {
       boost::mutex::scoped_lock lock(mutex_);
 
-      while (currentMemory_ != 0 &&  // Make sure that 1 thread can always proceed
+      while (reservations_ != 0 &&  // Make sure that 1 thread can always proceed
              currentMemory_ + memory > maximumMemory_)
       {
         cond_.wait(lock);
       }
 
       currentMemory_ += memory;
+      reservations_++;
     }
 
 
@@ -57,6 +59,9 @@ namespace Orthanc
 
       assert(currentMemory_ >= memory);
       currentMemory_ -= memory;
+
+      assert(reservations_ > 0);
+      reservations_--;
 
       cond_.notify_all();
     }

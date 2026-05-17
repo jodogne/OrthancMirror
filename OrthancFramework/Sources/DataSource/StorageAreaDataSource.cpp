@@ -84,6 +84,10 @@ namespace Orthanc
       end_(end),
       customData_(customData)
     {
+      if (start > end)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
     }
 
     Value* Read(IPluginStorageArea& area) const
@@ -91,7 +95,7 @@ namespace Orthanc
       return new Value(area.ReadRange(uuid_, type_, start_, end_, customData_));
     }
 
-    bool GetCacheKey(std::string& key) const
+    virtual bool GetCacheKey(std::string& key) const ORTHANC_OVERRIDE
     {
       // custom data is not part of the cache key, as it is for internal use by the plugin
       // (it is opaque to the Orthanc core)
@@ -100,6 +104,12 @@ namespace Orthanc
              boost::lexical_cast<std::string>(start_) + "|" +
              boost::lexical_cast<std::string>(end_));
       return true;
+    }
+
+    virtual bool EstimateValueSize(size_t& target) const ORTHANC_OVERRIDE
+    {
+      assert(start_ <= end_);
+      return end_ - start_;
     }
   };
 

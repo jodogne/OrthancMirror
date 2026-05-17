@@ -40,5 +40,7 @@ namespace Orthanc
 
     // If this method return "false", the loaded value bypasses the reader cache (if present)
     virtual bool GetCacheKey(std::string& key) const = 0;
+
+    virtual bool EstimateValueSize(size_t& target) const = 0;
   };
 }

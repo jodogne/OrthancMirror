@@ -84,6 +84,14 @@ namespace Orthanc
 
         if (!value)
         {
+          std::unique_ptr<Internals::DataSourceMemoryBudget::Lock> preReservation;
+
+          size_t estimatedSize = 0;
+          if (id_->EstimateValueSize(estimatedSize))
+          {
+            preReservation.reset(new Internals::DataSourceMemoryBudget::Lock(*budget_, estimatedSize));
+          }
+
           value.reset(source_.Load(*id_));
 
           if (!error && !value)

@@ -1944,6 +1944,13 @@ private:
              boost::lexical_cast<std::string>(attachment_.GetContentType()));
       return true;
     }
+
+    virtual bool EstimateValueSize(size_t& target) const ORTHANC_OVERRIDE
+    {
+      // TODO - Support "read until pixel data"
+      target = attachment_.GetUncompressedSize();
+      return true;
+    }
   };
 
   class Value : public IDynamicObject
