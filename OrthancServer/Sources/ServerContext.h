@@ -398,9 +398,22 @@ namespace Orthanc
     void ReadDicomAsJson(Json::Value& result,
                          const std::string& instancePublicId);  // TODO-FIND: Can this be removed?
 
+private:
+    void ReadDicomInternal(std::string& dicom,
+                           const std::string& instancePublicId,
+                           std::unique_ptr<Semaphore::Locker>& largeDicomLocker,
+                            std::size_t largeDicomThreshold);
+
+    void ReadDicomInternal(std::string& dicom,
+                           std::string& attachmentId,
+                           const std::string& instancePublicId,
+                           std::unique_ptr<Semaphore::Locker>& largeDicomLocker,
+                           std::size_t largeDicomThreshold);
+
+public:
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId);
-
+ 
     void ReadDicom(std::string& dicom,
                    std::string& attachmentId,
                    const std::string& instancePublicId);

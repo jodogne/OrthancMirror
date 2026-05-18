@@ -1404,6 +1404,16 @@ namespace Orthanc
                                 std::string& attachmentId,
                                 const std::string& instancePublicId)
   {
+    std::unique_ptr<Semaphore::Locker> dummyLargeDicomLocker;  // only the DicomCacheLocker uses a real largeDicomLocker_
+    ReadDicomInternal(dicom, attachmentId, instancePublicId, dummyLargeDicomLocker, 0);
+  }
+
+  void ServerContext::ReadDicomInternal(std::string& dicom,
+                                        std::string& attachmentId,
+                                        const std::string& instancePublicId,
+                                        std::unique_ptr<Semaphore::Locker>& largeDicomLocker,
+                                        std::size_t largeDicomThreshold)
+  {
     FileInfo attachment;
     int64_t revision;
 
@@ -1417,6 +1427,11 @@ namespace Orthanc
     assert(attachment.GetContentType() == FileContentType_Dicom);
     attachmentId = attachment.GetUuid();
 
+    if (attachment.GetUncompressedSize() < largeDicomThreshold)  // release ASAP (before the read) if we don't plan to hold the lock (https://discourse.orthanc-server.org/t/patch-release-large-dicom-semaphore-lock-early-for-better-performance/6440) 
+    {
+      largeDicomLocker.reset(NULL);
+    }    
+
     ReadAttachment(dicom, attachment, true /* uncompress */);
   }
 
@@ -1426,6 +1441,15 @@ namespace Orthanc
   {
     std::string attachmentId;
     ReadDicom(dicom, attachmentId, instancePublicId);    
+  }
+
+  void ServerContext::ReadDicomInternal(std::string& dicom,
+                                        const std::string& instancePublicId,
+                                        std::unique_ptr<Semaphore::Locker>& largeDicomLocker,
+                                        std::size_t largeDicomThreshold)
+  {
+    std::string attachmentId;
+    ReadDicomInternal(dicom, attachmentId, instancePublicId, largeDicomLocker, largeDicomThreshold);
   }
 
   void ServerContext::ReadDicomForHeader(std::string& dicom,
@@ -1540,17 +1564,12 @@ namespace Orthanc
     {
       accessor_.reset(NULL);
 
-      // Throttle to avoid loading several large DICOM files simultaneously
+      // Throttle to avoid loading several large DICOM files simultaneously (since the ParsedDicomCache is 128MB, loading multiple 50MB files would throw them out directly after loading)
       largeDicomLocker_.reset(new Semaphore::Locker(context.largeDicomThrottler_));
       
-      context_.ReadDicom(buffer_, instancePublicId_);
-
       // Release the throttle if loading "small" DICOM files (under
       // 50MB, which is an arbitrary value)
-      if (buffer_.size() < static_cast<size_t>(50) * 1024 * 1024)
-      {
-        largeDicomLocker_.reset(NULL);
-      }
+      context_.ReadDicomInternal(buffer_, instancePublicId_, largeDicomLocker_, static_cast<size_t>(50) * 1024 * 1024);
       
       dicom_.reset(new ParsedDicomFile(buffer_));
       dicomSize_ = buffer_.size();
