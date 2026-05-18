@@ -150,6 +150,24 @@ namespace Orthanc
     }
   }
 
+  void RestApiOutput::AnswerBuffer(const void* buffer,
+                                   size_t length,
+                                   const std::string& contentType)
+  {
+    MimeType mime;
+    if (LookupMimeType(mime, contentType))
+    {
+      AnswerBuffer(buffer, length, mime);
+    }
+    else
+    {
+      CheckStatus();
+      output_.SetContentType(contentType);
+      output_.Answer(buffer, length);
+      alreadySent_ = true;
+    }
+  }
+
   void RestApiOutput::Redirect(const std::string& path)
   {
     CheckStatus();

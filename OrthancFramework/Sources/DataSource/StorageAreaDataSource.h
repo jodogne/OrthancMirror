@@ -47,12 +47,13 @@ namespace Orthanc
     class Identifier;
 
   private:
-    std::unique_ptr<IPluginStorageArea>  area_;
+    IPluginStorageArea&  area_;
 
   public:
-    explicit StorageAreaDataSource(IPluginStorageArea* area);
-
-    IPluginStorageArea& GetArea() const;
+    explicit StorageAreaDataSource(IPluginStorageArea& area) :
+      area_(area)
+    {
+    }
 
     virtual size_t GetValueSize(const IDynamicObject& value) const ORTHANC_OVERRIDE;
 

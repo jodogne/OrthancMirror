@@ -91,10 +91,12 @@ namespace Orthanc
       std::string compressed;
       ReadSource(compressed);
 
-      uncompressed_.reset(new BufferHttpSender);
-
+      std::string tmp;
       ZlibCompressor compressor;
-      IBufferCompressor::Uncompress(uncompressed_->GetBuffer(), compressor, compressed);
+      IBufferCompressor::Uncompress(tmp, compressor, compressed);
+
+      uncompressed_.reset(new BufferHttpSender);
+      uncompressed_->SwapBuffer(tmp);
 
       return HttpCompression_None;
     }

@@ -1765,7 +1765,8 @@ namespace Orthanc
       target = MimeType_Jpeg2000;
       return true;
     }
-    else if (source == MIME_JSON)
+    else if (source == MIME_JSON ||
+             source == MIME_JSON_UTF8)
     {
       target = MimeType_Json;
       return true;

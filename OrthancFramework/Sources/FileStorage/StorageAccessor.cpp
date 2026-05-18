@@ -720,7 +720,9 @@ namespace Orthanc
                                     const FileInfo& info,
                                     const std::string& mime)
   {
-    Read(sender.GetBuffer(), info);
+    std::string tmp;
+    Read(tmp, info);
+    sender.SwapBuffer(tmp);
 
     sender.SetContentType(mime);
 

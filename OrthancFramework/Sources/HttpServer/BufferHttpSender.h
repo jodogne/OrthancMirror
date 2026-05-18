@@ -38,7 +38,10 @@ namespace Orthanc
   public:
     BufferHttpSender();
 
-    std::string& GetBuffer();
+    void SetBuffer(const std::string& buffer);
+
+    // This flavor is more efficient
+    void SwapBuffer(std::string& buffer);
 
     const std::string& GetBuffer() const;
 
