@@ -94,7 +94,7 @@ namespace Orthanc
       const uint64_t size = end - start;
       if (static_cast<uint64_t>(static_cast<size_t>(size)) != size)
       {
-        throw OrthancException(ErrorCode_InternalError, "Buffer larger than 4GB, which is too large for Orthanc running in 32bits");
+        throw OrthancException(ErrorCode_NotEnoughMemory, "Buffer larger than 4GB, which is too large for Orthanc running in 32bits");
       }
 
       Mutex::ScopedLock lock(mutex_);
@@ -116,11 +116,9 @@ namespace Orthanc
       else
       {
         std::string range;
-        range.resize(static_cast<size_t>(size));
-        assert(!range.empty());
+        assert(size != 0);
+        range.assign(found->second->c_str() + start, size);
 
-        memcpy(&range[0], &found->second[start], range.size()); // NOLINT(bugprone-undefined-memory-manipulation)
-        
         return StringMemoryBuffer::CreateFromSwap(range);
       }
     }
