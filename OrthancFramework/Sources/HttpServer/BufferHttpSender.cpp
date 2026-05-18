@@ -37,12 +37,31 @@ namespace Orthanc
   {
   }
 
-  std::string &BufferHttpSender::GetBuffer()
+  void BufferHttpSender::SetBuffer(const std::string& buffer)
   {
-    return buffer_;
+    if (position_ != 0)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      buffer_ = buffer;
+    }
   }
 
-  const std::string &BufferHttpSender::GetBuffer() const
+  void BufferHttpSender::SwapBuffer(std::string& buffer)
+  {
+    if (position_ != 0)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      buffer_.swap(buffer);
+    }
+  }
+
+  const std::string& BufferHttpSender::GetBuffer() const
   {
     return buffer_;
   }

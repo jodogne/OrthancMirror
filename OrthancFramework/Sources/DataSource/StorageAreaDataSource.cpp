@@ -120,22 +120,6 @@ namespace Orthanc
   };
 
 
-  StorageAreaDataSource::StorageAreaDataSource(IPluginStorageArea* area) :
-    area_(area)
-  {
-    if (area == NULL)
-    {
-      throw OrthancException(ErrorCode_NullPointer);
-    }
-  }
-
-
-  IPluginStorageArea& StorageAreaDataSource::GetArea() const
-  {
-    assert(area_.get() != NULL);
-    return *area_;
-  }
-
   size_t StorageAreaDataSource::GetValueSize(const IDynamicObject& value) const
   {
     const Value& tmp = dynamic_cast<const Value&>(value);
@@ -145,7 +129,7 @@ namespace Orthanc
   IDynamicObject* StorageAreaDataSource::Load(const IDataIdentifier& identifier)
   {
     const Identifier& id = dynamic_cast<const Identifier&>(identifier);
-    return id.Read(*area_);
+    return id.Read(area_);
   }
 
 

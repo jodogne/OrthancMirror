@@ -79,6 +79,10 @@ namespace Orthanc
                       size_t length,
                       MimeType contentType);
 
+    void AnswerBuffer(const void* buffer,
+                      size_t length,
+                      const std::string& contentType);
+
     void SetContentFilename(const char* filename);
 
     void SignalError(HttpStatus status);

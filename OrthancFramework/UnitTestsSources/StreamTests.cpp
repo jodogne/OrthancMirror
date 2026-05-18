@@ -221,7 +221,7 @@ TEST(BufferHttpSender, Basic)
   {
     BufferHttpSender sender;
     sender.SetChunkSize(cs);
-    sender.GetBuffer() = s;
+    sender.SetBuffer(s);
     ASSERT_TRUE(ReadAllStream(t, sender));
     ASSERT_EQ(s, t);
   }
@@ -267,7 +267,7 @@ TEST(HttpStreamTranscoder, Basic)
   {
     BufferHttpSender sender;
     sender.SetChunkSize(cs);
-    sender.GetBuffer() = t;
+    sender.SetBuffer(t);
     std::string u;
     ASSERT_TRUE(ReadAllStream(u, sender));
 
@@ -281,7 +281,7 @@ TEST(HttpStreamTranscoder, Basic)
   {
     BufferHttpSender sender;
     sender.SetChunkSize(cs);
-    sender.GetBuffer() = t;
+    sender.SetBuffer(t);
 
     HttpStreamTranscoder transcode(sender, CompressionType_None);
     
@@ -296,7 +296,7 @@ TEST(HttpStreamTranscoder, Basic)
   {
     BufferHttpSender sender;
     sender.SetChunkSize(cs);
-    sender.GetBuffer() = t;
+    sender.SetBuffer(t);
 
     HttpStreamTranscoder transcode(sender, CompressionType_ZlibWithSize);
     
@@ -311,7 +311,7 @@ TEST(HttpStreamTranscoder, Basic)
   {
     BufferHttpSender sender;
     sender.SetChunkSize(cs);
-    sender.GetBuffer() = t;
+    sender.SetBuffer(t);
 
     HttpStreamTranscoder transcode(sender, CompressionType_ZlibWithSize);
     
