@@ -30,14 +30,34 @@
 
 namespace Orthanc
 {
+  void BufferHttpSender::ResetFromInternalBuffer()
+  {
+    if (internalBuffer_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else if (internalBuffer_->empty())
+    {
+      SetBuffer(NULL, 0);
+    }
+    else
+    {
+      SetBuffer(internalBuffer_->c_str(), internalBuffer_->size());
+    }
+  }
+
+
   BufferHttpSender::BufferHttpSender() :
+    data_(NULL),
+    size_(0),
     position_(0), 
     chunkSize_(0),
     currentChunkSize_(0)
   {
   }
 
-  void BufferHttpSender::SetBuffer(const std::string& buffer)
+  void BufferHttpSender::SetBuffer(const void* data,
+                                   size_t size)
   {
     if (position_ != 0)
     {
@@ -45,25 +65,23 @@ namespace Orthanc
     }
     else
     {
-      buffer_ = buffer;
+      data_ = reinterpret_cast<const char*>(data);
+      size_ = size;
     }
+  }
+
+  void BufferHttpSender::SetBuffer(const std::string& buffer)
+  {
+    internalBuffer_.reset(new std::string);
+    *internalBuffer_ = buffer;
+    ResetFromInternalBuffer();
   }
 
   void BufferHttpSender::SwapBuffer(std::string& buffer)
   {
-    if (position_ != 0)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      buffer_.swap(buffer);
-    }
-  }
-
-  const std::string& BufferHttpSender::GetBuffer() const
-  {
-    return buffer_;
+    internalBuffer_.reset(new std::string);
+    internalBuffer_->swap(buffer);
+    ResetFromInternalBuffer();
   }
 
   void BufferHttpSender::SetChunkSize(size_t chunkSize)
@@ -73,23 +91,23 @@ namespace Orthanc
 
   uint64_t BufferHttpSender::GetContentLength()
   {
-    return buffer_.size();
+    return size_;
   }
 
 
   bool BufferHttpSender::ReadNextChunk()
   {
-    assert(position_ + currentChunkSize_ <= buffer_.size());
+    assert(position_ + currentChunkSize_ <= size_);
 
     position_ += currentChunkSize_;
 
-    if (position_ == buffer_.size())
+    if (position_ == size_)
     {
       return false;
     }
     else
     {
-      currentChunkSize_ = buffer_.size() - position_;
+      currentChunkSize_ = size_ - position_;
 
       if (chunkSize_ != 0 &&
           currentChunkSize_ > chunkSize_)
@@ -104,7 +122,7 @@ namespace Orthanc
 
   const char* BufferHttpSender::GetChunkContent()
   {
-    return buffer_.c_str() + position_;
+    return data_ + position_;
   }
 
 

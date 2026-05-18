@@ -30,20 +30,26 @@ namespace Orthanc
   class ORTHANC_PUBLIC BufferHttpSender : public HttpFileSender
   {
   private:
-    std::string  buffer_;
+    std::unique_ptr<std::string>  internalBuffer_;
+
+    const char*  data_;
+    size_t       size_;
     size_t       position_;
     size_t       chunkSize_;
     size_t       currentChunkSize_;
 
+    void ResetFromInternalBuffer();
+
   public:
     BufferHttpSender();
+
+    void SetBuffer(const void* data,
+                   size_t size);
 
     void SetBuffer(const std::string& buffer);
 
     // This flavor is more efficient
     void SwapBuffer(std::string& buffer);
-
-    const std::string& GetBuffer() const;
 
     // This is for test purpose. If "chunkSize" is set to "0" (the
     // default), the entire buffer is consumed at once.

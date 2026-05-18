@@ -1427,10 +1427,10 @@ namespace Orthanc
     assert(attachment.GetContentType() == FileContentType_Dicom);
     attachmentId = attachment.GetUuid();
 
-    if (attachment.GetUncompressedSize() < largeDicomThreshold)  // release ASAP (before the read) if we don't plan to hold the lock (https://discourse.orthanc-server.org/t/patch-release-large-dicom-semaphore-lock-early-for-better-performance/6440) 
+    if (attachment.GetUncompressedSize() < largeDicomThreshold)  // release ASAP (before the read) if we don't plan to hold the lock (https://discourse.orthanc-server.org/t/patch-release-large-dicom-semaphore-lock-early-for-better-performance/6440)
     {
       largeDicomLocker.reset(NULL);
-    }    
+    }
 
     ReadAttachment(dicom, attachment, true /* uncompress */);
   }

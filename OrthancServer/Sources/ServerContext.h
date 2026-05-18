@@ -402,7 +402,7 @@ private:
     void ReadDicomInternal(std::string& dicom,
                            const std::string& instancePublicId,
                            std::unique_ptr<Semaphore::Locker>& largeDicomLocker,
-                            std::size_t largeDicomThreshold);
+                           std::size_t largeDicomThreshold);
 
     void ReadDicomInternal(std::string& dicom,
                            std::string& attachmentId,
@@ -413,7 +413,7 @@ private:
 public:
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId);
- 
+
     void ReadDicom(std::string& dicom,
                    std::string& attachmentId,
                    const std::string& instancePublicId);
