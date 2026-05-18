@@ -467,7 +467,7 @@ namespace Orthanc
       stableAge = lock.GetConfiguration().GetUnsignedIntegerParameter("StableAge", 60);
     }
 
-    if (stableAge <= 1)
+    if (stableAge < 1)
     {
       stableAge = 60;
     }
