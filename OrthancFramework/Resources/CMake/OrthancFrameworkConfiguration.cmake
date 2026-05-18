@@ -549,7 +549,6 @@ if (ENABLE_DCMTK)
   endif()
 
   set(ORTHANC_DICOM_SOURCES_INTERNAL
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DicomDataSource.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomFindAnswers.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DicomModification.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DicomWebJsonVisitor.cpp
@@ -677,6 +676,12 @@ else()
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SystemToolbox.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/TemporaryFile.cpp
     )
+
+  if (ENABLE_DCMTK)
+    list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DicomDataSource.cpp
+      )
+  endif()
 
   if (ENABLE_MODULE_JOBS)
     list(APPEND ORTHANC_CORE_SOURCES_INTERNAL

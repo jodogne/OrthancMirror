@@ -34,11 +34,11 @@
 
 #include "../Compatibility.h"
 #include "../FileStorage/FileInfo.h"
+#include "../MultiThreading/Mutex.h"
 #include "IDataIdentifier.h"
 #include "IDataSource.h"
 
 #include <boost/shared_ptr.hpp>
-#include <boost/thread/mutex.hpp>
 
 
 namespace Orthanc
@@ -66,7 +66,7 @@ namespace Orthanc
     class Dicom : public boost::noncopyable
     {
     private:
-      boost::mutex                       mutex_;
+      Mutex                              mutex_;
       boost::shared_ptr<IDynamicObject>  value_;
 
     public:
@@ -80,8 +80,8 @@ namespace Orthanc
       class Lock : public boost::noncopyable
       {
       private:
-        Dicom&                     that_;
-        boost::mutex::scoped_lock  lock_;
+        Dicom&             that_;
+        Mutex::ScopedLock  lock_;
 
       public:
         explicit Lock(Dicom& that) :

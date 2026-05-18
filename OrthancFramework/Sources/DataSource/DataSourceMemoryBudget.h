@@ -24,6 +24,10 @@
 
 #pragma once
 
+#if defined(__EMSCRIPTEN__)
+#  error This file is currently not available if targeting WebAssembly
+#endif
+
 #include "../Compatibility.h"
 
 #include <boost/noncopyable.hpp>
