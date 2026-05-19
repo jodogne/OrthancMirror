@@ -294,26 +294,31 @@ namespace Orthanc
 
       if (limitToThisLevelDicomTags && instances.size() > 0) // in this case, we only need to rebuild one instance !
       {
-        ServerContext::DicomCacheLocker locker(context, instances.front());
-        context.GetIndex().ReconstructInstance(locker.GetDicom(), true, limitToLevel);
+        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(instances.front(), false));
+        DicomDataSource::Dicom::Lock lock(*dicom);
+
+        context.GetIndex().ReconstructInstance(lock.GetContent(), true, limitToLevel);
       }
       else
       {
         for (std::list<std::string>::const_iterator 
               it = instances.begin(); it != instances.end(); ++it)
         {
-          ServerContext::DicomCacheLocker locker(context, *it);
+          std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(*it, false));
+          DicomDataSource::Dicom::Lock lock(*dicom);
 
           // Delay the reconstruction of DICOM-as-JSON to its next access through "ServerContext"
           context.GetIndex().DeleteAttachment(*it, FileContentType_DicomAsJson, false /* no revision */,
                                               -1 /* dummy revision */, "" /* dummy MD5 */);
           
-          context.GetIndex().ReconstructInstance(locker.GetDicom(), false, ResourceType_Instance /* dummy */);
+          context.GetIndex().ReconstructInstance(lock.GetContent(), false, ResourceType_Instance /* dummy */);
 
           if (reconstructFiles)
           {
+            std::unique_ptr<ParsedDicomFile> clone(lock.GetContent().Clone(true));
+
             std::string resultPublicId;  // ignored
-            std::unique_ptr<DicomInstanceToStore> dicomInstancetoStore(DicomInstanceToStore::CreateFromParsedDicomFile(locker.GetDicom()));
+            std::unique_ptr<DicomInstanceToStore> dicomInstancetoStore(DicomInstanceToStore::CreateFromParsedDicomFile(*clone));
 
             // TODO: TranscodeAndStore and specifically ServerIndex::Store have been "poluted" by the isReconstruct parameter
             // we should very likely refactor it

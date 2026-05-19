@@ -87,8 +87,8 @@ namespace Orthanc
     std::unique_ptr<ParsedDicomFile> modified;
     
     {
-      ServerContext::DicomCacheLocker lock(context_, instance.GetId());
-      modified.reset(lock.GetDicom().Clone(true));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context_.ReadParsedDicom(instance.GetId(), false));
+      modified.reset(dicom->Clone());
     }
 
     try

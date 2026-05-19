@@ -290,9 +290,12 @@ namespace Orthanc
           // Make sure that the DICOM file can be re-read by DCMTK
           // from the file storage, and that the actual SOP
           // class/instance UIDs do match
-          ServerContext::DicomCacheLocker locker(context_, orthancId[0]);
-          if (locker.GetDicom().GetTagValue(a, DICOM_TAG_SOP_CLASS_UID) &&
-              locker.GetDicom().GetTagValue(b, DICOM_TAG_SOP_INSTANCE_UID) &&
+
+          std::unique_ptr<DicomDataSource::Dicom> dicom(context_.ReadParsedDicom(orthancId[0], false));
+          DicomDataSource::Dicom::Lock lock(*dicom);
+
+          if (lock.GetContent().GetTagValue(a, DICOM_TAG_SOP_CLASS_UID) &&
+              lock.GetContent().GetTagValue(b, DICOM_TAG_SOP_INSTANCE_UID) &&
               b == sopInstanceUids_[index])
           {
             if (a == sopClassUids_[index])

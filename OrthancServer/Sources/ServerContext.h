@@ -296,28 +296,6 @@ namespace Orthanc
     boost::shared_ptr<ThreadPool>        transcodingThreadPool_;
 
   public:
-    class DicomCacheLocker : public boost::noncopyable
-    {
-    private:
-      ServerContext&                               context_;
-      std::string                                  instancePublicId_;
-      std::unique_ptr<ParsedDicomCache::Accessor>  accessor_;
-      std::unique_ptr<ParsedDicomFile>             dicom_;
-      size_t                                       dicomSize_;
-      std::unique_ptr<Semaphore::Locker>           largeDicomLocker_;
-      std::string                                  buffer_;
-
-    public:
-      DicomCacheLocker(ServerContext& context,
-                       const std::string& instancePublicId);
-
-      ~DicomCacheLocker();
-
-      ParsedDicomFile& GetDicom() const;
-
-      const std::string& GetBuffer();
-    };
-
     ServerContext(IDatabaseWrapper& database,
                   IPluginStorageArea& area,
                   bool unitTesting,

@@ -24,8 +24,6 @@
 #include "../PrecompiledHeadersServer.h"
 #include "../ResourceFinder.h"
 
-#include <signal.h>
-
 #include "OrthancRestApi.h"
 
 #include "../../../OrthancFramework/Sources/CompatibilityMath.h"

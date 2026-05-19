@@ -97,8 +97,8 @@ namespace Orthanc
 
     try
     {
-      ServerContext::DicomCacheLocker locker(GetContext(), instance);
-      modified.reset(locker.GetDicom().Clone(true));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(instance, false));
+      modified.reset(dicom->Clone());
     }
     catch (OrthancException&)
     {
@@ -201,8 +201,10 @@ namespace Orthanc
     DicomMap dicom;
 
     {
-      ServerContext::DicomCacheLocker locker(GetContext(), instances.front());
-      OrthancConfiguration::DefaultExtractDicomSummary(dicom, locker.GetDicom());
+      std::unique_ptr<DicomDataSource::Dicom> loadedDicom(GetContext().ReadParsedDicom(instances.front(), false));
+      DicomDataSource::Dicom::Lock lock(*loadedDicom);
+
+      OrthancConfiguration::DefaultExtractDicomSummary(dicom, lock.GetContent());
     }
 
     const std::set<DicomTag> moduleTags = removals_;
