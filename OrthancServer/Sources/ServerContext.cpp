@@ -1442,7 +1442,6 @@ namespace Orthanc
 
 
   void ServerContext::ReadDicom(std::string& dicom,
-                                std::string& attachmentId,
                                 const std::string& instancePublicId)
   {
     FileInfo attachment;
@@ -1456,7 +1455,6 @@ namespace Orthanc
     }
 
     assert(attachment.GetContentType() == FileContentType_Dicom);
-    attachmentId = attachment.GetUuid();
 
     std::unique_ptr<StorageAreaDataSource::Range> range(
       StorageAreaDataSource::ReadAttachment(
@@ -1464,13 +1462,6 @@ namespace Orthanc
 
     assert(range->GetSize() == attachment.GetUncompressedSize());
     range->Copy(dicom);
-  }
-
-  void ServerContext::ReadDicom(std::string& dicom,
-                                const std::string& instancePublicId)
-  {
-    std::string attachmentId;
-    ReadDicom(dicom, attachmentId, instancePublicId);    
   }
 
 

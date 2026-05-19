@@ -382,10 +382,6 @@ namespace Orthanc
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId);
 
-    void ReadDicom(std::string& dicom,
-                   std::string& attachmentId,
-                   const std::string& instancePublicId);
-
     DicomDataSource::Dicom* ReadParsedDicom(const std::string& instancePublicId,
                                             bool keepRawBuffer);
 
