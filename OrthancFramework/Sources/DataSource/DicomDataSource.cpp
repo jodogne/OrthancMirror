@@ -35,6 +35,28 @@
 
 namespace Orthanc
 {
+  static size_t ComputeValueSize(size_t size,
+                                 bool isKeepRawBuffer)
+  {
+    if (isKeepRawBuffer)
+    {
+      uint64_t s = 2 * static_cast<uint64_t>(size);
+      if (s != static_cast<uint64_t>(static_cast<size_t>(s)))
+      {
+        return std::numeric_limits<size_t>::max();
+      }
+      else
+      {
+        return static_cast<size_t>(s);
+      }
+    }
+    else
+    {
+      return size;
+    }
+  }
+
+
   class DicomDataSource::BaseIdentifier : public IDataIdentifier
   {
   public:
@@ -71,15 +93,7 @@ namespace Orthanc
 
     virtual bool EstimateValueSize(size_t& target) const ORTHANC_OVERRIDE
     {
-      if (keepRawBuffer_)
-      {
-        target = 2 * attachment_.GetUncompressedSize();
-      }
-      else
-      {
-        target = attachment_.GetUncompressedSize();
-      }
-
+      target = ComputeValueSize(attachment_.GetUncompressedSize(), keepRawBuffer_);
       return true;
     }
 
@@ -225,19 +239,12 @@ namespace Orthanc
     const size_t size = range->GetSize();
 
     {
-    // Sanity check
+      // Sanity check
       bool ok = false;
       size_t estimatedSize;
       if (obj.EstimateValueSize(estimatedSize))
       {
-        if (id.IsKeepRawBuffer())
-        {
-          ok = (estimatedSize == 2 * size);
-        }
-        else
-        {
-          ok = (estimatedSize == size);
-        }
+        ok = (estimatedSize == ComputeValueSize(size, id.IsKeepRawBuffer()));
       }
 
       if (!ok)
@@ -265,15 +272,7 @@ namespace Orthanc
   size_t DicomDataSource::GetValueSize(const IDynamicObject& obj) const
   {
     const Value& value = dynamic_cast<const Value&>(obj);
-
-    if (value.HasRawBuffer())
-    {
-      return 2 * value.GetRawBufferSize();
-    }
-    else
-    {
-      return value.GetRawBufferSize();
-    }
+    return ComputeValueSize(value.GetRawBufferSize(), value.HasRawBuffer());
   }
 
 
@@ -324,9 +323,14 @@ namespace Orthanc
 
   DicomDataSource::Dicom* DicomDataSource::ReadUntilPixelData(DataSourceReader& reader,
                                                               const FileInfo& attachment,
-                                                              size_t pixelDataOffset)
+                                                              uint64_t pixelDataOffset)
   {
-    std::unique_ptr<IDataIdentifier> id(new BeginningIdentifier(attachment, pixelDataOffset));
+    if (static_cast<uint64_t>(static_cast<size_t>(pixelDataOffset)) != pixelDataOffset)
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+
+    std::unique_ptr<IDataIdentifier> id(new BeginningIdentifier(attachment, static_cast<size_t>(pixelDataOffset)));
     boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
     return new Dicom(value);
   }

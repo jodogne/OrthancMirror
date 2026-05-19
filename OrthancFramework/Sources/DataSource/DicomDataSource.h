@@ -107,6 +107,6 @@ namespace Orthanc
 
     static Dicom* ReadUntilPixelData(DataSourceReader& reader,
                                      const FileInfo& attachment,
-                                     size_t pixelDataOffset);
+                                     uint64_t pixelDataOffset);
   };
 }

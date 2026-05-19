@@ -72,6 +72,8 @@ namespace Orthanc
       const void* GetData() const;
 
       size_t GetSize() const;
+
+      void Copy(std::string& to) const;
     };
 
     static Range* ReadRange(DataSourceReader& reader,
@@ -88,6 +90,6 @@ namespace Orthanc
 
     static Range* ReadBeginning(DataSourceReader& reader,
                                 const FileInfo& attachment,
-                                size_t untilPosition);
+                                uint64_t untilPosition);
   };
 }

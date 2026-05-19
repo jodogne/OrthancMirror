@@ -162,6 +162,13 @@ namespace Orthanc
   }
 
 
+  void StorageAreaDataSource::Range::Copy(std::string& to) const
+  {
+    const IMemoryBuffer& buffer = GetValue().GetBuffer();
+    to.assign(reinterpret_cast<const char*>(buffer.GetData()), buffer.GetSize());
+  }
+
+
   StorageAreaDataSource::Range* StorageAreaDataSource::ReadRange(DataSourceReader& reader,
                                                                  const std::string& uuid,
                                                                  FileContentType type,
@@ -252,7 +259,7 @@ namespace Orthanc
 
   StorageAreaDataSource::Range* StorageAreaDataSource::ReadBeginning(DataSourceReader& reader,
                                                                      const FileInfo& attachment,
-                                                                     size_t untilPosition)
+                                                                     uint64_t untilPosition)
   {
     if (attachment.GetCompressionType() != CompressionType_None)
     {
