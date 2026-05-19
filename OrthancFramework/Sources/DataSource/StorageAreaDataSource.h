@@ -31,6 +31,7 @@
 #include "../Compatibility.h"
 #include "../FileStorage/FileInfo.h"
 #include "../FileStorage/IStorageArea.h"
+#include "../FileStorage/StorageRange.h"
 #include "IDataSource.h"
 
 #include <boost/shared_ptr.hpp>
@@ -74,6 +75,8 @@ namespace Orthanc
       size_t GetSize() const;
 
       void Copy(std::string& to) const;
+
+      static Range* CreateFromSwap(std::string& content);
     };
 
     static Range* ReadRange(DataSourceReader& reader,
@@ -90,6 +93,12 @@ namespace Orthanc
 
     static Range* ReadBeginning(DataSourceReader& reader,
                                 const FileInfo& attachment,
-                                uint64_t untilPosition);
+                                uint64_t untilPosition /* exclusive */);
+
+    static Range* ReadRange(DataSourceReader& reader,
+                            const FileInfo& attachment,
+                            const StorageRange& range,
+                            bool uncompress,
+                            bool checkMD5);
   };
 }

@@ -33,6 +33,8 @@
 #include <boost/lexical_cast.hpp>
 
 
+#include <signal.h>
+
 namespace Orthanc
 {
   void StorageRange::SanityCheck() const
@@ -131,38 +133,54 @@ namespace Orthanc
     return s + "/" + boost::lexical_cast<std::string>(fullSize);
   }
 
+
   void StorageRange::Extract(std::string &target,
-                                       const std::string &source) const
+                             const std::string &source) const
+  {
+    Extract(target, source.empty() ? NULL : source.c_str(), source.size());
+  }
+
+
+  void StorageRange::Extract(std::string& target,
+                             const void* data,
+                             size_t size) const
   {
     SanityCheck();
 
-    if (hasStart_ && start_ >= source.size())
+    if (size != 0 &&
+        data == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    if (hasStart_ && start_ >= size)
     {
       throw OrthancException(ErrorCode_BadRange);
     }
 
-    if (hasEnd_ && end_ >= source.size())
+    if (hasEnd_ && end_ >= size)
     {
       throw OrthancException(ErrorCode_BadRange);
     }
 
     if (hasStart_ && hasEnd_)
     {
-      target = source.substr(start_, end_ - start_ + 1);
+      target.assign(reinterpret_cast<const char*>(data) + start_, end_ - start_ + 1);
     }
     else if (hasStart_)
     {
-      target = source.substr(start_, source.size() - start_);
+      target.assign(reinterpret_cast<const char*>(data) + start_, size - start_);
     }
     else if (hasEnd_)
     {
-      target = source.substr(0, end_ + 1);
+      target.assign(reinterpret_cast<const char*>(data), end_ + 1);
     }
     else
     {
-      target = source;
+      target.assign(reinterpret_cast<const char*>(data), size);
     }
   }
+
 
   uint64_t StorageRange::GetContentLength(uint64_t fullSize) const
   {

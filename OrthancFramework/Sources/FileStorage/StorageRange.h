@@ -69,6 +69,10 @@ namespace Orthanc
     void Extract(std::string& target,
                  const std::string& source) const;
 
+    void Extract(std::string& target,
+                 const void* data,
+                 size_t size) const;
+
     uint64_t GetContentLength(uint64_t fullSize) const;
 
     static StorageRange ParseHttpRange(const std::string& s);

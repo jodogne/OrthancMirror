@@ -37,7 +37,6 @@
 #include <boost/lexical_cast.hpp>
 #include <cassert>
 
-
 namespace Orthanc
 {
   class StorageAreaDataSource::Value : public IDynamicObject
@@ -169,6 +168,13 @@ namespace Orthanc
   }
 
 
+  StorageAreaDataSource::Range* StorageAreaDataSource::Range::CreateFromSwap(std::string& content)
+  {
+    boost::shared_ptr<Value> value(new Value(StringMemoryBuffer::CreateFromSwap(content)));
+    return new Range(value);
+  }
+
+
   StorageAreaDataSource::Range* StorageAreaDataSource::ReadRange(DataSourceReader& reader,
                                                                  const std::string& uuid,
                                                                  FileContentType type,
@@ -239,8 +245,7 @@ namespace Orthanc
             }
           }
 
-          boost::shared_ptr<Value> value(new Value(StringMemoryBuffer::CreateFromSwap(content)));
-          return new Range(value);
+          return Range::CreateFromSwap(content);
 #else
           throw OrthancException(ErrorCode_InternalError, "Support for zlib is disabled, cannot uncompress attachment");
 #endif
@@ -279,5 +284,46 @@ namespace Orthanc
 
     return ReadRange(reader, attachment.GetUuid(), attachment.GetContentType(),
                      0, untilPosition, attachment.GetCustomData());
+  }
+
+
+  StorageAreaDataSource::Range* StorageAreaDataSource::ReadRange(DataSourceReader& reader,
+                                                                 const FileInfo& attachment,
+                                                                 const StorageRange& range,
+                                                                 bool uncompress,
+                                                                 bool checkMD5)
+  {
+    // This mimics "StorageAccessor::ReadRange()"
+
+    if (uncompress &&
+        attachment.GetCompressionType() != CompressionType_None)
+    {
+      // An uncompression is needed in this case
+      std::unique_ptr<StorageAreaDataSource::Range> uncompressed(
+        ReadAttachment(reader, attachment, true /* uncompress */, checkMD5));
+
+      std::string content;
+      range.Extract(content, uncompressed->GetData(), uncompressed->GetSize());
+
+      return Range::CreateFromSwap(content);
+    }
+    else
+    {
+      // Access to the raw attachment is sufficient in this case, but
+      // no MD5 checking can be done in general
+      const uint64_t start = range.HasStart() ? range.GetStartInclusive() : 0;
+      const uint64_t endExclusive = range.HasEnd() ? range.GetEndInclusive() + 1 : attachment.GetCompressedSize();
+
+      if (start >= attachment.GetCompressedSize() ||
+          endExclusive > attachment.GetCompressedSize())
+      {
+        throw OrthancException(ErrorCode_BadRange);
+      }
+      else
+      {
+        return ReadRange(reader, attachment.GetUuid(), attachment.GetContentType(),
+                         start, endExclusive, attachment.GetCustomData());
+      }
+    }
   }
 }
