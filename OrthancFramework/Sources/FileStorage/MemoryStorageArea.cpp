@@ -117,7 +117,7 @@ namespace Orthanc
       {
         std::string range;
         assert(size != 0);
-        range.assign(found->second->c_str() + start, size);
+        range.assign(reinterpret_cast<const char*>(found->second->c_str()) + start, size);
 
         return StringMemoryBuffer::CreateFromSwap(range);
       }

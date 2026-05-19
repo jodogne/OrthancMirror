@@ -17,11 +17,11 @@ constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/DicomStore
 constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp:112
 constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp:113
 constParameterCallback:../../OrthancFramework/Sources/Pkcs11.cpp:125
-constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3545
+constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3553
 constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp:48
-constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:448
-constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:452
-constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3343
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:450
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:454
+constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3351
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:112
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:440
 knownConditionTrueFalse:../../OrthancFramework/Sources/Images/PamReader.cpp:204
@@ -45,7 +45,7 @@ syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
-useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:97
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:99
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:280
 variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:230

@@ -10,7 +10,7 @@ if [ $# -ge 1 ]; then
 fi
 
 cat <<EOF > /tmp/cppcheck-suppressions.txt
-assertWithSideEffect:../../OrthancFramework/Sources/DataSource/DataSourceReader.cpp:212
+assertWithSideEffect:../../OrthancFramework/Sources/DataSource/DataSourceReader.cpp:220
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:287
