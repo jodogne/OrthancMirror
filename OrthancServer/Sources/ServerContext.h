@@ -432,7 +432,7 @@ public:
 
     void ReadAttachmentRange(std::string& result,
                              const FileInfo& attachment,
-                             const StorageAccessor::Range& range,
+                             const StorageRange& range,
                              bool uncompressIfNeeded);
 
     void SetStoreMD5ForAttachments(bool storeMD5);

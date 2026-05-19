@@ -40,8 +40,9 @@
 #  error Macro ORTHANC_ENABLE_MONGOOSE must be defined to use this file
 #endif
 
-#include "IStorageArea.h"
 #include "FileInfo.h"
+#include "IStorageArea.h"
+#include "StorageRange.h"
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
 #  include "../HttpServer/BufferHttpSender.h"
@@ -49,9 +50,7 @@
 #endif
 
 #include <vector>
-#include <string>
 #include <boost/noncopyable.hpp>
-#include <stdint.h>
 
 namespace Orthanc
 {
@@ -65,48 +64,6 @@ namespace Orthanc
    **/
   class ORTHANC_PUBLIC StorageAccessor : boost::noncopyable
   {
-  public:
-    class ORTHANC_PUBLIC Range
-    {
-    private:
-      bool      hasStart_;
-      uint64_t  start_;
-      bool      hasEnd_;
-      uint64_t  end_;
-
-      void SanityCheck() const;
-
-    public:
-      Range();
-
-      void SetStartInclusive(uint64_t start);
-
-      void SetEndInclusive(uint64_t end);
-
-      bool HasStart() const
-      {
-        return hasStart_;
-      }
-
-      bool HasEnd() const
-      {
-        return hasEnd_;
-      }
-
-      uint64_t GetStartInclusive() const;
-
-      uint64_t GetEndInclusive() const;
-
-      std::string FormatHttpContentRange(uint64_t fullSize) const;
-
-      void Extract(std::string& target,
-                   const std::string& source) const;
-
-      uint64_t GetContentLength(uint64_t fullSize) const;
-
-      static Range ParseHttpRange(const std::string& s);
-    };
-
   private:
     class MetricsTimer;
 
@@ -168,7 +125,7 @@ namespace Orthanc
 
     void ReadRange(std::string& target,
                    const FileInfo& info,
-                   const Range& range,
+                   const StorageRange& range,
                    bool uncompressIfNeeded);
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1

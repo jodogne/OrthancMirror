@@ -2350,13 +2350,13 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     bool hasRangeHeader = false;
-    StorageAccessor::Range range;
+    StorageRange range;
 
     HttpToolbox::Arguments::const_iterator rangeHeader = call.GetHttpHeaders().find("range");
     if (rangeHeader != call.GetHttpHeaders().end())
     {
       hasRangeHeader = true;
-      range = StorageAccessor::Range::ParseHttpRange(rangeHeader->second);
+      range = StorageRange::ParseHttpRange(rangeHeader->second);
     }
 
     FileInfo info;

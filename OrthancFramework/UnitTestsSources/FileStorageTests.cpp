@@ -271,7 +271,7 @@ TEST(StorageAccessor, Mix)
 TEST(StorageAccessor, Range)
 {
   {
-    StorageAccessor::Range range;
+    StorageRange range;
     ASSERT_FALSE(range.HasStart());
     ASSERT_FALSE(range.HasEnd());
     ASSERT_THROW(range.GetStartInclusive(), OrthancException);
@@ -309,7 +309,7 @@ TEST(StorageAccessor, Range)
   }
 
   {
-    StorageAccessor::Range range;
+    StorageRange range;
     range.SetEndInclusive(20);
     ASSERT_FALSE(range.HasStart());
     ASSERT_TRUE(range.HasEnd());
@@ -324,7 +324,7 @@ TEST(StorageAccessor, Range)
   }
 
   {
-    StorageAccessor::Range range = StorageAccessor::Range::ParseHttpRange("bytes=1-30");
+    StorageRange range = StorageRange::ParseHttpRange("bytes=1-30");
     ASSERT_TRUE(range.HasStart());
     ASSERT_TRUE(range.HasEnd());
     ASSERT_EQ(1u, range.GetStartInclusive());
@@ -332,27 +332,27 @@ TEST(StorageAccessor, Range)
     ASSERT_EQ("bytes 1-30/100", range.FormatHttpContentRange(100));
   }
 
-  ASSERT_THROW(StorageAccessor::Range::ParseHttpRange("bytes="), OrthancException);
-  ASSERT_THROW(StorageAccessor::Range::ParseHttpRange("bytes=-1-30"), OrthancException);
-  ASSERT_THROW(StorageAccessor::Range::ParseHttpRange("bytes=100-30"), OrthancException);
+  ASSERT_THROW(StorageRange::ParseHttpRange("bytes="), OrthancException);
+  ASSERT_THROW(StorageRange::ParseHttpRange("bytes=-1-30"), OrthancException);
+  ASSERT_THROW(StorageRange::ParseHttpRange("bytes=100-30"), OrthancException);
 
-  ASSERT_EQ("bytes 0-99/100", StorageAccessor::Range::ParseHttpRange("bytes=-").FormatHttpContentRange(100));
-  ASSERT_EQ("bytes 0-10/100", StorageAccessor::Range::ParseHttpRange("bytes=-10").FormatHttpContentRange(100));
-  ASSERT_EQ("bytes 10-99/100", StorageAccessor::Range::ParseHttpRange("bytes=10-").FormatHttpContentRange(100));
+  ASSERT_EQ("bytes 0-99/100", StorageRange::ParseHttpRange("bytes=-").FormatHttpContentRange(100));
+  ASSERT_EQ("bytes 0-10/100", StorageRange::ParseHttpRange("bytes=-10").FormatHttpContentRange(100));
+  ASSERT_EQ("bytes 10-99/100", StorageRange::ParseHttpRange("bytes=10-").FormatHttpContentRange(100));
 
   {
     std::string s;
-    StorageAccessor::Range::ParseHttpRange("bytes=1-2").Extract(s, "Hello");
+    StorageRange::ParseHttpRange("bytes=1-2").Extract(s, "Hello");
     ASSERT_EQ("el", s);
-    StorageAccessor::Range::ParseHttpRange("bytes=-2").Extract(s, "Hello");
+    StorageRange::ParseHttpRange("bytes=-2").Extract(s, "Hello");
     ASSERT_EQ("Hel", s);
-    StorageAccessor::Range::ParseHttpRange("bytes=3-").Extract(s, "Hello");
+    StorageRange::ParseHttpRange("bytes=3-").Extract(s, "Hello");
     ASSERT_EQ("lo", s);
-    StorageAccessor::Range::ParseHttpRange("bytes=-").Extract(s, "Hello");
+    StorageRange::ParseHttpRange("bytes=-").Extract(s, "Hello");
     ASSERT_EQ("Hello", s);
-    StorageAccessor::Range::ParseHttpRange("bytes=4-").Extract(s, "Hello");
+    StorageRange::ParseHttpRange("bytes=4-").Extract(s, "Hello");
     ASSERT_EQ("o", s);
-    ASSERT_THROW(StorageAccessor::Range::ParseHttpRange("bytes=5-").Extract(s, "Hello"), OrthancException);
+    ASSERT_THROW(StorageRange::ParseHttpRange("bytes=5-").Extract(s, "Hello"), OrthancException);
   }
 }
 

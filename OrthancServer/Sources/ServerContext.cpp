@@ -1545,7 +1545,7 @@ namespace Orthanc
 
   void ServerContext::ReadAttachmentRange(std::string &result,
                                           const FileInfo &attachment,
-                                          const StorageAccessor::Range &range,
+                                          const StorageRange &range,
                                           bool uncompressIfNeeded)
   {
     StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
