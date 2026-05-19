@@ -1021,9 +1021,11 @@ TEST_F(OrthancJobsSerialization, Jobs)
   std::string study, series;
 
   {
-    ServerContext::DicomCacheLocker lock(GetContext(), instance);
-    study = lock.GetDicom().GetHasher().HashStudy();
-    series = lock.GetDicom().GetHasher().HashSeries();
+    std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(instance, false));
+    DicomDataSource::Dicom::Lock lock(*dicom);
+
+    study = lock.GetContent().GetHasher().HashStudy();
+    series = lock.GetContent().GetHasher().HashSeries();
   }
 
   {

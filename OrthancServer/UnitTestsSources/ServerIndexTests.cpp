@@ -1002,9 +1002,11 @@ TEST(ServerIndex, Overwrite)
     ASSERT_EQ("name", tmp["0010,0010"]["Value"].asString());
     
     {
-      ServerContext::DicomCacheLocker locker(context, id);
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id, false));
+      DicomDataSource::Dicom::Lock lock(*dicom);
+
       std::string tmp;
-      locker.GetDicom().GetTagValue(tmp, DICOM_TAG_PATIENT_NAME);
+      lock.GetContent().GetTagValue(tmp, DICOM_TAG_PATIENT_NAME);
       ASSERT_EQ("name", tmp);
     }
 
@@ -1057,9 +1059,11 @@ TEST(ServerIndex, Overwrite)
       ASSERT_EQ("overwritten", tmp["0010,0010"]["Value"].asString());
     
       {
-        ServerContext::DicomCacheLocker locker(context, id);
+        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id, false));
+        DicomDataSource::Dicom::Lock lock(*dicom);
+
         std::string tmp;
-        locker.GetDicom().GetTagValue(tmp, DICOM_TAG_PATIENT_NAME);
+        lock.GetContent().GetTagValue(tmp, DICOM_TAG_PATIENT_NAME);
         ASSERT_EQ("overwritten", tmp);
       }
     }
@@ -1074,9 +1078,11 @@ TEST(ServerIndex, Overwrite)
       ASSERT_EQ("name", tmp["0010,0010"]["Value"].asString());
     
       {
-        ServerContext::DicomCacheLocker locker(context, id);
+        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id, false));
+        DicomDataSource::Dicom::Lock lock(*dicom);
+
         std::string tmp;
-        locker.GetDicom().GetTagValue(tmp, DICOM_TAG_PATIENT_NAME);
+        lock.GetContent().GetTagValue(tmp, DICOM_TAG_PATIENT_NAME);
         ASSERT_EQ("name", tmp);
       }
     }
