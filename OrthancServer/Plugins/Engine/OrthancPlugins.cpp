@@ -6081,7 +6081,7 @@ namespace Orthanc
 
           {
             PImpl::ServerContextReference lock(*pimpl_);
-            success = lock.GetContext().Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew);
+            success = lock.GetContext().GetTranscoder().Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew);
           }
 
           if (success)

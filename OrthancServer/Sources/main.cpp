@@ -1598,7 +1598,8 @@ namespace
 
   public:
     ServerContextConfigurator(ServerContext& context,
-                              OrthancPlugins* plugins) :
+                              OrthancPlugins* plugins,
+                              unsigned int maxDcmtkConcurrentTranscoders) :
       context_(context),
       plugins_(plugins)
     {
@@ -1607,14 +1608,19 @@ namespace
         lock.GetConfiguration().SetServerIndex(context.GetIndex());
       }
 
+      std::unique_ptr<ServerTranscoder> transcoder(new ServerTranscoder(maxDcmtkConcurrentTranscoders));
+
 #if ORTHANC_ENABLE_PLUGINS == 1
       if (plugins_ != NULL)
       {
         plugins_->SetServerContext(context_);
         context_.SetPlugins(*plugins_);
         context_.GetIndex().SetMaxDatabaseRetries(plugins_->GetMaxDatabaseRetries());
+        transcoder->SetPlugins(*plugins_);
       }
 #endif
+
+      context.SetTranscoder(transcoder.release());
     }
 
     ~ServerContextConfigurator()
@@ -1631,6 +1637,8 @@ namespace
         context_.ResetPlugins();
       }
 #endif
+
+      context_.ResetTranscoder();
     }
   };
 }
@@ -1702,7 +1710,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED, true));
   }
   
-  ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs, readOnly, maxDcmtkConcurrentTranscoders);
+  ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs, readOnly);
 
   {
     OrthancConfiguration::ReaderLock lock;
@@ -1803,7 +1811,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
   }
 
   {
-    ServerContextConfigurator configurator(context, plugins);  // This calls "OrthancConfiguration::SetServerIndex()"
+    ServerContextConfigurator configurator(context, plugins, maxDcmtkConcurrentTranscoders);  // This calls "OrthancConfiguration::SetServerIndex()"
 
     {
       OrthancConfiguration::WriterLock lock;
@@ -2172,7 +2180,7 @@ int main(int argc, char* argv[])
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
           PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
-          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
+          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateOpenApiDocumentation(openapi);
           context.Stop();
@@ -2223,7 +2231,7 @@ int main(int argc, char* argv[])
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
           PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
-          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
+          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
           context.Stop();

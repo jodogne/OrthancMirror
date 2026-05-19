@@ -28,11 +28,11 @@
 #include "OrthancHttpHandler.h"
 #include "ServerIndex.h"
 #include "ServerJobs/IStorageCommitmentFactory.h"
+#include "ServerTranscoder.h"
 
 #include "../../OrthancFramework/Sources/DataSource/DataSourceReader.h"
 #include "../../OrthancFramework/Sources/DataSource/DicomDataSource.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
-#include "../../OrthancFramework/Sources/DicomParsing/IDicomTranscoder.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomCache.h"
 #include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
 #include "../../OrthancFramework/Sources/FileStorage/StorageCache.h"
@@ -56,7 +56,6 @@ namespace Orthanc
    **/
   class ServerContext :
     public IStorageCommitmentFactory,
-    public IDicomTranscoder,
     private JobsRegistry::IObserver
   {
     friend class ServerIndex;  // To access "RemoveFile()"
@@ -249,9 +248,8 @@ namespace Orthanc
 
     std::unique_ptr<StorageCommitmentReports>  storageCommitmentReports_;
 
+    std::unique_ptr<ServerTranscoder> transcoder_;
     bool transcodeDicomProtocol_;
-    std::unique_ptr<IDicomTranscoder>  dcmtkTranscoder_;
-    BuiltinDecoderTranscoderOrder builtinDecoderTranscoderOrder_;
     bool isIngestTranscoding_;
     DicomTransferSyntax ingestTransferSyntax_;
     bool ingestTranscodingOfUncompressed_;
@@ -321,8 +319,7 @@ namespace Orthanc
                   IPluginStorageArea& area,
                   bool unitTesting,
                   size_t maxCompletedJobs,
-                  bool readOnly,
-                  unsigned int maxConcurrentDcmtkTranscoder);
+                  bool readOnly);
 
     ~ServerContext() ORTHANC_OVERRIDE;
 
@@ -579,11 +576,6 @@ namespace Orthanc
                                     size_t size,
                                     unsigned int frameIndex);
 
-    ImageAccessor* DecodeDicomFrame(const ParsedDicomFile& parsedDicom,
-                                    const void* buffer,  // actually the buffer that is the source of the ParsedDicomFile
-                                    size_t size,
-                                    unsigned int frameIndex);
-
     void PerformCStoreWithTranscoding(std::string& sopClassUid,
                                       std::string& sopInstanceUid,
                                       DicomStoreUserConnection& connection,
@@ -591,19 +583,6 @@ namespace Orthanc
                                       bool hasMoveOriginator,
                                       const std::string& moveOriginatorAet,
                                       uint16_t moveOriginatorId);
-
-    // This method can be used even if the global option
-    // "TranscodeDicomProtocol" is set to "false"
-    virtual bool Transcode(DicomImage& target,
-                           DicomImage& source /* in, "GetParsed()" possibly modified */,
-                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                           TranscodingSopInstanceUidMode mode) ORTHANC_OVERRIDE;
-
-    virtual bool Transcode(DicomImage& target,
-                           DicomImage& source /* in, "GetParsed()" possibly modified */,
-                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                           TranscodingSopInstanceUidMode mode,
-                           unsigned int lossyQuality) ORTHANC_OVERRIDE;
 
     virtual bool TranscodeWithCache(std::string& target,
                                     const std::string& source,
@@ -641,6 +620,12 @@ namespace Orthanc
     int64_t GetServerUpTime() const;
 
     void PublishCacheMetrics();
+
+    void SetTranscoder(ServerTranscoder* transcoder /* takes ownership */);
+
+    ServerTranscoder& GetTranscoder() const;
+
+    void ResetTranscoder();
 
     bool IsCheckMD5() const
     {

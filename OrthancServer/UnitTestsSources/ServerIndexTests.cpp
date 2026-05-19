@@ -730,7 +730,7 @@ TEST(ServerIndex, Sequence)
   PluginStorageAreaAdapter storage(new FilesystemStorage(path));
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
+  ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
   context.SetupJobsEngine(true, false);
 
   ServerIndex& index = context.GetIndex();
@@ -812,7 +812,7 @@ TEST(ServerIndex, AttachmentRecycling)
   PluginStorageAreaAdapter storage(new FilesystemStorage(path));
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
+  ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
   context.SetupJobsEngine(true, false);
   ServerIndex& index = context.GetIndex();
 
@@ -935,7 +935,7 @@ TEST(ServerIndex, Overwrite)
     PluginStorageAreaAdapter storage(new MemoryStorageArea);
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
-    ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
+    ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
     context.SetupJobsEngine(true, false);
     context.SetCompressionEnabled(true);
 
@@ -1100,7 +1100,7 @@ TEST(ServerIndex, DicomUntilPixelData)
     PluginStorageAreaAdapter storage(new MemoryStorageArea);
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
-    ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
+    ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
     context.SetupJobsEngine(true, false);
     context.SetCompressionEnabled(compression);
 
