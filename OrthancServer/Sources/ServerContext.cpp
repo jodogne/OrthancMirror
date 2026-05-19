@@ -31,6 +31,7 @@
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/DicomParsing/TranscodingCallable.h"
 #include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
 #include "../../OrthancFramework/Sources/HttpServer/FilesystemHttpSender.h"
 #include "../../OrthancFramework/Sources/HttpServer/HttpStreamTranscoder.h"
@@ -571,6 +572,12 @@ namespace Orthanc
         dicomReader_.reset(new DataSourceReader(pool.release(), new DicomDataSource(storageAreaReader_)));
         dicomReader_->CreateCache(100 * 1024 * 1024); // 100 MB - TODO-Streaming - Parameter
       }
+
+      {
+        transcodingThreadPool_.reset(new ThreadPool);
+        transcodingThreadPool_->SetCountThreads(4);  // TODO-Streaming - Parameter
+        transcodingThreadPool_->Start();
+      }
     }
     catch (OrthancException&)
     {
@@ -1081,7 +1088,7 @@ namespace Orthanc
         
         IDicomTranscoder::DicomImage transcoded;
         
-        if (GetTranscoder().Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew /* allow new SOP instance UID */))
+        if (GetTranscoder()->Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew /* allow new SOP instance UID */))
         {
           std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
 
@@ -1931,7 +1938,7 @@ namespace Orthanc
 
     {
       DicomDataSource::Dicom::Lock lock(*dicom);
-      decoded.reset(GetTranscoder().DecodeFrame(lock.GetContent(), lock.GetRawBufferData(), lock.GetRawBufferSize(), frameIndex));
+      decoded.reset(GetTranscoder()->DecodeFrame(lock.GetContent(), lock.GetRawBufferData(), lock.GetRawBufferSize(), frameIndex));
     }
 
     if (decoded.get() == NULL)
@@ -1953,10 +1960,10 @@ namespace Orthanc
   ImageAccessor* ServerContext::DecodeDicomFrame(const DicomInstanceToStore& dicom,
                                                  unsigned int frameIndex)
   {
-    return GetTranscoder().DecodeFrame(dicom.GetParsedDicomFile(),
-                                    dicom.GetBufferData(),
-                                    dicom.GetBufferSize(),
-                                    frameIndex);
+    return GetTranscoder()->DecodeFrame(dicom.GetParsedDicomFile(),
+                                        dicom.GetBufferData(),
+                                        dicom.GetBufferSize(),
+                                        frameIndex);
 
   }
 
@@ -1966,7 +1973,7 @@ namespace Orthanc
                                                  unsigned int frameIndex)
   {
     std::unique_ptr<ParsedDicomFile> instance(new ParsedDicomFile(dicom, size));
-    return GetTranscoder().DecodeFrame(*instance, dicom, size, frameIndex);
+    return GetTranscoder()->DecodeFrame(*instance, dicom, size, frameIndex);
   }
   
 
@@ -2042,7 +2049,7 @@ namespace Orthanc
       std::set<DicomTransferSyntax> syntaxes;
       syntaxes.insert(targetSyntax);
 
-      if (GetTranscoder().Transcode(targetDicom, sourceDicom, syntaxes, TranscodingSopInstanceUidMode_AllowNew))
+      if (GetTranscoder()->Transcode(targetDicom, sourceDicom, syntaxes, TranscodingSopInstanceUidMode_AllowNew))
       {
         cacheAccessor.AddTranscodedInstance(attachmentId, targetSyntax, reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
         target = std::string(reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
@@ -2263,11 +2270,11 @@ namespace Orthanc
   }
 
 
-  ServerTranscoder& ServerContext::GetTranscoder() const
+  const boost::shared_ptr<ServerTranscoder>& ServerContext::GetTranscoder() const
   {
     if (transcoder_.get() != NULL)
     {
-      return *transcoder_;
+      return transcoder_;
     }
     else
     {
@@ -2284,7 +2291,20 @@ namespace Orthanc
     }
     else
     {
-      transcoder_.reset(NULL);
+      transcoder_.reset();
     }
+  }
+
+
+  Future* ServerContext::SubmitTranscodingRequest(TranscodingCallable* callable)
+  {
+    if (callable == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    callable->SetTranscoder(transcoder_);
+
+    return transcodingThreadPool_->Submit(callable);
   }
 }

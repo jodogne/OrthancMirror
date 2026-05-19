@@ -262,7 +262,7 @@ namespace Orthanc
       source.AcquireParsed(*modified);  // "modified" is invalid below this point
       
       IDicomTranscoder::DicomImage transcoded;
-      if (GetContext().GetTranscoder().Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew))
+      if (GetContext().GetTranscoder()->Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew))
       {
         modified.reset(transcoded.ReleaseAsParsedDicomFile());
 

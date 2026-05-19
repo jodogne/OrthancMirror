@@ -24,8 +24,13 @@
 
 #pragma once
 
+#if ORTHANC_ENABLE_DCMTK != 1
+#  error The macro ORTHANC_ENABLE_DCMTK must be set to 1
+#endif
+
 #include "../Compatibility.h"
 #include "../Enumerations.h"
+#include "../IDynamicObject.h"
 
 #include <boost/noncopyable.hpp>
 #include <set>
@@ -43,7 +48,7 @@ namespace Orthanc
   class ORTHANC_PUBLIC IDicomTranscoder : public boost::noncopyable
   {
   public:
-    class ORTHANC_PUBLIC DicomImage : public boost::noncopyable
+    class ORTHANC_PUBLIC DicomImage : public IDynamicObject
     {
     private:
       std::unique_ptr<DcmFileFormat>  parsed_;

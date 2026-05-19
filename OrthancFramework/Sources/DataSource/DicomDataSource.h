@@ -72,6 +72,8 @@ namespace Orthanc
     public:
       explicit Dicom(const boost::shared_ptr<IDynamicObject>& value);
 
+      ParsedDicomFile* Clone();
+
       /**
        * Access to the DICOM value must be protected by a mutex, as it
        * could be shared by multiple threads if caching is enabled in
@@ -90,7 +92,7 @@ namespace Orthanc
         {
         }
 
-        ParsedDicomFile& GetContent() const;
+        const ParsedDicomFile& GetContent() const;
 
         bool HasRawBuffer() const;
 

@@ -681,6 +681,7 @@ else()
   if (ENABLE_DCMTK)
     list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DicomDataSource.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/TranscodingCallable.cpp
       )
   endif()
 

@@ -47,6 +47,8 @@ namespace Orthanc
   class OrthancPlugins;
   class SharedArchive;
   class StorageCommitmentReports;
+  class ThreadPool;
+  class TranscodingCallable;
   
   
   /**
@@ -248,7 +250,7 @@ namespace Orthanc
 
     std::unique_ptr<StorageCommitmentReports>  storageCommitmentReports_;
 
-    std::unique_ptr<ServerTranscoder> transcoder_;
+    boost::shared_ptr<ServerTranscoder> transcoder_;
     bool transcodeDicomProtocol_;
     bool isIngestTranscoding_;
     DicomTransferSyntax ingestTransferSyntax_;
@@ -291,6 +293,7 @@ namespace Orthanc
     bool                                 checkMD5_;
     boost::shared_ptr<DataSourceReader>  storageAreaReader_;
     std::unique_ptr<DataSourceReader>    dicomReader_;
+    boost::shared_ptr<ThreadPool>        transcodingThreadPool_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -623,7 +626,7 @@ namespace Orthanc
 
     void SetTranscoder(ServerTranscoder* transcoder /* takes ownership */);
 
-    ServerTranscoder& GetTranscoder() const;
+    const boost::shared_ptr<ServerTranscoder>& GetTranscoder() const;  // TODO-Streaming : REMOVE
 
     void ResetTranscoder();
 
@@ -641,5 +644,7 @@ namespace Orthanc
     {
       return *dicomReader_;
     }
+
+    Future* SubmitTranscodingRequest(TranscodingCallable* callable);
   };
 }

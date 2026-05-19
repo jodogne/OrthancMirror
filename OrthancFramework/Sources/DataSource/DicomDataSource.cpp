@@ -286,7 +286,14 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile& DicomDataSource::Dicom::Lock::GetContent() const
+  ParsedDicomFile* DicomDataSource::Dicom::Clone()
+  {
+    Lock lock(*this);
+    return lock.GetContent().Clone(true);
+  }
+
+
+  const ParsedDicomFile& DicomDataSource::Dicom::Lock::GetContent() const
   {
     return dynamic_cast<const Value&>(*that_.value_).GetContent();
   }

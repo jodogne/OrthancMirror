@@ -25,6 +25,7 @@
 #include "OrthancRestApi.h"
 
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/TranscodingCallable.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../DicomInstanceToStore.h"
@@ -36,6 +37,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+
 
 #define INFO_SUBSEQUENCES \
   "Starting with Orthanc 1.9.4, paths to subsequences can be provided using the "\
@@ -217,33 +219,24 @@ namespace Orthanc
     std::unique_ptr<ParsedDicomFile> modified;
 
     {
-      ServerContext::DicomCacheLocker locker(context, id);
-      modified.reset(locker.GetDicom().Clone(true));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id, false));
+      modified.reset(dicom->Clone());
     }
     
     modification.Apply(modified);
 
     if (transcode)
     {
-      IDicomTranscoder::DicomImage source;
-      source.AcquireParsed(*modified);  // "modified" is invalid below this point
-      
-      IDicomTranscoder::DicomImage transcoded;
+      std::unique_ptr<TranscodingCallable> callable(new TranscodingCallable);
+      callable->AcquireParsed(*modified);  // "modified" is invalid below this point
+      callable->AddTransferSyntax(targetSyntax);
+      callable->SetLossyQuality(lossyQuality);
 
-      std::set<DicomTransferSyntax> s;
-      s.insert(targetSyntax);
-      
-      if (context.GetTranscoder().Transcode(transcoded, source, s, TranscodingSopInstanceUidMode_AllowNew, lossyQuality))
-      {      
-        call.GetOutput().AnswerBuffer(transcoded.GetBufferData(),
-                                      transcoded.GetBufferSize(), MimeType_Dicom);
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_InternalError,
-                               "Cannot transcode to transfer syntax: " +
-                               std::string(GetTransferSyntaxUid(targetSyntax)));
-      }
+      std::unique_ptr<Future> future(context.SubmitTranscodingRequest(callable.release()));
+
+      std::unique_ptr<IDicomTranscoder::DicomImage> transcoded(dynamic_cast<IDicomTranscoder::DicomImage*>(future->ReleaseResult()));
+      call.GetOutput().AnswerBuffer(transcoded->GetBufferData(),
+                                    transcoded->GetBufferSize(), MimeType_Dicom);
     }
     else
     {
