@@ -52,6 +52,7 @@
 #include "ServerJobs/DicomRetrieveScuBaseJob.h"
 #include "ServerJobs/StorageCommitmentScpJob.h"
 #include "ServerToolbox.h"
+#include "ServerTranscoder.h"
 #include "StorageCommitmentReports.h"
 
 #include <boost/algorithm/string/predicate.hpp>

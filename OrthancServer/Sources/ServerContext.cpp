@@ -46,13 +46,14 @@
 #include "DicomInstanceToStore.h"
 #include "OrthancConfiguration.h"
 #include "OrthancRestApi/OrthancRestApi.h"
+#include "OutgoingDicomInstance.h"
 #include "ResourceFinder.h"
 #include "Search/DatabaseLookup.h"
 #include "ServerJobs/OrthancJobUnserializer.h"
 #include "ServerToolbox.h"
-#include "StorageCommitmentReports.h"
-#include "OutgoingDicomInstance.h"
+#include "ServerTranscoder.h"
 #include "SimpleInstanceOrdering.h"
+#include "StorageCommitmentReports.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmnet/dimse.h>
@@ -369,10 +370,10 @@ namespace Orthanc
     //static_cast<int64_t>(dicomCache_.GetNumberOfItems()));
 
 
-    metricsRegistry_->SetFloatValue("orthanc_storage_cache_size_mb",
-                                    static_cast<float>(storageCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
-    metricsRegistry_->SetIntegerValue("orthanc_storage_cache_count", 
-                                    static_cast<int64_t>(storageCache_.GetNumberOfItems()));
+    //metricsRegistry_->SetFloatValue("orthanc_storage_cache_size_mb",
+    //static_cast<float>(storageCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
+    //metricsRegistry_->SetIntegerValue("orthanc_storage_cache_count",
+    //static_cast<int64_t>(storageCache_.GetNumberOfItems()));
   }
 
 
@@ -673,7 +674,7 @@ namespace Orthanc
                                  FileContentType type,
                                  const std::string& customData)
   {
-    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+    StorageAccessor accessor(area_, GetMetricsRegistry());
     accessor.Remove(fileUuid, type, customData);
   }
 
@@ -735,7 +736,7 @@ namespace Orthanc
     try
     {
       MetricsRegistry::Timer timer(GetMetricsRegistry(), "orthanc_store_dicom_duration_ms");
-      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+      StorageAccessor accessor(area_, GetMetricsRegistry());
 
       DicomInstanceHasher hasher(summary);
       resultPublicId = hasher.HashInstance();
@@ -1159,7 +1160,7 @@ namespace Orthanc
     }
 
 
-    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+    StorageAccessor accessor(area_, GetMetricsRegistry());
 
     FileInfo modified;
 
@@ -1578,7 +1579,7 @@ namespace Orthanc
     // TODO Should we use "gzip" instead?
     CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+    StorageAccessor accessor(area_, GetMetricsRegistry());
 
     assert(attachmentType != FileContentType_Dicom && attachmentType != FileContentType_DicomUntilPixelData); // this method can not be used to store instances
 

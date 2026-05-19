@@ -24,10 +24,12 @@
 #include "../PrecompiledHeadersServer.h"
 #include "ResourceModificationJob.h"
 
+#include "../../../OrthancFramework/Sources/DicomParsing/IDicomTranscoder.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../DicomInstanceToStore.h"
 #include "../ServerContext.h"
+#include "../ServerTranscoder.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcdeftag.h>

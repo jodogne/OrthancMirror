@@ -28,14 +28,12 @@
 #include "OrthancHttpHandler.h"
 #include "ServerIndex.h"
 #include "ServerJobs/IStorageCommitmentFactory.h"
-#include "ServerTranscoder.h"
 
 #include "../../OrthancFramework/Sources/DataSource/DataSourceReader.h"
 #include "../../OrthancFramework/Sources/DataSource/DicomDataSource.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
-#include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
-#include "../../OrthancFramework/Sources/FileStorage/StorageCache.h"
 #include "../../OrthancFramework/Sources/JobsEngine/JobsEngine.h"
+#include "../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 
 
@@ -44,6 +42,7 @@ namespace Orthanc
   class DicomElement;
   class DicomStoreUserConnection;
   class OrthancPlugins;
+  class ServerTranscoder;
   class SharedArchive;
   class StorageCommitmentReports;
   class ThreadPool;
@@ -195,7 +194,6 @@ namespace Orthanc
 
     ServerIndex index_;
     IPluginStorageArea& area_;
-    StorageCache storageCache_;
 
     bool compressionEnabled_;
     bool storeMD5_;
@@ -312,7 +310,7 @@ namespace Orthanc
 
     void SetMaximumStorageCacheSize(size_t size)
     {
-      return storageCache_.SetMaximumSize(size);
+      // TODO-Streaming
     }
 
     void SetPatientLevelEnabled(bool enabled);

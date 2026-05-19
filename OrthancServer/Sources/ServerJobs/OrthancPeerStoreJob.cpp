@@ -28,6 +28,7 @@
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../ServerContext.h"
+#include "../ServerTranscoder.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 

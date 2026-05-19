@@ -27,6 +27,7 @@
 #include "../../../OrthancFramework/Sources/DicomParsing/IDicomTranscoder.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../ServerContext.h"
+#include "../ServerTranscoder.h"
 
 static boost::mutex loaderThreadsCounterMutex;
 static uint32_t loaderThreadsCounter = 0;

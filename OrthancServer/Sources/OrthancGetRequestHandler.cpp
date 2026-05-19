@@ -31,6 +31,7 @@
 #include "ServerContext.h"
 #include "ServerJobs/DicomModalityStoreJob.h"
 #include "ServerJobs/ThreadedInstancesLoader.h"
+#include "ServerTranscoder.h"
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcfilefo.h>

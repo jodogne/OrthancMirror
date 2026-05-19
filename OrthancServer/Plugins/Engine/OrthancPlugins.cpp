@@ -65,6 +65,7 @@
 #include "../../Sources/Search/HierarchicalMatcher.h"
 #include "../../Sources/ServerContext.h"
 #include "../../Sources/ServerToolbox.h"
+#include "../../Sources/ServerTranscoder.h"
 #include "OrthancPluginDatabase.h"
 #include "OrthancPluginDatabaseV3.h"
 #include "OrthancPluginDatabaseV4.h"
