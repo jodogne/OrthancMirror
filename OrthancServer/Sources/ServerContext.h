@@ -29,6 +29,8 @@
 #include "ServerIndex.h"
 #include "ServerJobs/IStorageCommitmentFactory.h"
 
+#include "../../OrthancFramework/Sources/DataSource/DataSourceReader.h"
+#include "../../OrthancFramework/Sources/DataSource/DicomDataSource.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/IDicomTranscoder.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomCache.h"
@@ -287,6 +289,11 @@ namespace Orthanc
 
     boost::posix_time::ptime serverStartTimeUtc_;
 
+    // For streaming
+    bool                                 checkMD5_;
+    boost::shared_ptr<DataSourceReader>  storageAreaReader_;
+    std::unique_ptr<DataSourceReader>    dicomReader_;
+
   public:
     class DicomCacheLocker : public boost::noncopyable
     {
@@ -398,19 +405,6 @@ namespace Orthanc
     void ReadDicomAsJson(Json::Value& result,
                          const std::string& instancePublicId);  // TODO-FIND: Can this be removed?
 
-private:
-    void ReadDicomInternal(std::string& dicom,
-                           const std::string& instancePublicId,
-                           std::unique_ptr<Semaphore::Locker>& largeDicomLocker,
-                           std::size_t largeDicomThreshold);
-
-    void ReadDicomInternal(std::string& dicom,
-                           std::string& attachmentId,
-                           const std::string& instancePublicId,
-                           std::unique_ptr<Semaphore::Locker>& largeDicomLocker,
-                           std::size_t largeDicomThreshold);
-
-public:
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId);
 
@@ -418,22 +412,14 @@ public:
                    std::string& attachmentId,
                    const std::string& instancePublicId);
 
+    DicomDataSource::Dicom* ReadParsedDicom(const std::string& instancePublicId,
+                                            bool keepRawBuffer);
+
     void ReadDicomForHeader(std::string& dicom,
                             const std::string& instancePublicId);
 
     bool ReadDicomUntilPixelData(std::string& dicom,
                                  const std::string& instancePublicId);
-
-    // This method is for low-level operations on "/instances/.../attachments/..."
-    void ReadAttachment(std::string& result,
-                        const FileInfo& attachment,
-                        bool uncompressIfNeeded,
-                        bool skipCache = false);
-
-    void ReadAttachmentRange(std::string& result,
-                             const FileInfo& attachment,
-                             const StorageRange& range,
-                             bool uncompressIfNeeded);
 
     void SetStoreMD5ForAttachments(bool storeMD5);
 
@@ -655,5 +641,20 @@ public:
     int64_t GetServerUpTime() const;
 
     void PublishCacheMetrics();
+
+    bool IsCheckMD5() const
+    {
+      return checkMD5_;
+    }
+
+    DataSourceReader& GetStorageAreaReader() const
+    {
+      return *storageAreaReader_;
+    }
+
+    DataSourceReader& GetDicomReader() const
+    {
+      return *dicomReader_;
+    }
   };
 }

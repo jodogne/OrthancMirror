@@ -377,7 +377,7 @@ namespace Orthanc
 
 
   void HttpOutput::SendStatus(HttpStatus status,
-                              const char* message,
+                              const void* message,
                               size_t messageSize)
   {
     if (status == HttpStatus_301_MovedPermanently ||

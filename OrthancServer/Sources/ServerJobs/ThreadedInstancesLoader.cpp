@@ -22,10 +22,11 @@
 
 #include "ThreadedInstancesLoader.h"
 
-#include "../ServerContext.h"
-#include "../../../OrthancFramework/Sources/Logging.h"
-#include "../../../OrthancFramework/Sources/DicomParsing/IDicomTranscoder.h"
+#include "../../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/IDicomTranscoder.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
+#include "../ServerContext.h"
 
 static boost::mutex loaderThreadsCounterMutex;
 static uint32_t loaderThreadsCounter = 0;
@@ -176,7 +177,14 @@ namespace Orthanc
       try
       {
         boost::shared_ptr<std::string> dicomContent(new std::string());
-        that->context_.ReadAttachment(*dicomContent, instanceToPreload->GetFileInfo(), true);
+
+        {
+          std::unique_ptr<StorageAreaDataSource::Range> tmp(
+            StorageAreaDataSource::ReadAttachment(
+              that->context_.GetStorageAreaReader(), instanceToPreload->GetFileInfo(),
+              true /* uncompress */, that->context_.IsCheckMD5()));
+          tmp->Copy(*dicomContent);
+        }
 
         if (that->transcode_)
         {

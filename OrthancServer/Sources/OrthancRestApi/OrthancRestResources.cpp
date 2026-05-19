@@ -26,7 +26,9 @@
 
 #include "OrthancRestApi.h"
 
+#include "../../../OrthancFramework/Sources/CompatibilityMath.h"
 #include "../../../OrthancFramework/Sources/Compression/GzipCompressor.h"
+#include "../../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomImageInformation.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/DicomWebJsonVisitor.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
@@ -38,7 +40,6 @@
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
-#include "../../../OrthancFramework/Sources/CompatibilityMath.h"
 
 #include "../OrthancConfiguration.h"
 #include "../Search/DatabaseLookup.h"
@@ -2379,13 +2380,14 @@ namespace Orthanc
 
       if (hasRangeHeader)
       {
-        std::string fragment;
-        context.ReadAttachmentRange(fragment, info, range, uncompress);
+        std::unique_ptr<StorageAreaDataSource::Range> fragment(
+          StorageAreaDataSource::ReadRange(
+            context.GetStorageAreaReader(), info, range, uncompress, context.IsCheckMD5()));
 
         uint64_t fullSize = (uncompress ? info.GetUncompressedSize() : info.GetCompressedSize());
         call.GetOutput().GetLowLevelOutput().SetContentType(MimeType_Binary);
         call.GetOutput().GetLowLevelOutput().AddHeader("Content-Range", range.FormatHttpContentRange(fullSize));
-        call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_206_PartialContent, fragment);
+        call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_206_PartialContent, fragment->GetData(), fragment->GetSize());
       }
       else if (uncompress ||
                info.GetCompressionType() == CompressionType_None)
@@ -2395,9 +2397,11 @@ namespace Orthanc
       else
       {
         // Access to the raw attachment (which is compressed)
-        std::string content;
-        context.ReadAttachment(content, info, false /* don't uncompress */, true /* skip cache */);
-        call.GetOutput().AnswerBuffer(content, MimeType_Binary);
+        std::unique_ptr<StorageAreaDataSource::Range> content(
+          StorageAreaDataSource::ReadAttachment(
+            context.GetStorageAreaReader(), info, false /* don't uncompress */, context.IsCheckMD5()));
+
+        call.GetOutput().AnswerBuffer(content->GetData(), content->GetSize(), MimeType_Binary);
       }
     }
   }
@@ -2575,13 +2579,16 @@ namespace Orthanc
     bool ok = false;
 
     // First check whether the compressed data is correctly stored in the disk
-    std::string data;
-    context.ReadAttachment(data, info, false, true /* skipCache when you absolutely need the compressed data */);
+    std::string compressedMD5;
 
-    std::string actualMD5;
-    Toolbox::ComputeMD5(actualMD5, data);
+    {
+      std::unique_ptr<StorageAreaDataSource::Range> compressed(
+        StorageAreaDataSource::ReadAttachment(
+          context.GetStorageAreaReader(), info, false /* don't uncompress */, false /* check MD5 */));
+      Toolbox::ComputeMD5(compressedMD5, compressed->GetData(), compressed->GetSize());
+    }
     
-    if (actualMD5 == info.GetCompressedMD5())
+    if (compressedMD5 == info.GetCompressedMD5())
     {
       // The compressed data is OK. If a compression algorithm was
       // applied to it, now check the MD5 of the uncompressed data.
@@ -2591,9 +2598,16 @@ namespace Orthanc
       }
       else
       {
-        context.ReadAttachment(data, info, true, true /* skipCache when you absolutely need the compressed data */);
-        Toolbox::ComputeMD5(actualMD5, data);
-        ok = (actualMD5 == info.GetUncompressedMD5());
+        std::string uncompressedMD5;
+
+        {
+          std::unique_ptr<StorageAreaDataSource::Range> uncompressed(
+            StorageAreaDataSource::ReadAttachment(
+              context.GetStorageAreaReader(), info, true /* uncompress */, false /* check MD5 */));
+          Toolbox::ComputeMD5(uncompressedMD5, uncompressed->GetData(), uncompressed->GetSize());
+        }
+
+        ok = (uncompressedMD5 == info.GetUncompressedMD5());
       }
     }
 

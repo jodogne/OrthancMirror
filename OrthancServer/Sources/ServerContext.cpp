@@ -25,6 +25,7 @@
 #include "ServerContext.h"
 
 #include "../../OrthancFramework/Sources/Cache/SharedArchive.h"
+#include "../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomStreamReader.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.h"
@@ -39,6 +40,7 @@
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/MallocMemoryBuffer.h"
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
+#include "../../OrthancFramework/Sources/MultiThreading/ThreadPool.h"
 #include "../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 
@@ -406,7 +408,8 @@ namespace Orthanc
     readOnly_(readOnly),
     patientLevelEnabled_(true),
     deidentifyLogs_(false),
-    serverStartTimeUtc_(boost::posix_time::second_clock::universal_time())
+    serverStartTimeUtc_(boost::posix_time::second_clock::universal_time()),
+    checkMD5_(true)
   {
     try
     {
@@ -538,6 +541,8 @@ namespace Orthanc
         defaultDicomRetrieveMethod_ = StringToRetrieveMethod(lock.GetConfiguration().GetDicomDefaultRetrieveMethod());
 
         dynamic_cast<DcmtkTranscoder&>(*dcmtkTranscoder_).SetDefaultLossyQuality(lock.GetConfiguration().GetDicomLossyTranscodingQuality());
+
+        checkMD5_ = lock.GetConfiguration().GetBooleanParameter("CheckMD5", true);  // TODO-Streaming - Parameter
       }
 
       jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -552,6 +557,27 @@ namespace Orthanc
 #else
       LOG(INFO) << "Your platform does not support malloc_trim(), not starting the memory trimming thread";
 #endif
+
+      // For streaming
+      {
+        std::unique_ptr<ThreadPool> pool(new ThreadPool);
+        pool->SetCountThreads(4);  // TODO-Streaming - Parameter
+        pool->SetDequeueTimeout(100);
+        pool->Start();
+
+        storageAreaReader_.reset(new DataSourceReader(pool.release(), new StorageAreaDataSource(area_)));
+        storageAreaReader_->CreateCache(256 * 1024 * 1024); // 256 MB - TODO-Streaming - Parameter
+      }
+
+      {
+        std::unique_ptr<ThreadPool> pool(new ThreadPool);
+        pool->SetCountThreads(2);  // TODO-Streaming - Parameter
+        pool->SetDequeueTimeout(100);
+        pool->Start();
+
+        dicomReader_.reset(new DataSourceReader(pool.release(), new DicomDataSource(storageAreaReader_)));
+        dicomReader_->CreateCache(100 * 1024 * 1024); // 100 MB - TODO-Streaming - Parameter
+      }
     }
     catch (OrthancException&)
     {
@@ -1098,8 +1124,17 @@ namespace Orthanc
                                        const FileInfo& attachment,
                                        const std::string& filename)
   {
-    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-    accessor.AnswerFile(output, attachment, GetFileContentMime(attachment.GetContentType()), filename);
+    std::unique_ptr<StorageAreaDataSource::Range> range(
+      StorageAreaDataSource::ReadAttachment(
+        *storageAreaReader_, attachment, true /* uncompress */, checkMD5_));
+
+    BufferHttpSender sender;
+    sender.SetBuffer(range->GetData(), range->GetSize());
+    sender.SetContentType(GetFileContentMime(attachment.GetContentType()));
+    sender.SetContentFilename(filename.c_str());
+
+    HttpStreamTranscoder transcoder(sender, CompressionType_None);
+    output.AnswerStream(transcoder);
   }
 
 
@@ -1126,13 +1161,18 @@ namespace Orthanc
       return;
     }
 
-    std::string content;
 
     StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-    accessor.Read(content, attachment);
 
     FileInfo modified;
-    accessor.Write(modified, content.empty() ? NULL : content.c_str(), content.size(), attachmentType, compression, storeMD5_, NULL);
+
+    {
+      std::unique_ptr<StorageAreaDataSource::Range> range(
+        StorageAreaDataSource::ReadAttachment(
+          *storageAreaReader_, attachment, true /* uncompress */, checkMD5_));
+
+      accessor.Write(modified, range->GetData(), range->GetSize(), attachmentType, compression, storeMD5_, NULL);
+    }
 
     try
     {
@@ -1260,15 +1300,14 @@ namespace Orthanc
 
     if (LookupAttachment(attachment, FileContentType_DicomUntilPixelData, instanceAttachments))
     {
-      std::string dicom;
+      std::unique_ptr<DicomDataSource::Dicom> dicom(
+        DicomDataSource::ReadWhole(*dicomReader_, attachment, false /* no need for raw buffer */, checkMD5_));
 
       {
-        StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-        accessor.Read(dicom, attachment);
+        DicomDataSource::Dicom::Lock lock(*dicom);
+        OrthancConfiguration::DefaultDicomDatasetToJson(result, lock.GetContent(), ignoreTagLength);
       }
 
-      ParsedDicomFile parsed(dicom);
-      OrthancConfiguration::DefaultDicomDatasetToJson(result, parsed, ignoreTagLength);
       InjectEmptyPixelData(result);
     }
     else
@@ -1309,17 +1348,15 @@ namespace Orthanc
          * this case cannot be used if "StorageCompression" option is
          * "true".
          **/
-      
-        std::string dicom;
-        
+
+        std::unique_ptr<DicomDataSource::Dicom> dicom(
+          DicomDataSource::ReadUntilPixelData(*dicomReader_, attachment, pixelDataOffset));
+
         {
-          StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-          accessor.ReadStartRange(dicom, attachment, pixelDataOffset);
+          DicomDataSource::Dicom::Lock lock(*dicom);
+          OrthancConfiguration::DefaultDicomDatasetToJson(result, lock.GetContent(), ignoreTagLength);
         }
         
-        assert(dicom.size() == pixelDataOffset);
-        ParsedDicomFile parsed(dicom);
-        OrthancConfiguration::DefaultDicomDatasetToJson(result, parsed, ignoreTagLength);
         InjectEmptyPixelData(result);
       }
       else if (ignoreTagLength.empty() &&
@@ -1332,15 +1369,12 @@ namespace Orthanc
          * "/tools/invalidate-tags" or to one flavors of
          * "/.../.../reconstruct" will disable this case.
          **/
-      
-        std::string dicomAsJson;
 
-        {
-          StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-          accessor.Read(dicomAsJson, attachment);
-        }
+        std::unique_ptr<StorageAreaDataSource::Range> dicomAsJson(
+          StorageAreaDataSource::ReadAttachment(
+            *storageAreaReader_, attachment, true /* uncompress */, checkMD5_));
 
-        if (!Toolbox::ReadJson(result, dicomAsJson))
+        if (!Toolbox::ReadJson(result, dicomAsJson->GetData(), dicomAsJson->GetSize()))
         {
           throw OrthancException(ErrorCode_CorruptedFile,
                                  "Corrupted DICOM-as-JSON attachment of instance: " + instancePublicId);
@@ -1354,36 +1388,45 @@ namespace Orthanc
          * file from the storage area.
          **/
 
-        std::string dicom;
-        ReadDicom(dicom, instancePublicId);
-
-        ParsedDicomFile parsed(dicom);
-        OrthancConfiguration::DefaultDicomDatasetToJson(result, parsed, ignoreTagLength);
-
-        if (!hasPixelDataOffset)
+        if (!LookupAttachment(attachment, FileContentType_Dicom, instanceAttachments))
         {
-          /**
-           * The pixel data offset was never computed for this
-           * instance, which indicates that it was created using
-           * Orthanc <= 1.9.0, or that calls to
-           * "LookupPixelDataOffset()" from earlier versions of
-           * Orthanc have failed. Try again this precomputation now
-           * for future calls.
-           **/
-          ValueRepresentation pixelDataVR;
-          if (DicomStreamReader::LookupPixelDataOffset(pixelDataOffset, pixelDataVR, dicom) &&
-              pixelDataOffset < dicom.size())
-          {
-            index_.OverwriteMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
-                                     boost::lexical_cast<std::string>(pixelDataOffset));
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
 
-            if (!area_.HasEfficientReadRange() ||
-                compressionEnabled_)
+        std::unique_ptr<DicomDataSource::Dicom> dicom(
+          DicomDataSource::ReadWhole(*dicomReader_, attachment, !hasPixelDataOffset /* raw buffer is needed for (*) */, checkMD5_));
+
+        {
+          DicomDataSource::Dicom::Lock lock(*dicom);
+          OrthancConfiguration::DefaultDicomDatasetToJson(result, lock.GetContent(), ignoreTagLength);
+
+          if (!hasPixelDataOffset)
+          {
+            /**
+             * (*) The pixel data offset was never computed for this
+             * instance, which indicates that it was created using
+             * Orthanc <= 1.9.0, or that calls to
+             * "LookupPixelDataOffset()" from earlier versions of
+             * Orthanc have failed. Try again this precomputation now
+             * for future calls.
+             **/
+
+            ValueRepresentation pixelDataVR;
+            if (DicomStreamReader::LookupPixelDataOffset(
+                  pixelDataOffset, pixelDataVR, lock.GetRawBufferData(), lock.GetRawBufferSize()) &&
+                pixelDataOffset < lock.GetRawBufferSize())
             {
-              int64_t newRevision;
-              AddAttachment(newRevision, instancePublicId, ResourceType_Instance, FileContentType_DicomUntilPixelData,
-                            dicom.empty() ? NULL: dicom.c_str(), pixelDataOffset,
-                             false /* no old revision */, -1 /* dummy revision */, "" /* dummy MD5 */);
+              index_.OverwriteMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
+                                       boost::lexical_cast<std::string>(pixelDataOffset));
+
+              if (!area_.HasEfficientReadRange() ||
+                  compressionEnabled_)
+              {
+                int64_t newRevision;
+                AddAttachment(newRevision, instancePublicId, ResourceType_Instance, FileContentType_DicomUntilPixelData,
+                              lock.GetRawBufferData(), pixelDataOffset,
+                              false /* no old revision */, -1 /* dummy revision */, "" /* dummy MD5 */);
+              }
             }
           }
         }
@@ -1404,16 +1447,6 @@ namespace Orthanc
                                 std::string& attachmentId,
                                 const std::string& instancePublicId)
   {
-    std::unique_ptr<Semaphore::Locker> dummyLargeDicomLocker;  // only the DicomCacheLocker uses a real largeDicomLocker_
-    ReadDicomInternal(dicom, attachmentId, instancePublicId, dummyLargeDicomLocker, 0);
-  }
-
-  void ServerContext::ReadDicomInternal(std::string& dicom,
-                                        std::string& attachmentId,
-                                        const std::string& instancePublicId,
-                                        std::unique_ptr<Semaphore::Locker>& largeDicomLocker,
-                                        std::size_t largeDicomThreshold)
-  {
     FileInfo attachment;
     int64_t revision;
 
@@ -1427,14 +1460,13 @@ namespace Orthanc
     assert(attachment.GetContentType() == FileContentType_Dicom);
     attachmentId = attachment.GetUuid();
 
-    if (attachment.GetUncompressedSize() < largeDicomThreshold)  // release ASAP (before the read) if we don't plan to hold the lock (https://discourse.orthanc-server.org/t/patch-release-large-dicom-semaphore-lock-early-for-better-performance/6440)
-    {
-      largeDicomLocker.reset(NULL);
-    }
+    std::unique_ptr<StorageAreaDataSource::Range> range(
+      StorageAreaDataSource::ReadAttachment(
+        *storageAreaReader_, attachment, true /* uncompress */, checkMD5_));
 
-    ReadAttachment(dicom, attachment, true /* uncompress */);
+    assert(range->GetSize() == attachment.GetUncompressedSize());
+    range->Copy(dicom);
   }
-
 
   void ServerContext::ReadDicom(std::string& dicom,
                                 const std::string& instancePublicId)
@@ -1443,14 +1475,23 @@ namespace Orthanc
     ReadDicom(dicom, attachmentId, instancePublicId);    
   }
 
-  void ServerContext::ReadDicomInternal(std::string& dicom,
-                                        const std::string& instancePublicId,
-                                        std::unique_ptr<Semaphore::Locker>& largeDicomLocker,
-                                        std::size_t largeDicomThreshold)
+
+  DicomDataSource::Dicom* ServerContext::ReadParsedDicom(const std::string& instancePublicId,
+                                                         bool keepRawBuffer)
   {
-    std::string attachmentId;
-    ReadDicomInternal(dicom, attachmentId, instancePublicId, largeDicomLocker, largeDicomThreshold);
+    FileInfo attachment;
+    int64_t revision;
+
+    if (!index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Unable to read attachment " + EnumerationToString(FileContentType_Dicom) +
+                             " of instance " + instancePublicId);
+    }
+
+    return DicomDataSource::ReadWhole(*dicomReader_, attachment, keepRawBuffer, checkMD5_);
   }
+
 
   void ServerContext::ReadDicomForHeader(std::string& dicom,
                                          const std::string& instancePublicId)
@@ -1468,10 +1509,12 @@ namespace Orthanc
     int64_t revision;  // Ignored
     if (index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_DicomUntilPixelData))
     {
-      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+      std::unique_ptr<StorageAreaDataSource::Range> range(
+        StorageAreaDataSource::ReadAttachment(
+          *storageAreaReader_, attachment, true /* uncompress */, checkMD5_));
 
-      accessor.Read(dicom, attachment);
-      assert(dicom.size() == attachment.GetUncompressedSize());
+      assert(range->GetSize() == attachment.GetUncompressedSize());
+      range->Copy(dicom);
 
       return true;
     }
@@ -1498,11 +1541,12 @@ namespace Orthanc
 
       if (SerializationToolbox::ParseUnsignedInteger64(pixelDataOffset, s))
       {
-        StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+        std::unique_ptr<StorageAreaDataSource::Range> range(
+          StorageAreaDataSource::ReadBeginning(*storageAreaReader_, attachment, pixelDataOffset));
 
-        accessor.ReadStartRange(dicom, attachment, pixelDataOffset);
-        assert(dicom.size() == pixelDataOffset);
-        
+        assert(range->GetSize() == pixelDataOffset);
+        range->Copy(dicom);
+
         return true;   // Success
       }
       else
@@ -1514,44 +1558,6 @@ namespace Orthanc
     return false;
   }
   
-
-  void ServerContext::ReadAttachment(std::string& result,
-                                     const FileInfo& attachment,
-                                     bool uncompressIfNeeded,
-                                     bool skipCache)
-  {
-    std::unique_ptr<StorageAccessor> accessor;
-      
-    if (skipCache)
-    {
-      accessor.reset(new StorageAccessor(area_, GetMetricsRegistry()));
-    }
-    else
-    {
-      accessor.reset(new StorageAccessor(area_, storageCache_, GetMetricsRegistry()));
-    }
-
-    if (uncompressIfNeeded)
-    {
-      accessor->Read(result, attachment);
-    }
-    else
-    {
-      // Do not uncompress the content of the storage area, return the
-      // raw data
-      accessor->ReadRaw(result, attachment);
-    }
-  }
-
-  void ServerContext::ReadAttachmentRange(std::string &result,
-                                          const FileInfo &attachment,
-                                          const StorageRange &range,
-                                          bool uncompressIfNeeded)
-  {
-    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-    accessor.ReadRange(result, attachment, range, uncompressIfNeeded);
-  }
-
 
   ServerContext::DicomCacheLocker::DicomCacheLocker(ServerContext& context,
                                                     const std::string& instancePublicId) :
@@ -1567,9 +1573,7 @@ namespace Orthanc
       // Throttle to avoid loading several large DICOM files simultaneously (since the ParsedDicomCache is 128MB, loading multiple 50MB files would throw them out directly after loading)
       largeDicomLocker_.reset(new Semaphore::Locker(context.largeDicomThrottler_));
       
-      // Release the throttle if loading "small" DICOM files (under
-      // 50MB, which is an arbitrary value)
-      context_.ReadDicomInternal(buffer_, instancePublicId_, largeDicomLocker_, static_cast<size_t>(50) * 1024 * 1024);
+      context_.ReadDicom(buffer_, instancePublicId_);
       
       dicom_.reset(new ParsedDicomFile(buffer_));
       dicomSize_ = buffer_.size();
@@ -1925,14 +1929,17 @@ namespace Orthanc
   }
 
 
-
-
-
   ImageAccessor* ServerContext::DecodeDicomFrame(const std::string& publicId,
                                                  unsigned int frameIndex)
   {
-    ServerContext::DicomCacheLocker locker(*this, publicId);
-    std::unique_ptr<ImageAccessor> decoded(DecodeDicomFrame(locker.GetDicom(), locker.GetBuffer().c_str(), locker.GetBuffer().size(), frameIndex));
+    std::unique_ptr<DicomDataSource::Dicom> dicom(ReadParsedDicom(publicId, true /* raw buffer is necessary for transcoding */));
+
+    std::unique_ptr<ImageAccessor> decoded;
+
+    {
+      DicomDataSource::Dicom::Lock lock(*dicom);
+      decoded.reset(DecodeDicomFrame(lock.GetContent(), lock.GetRawBufferData(), lock.GetRawBufferSize(), frameIndex));
+    }
 
     if (decoded.get() == NULL)
     {
@@ -1943,8 +1950,10 @@ namespace Orthanc
       }
       return NULL;
     }
-
-    return decoded.release();
+    else
+    {
+      return decoded.release();
+    }
   }
 
 
