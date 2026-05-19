@@ -563,12 +563,6 @@ namespace Orthanc
                                       const std::string& moveOriginatorAet,
                                       uint16_t moveOriginatorId);
 
-    virtual bool TranscodeWithCache(std::string& target,
-                                    const std::string& source,
-                                    const std::string& sourceInstanceId,
-                                    const std::string& attachmentId, // for the storage cache
-                                    DicomTransferSyntax targetSyntax);
-
     bool IsTranscodeDicomProtocol() const
     {
       return transcodeDicomProtocol_;

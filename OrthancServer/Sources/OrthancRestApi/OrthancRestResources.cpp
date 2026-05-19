@@ -33,6 +33,7 @@
 #include "../../../OrthancFramework/Sources/DicomParsing/DicomWebJsonVisitor.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/TranscodingCallable.h"
 #include "../../../OrthancFramework/Sources/HttpServer/HttpContentNegociation.h"
 #include "../../../OrthancFramework/Sources/Images/Image.h"
 #include "../../../OrthancFramework/Sources/Images/ImageProcessing.h"
@@ -414,36 +415,31 @@ namespace Orthanc
     {
       unsigned int lossyQuality;
       unsigned int defaultLossyQuality;
+
       {
         OrthancConfiguration::ReaderLock lock;
         defaultLossyQuality = lock.GetConfiguration().GetDicomLossyTranscodingQuality();
       }
+
       lossyQuality = call.GetUnsignedInteger32Argument(GET_LOSSY_QUALITY, defaultLossyQuality);
 
-      std::string source;
-      std::string attachmentId;
-      std::string transcoded;
-      context.ReadDicom(source, attachmentId, publicId);
+      std::unique_ptr<TranscodingCallable> callable(new TranscodingCallable);
 
-      if (lossyQuality != defaultLossyQuality) // we can't use the cache if the lossy quality is not the default one
       {
-        IDicomTranscoder::DicomImage targetImage;
-        IDicomTranscoder::DicomImage sourceImage;
-        sourceImage.SetExternalBuffer(source);
-        std::set<DicomTransferSyntax> allowedSyntaxes;
-        allowedSyntaxes.insert(GetTransferSyntax(call.GetArgument(GET_TRANSCODE, "")));
+        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId, false));
+        std::unique_ptr<ParsedDicomFile> clone(dicom->Clone());
+        callable->AcquireParsed(*clone);  // "clone" is invalid below this point
+      }
 
-        if (context.GetTranscoder()->Transcode(targetImage, sourceImage, allowedSyntaxes, TranscodingSopInstanceUidMode_AllowNew, lossyQuality))
-        {
-          call.GetOutput().SetContentFilename(filename.c_str());
-          call.GetOutput().AnswerBuffer(targetImage.GetBufferData(), targetImage.GetBufferSize(), MimeType_Dicom);
-        }
-      }
-      else if (context.TranscodeWithCache(transcoded, source, publicId, attachmentId, GetTransferSyntax(call.GetArgument(GET_TRANSCODE, ""))))
-      {
-        call.GetOutput().SetContentFilename(filename.c_str());
-        call.GetOutput().AnswerBuffer(transcoded, MimeType_Dicom);
-      }
+      callable->AddTransferSyntax(GetTransferSyntax(call.GetArgument(GET_TRANSCODE, "")));
+      callable->SetLossyQuality(lossyQuality);
+
+      std::unique_ptr<Future> future(context.SubmitTranscodingRequest(callable.release()));
+      std::unique_ptr<IDicomTranscoder::DicomImage> transcoded(dynamic_cast<IDicomTranscoder::DicomImage*>(future->ReleaseResult()));
+
+      call.GetOutput().SetContentFilename(filename.c_str());
+      call.GetOutput().AnswerBuffer(transcoded->GetBufferData(),
+                                    transcoded->GetBufferSize(), MimeType_Dicom);
     }
     else
     {

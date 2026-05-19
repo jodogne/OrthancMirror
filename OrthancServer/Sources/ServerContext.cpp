@@ -1951,37 +1951,6 @@ namespace Orthanc
   }
 
 
-  bool ServerContext::TranscodeWithCache(std::string& target,
-                                         const std::string& source,
-                                         const std::string& sourceInstanceId,
-                                         const std::string& attachmentId,
-                                         DicomTransferSyntax targetSyntax)
-  {
-    StorageCache::Accessor cacheAccessor(storageCache_);
-
-    if (!cacheAccessor.FetchTranscodedInstance(target, attachmentId, targetSyntax))
-    {
-      IDicomTranscoder::DicomImage sourceDicom;
-      sourceDicom.SetExternalBuffer(source);
-
-      IDicomTranscoder::DicomImage targetDicom;
-      std::set<DicomTransferSyntax> syntaxes;
-      syntaxes.insert(targetSyntax);
-
-      if (GetTranscoder()->Transcode(targetDicom, sourceDicom, syntaxes, TranscodingSopInstanceUidMode_AllowNew))
-      {
-        cacheAccessor.AddTranscodedInstance(attachmentId, targetSyntax, reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
-        target = std::string(reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
-        return true;
-      }
-
-      return false;
-    }
-
-    return true;
-  }
-
-
   const std::string& ServerContext::GetDeidentifiedContent(const DicomElement &element) const
   {
     static const std::string redactedContent = "*** POTENTIAL PHI ***";
