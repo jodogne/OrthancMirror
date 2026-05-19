@@ -33,7 +33,6 @@
 #include "../../OrthancFramework/Sources/DataSource/DataSourceReader.h"
 #include "../../OrthancFramework/Sources/DataSource/DicomDataSource.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
-#include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomCache.h"
 #include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
 #include "../../OrthancFramework/Sources/FileStorage/StorageCache.h"
 #include "../../OrthancFramework/Sources/JobsEngine/JobsEngine.h"
@@ -202,7 +201,6 @@ namespace Orthanc
     bool storeMD5_;
 
     Semaphore largeDicomThrottler_;  // New in Orthanc 1.9.0 (notably for very large DICOM files in WSI)
-    ParsedDicomCache  dicomCache_;
 
     LuaScripting mainLua_;
     LuaScripting filterLua_;

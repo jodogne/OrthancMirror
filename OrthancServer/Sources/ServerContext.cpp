@@ -361,10 +361,14 @@ namespace Orthanc
 
   void ServerContext::PublishCacheMetrics()
   {
-    metricsRegistry_->SetFloatValue("orthanc_dicom_cache_size_mb",
-                                    static_cast<float>(dicomCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
-    metricsRegistry_->SetIntegerValue("orthanc_dicom_cache_count", 
-                                    static_cast<int64_t>(dicomCache_.GetNumberOfItems()));
+    // TODO-Streaming
+
+    //metricsRegistry_->SetFloatValue("orthanc_dicom_cache_size_mb",
+    //static_cast<float>(dicomCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
+    //metricsRegistry_->SetIntegerValue("orthanc_dicom_cache_count",
+    //static_cast<int64_t>(dicomCache_.GetNumberOfItems()));
+
+
     metricsRegistry_->SetFloatValue("orthanc_storage_cache_size_mb",
                                     static_cast<float>(storageCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
     metricsRegistry_->SetIntegerValue("orthanc_storage_cache_count", 
@@ -382,7 +386,6 @@ namespace Orthanc
     compressionEnabled_(false),
     storeMD5_(true),
     largeDicomThrottler_(1),
-    dicomCache_(DICOM_CACHE_SIZE),
     mainLua_(*this),
     filterLua_(*this),
     luaListener_(*this),
@@ -560,7 +563,7 @@ namespace Orthanc
         pool->Start();
 
         storageAreaReader_.reset(new DataSourceReader(pool.release(), new StorageAreaDataSource(area_)));
-        storageAreaReader_->CreateCache(256 * 1024 * 1024); // 256 MB - TODO-Streaming - Parameter
+        storageAreaReader_->CreateCache(DICOM_CACHE_SIZE); // TODO-Streaming - Parameter
       }
 
       {
@@ -822,12 +825,6 @@ namespace Orthanc
         LOG(INFO) << "An incoming instance has been discarded by the filter";
         return result;
       }
-
-      // Remove the file from the DicomCache
-      // If this is a new instance, this is a no-op
-      // If overwriteMode == OverwriteInstancesMode_IfChanged and the file has not changed, we won't reach this point
-      // If overwriteMode == OverwriteInstancesMode_Always, then, let's always invalidate even if it is meaningful only if the file has changed (note: there is a TODO about cache and MD5)
-      dicomCache_.Invalidate(resultPublicId);
 
       // TODO Should we use "gzip" instead?
       CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
@@ -1615,24 +1612,12 @@ namespace Orthanc
                                      const std::string& uuid,
                                      ResourceType expectedType)
   {
-    if (expectedType == ResourceType_Instance)
-    {
-      // remove the file from the DicomCache
-      dicomCache_.Invalidate(uuid);
-    }
-
     return index_.DeleteResource(remainingAncestor, uuid, expectedType);
   }
 
 
   void ServerContext::SignalChange(const ServerIndexChange& change)
   {
-    if (change.GetResourceType() == ResourceType_Instance &&
-        change.GetChangeType() == ChangeType_Deleted)
-    {
-      dicomCache_.Invalidate(change.GetPublicId());
-    }
-    
     pendingChanges_.Enqueue(change.Clone());
   }
 
