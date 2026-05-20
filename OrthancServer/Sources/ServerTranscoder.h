@@ -27,6 +27,8 @@
 #include "../../OrthancFramework/Sources/Images/ImageAccessor.h"
 #include "ServerEnumerations.h"
 
+#include <boost/shared_ptr.hpp>
+
 
 namespace Orthanc
 {
@@ -37,12 +39,26 @@ namespace Orthanc
   class ServerTranscoder : public IDicomTranscoder
   {
   private:
+    class PImpl;
+
 #if ORTHANC_ENABLE_PLUGINS == 1
     OrthancPlugins* plugins_;
 #endif
 
+    boost::shared_ptr<PImpl>           pimpl_;
     std::unique_ptr<IDicomTranscoder>  dcmtkTranscoder_;
     BuiltinDecoderTranscoderOrder      builtinDecoderTranscoderOrder_;
+
+    ImageAccessor* DecodeFrameBuiltin(const ParsedDicomFile& dicom,
+                                      unsigned int frameIndex);
+
+    ImageAccessor* DecodeFrameUsingPlugins(const void* buffer,  // buffer that is the source of the ParsedDicomFile
+                                           size_t size,
+                                           unsigned int frameIndex);
+
+    ImageAccessor* DecodeFrameUsingTranscoding(const void* buffer,  // buffer that is the source of the ParsedDicomFile
+                                               size_t size,
+                                               unsigned int frameIndex);
 
   public:
     ServerTranscoder(unsigned int maxConcurrentDcmtkTranscoder);
@@ -51,10 +67,10 @@ namespace Orthanc
     void SetPlugins(OrthancPlugins& plugins);
 #endif
 
-    ImageAccessor* DecodeFrame(const ParsedDicomFile& parsedDicom,
+    ImageAccessor* DecodeFrame(const ParsedDicomFile& dicom,
                                const void* buffer,  // buffer that is the source of the ParsedDicomFile
                                size_t size,
-                               unsigned int frameIndex);
+                               unsigned int frameIndex);  // TODO-Streaming : Remove this flavor
 
     // This method can be used even if the global option
     // "TranscodeDicomProtocol" is set to "false"

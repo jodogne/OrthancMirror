@@ -24,21 +24,90 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerTranscoder.h"
 
+#include "../../OrthancFramework/Sources/Cache/LeastRecentlyUsedIndex.h"
+#include "../../OrthancFramework/Sources/DataSource/DicomDataSource.h"
+#include "../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
+#include "../../OrthancFramework/Sources/DataSource/TranscoderDataSource.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DcmtkTranscoder.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 #include "OrthancConfiguration.h"
 
+#include <boost/thread.hpp>
 #include <dcmtk/dcmdata/dcfilefo.h>
 
 
+static const size_t MAX_CACHE_SIZE = 10000;
+
 namespace Orthanc
 {
+  namespace
+  {
+    enum WorkingSource
+    {
+      WorkingSource_Unknown,
+      WorkingSource_Builtin,
+      WorkingSource_Plugins,
+      WorkingSource_Transcoding
+    };
+  }
+
+  class ServerTranscoder::PImpl
+  {
+  private:
+    boost::mutex  mutex_;
+    LeastRecentlyUsedIndex<std::string, WorkingSource>  workingSources_;
+
+  public:
+    PImpl()
+    {
+    }
+
+    WorkingSource LookupWorkingSource(const std::string& attachmentId)
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+
+      WorkingSource source;
+      if (workingSources_.Contains(attachmentId, source))
+      {
+        return source;
+      }
+      else
+      {
+        return WorkingSource_Unknown;
+      }
+    }
+
+    void SetWorkingSource(const std::string& attachmentId,
+                          WorkingSource source)
+    {
+      if (source == WorkingSource_Unknown)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        boost::mutex::scoped_lock lock(mutex_);
+
+        assert(MAX_CACHE_SIZE > 0);
+
+        if (workingSources_.GetSize() >= MAX_CACHE_SIZE &&
+            !workingSources_.Contains(attachmentId))
+        {
+          workingSources_.RemoveOldest();
+        }
+
+        workingSources_.AddOrMakeMostRecent(attachmentId, source);
+      }
+    }
+  };
+
   ServerTranscoder::ServerTranscoder(unsigned int maxConcurrentDcmtkTranscoder) :
 #if ORTHANC_ENABLE_PLUGINS == 1
     plugins_(NULL),
 #endif
+    pimpl_(new PImpl),
     dcmtkTranscoder_(new DcmtkTranscoder(maxConcurrentDcmtkTranscoder)),
     builtinDecoderTranscoderOrder_(BuiltinDecoderTranscoderOrder_After)
   {
@@ -67,7 +136,79 @@ namespace Orthanc
 #endif
 
 
-  ImageAccessor* ServerTranscoder::DecodeFrame(const ParsedDicomFile& parsedDicom,
+  ImageAccessor* ServerTranscoder::DecodeFrameBuiltin(const ParsedDicomFile& dicom,
+                                                      unsigned int frameIndex)
+  {
+    // Use Orthanc's built-in decoder
+
+    try
+    {
+      return dicom.DecodeFrame(frameIndex);
+    }
+    catch (const OrthancException&) // NOLINT(bugprone-empty-catch)
+    {
+    }
+
+    return NULL;
+  }
+
+
+  ImageAccessor* ServerTranscoder::DecodeFrameUsingPlugins(const void* buffer,
+                                                           size_t size,
+                                                           unsigned int frameIndex)
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (plugins_ != NULL &&
+        plugins_->HasCustomImageDecoder())
+    {
+      try
+      {
+        return plugins_->Decode(buffer, size, frameIndex);
+      }
+      catch (const OrthancException&) // NOLINT(bugprone-empty-catch)
+      {
+      }
+    }
+#endif
+
+    return NULL;
+  }
+
+
+  ImageAccessor* ServerTranscoder::DecodeFrameUsingTranscoding(const void* buffer,
+                                                               size_t size,
+                                                               unsigned int frameIndex)
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (plugins_ != NULL &&
+        plugins_->HasCustomTranscoder())
+    {
+      DicomImage transcoded;
+      DicomImage source;
+      std::set<DicomTransferSyntax> allowedSyntaxes;
+
+      source.SetExternalBuffer(buffer, size);
+      allowedSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+
+      if (plugins_->Transcode(transcoded, source, allowedSyntaxes, TranscodingSopInstanceUidMode_AllowNew))
+      {
+        try
+        {
+          std::unique_ptr<ParsedDicomFile> dicom(transcoded.ReleaseAsParsedDicomFile());
+          return DecodeFrameBuiltin(*dicom, frameIndex);
+        }
+        catch (const OrthancException&) // NOLINT(bugprone-empty-catch)
+        {
+        }
+      }
+    }
+#endif
+
+    return NULL;
+  }
+
+
+  ImageAccessor* ServerTranscoder::DecodeFrame(const ParsedDicomFile& dicom,
                                                const void* buffer,
                                                size_t size,
                                                unsigned int frameIndex)
@@ -76,83 +217,35 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
     {
-      // Use Orthanc's built-in decoder
-
-      try
-      {
-        decoded.reset(parsedDicom.DecodeFrame(frameIndex));
-        if (decoded.get() != NULL)
-        {
-          return decoded.release();
-        }
-      }
-      catch (const OrthancException&) // NOLINT(bugprone-empty-catch)
-      { // ignore, we'll try other alternatives
-      }
-    }
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (plugins_ != NULL &&
-        plugins_->HasCustomImageDecoder())
-    {
-      try
-      {
-        decoded.reset(plugins_->Decode(buffer, size, frameIndex));
-      }
-      catch (const OrthancException&) // NOLINT(bugprone-empty-catch)
-      {
-      }
-
+      decoded.reset(DecodeFrameBuiltin(dicom, frameIndex));
       if (decoded.get() != NULL)
       {
         return decoded.release();
       }
-      else if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
-      {
-        LOG(INFO) << "The installed image decoding plugins cannot handle an image, "
-                  << "fallback to the built-in DCMTK decoder";
-      }
     }
-#endif
+
+    decoded.reset(DecodeFrameUsingPlugins(buffer, size, frameIndex));
+    if (decoded.get() != NULL)
+    {
+      return decoded.release();
+    }
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      try
+      decoded.reset(DecodeFrameBuiltin(dicom, frameIndex));
+      if (decoded.get() != NULL)
       {
-        decoded.reset(parsedDicom.DecodeFrame(frameIndex));
-        if (decoded.get() != NULL)
-        {
-          return decoded.release();
-        }
-      }
-      catch (OrthancException& e)
-      {
-        LOG(INFO) << "Failed to decode a DICOM frame: " << e.GetDetails();
+        return decoded.release();
       }
     }
 
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (plugins_ != NULL &&
-        plugins_->HasCustomTranscoder())
+    decoded.reset(DecodeFrameUsingTranscoding(buffer, size, frameIndex));
+    if (decoded.get() != NULL)
     {
-      LOG(INFO) << "The plugins and built-in image decoders failed to decode a frame, "
-                << "trying to transcode the file to LittleEndianExplicit using the plugins.";
-      DicomImage explicitTemporaryImage;
-      DicomImage source;
-      std::set<DicomTransferSyntax> allowedSyntaxes;
-
-      source.SetExternalBuffer(buffer, size);
-      allowedSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
-
-      if (Transcode(explicitTemporaryImage, source, allowedSyntaxes, TranscodingSopInstanceUidMode_AllowNew))
-      {
-        std::unique_ptr<ParsedDicomFile> file(explicitTemporaryImage.ReleaseAsParsedDicomFile());
-        return file->DecodeFrame(frameIndex);
-      }
+      return decoded.release();
     }
-#endif
 
-    return NULL;  // TODO-Streaming - Throw exception here?
+    return NULL;
   }
 
 
