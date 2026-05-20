@@ -46,21 +46,16 @@ namespace Orthanc
   private:
     class DataSourceRunnable;
 
-    std::unique_ptr<IExecutorService>                     executor_;
+    boost::shared_ptr<IExecutorService>                   executor_;
     std::unique_ptr<IDataSource>                          source_;
     boost::shared_ptr<SharedObjectCache>                  cache_;
     boost::shared_ptr<Internals::DataSourceMemoryBudget>  budget_;
 
   public:
-    DataSourceReader(IExecutorService* executor /* takes ownership */,
+    DataSourceReader(const boost::shared_ptr<IExecutorService>& executor,
                      IDataSource* source /* takes ownership */);
 
     ~DataSourceReader();
-
-    IDataSource& GetSource() const
-    {
-      return *source_;
-    }
 
     void CreateCache(size_t capacity);
 

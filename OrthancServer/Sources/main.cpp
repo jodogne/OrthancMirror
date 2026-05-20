@@ -1609,19 +1609,14 @@ namespace
         lock.GetConfiguration().SetServerIndex(context.GetIndex());
       }
 
-      std::unique_ptr<ServerTranscoder> transcoder(new ServerTranscoder(maxDcmtkConcurrentTranscoders));
-
 #if ORTHANC_ENABLE_PLUGINS == 1
       if (plugins_ != NULL)
       {
         plugins_->SetServerContext(context_);
         context_.SetPlugins(*plugins_);
         context_.GetIndex().SetMaxDatabaseRetries(plugins_->GetMaxDatabaseRetries());
-        transcoder->SetPlugins(*plugins_);
       }
 #endif
-
-      context.SetTranscoder(transcoder.release());
     }
 
     ~ServerContextConfigurator()
@@ -1638,8 +1633,6 @@ namespace
         context_.ResetPlugins();
       }
 #endif
-
-      context_.ResetTranscoder();
     }
   };
 }
@@ -1710,8 +1703,14 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     DicomAssociationParameters::SetDefaultRemoteCertificateRequired(
       lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED, true));
   }
+
+  std::unique_ptr<ServerTranscoder> transcoder(new ServerTranscoder(maxDcmtkConcurrentTranscoders));
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+  transcoder->SetPlugins(*plugins);
+#endif
   
-  ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs, readOnly);
+  ServerContext context(database, storageArea, transcoder.release(), false /* not running unit tests */, maxCompletedJobs, readOnly);
 
   {
     OrthancConfiguration::ReaderLock lock;
@@ -2181,7 +2180,8 @@ int main(int argc, char* argv[])
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
           PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
-          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
+          ServerContext context(inMemoryDatabase, inMemoryStorage, NULL /* no transcoder */,
+                                true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateOpenApiDocumentation(openapi);
           context.Stop();
@@ -2232,7 +2232,8 @@ int main(int argc, char* argv[])
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
           PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
-          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
+          ServerContext context(inMemoryDatabase, inMemoryStorage, NULL /* no transcoder */,
+                                true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
           context.Stop();

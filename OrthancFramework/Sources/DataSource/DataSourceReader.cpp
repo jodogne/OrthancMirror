@@ -156,13 +156,13 @@ namespace Orthanc
   };
 
 
-  DataSourceReader::DataSourceReader(IExecutorService* executor /* takes ownership */,
+  DataSourceReader::DataSourceReader(const boost::shared_ptr<IExecutorService>& executor /* takes ownership */,
                                      IDataSource* source /* takes ownership */) :
     executor_(executor),
     source_(source),
     budget_(new Internals::DataSourceMemoryBudget(0))
   {
-    if (executor == NULL ||
+    if (executor.get() == NULL ||
         source == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);

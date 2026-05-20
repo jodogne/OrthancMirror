@@ -48,8 +48,8 @@ namespace Orthanc
     {
       WorkingSource_Unknown,
       WorkingSource_Builtin,
-      WorkingSource_Plugins,
-      WorkingSource_Transcoding
+      WorkingSource_PluginsDecoder,
+      WorkingSource_PluginsTranscoder
     };
   }
 
@@ -136,6 +136,28 @@ namespace Orthanc
 #endif
 
 
+  bool ServerTranscoder::HasPluginsDecoder() const
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    return (plugins_ != NULL &&
+            plugins_->HasCustomImageDecoder());
+#else
+    return false;
+#endif
+  }
+
+
+  bool ServerTranscoder::HasPluginsTranscoder() const
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    return (plugins_ != NULL &&
+            plugins_->HasCustomTranscoder());
+#else
+    return false;
+#endif
+  }
+
+
   ImageAccessor* ServerTranscoder::DecodeFrameBuiltin(const ParsedDicomFile& dicom,
                                                       unsigned int frameIndex)
   {
@@ -153,13 +175,12 @@ namespace Orthanc
   }
 
 
-  ImageAccessor* ServerTranscoder::DecodeFrameUsingPlugins(const void* buffer,
-                                                           size_t size,
-                                                           unsigned int frameIndex)
+  ImageAccessor* ServerTranscoder::DecodeFrameUsingPluginsDecoder(const void* buffer,
+                                                                  size_t size,
+                                                                  unsigned int frameIndex)
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
-    if (plugins_ != NULL &&
-        plugins_->HasCustomImageDecoder())
+    if (HasPluginsDecoder())
     {
       try
       {
@@ -175,13 +196,12 @@ namespace Orthanc
   }
 
 
-  ImageAccessor* ServerTranscoder::DecodeFrameUsingTranscoding(const void* buffer,
-                                                               size_t size,
-                                                               unsigned int frameIndex)
+  ImageAccessor* ServerTranscoder::DecodeFrameUsingPluginsTranscoder(const void* buffer,
+                                                                     size_t size,
+                                                                     unsigned int frameIndex)
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
-    if (plugins_ != NULL &&
-        plugins_->HasCustomTranscoder())
+    if (HasPluginsTranscoder())
     {
       DicomImage transcoded;
       DicomImage source;
@@ -208,6 +228,60 @@ namespace Orthanc
   }
 
 
+  ImageAccessor* ServerTranscoder::DecodeFrameBuiltin(const boost::shared_ptr<DataSourceReader>& dicomReader,
+                                                      const FileInfo& attachment,
+                                                      unsigned int frameIndex,
+                                                      bool checkMD5)
+  {
+    std::unique_ptr<DicomDataSource::Dicom> dicom(
+      DicomDataSource::ReadWhole(*dicomReader, attachment, false, checkMD5));
+
+    DicomDataSource::Dicom::Lock lock(*dicom);
+
+    return DecodeFrameBuiltin(lock.GetContent(), frameIndex);
+  }
+
+
+  ImageAccessor* ServerTranscoder::DecodeFrameUsingPluginsDecoder(const boost::shared_ptr<DataSourceReader>& storageAreaReader,
+                                                                  const FileInfo& attachment,
+                                                                  unsigned int frameIndex,
+                                                                  bool checkMD5)
+  {
+    if (!HasPluginsDecoder())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      std::unique_ptr<StorageAreaDataSource::Range> range(
+        StorageAreaDataSource::ReadAttachment(*storageAreaReader, attachment, true /* uncompress */, checkMD5));
+
+      return DecodeFrameUsingPluginsDecoder(range->GetData(), range->GetSize(), frameIndex);
+    }
+  }
+
+
+  ImageAccessor* ServerTranscoder::DecodeFrameUsingPluginsTranscoder(const boost::shared_ptr<DataSourceReader>& transcoderReader,
+                                                                     const FileInfo& attachment,
+                                                                     unsigned int frameIndex,
+                                                                     bool checkMD5)
+  {
+    if (!HasPluginsDecoder())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      std::unique_ptr<TranscoderDataSource::Transcoded> transcoded(
+        TranscoderDataSource::Transcode(*transcoderReader, attachment, DicomTransferSyntax_LittleEndianExplicit, checkMD5));
+
+      TranscoderDataSource::Transcoded::Lock lock(*transcoded);
+
+      return DecodeFrameBuiltin(lock.GetDicom(), frameIndex);
+    }
+  }
+
+
   ImageAccessor* ServerTranscoder::DecodeFrame(const ParsedDicomFile& dicom,
                                                const void* buffer,
                                                size_t size,
@@ -224,7 +298,7 @@ namespace Orthanc
       }
     }
 
-    decoded.reset(DecodeFrameUsingPlugins(buffer, size, frameIndex));
+    decoded.reset(DecodeFrameUsingPluginsDecoder(buffer, size, frameIndex));
     if (decoded.get() != NULL)
     {
       return decoded.release();
@@ -239,10 +313,99 @@ namespace Orthanc
       }
     }
 
-    decoded.reset(DecodeFrameUsingTranscoding(buffer, size, frameIndex));
+    decoded.reset(DecodeFrameUsingPluginsTranscoder(buffer, size, frameIndex));
     if (decoded.get() != NULL)
     {
       return decoded.release();
+    }
+
+    return NULL;
+  }
+
+
+  ImageAccessor* ServerTranscoder::DecodeFrame(const boost::shared_ptr<DataSourceReader>& dicomReader,        // For built-in decoding
+                                               const boost::shared_ptr<DataSourceReader>& storageAreaReader,  // For plugin-based decoding
+                                               const boost::shared_ptr<DataSourceReader>& transcoderReader,   // For transcoding-based decoding
+                                               const FileInfo& attachment,
+                                               unsigned int frameIndex,
+                                               bool checkMD5)
+  {
+    // Step 1: Try with the last decoder that successfully handled this DICOM attachment
+
+    const WorkingSource source = pimpl_->LookupWorkingSource(attachment.GetUuid());
+
+    std::unique_ptr<ImageAccessor> decoded;
+
+    switch (source)
+    {
+      case WorkingSource_Unknown:
+        break;
+
+      case WorkingSource_Builtin:
+        decoded.reset(DecodeFrameBuiltin(dicomReader, attachment, frameIndex, checkMD5));
+        break;
+
+      case WorkingSource_PluginsDecoder:
+        decoded.reset(DecodeFrameUsingPluginsDecoder(storageAreaReader, attachment, frameIndex, checkMD5));
+        break;
+
+      case WorkingSource_PluginsTranscoder:
+        decoded.reset(DecodeFrameUsingPluginsTranscoder(transcoderReader, attachment, frameIndex, checkMD5));
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (decoded.get() != NULL)
+    {
+      return decoded.release();
+    }
+
+    // Step 2: If this attachment is unknown, try the available decoders
+
+    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
+    {
+      decoded.reset(DecodeFrameBuiltin(dicomReader, attachment, frameIndex, checkMD5));
+
+      if (decoded.get() != NULL)
+      {
+        pimpl_->SetWorkingSource(attachment.GetUuid(), WorkingSource_Builtin);
+        return decoded.release();
+      }
+    }
+
+    if (HasPluginsDecoder())
+    {
+      decoded.reset(DecodeFrameUsingPluginsDecoder(storageAreaReader, attachment, frameIndex, checkMD5));
+
+      if (decoded.get() != NULL)
+      {
+        pimpl_->SetWorkingSource(attachment.GetUuid(), WorkingSource_PluginsDecoder);
+        return decoded.release();
+      }
+    }
+
+    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
+    {
+      decoded.reset(DecodeFrameBuiltin(dicomReader, attachment, frameIndex, checkMD5));
+
+      if (decoded.get() != NULL)
+      {
+        pimpl_->SetWorkingSource(attachment.GetUuid(), WorkingSource_Builtin);
+        return decoded.release();
+      }
+    }
+
+    if (HasPluginsTranscoder())
+    {
+      decoded.reset(DecodeFrameUsingPluginsTranscoder(transcoderReader, attachment, frameIndex, checkMD5));
+
+      if (decoded.get() != NULL)
+      {
+        pimpl_->SetWorkingSource(attachment.GetUuid(), WorkingSource_PluginsTranscoder);
+        return decoded.release();
+      }
     }
 
     return NULL;

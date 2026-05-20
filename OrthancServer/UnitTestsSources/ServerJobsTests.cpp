@@ -566,7 +566,7 @@ namespace
       storage_(new MemoryStorageArea)
     {
       db_.Open();
-      context_.reset(new ServerContext(db_, storage_, true /* running unit tests */, 10, false /* readonly */));
+      context_.reset(new ServerContext(db_, storage_, NULL /* no transcoder */, true /* running unit tests */, 10, false /* readonly */));
       context_->SetupJobsEngine(true, false);
     }
 

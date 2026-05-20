@@ -288,12 +288,14 @@ namespace Orthanc
     // For streaming
     bool                                 checkMD5_;
     boost::shared_ptr<DataSourceReader>  storageAreaReader_;
-    std::unique_ptr<DataSourceReader>    dicomReader_;
-    boost::shared_ptr<ThreadPool>        transcodingThreadPool_;
+    boost::shared_ptr<DataSourceReader>  dicomReader_;
+    boost::shared_ptr<ThreadPool>        transcoderThreadPool_;
+    boost::shared_ptr<DataSourceReader>  transcoderReader_;
 
   public:
     ServerContext(IDatabaseWrapper& database,
                   IPluginStorageArea& area,
+                  ServerTranscoder* transcoder /* takes ownership */,
                   bool unitTesting,
                   size_t maxCompletedJobs,
                   bool readOnly);
@@ -542,9 +544,11 @@ namespace Orthanc
     ImageAccessor* DecodeDicomFrame(const std::string& publicId,
                                     unsigned int frameIndex);
 
+    // TODO-Streaming : To remove (or adapt)
     ImageAccessor* DecodeDicomFrame(const DicomInstanceToStore& dicom,
                                     unsigned int frameIndex);
 
+    // TODO-Streaming : To remove
     ImageAccessor* DecodeDicomFrame(const void* dicom,
                                     size_t size,
                                     unsigned int frameIndex);
@@ -588,23 +592,19 @@ namespace Orthanc
 
     void PublishCacheMetrics();
 
-    void SetTranscoder(ServerTranscoder* transcoder /* takes ownership */);
-
     const boost::shared_ptr<ServerTranscoder>& GetTranscoder() const;  // TODO-Streaming : REMOVE
-
-    void ResetTranscoder();
 
     bool IsCheckMD5() const
     {
       return checkMD5_;
     }
 
-    DataSourceReader& GetStorageAreaReader() const
+    DataSourceReader& GetStorageAreaReader() const  // TODO-Streaming : REMOVE?
     {
       return *storageAreaReader_;
     }
 
-    DataSourceReader& GetDicomReader() const
+    DataSourceReader& GetDicomReader() const  // TODO-Streaming : REMOVE?
     {
       return *dicomReader_;
     }

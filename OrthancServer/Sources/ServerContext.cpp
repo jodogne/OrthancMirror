@@ -26,6 +26,7 @@
 
 #include "../../OrthancFramework/Sources/Cache/SharedArchive.h"
 #include "../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
+#include "../../OrthancFramework/Sources/DataSource/TranscoderDataSource.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomStreamReader.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.h"
@@ -379,6 +380,7 @@ namespace Orthanc
 
   ServerContext::ServerContext(IDatabaseWrapper& database,
                                IPluginStorageArea& area,
+                               ServerTranscoder* transcoder /* takes ownership */,
                                bool unitTesting,
                                size_t maxCompletedJobs,
                                bool readOnly) :
@@ -402,6 +404,8 @@ namespace Orthanc
     isExecuteLuaEnabled_(false),
     isRestApiWriteToFileSystemEnabled_(false),
     overwriteInstances_(OverwriteInstancesMode_Never),
+    transcoder_(transcoder),
+    transcodeDicomProtocol_(true),
     isIngestTranscoding_(false),
     ingestTranscodingOfUncompressed_(true),
     ingestTranscodingOfCompressed_(true),
@@ -558,29 +562,34 @@ namespace Orthanc
 
       // For streaming
       {
-        std::unique_ptr<ThreadPool> pool(new ThreadPool);
+        boost::shared_ptr<ThreadPool> pool(new ThreadPool);
         pool->SetCountThreads(4);  // TODO-Streaming - Parameter
         pool->SetDequeueTimeout(100);
         pool->Start();
 
-        storageAreaReader_.reset(new DataSourceReader(pool.release(), new StorageAreaDataSource(area_)));
+        storageAreaReader_.reset(new DataSourceReader(pool, new StorageAreaDataSource(area_)));
         storageAreaReader_->CreateCache(DICOM_CACHE_SIZE); // TODO-Streaming - Parameter
       }
 
       {
-        std::unique_ptr<ThreadPool> pool(new ThreadPool);
+        boost::shared_ptr<ThreadPool> pool(new ThreadPool);
         pool->SetCountThreads(2);  // TODO-Streaming - Parameter
         pool->SetDequeueTimeout(100);
         pool->Start();
 
-        dicomReader_.reset(new DataSourceReader(pool.release(), new DicomDataSource(storageAreaReader_)));
+        dicomReader_.reset(new DataSourceReader(pool, new DicomDataSource(storageAreaReader_)));
         dicomReader_->CreateCache(100 * 1024 * 1024); // 100 MB - TODO-Streaming - Parameter
       }
 
+      if (transcoder_.get() != NULL)
       {
-        transcodingThreadPool_.reset(new ThreadPool);
-        transcodingThreadPool_->SetCountThreads(4);  // TODO-Streaming - Parameter
-        transcodingThreadPool_->Start();
+        transcoderThreadPool_.reset(new ThreadPool);
+        transcoderThreadPool_->SetCountThreads(2);  // TODO-Streaming - Parameter
+        transcoderThreadPool_->SetDequeueTimeout(100);
+        transcoderThreadPool_->Start();
+
+        transcoderReader_.reset(new DataSourceReader(transcoderThreadPool_, new TranscoderDataSource(transcoder_, storageAreaReader_)));
+        transcoderReader_->CreateCache(100 * 1024 * 1024); // 100 MB - TODO-Streaming - Parameter
       }
     }
     catch (OrthancException&)
@@ -1840,26 +1849,32 @@ namespace Orthanc
   }
 
 
-  ImageAccessor* ServerContext::DecodeDicomFrame(const std::string& publicId,
+  ImageAccessor* ServerContext::DecodeDicomFrame(const std::string& instancePublicId,
                                                  unsigned int frameIndex)
   {
-    std::unique_ptr<DicomDataSource::Dicom> dicom(ReadParsedDicom(publicId, true /* raw buffer is necessary for transcoding */));
+    FileInfo attachment;
+    int64_t revision;
+
+    if (!index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Unable to read attachment " + EnumerationToString(FileContentType_Dicom) +
+                             " of instance " + instancePublicId);
+    }
 
     std::unique_ptr<ImageAccessor> decoded;
 
-    {
-      DicomDataSource::Dicom::Lock lock(*dicom);
-      decoded.reset(GetTranscoder()->DecodeFrame(lock.GetContent(), lock.GetRawBufferData(), lock.GetRawBufferSize(), frameIndex));
-    }
+    decoded.reset(GetTranscoder()->DecodeFrame(dicomReader_, storageAreaReader_, transcoderReader_, attachment, frameIndex, checkMD5_));
 
     if (decoded.get() == NULL)
     {
       OrthancConfiguration::ReaderLock configLock;
       if (configLock.GetConfiguration().IsWarningEnabled(Warnings_003_DecoderFailure))
       {
-        LOG(WARNING) << "W003: Unable to decode frame " << frameIndex << " from instance " << publicId;
+        LOG(WARNING) << "W003: Unable to decode frame " << frameIndex << " from instance " << instancePublicId;
       }
-      return NULL;
+
+      throw OrthancException(ErrorCode_NotImplemented);
     }
     else
     {
@@ -2131,25 +2146,6 @@ namespace Orthanc
   }
 
 
-  void ServerContext::SetTranscoder(ServerTranscoder* transcoder)
-  {
-    std::unique_ptr<ServerTranscoder> protection(transcoder);
-
-    if (transcoder == NULL)
-    {
-      throw OrthancException(ErrorCode_NullPointer);
-    }
-    else if (transcoder_.get() != NULL)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      transcoder_.reset(protection.release());
-    }
-  }
-
-
   const boost::shared_ptr<ServerTranscoder>& ServerContext::GetTranscoder() const
   {
     if (transcoder_.get() != NULL)
@@ -2158,20 +2154,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-  }
-
-
-  void ServerContext::ResetTranscoder()
-  {
-    if (transcoder_.get() == NULL)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      transcoder_.reset();
+      throw OrthancException(ErrorCode_BadSequenceOfCalls, "No transcoder is available");
     }
   }
 
@@ -2185,6 +2168,6 @@ namespace Orthanc
 
     callable->SetTranscoder(transcoder_);
 
-    return transcodingThreadPool_->Submit(callable);
+    return transcoderThreadPool_->Submit(callable);
   }
 }
