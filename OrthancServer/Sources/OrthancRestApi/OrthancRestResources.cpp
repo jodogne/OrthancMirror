@@ -53,7 +53,6 @@
 // This "include" is mandatory for Release builds using Linux Standard Base
 #include <boost/shared_ptr.hpp>
 
-#include "../../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
 
 /**
  * This semaphore is used to limit the number of concurrent HTTP
