@@ -405,8 +405,8 @@ TEST(Toolbox, GetHumanDuration)
 TEST(Toolbox, GetHumanTransferSpeed)
 {
   ASSERT_EQ("8.00Mbps", Toolbox::GetHumanTransferSpeed(false, 1000, 1000000));
-  ASSERT_EQ("8.59Gbps", Toolbox::GetHumanTransferSpeed(false, 1024ull*1024*1024, 1000000000));
-  ASSERT_EQ("1.00GB in 1.00s = 8.59Gbps", Toolbox::GetHumanTransferSpeed(true, 1024ull*1024*1024, 1000000000));
+  ASSERT_EQ("8.59Gbps", Toolbox::GetHumanTransferSpeed(false, KILOBYTE*1024*1024, 1000000000));
+  ASSERT_EQ("1.00GB in 1.00s = 8.59Gbps", Toolbox::GetHumanTransferSpeed(true, KILOBYTE*1024*1024, 1000000000));
   ASSERT_EQ("976.56KB in 1.00s = 8.00Mbps", Toolbox::GetHumanTransferSpeed(true, 1000ull*1000, 1000000000));
 }
 
@@ -483,5 +483,19 @@ TEST(Toolbox, Constants)
 {
   // Make sure that "16 * GIGABYTE" is not casted to a size_t on 32bit architectures
   ASSERT_EQ(static_cast<int16_t>(16) * GIGABYTE, 16ull * 1024ull * 1024ull * 1024ull);
+  ASSERT_EQ(GIGABYTE * static_cast<int16_t>(16), 16ull * 1024ull * 1024ull * 1024ull);
+  ASSERT_EQ(GIGABYTE * 16, 16ull * 1024ull * 1024ull * 1024ull);
+  ASSERT_EQ(16 * GIGABYTE, 16ull * 1024ull * 1024ull * 1024ull);
+
+  ASSERT_EQ(static_cast<int16_t>(16 * 1024) * MEGABYTE, 16ull * 1024ull * 1024ull * 1024ull);
+  ASSERT_EQ(MEGABYTE * static_cast<int16_t>(16 * 1024), 16ull * 1024ull * 1024ull * 1024ull);
+  ASSERT_EQ(static_cast<int32_t>(16 * 1024 * 1024) * KILOBYTE, 16ull * 1024ull * 1024ull * 1024ull);
+  ASSERT_EQ(KILOBYTE * static_cast<int32_t>(16 * 1024 * 1024), 16ull * 1024ull * 1024ull * 1024ull);
+
   ASSERT_EQ(8, sizeof(static_cast<int16_t>(16) * GIGABYTE));
+  ASSERT_EQ(8, sizeof(GIGABYTE * static_cast<int16_t>(16)));
+  ASSERT_EQ(8, sizeof(static_cast<int16_t>(16 * 1024) * MEGABYTE));
+  ASSERT_EQ(8, sizeof(MEGABYTE * static_cast<int16_t>(16 * 1024)));
+  ASSERT_EQ(8, sizeof(static_cast<int32_t>(16 * 1024 * 1024) * KILOBYTE));
+  ASSERT_EQ(8, sizeof(KILOBYTE * static_cast<int32_t>(16 * 1024 * 1024)));
 }
