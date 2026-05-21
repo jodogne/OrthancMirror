@@ -362,18 +362,30 @@ namespace Orthanc
 
   void ServerContext::PublishCacheMetrics()
   {
-    // TODO-Streaming
+    uint64_t tasksMaximumMemory;
+    uint64_t tasksCurrentMemory;
+    unsigned int tasksReservations;
+    size_t cacheCapacity;
+    size_t cacheCurrentCount;
+    size_t cacheCurrentSize;
 
-    //metricsRegistry_->SetFloatValue("orthanc_dicom_cache_size_mb",
-    //static_cast<float>(dicomCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
-    //metricsRegistry_->SetIntegerValue("orthanc_dicom_cache_count",
-    //static_cast<int64_t>(dicomCache_.GetNumberOfItems()));
+    storageAreaReader_->GetStatistics(tasksMaximumMemory, tasksCurrentMemory, tasksReservations,
+                                      cacheCapacity, cacheCurrentCount, cacheCurrentSize);
+    metricsRegistry_->SetFloatValue("orthanc_storage_cache_size_mb",
+                                    static_cast<float>(cacheCurrentSize) / static_cast<float>(MEGABYTE));
+    metricsRegistry_->SetIntegerValue("orthanc_storage_cache_count", cacheCurrentCount);
 
+    dicomReader_->GetStatistics(tasksMaximumMemory, tasksCurrentMemory, tasksReservations,
+                                cacheCapacity, cacheCurrentCount, cacheCurrentSize);
+    metricsRegistry_->SetFloatValue("orthanc_dicom_cache_size_mb",
+                                    static_cast<float>(cacheCurrentSize) / static_cast<float>(MEGABYTE));
+    metricsRegistry_->SetIntegerValue("orthanc_dicom_cache_count", cacheCurrentCount);
 
-    //metricsRegistry_->SetFloatValue("orthanc_storage_cache_size_mb",
-    //static_cast<float>(storageCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
-    //metricsRegistry_->SetIntegerValue("orthanc_storage_cache_count",
-    //static_cast<int64_t>(storageCache_.GetNumberOfItems()));
+    transcoderReader_->GetStatistics(tasksMaximumMemory, tasksCurrentMemory, tasksReservations,
+                                     cacheCapacity, cacheCurrentCount, cacheCurrentSize);
+    metricsRegistry_->SetFloatValue("orthanc_transcoder_cache_size_mb",
+                                    static_cast<float>(cacheCurrentSize) / static_cast<float>(MEGABYTE));
+    metricsRegistry_->SetIntegerValue("orthanc_transcoder_cache_count", cacheCurrentCount);
   }
 
 
@@ -581,7 +593,7 @@ namespace Orthanc
 
         dicomReader_.reset(new DataSourceReader(pool, new DicomDataSource(storageAreaReader_)));
         dicomReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
-        dicomReader_->CreateCache(256 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter
+        dicomReader_->CreateCache(32 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter
       }
 
       if (transcoder_.get() != NULL)

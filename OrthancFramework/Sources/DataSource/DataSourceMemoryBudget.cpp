@@ -72,5 +72,17 @@ namespace Orthanc
       boost::mutex::scoped_lock lock(mutex_);
       return currentMemory_;
     }
+
+
+    void DataSourceMemoryBudget::GetStatistics(uint64_t& maximumMemory,
+                                               uint64_t& currentMemory,
+                                               unsigned int& countReservations)
+
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      maximumMemory = maximumMemory_;
+      currentMemory = currentMemory_;
+      countReservations = reservations_;
+    }
   }
 }

@@ -73,5 +73,12 @@ namespace Orthanc
     {
       executor_->Stop();
     }
+
+    void GetStatistics(uint64_t& tasksMaximumMemory,
+                       uint64_t& tasksCurrentMemory,
+                       unsigned int& tasksReservations,
+                       size_t& cacheCapacity,
+                       size_t& cacheCurrentCount,
+                       size_t& cacheCurrentSize);
   };
 }

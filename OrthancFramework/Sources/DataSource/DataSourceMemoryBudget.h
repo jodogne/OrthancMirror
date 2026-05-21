@@ -79,6 +79,10 @@ namespace Orthanc
           that_.Release(memory_);
         }
       };
+
+      void GetStatistics(uint64_t& maximumMemory,
+                         uint64_t& currentMemory,
+                         unsigned int& countReservations);
     };
   }
 }

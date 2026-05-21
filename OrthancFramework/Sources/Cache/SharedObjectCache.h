@@ -69,5 +69,9 @@ namespace Orthanc
                size_t size);
 
     void Invalidate(const std::string& id);
+
+    void GetStatistics(size_t& capacity,
+                       size_t& currentCount,
+                       size_t& currentSize);
   };
 }

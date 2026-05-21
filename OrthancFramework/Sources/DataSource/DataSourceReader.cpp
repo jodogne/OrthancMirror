@@ -221,4 +221,33 @@ namespace Orthanc
 
     return item->GetValue();
   }
+
+
+  void DataSourceReader::GetStatistics(uint64_t& tasksMaximumMemory,
+                                       uint64_t& tasksCurrentMemory,
+                                       unsigned int& tasksReservations,
+                                       size_t& cacheCapacity,
+                                       size_t& cacheCurrentCount,
+                                       size_t& cacheCurrentSize)
+  {
+    {
+      boost::shared_ptr<Internals::DataSourceMemoryBudget> budgetCopy(budget_);
+      budgetCopy->GetStatistics(tasksMaximumMemory, tasksCurrentMemory, tasksReservations);
+    }
+
+    {
+      boost::shared_ptr<SharedObjectCache> cacheCopy(cache_);
+
+      if (cacheCopy)
+      {
+        cacheCopy->GetStatistics(cacheCapacity, cacheCurrentCount, cacheCurrentSize);
+      }
+      else
+      {
+        cacheCapacity = 0;
+        cacheCurrentCount = 0;
+        cacheCurrentSize = 0;
+      }
+    }
+  }
 }
