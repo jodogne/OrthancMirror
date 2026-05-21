@@ -77,6 +77,7 @@
 #include "Internals/DicomImageDecoder.h"
 #include "ToDcmtkBridge.h"
 
+#include "../Constants.h"
 #include "../DicomFormat/DicomImageInformation.h"
 #include "../Images/Image.h"
 #include "../Images/ImageProcessing.h"
@@ -147,8 +148,8 @@
 #endif
 
 static const uint64_t MAX_OVERLAY_SIZE = (sizeof(void*) == 4
-                                          ? 1ull * 1024ull * 1024ull * 1024ull   // 1 GB on 32 bits system
-                                          : 4ull * 1024ull * 1024ull * 1024ull); // 4 GB on 64 bits system
+                                          ? 1 * Orthanc::GIGABYTE   // 1 GB on 32 bits system
+                                          : 4 * Orthanc::GIGABYTE); // 4 GB on 64 bits system
 
 
 namespace Orthanc

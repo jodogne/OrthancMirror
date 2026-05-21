@@ -25,17 +25,18 @@
 #include "../PrecompiledHeaders.h"
 #include "JpegReader.h"
 
-#include "JpegErrorManager.h"
-#include "../OrthancException.h"
+#include "../Constants.h"
 #include "../Logging.h"
+#include "../OrthancException.h"
+#include "JpegErrorManager.h"
 
 #if ORTHANC_SANDBOXED == 0
 #  include "../SystemToolbox.h"
 #endif
 
 static const uint64_t MAX_DECODED_JPEG_IMAGE_SIZE = (sizeof(void*) == 4
-                                                     ? 1ull * 1024ull * 1024ull * 1024ull   // 1 GB on 32 bits system
-                                                     : 4ull * 1024ull * 1024ull * 1024ull); // 4 GB on 64 bits system
+                                                     ? 1 * Orthanc::GIGABYTE   // 1 GB on 32 bits system
+                                                     : 4 * Orthanc::GIGABYTE); // 4 GB on 64 bits system
 
 namespace Orthanc
 {
