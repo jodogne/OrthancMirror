@@ -185,7 +185,7 @@ namespace Orthanc
   }
 
 
-  void DataSourceReader::SetMaximumMemory(uint64_t maximumMemory)
+  void DataSourceReader::SetCapacity(uint64_t maximumMemory)
   {
     budget_ = boost::make_shared<Internals::DataSourceMemoryBudget>(maximumMemory);
   }

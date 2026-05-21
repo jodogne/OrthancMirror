@@ -59,7 +59,11 @@ namespace Orthanc
 
     void CreateCache(size_t capacity);
 
-    void SetMaximumMemory(uint64_t maximumMemory);
+    /**
+     * Apply backpressure by limiting memory for pending read
+     * tasks. Further reads block until memory is released.
+     **/
+    void SetCapacity(uint64_t maximumMemory);
 
     boost::shared_ptr<DataSourceAnswer> Submit(DataSourceRequest* request /* takes ownership */);
 
