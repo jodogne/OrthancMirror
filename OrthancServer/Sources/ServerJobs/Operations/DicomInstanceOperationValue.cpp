@@ -30,6 +30,7 @@ namespace Orthanc
 {
   void DicomInstanceOperationValue::ReadDicom(std::string& dicom) const
   {
-    context_.ReadDicom(dicom, id_);
+    std::unique_ptr<StorageAreaDataSource::Range> raw(context_.ReadRawDicom(id_));
+    raw->Copy(dicom);
   }
 }

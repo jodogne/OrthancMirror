@@ -487,12 +487,14 @@ namespace Orthanc
 
     std::string publicId = call.GetUriComponent("id", "");
 
-    std::string dicom;
-    context.ReadDicom(dicom, publicId);
-
     std::string target;
     call.BodyToString(target);
-    SystemToolbox::WriteFile(dicom, SystemToolbox::PathFromUtf8(target));
+
+    {
+      std::unique_ptr<StorageAreaDataSource::Range> raw(context.ReadRawDicom(publicId));
+      SystemToolbox::WriteFile(raw->GetData(), raw->GetSize(),
+                               SystemToolbox::PathFromUtf8(target), false /* don't automatically call fsync */);
+    }
 
     call.GetOutput().AnswerBuffer("{}", MimeType_Json);
   }

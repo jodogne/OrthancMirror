@@ -382,15 +382,13 @@ namespace Orthanc
     void ReadDicomAsJson(Json::Value& result,
                          const std::string& instancePublicId);  // TODO-FIND: Can this be removed?
 
-    void ReadDicom(std::string& dicom,
-                   const std::string& instancePublicId);  // TODO-Streaming : Remove
-
     FileInfo LookupDicomForInstance(const std::string& instancePublicId);
 
     StorageAreaDataSource::Range* ReadRawDicom(const std::string& instancePublicId);
 
     DicomDataSource::Dicom* ReadParsedDicom(const std::string& instancePublicId);
 
+    // TODO-Streaming : Remove
     void ReadDicomForHeader(std::string& dicom,
                             const std::string& instancePublicId);
 

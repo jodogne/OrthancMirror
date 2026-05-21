@@ -1452,30 +1452,6 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ReadDicom(std::string& dicom,
-                                const std::string& instancePublicId)
-  {
-    FileInfo attachment;
-    int64_t revision;
-
-    if (!index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Unable to read attachment " + EnumerationToString(FileContentType_Dicom) +
-                             " of instance " + instancePublicId);
-    }
-
-    assert(attachment.GetContentType() == FileContentType_Dicom);
-
-    std::unique_ptr<StorageAreaDataSource::Range> range(
-      StorageAreaDataSource::ReadAttachment(
-        *storageAreaReader_, attachment, true /* uncompress */, checkMD5_));
-
-    assert(range->GetSize() == attachment.GetUncompressedSize());
-    range->Copy(dicom);
-  }
-
-
   FileInfo ServerContext::LookupDicomForInstance(const std::string& instancePublicId)
   {
     FileInfo attachment;
@@ -1512,7 +1488,8 @@ namespace Orthanc
   {
     if (!ReadDicomUntilPixelData(dicom, instancePublicId))
     {
-      ReadDicom(dicom, instancePublicId);
+      std::unique_ptr<StorageAreaDataSource::Range> raw(ReadRawDicom(instancePublicId));
+      raw->Copy(dicom);
     }
   }
 

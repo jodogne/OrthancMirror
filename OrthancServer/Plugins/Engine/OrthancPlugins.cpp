@@ -35,6 +35,8 @@
 
 #include "../../../OrthancFramework/Sources/Compression/GzipCompressor.h"
 #include "../../../OrthancFramework/Sources/Compression/ZlibCompressor.h"
+#include "../../../OrthancFramework/Sources/DataSource/DicomDataSource.h"
+#include "../../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../../OrthancFramework/Sources/DicomNetworking/DicomConnectionInfo.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/DicomWebJsonVisitor.h"
@@ -3543,14 +3545,14 @@ namespace Orthanc
     const _OrthancPluginGetDicomForInstance& p = 
       *reinterpret_cast<const _OrthancPluginGetDicomForInstance*>(parameters);
 
-    std::string dicom;
+    std::unique_ptr<StorageAreaDataSource::Range> raw;
 
     {
       PImpl::ServerContextReference lock(*pimpl_);
-      lock.GetContext().ReadDicom(dicom, p.instanceId);
+      raw.reset(lock.GetContext().ReadRawDicom(p.instanceId));
     }
 
-    CopyToMemoryBuffer(p.target, dicom);
+    CopyToMemoryBuffer(p.target, raw->GetData(), raw->GetSize());
   }
 
   static void ThrowOnHttpError(HttpStatus httpStatus)
@@ -4697,14 +4699,11 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NullPointer);
       }
 
-      std::string content;
-
       {
         PImpl::ServerContextReference lock(*pimpl_);
-        lock.GetContext().ReadDicom(content, p.instanceId);
+        std::unique_ptr<DicomDataSource::Dicom> loaded(lock.GetContext().ReadParsedDicom(p.instanceId));
+        dicom.reset(loaded->Clone());
       }
-
-      dicom.reset(new ParsedDicomFile(content));
     }
 
     Json::Value json;
@@ -5125,14 +5124,14 @@ namespace Orthanc
     {
       case OrthancPluginLoadDicomInstanceMode_WholeDicom:
       {
-        std::string buffer;
+        std::unique_ptr<StorageAreaDataSource::Range> raw;
 
         {
           PImpl::ServerContextReference lock(*pimpl_);
-          lock.GetContext().ReadDicom(buffer, params.instanceId);
+          raw.reset(lock.GetContext().ReadRawDicom(params.instanceId));
         }
 
-        target.reset(new DicomInstanceFromBuffer(buffer));
+        target.reset(new DicomInstanceFromBuffer(raw->GetData(), raw->GetSize()));
         break;
       }
         
@@ -5142,17 +5141,9 @@ namespace Orthanc
         std::unique_ptr<ParsedDicomFile> parsed;
 
         {
-          std::string buffer;
-        
-          {
-            PImpl::ServerContextReference lock(*pimpl_);
-            if (!lock.GetContext().ReadDicomUntilPixelData(buffer, params.instanceId))
-            {
-              lock.GetContext().ReadDicom(buffer, params.instanceId);
-            }
-          }
-
-          parsed.reset(new ParsedDicomFile(buffer));
+          PImpl::ServerContextReference lock(*pimpl_);
+          std::unique_ptr<DicomDataSource::Dicom> loaded(lock.GetContext().ReadParsedDicom(params.instanceId));
+          parsed.reset(loaded->Clone());
         }
 
         parsed->RemoveFromPixelData();
