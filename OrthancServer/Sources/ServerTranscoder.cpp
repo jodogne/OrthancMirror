@@ -282,16 +282,21 @@ namespace Orthanc
   }
 
 
-  ImageAccessor* ServerTranscoder::DecodeFrame(const ParsedDicomFile& dicom,
-                                               const void* buffer,
+  ImageAccessor* ServerTranscoder::DecodeFrame(const void* buffer,
                                                size_t size,
                                                unsigned int frameIndex)
   {
+    std::unique_ptr<ParsedDicomFile> dicom;
     std::unique_ptr<ImageAccessor> decoded;
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
     {
-      decoded.reset(DecodeFrameBuiltin(dicom, frameIndex));
+      if (dicom.get() == NULL)
+      {
+        dicom.reset(new ParsedDicomFile(buffer, size));
+      }
+
+      decoded.reset(DecodeFrameBuiltin(*dicom, frameIndex));
       if (decoded.get() != NULL)
       {
         return decoded.release();
@@ -306,7 +311,12 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      decoded.reset(DecodeFrameBuiltin(dicom, frameIndex));
+      if (dicom.get() == NULL)
+      {
+        dicom.reset(new ParsedDicomFile(buffer, size));
+      }
+
+      decoded.reset(DecodeFrameBuiltin(*dicom, frameIndex));
       if (decoded.get() != NULL)
       {
         return decoded.release();

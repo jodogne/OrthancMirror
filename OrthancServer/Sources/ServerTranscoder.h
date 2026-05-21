@@ -90,10 +90,9 @@ namespace Orthanc
 
     bool HasPluginsTranscoder() const;
 
-    ImageAccessor* DecodeFrame(const ParsedDicomFile& dicom,
-                               const void* buffer,  // buffer that is the source of the ParsedDicomFile
+    ImageAccessor* DecodeFrame(const void* buffer,
                                size_t size,
-                               unsigned int frameIndex);  // TODO-Streaming : Remove this flavor
+                               unsigned int frameIndex);
 
     ImageAccessor* DecodeFrame(const boost::shared_ptr<DataSourceReader>& dicomReader,        // For built-in decoding
                                const boost::shared_ptr<DataSourceReader>& storageAreaReader,  // For plugin-based decoding
