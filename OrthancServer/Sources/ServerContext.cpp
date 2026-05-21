@@ -25,7 +25,7 @@
 #include "ServerContext.h"
 
 #include "../../OrthancFramework/Sources/Cache/SharedArchive.h"
-#include "../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
+#include "../../OrthancFramework/Sources/DataSource/DataSourceReader.h"
 #include "../../OrthancFramework/Sources/DataSource/TranscoderDataSource.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomStreamReader.h"
@@ -1311,7 +1311,7 @@ namespace Orthanc
     if (LookupAttachment(attachment, FileContentType_DicomUntilPixelData, instanceAttachments))
     {
       std::unique_ptr<DicomDataSource::Dicom> dicom(
-        DicomDataSource::ReadWhole(*dicomReader_, attachment, false /* no need for raw buffer */, checkMD5_));
+        DicomDataSource::ReadWhole(*dicomReader_, attachment, checkMD5_));
 
       {
         DicomDataSource::Dicom::Lock lock(*dicom);
@@ -1403,40 +1403,39 @@ namespace Orthanc
           throw OrthancException(ErrorCode_UnknownResource);
         }
 
-        std::unique_ptr<DicomDataSource::Dicom> dicom(
-          DicomDataSource::ReadWhole(*dicomReader_, attachment, !hasPixelDataOffset /* raw buffer is needed for (*) */, checkMD5_));
+        std::unique_ptr<StorageAreaDataSource::Range> range(
+          StorageAreaDataSource::ReadAttachment(*storageAreaReader_, attachment, true /* uncompress */, checkMD5_));
 
+        // We don't use the cache, as this would complexify the code for a rare edge case
+        ParsedDicomFile dicom(range->GetData(), range->GetSize());
+        OrthancConfiguration::DefaultDicomDatasetToJson(result, dicom, ignoreTagLength);
+
+        if (!hasPixelDataOffset)
         {
-          DicomDataSource::Dicom::Lock lock(*dicom);
-          OrthancConfiguration::DefaultDicomDatasetToJson(result, lock.GetContent(), ignoreTagLength);
+          /**
+           * (*) The pixel data offset was never computed for this
+           * instance, which indicates that it was created using
+           * Orthanc <= 1.9.0, or that calls to
+           * "LookupPixelDataOffset()" from earlier versions of
+           * Orthanc have failed. Try again this precomputation now
+           * for future calls.
+           **/
 
-          if (!hasPixelDataOffset)
+          ValueRepresentation pixelDataVR;
+          if (DicomStreamReader::LookupPixelDataOffset(
+                pixelDataOffset, pixelDataVR, range->GetData(), range->GetSize()) &&
+              pixelDataOffset < range->GetSize())
           {
-            /**
-             * (*) The pixel data offset was never computed for this
-             * instance, which indicates that it was created using
-             * Orthanc <= 1.9.0, or that calls to
-             * "LookupPixelDataOffset()" from earlier versions of
-             * Orthanc have failed. Try again this precomputation now
-             * for future calls.
-             **/
+            index_.OverwriteMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
+                                     boost::lexical_cast<std::string>(pixelDataOffset));
 
-            ValueRepresentation pixelDataVR;
-            if (DicomStreamReader::LookupPixelDataOffset(
-                  pixelDataOffset, pixelDataVR, lock.GetRawBufferData(), lock.GetRawBufferSize()) &&
-                pixelDataOffset < lock.GetRawBufferSize())
+            if (!area_.HasEfficientReadRange() ||
+                compressionEnabled_)
             {
-              index_.OverwriteMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
-                                       boost::lexical_cast<std::string>(pixelDataOffset));
-
-              if (!area_.HasEfficientReadRange() ||
-                  compressionEnabled_)
-              {
-                int64_t newRevision;
-                AddAttachment(newRevision, instancePublicId, ResourceType_Instance, FileContentType_DicomUntilPixelData,
-                              lock.GetRawBufferData(), pixelDataOffset,
-                              false /* no old revision */, -1 /* dummy revision */, "" /* dummy MD5 */);
-              }
+              int64_t newRevision;
+              AddAttachment(newRevision, instancePublicId, ResourceType_Instance, FileContentType_DicomUntilPixelData,
+                            range->GetData(), pixelDataOffset,
+                            false /* no old revision */, -1 /* dummy revision */, "" /* dummy MD5 */);
             }
           }
         }
@@ -1477,19 +1476,34 @@ namespace Orthanc
   }
 
 
-  DicomDataSource::Dicom* ServerContext::ReadParsedDicom(const std::string& instancePublicId)
+  FileInfo ServerContext::LookupDicomForInstance(const std::string& instancePublicId)
   {
     FileInfo attachment;
     int64_t revision;
 
-    if (!index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
+    if (index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
+    {
+      return attachment;
+    }
+    else
     {
       throw OrthancException(ErrorCode_InternalError,
                              "Unable to read attachment " + EnumerationToString(FileContentType_Dicom) +
                              " of instance " + instancePublicId);
     }
+  }
 
-    return DicomDataSource::ReadWhole(*dicomReader_, attachment, false, checkMD5_);
+
+  StorageAreaDataSource::Range* ServerContext::ReadRawDicom(const std::string& instancePublicId)
+  {
+    return StorageAreaDataSource::ReadAttachment(*storageAreaReader_, LookupDicomForInstance(instancePublicId),
+                                                 true /* uncompress */, checkMD5_);
+  }
+
+
+  DicomDataSource::Dicom* ServerContext::ReadParsedDicom(const std::string& instancePublicId)
+  {
+    return DicomDataSource::ReadWhole(*dicomReader_, LookupDicomForInstance(instancePublicId), checkMD5_);
   }
 
 

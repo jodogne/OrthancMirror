@@ -29,11 +29,12 @@
 #include "ServerIndex.h"
 #include "ServerJobs/IStorageCommitmentFactory.h"
 
-#include "../../OrthancFramework/Sources/DataSource/DataSourceReader.h"
 #include "../../OrthancFramework/Sources/DataSource/DicomDataSource.h"
+#include "../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/JobsEngine/JobsEngine.h"
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
+#include "../../OrthancFramework/Sources/MultiThreading/Future.h"
 #include "../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 
 
@@ -382,7 +383,11 @@ namespace Orthanc
                          const std::string& instancePublicId);  // TODO-FIND: Can this be removed?
 
     void ReadDicom(std::string& dicom,
-                   const std::string& instancePublicId);
+                   const std::string& instancePublicId);  // TODO-Streaming : Remove
+
+    FileInfo LookupDicomForInstance(const std::string& instancePublicId);
+
+    StorageAreaDataSource::Range* ReadRawDicom(const std::string& instancePublicId);
 
     DicomDataSource::Dicom* ReadParsedDicom(const std::string& instancePublicId);
 

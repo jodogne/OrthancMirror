@@ -93,18 +93,11 @@ namespace Orthanc
         }
 
         const ParsedDicomFile& GetContent() const;
-
-        bool HasRawBuffer() const;
-
-        const void* GetRawBufferData() const;
-
-        size_t GetRawBufferSize() const;
       };
     };
 
     static Dicom* ReadWhole(DataSourceReader& reader,
                             const FileInfo& attachment,
-                            bool keepRawBuffer,  // Must be set to "true" for transcoding
                             bool checkMD5);
 
     static Dicom* ReadUntilPixelData(DataSourceReader& reader,

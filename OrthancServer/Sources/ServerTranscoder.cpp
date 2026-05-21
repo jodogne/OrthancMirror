@@ -234,7 +234,7 @@ namespace Orthanc
                                                       bool checkMD5)
   {
     std::unique_ptr<DicomDataSource::Dicom> dicom(
-      DicomDataSource::ReadWhole(*dicomReader, attachment, false, checkMD5));
+      DicomDataSource::ReadWhole(*dicomReader, attachment, checkMD5));
 
     DicomDataSource::Dicom::Lock lock(*dicom);
 

@@ -35,34 +35,10 @@
 
 namespace Orthanc
 {
-  static size_t ComputeValueSize(size_t size,
-                                 bool isKeepRawBuffer)
-  {
-    if (isKeepRawBuffer)
-    {
-      uint64_t s = 2 * static_cast<uint64_t>(size);
-      if (s != static_cast<uint64_t>(static_cast<size_t>(s)))
-      {
-        return std::numeric_limits<size_t>::max();
-      }
-      else
-      {
-        return static_cast<size_t>(s);
-      }
-    }
-    else
-    {
-      return size;
-    }
-  }
-
-
   class DicomDataSource::BaseIdentifier : public IDataIdentifier
   {
   public:
     virtual StorageAreaDataSource::Range* ReadRange(DataSourceReader& reader) const = 0;
-
-    virtual bool IsKeepRawBuffer() const = 0;
   };
 
 
@@ -70,15 +46,12 @@ namespace Orthanc
   {
   private:
     FileInfo  attachment_;
-    bool      keepRawBuffer_;
     bool      checkMD5_;
 
   public:
     explicit WholeIdentifier(const FileInfo& attachment,
-                             bool keepRawBuffer,
                              bool checkMD5) :
       attachment_(attachment),
-      keepRawBuffer_(keepRawBuffer),
       checkMD5_(checkMD5)
     {
     }
@@ -86,25 +59,19 @@ namespace Orthanc
     virtual bool GetCacheKey(std::string& key) const ORTHANC_OVERRIDE
     {
       key = (attachment_.GetUuid() + "|" +
-             boost::lexical_cast<std::string>(attachment_.GetContentType()) + "|" +
-             boost::lexical_cast<std::string>(keepRawBuffer_));
+             boost::lexical_cast<std::string>(attachment_.GetContentType()));
       return true;
     }
 
     virtual bool EstimateValueSize(size_t& target) const ORTHANC_OVERRIDE
     {
-      target = ComputeValueSize(attachment_.GetUncompressedSize(), keepRawBuffer_);
+      target = attachment_.GetUncompressedSize();
       return true;
     }
 
     virtual StorageAreaDataSource::Range* ReadRange(DataSourceReader& reader) const ORTHANC_OVERRIDE
     {
       return StorageAreaDataSource::ReadAttachment(reader, attachment_, true /* uncompress */, checkMD5_);
-    }
-
-    virtual bool IsKeepRawBuffer() const ORTHANC_OVERRIDE
-    {
-      return keepRawBuffer_;
     }
   };
 
@@ -143,11 +110,6 @@ namespace Orthanc
     {
       return StorageAreaDataSource::ReadBeginning(reader, attachment_, pixelDataOffset_);
     }
-
-    virtual bool IsKeepRawBuffer() const ORTHANC_OVERRIDE
-    {
-      return false;
-    }
   };
 
 
@@ -156,15 +118,12 @@ namespace Orthanc
   private:
     std::unique_ptr<ParsedDicomFile>   dicom_;
     size_t                             size_;
-    bool                               hasRawBuffer_;
-    std::string                        rawBuffer_;
 
   public:
     Value(ParsedDicomFile* dicom,
           size_t size) :
       dicom_(dicom),
-      size_(size),
-      hasRawBuffer_(false)
+      size_(size)
     {
       if (dicom == NULL)
       {
@@ -177,45 +136,9 @@ namespace Orthanc
       return *dicom_;
     }
 
-    size_t GetRawBufferSize() const
+    size_t GetSize() const
     {
       return size_;
-    }
-
-    void SetRawBuffer(const void* data,
-                      size_t size)
-    {
-      if (hasRawBuffer_)
-      {
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
-      }
-      else if (size != size_)
-      {
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-      else
-      {
-        hasRawBuffer_ = true;
-        rawBuffer_.assign(reinterpret_cast<const char*>(data), size);
-      }
-    }
-
-    bool HasRawBuffer() const
-    {
-      return hasRawBuffer_;
-    }
-
-    const void* GetRawBufferData() const
-    {
-      if (hasRawBuffer_)
-      {
-        assert(rawBuffer_.size() == size_);
-        return rawBuffer_.empty() ? NULL : rawBuffer_.c_str();
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
-      }
     }
   };
 
@@ -240,30 +163,16 @@ namespace Orthanc
 
     {
       // Sanity check
-      bool ok = false;
       size_t estimatedSize;
-      if (obj.EstimateValueSize(estimatedSize))
-      {
-        ok = (estimatedSize == ComputeValueSize(size, id.IsKeepRawBuffer()));
-      }
-
-      if (!ok)
+      if (!obj.EstimateValueSize(estimatedSize) ||
+          estimatedSize != size)
       {
         throw OrthancException(ErrorCode_InternalError);
       }
     }
 
     std::unique_ptr<Value> value(new Value(new ParsedDicomFile(range->GetData(), size), size));
-
-    if (id.IsKeepRawBuffer())
-    {
-      value->SetRawBuffer(range->GetData(), size);
-      assert(GetValueSize(*value) == 2 * size);
-    }
-    else
-    {
-      assert(GetValueSize(*value) == size);
-    }
+    assert(GetValueSize(*value) == size);
 
     return value.release();
   }
@@ -272,7 +181,7 @@ namespace Orthanc
   size_t DicomDataSource::GetValueSize(const IDynamicObject& obj) const
   {
     const Value& value = dynamic_cast<const Value&>(obj);
-    return ComputeValueSize(value.GetRawBufferSize(), value.HasRawBuffer());
+    return value.GetSize();
   }
 
 
@@ -299,30 +208,11 @@ namespace Orthanc
   }
 
 
-  bool DicomDataSource::Dicom::Lock::HasRawBuffer() const
-  {
-    return dynamic_cast<const Value&>(*that_.value_).HasRawBuffer();
-  }
-
-
-  const void* DicomDataSource::Dicom::Lock::GetRawBufferData() const
-  {
-    return dynamic_cast<const Value&>(*that_.value_).GetRawBufferData();
-  }
-
-
-  size_t DicomDataSource::Dicom::Lock::GetRawBufferSize() const
-  {
-    return dynamic_cast<const Value&>(*that_.value_).GetRawBufferSize();
-  }
-
-
   DicomDataSource::Dicom* DicomDataSource::ReadWhole(DataSourceReader& reader,
                                                      const FileInfo& attachment,
-                                                     bool keepRawBuffer,
                                                      bool checkMD5)
   {
-    std::unique_ptr<IDataIdentifier> id(new WholeIdentifier(attachment, keepRawBuffer, checkMD5));
+    std::unique_ptr<IDataIdentifier> id(new WholeIdentifier(attachment, checkMD5));
     boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
     return new Dicom(value);
   }
