@@ -1847,17 +1847,6 @@ namespace Orthanc
   }
 
 
-  ImageAccessor* ServerContext::DecodeDicomFrame(const DicomInstanceToStore& dicom,
-                                                 unsigned int frameIndex)
-  {
-    return GetTranscoder()->DecodeFrame(//dicom.GetParsedDicomFile(),
-                                        dicom.GetBufferData(),
-                                        dicom.GetBufferSize(),
-                                        frameIndex);
-
-  }
-
-
   void ServerContext::PerformCStoreWithTranscoding(std::string& sopClassUid,
                                                    std::string& sopInstanceUid,
                                                    DicomStoreUserConnection& connection,

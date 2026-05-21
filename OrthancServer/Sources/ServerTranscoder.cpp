@@ -32,6 +32,7 @@
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
+#include "DicomInstanceToStore.h"
 #include "OrthancConfiguration.h"
 
 #include <boost/thread.hpp>
@@ -282,28 +283,21 @@ namespace Orthanc
   }
 
 
-  ImageAccessor* ServerTranscoder::DecodeFrame(const void* buffer,
-                                               size_t size,
+  ImageAccessor* ServerTranscoder::DecodeFrame(const DicomInstanceToStore& image,
                                                unsigned int frameIndex)
   {
-    std::unique_ptr<ParsedDicomFile> dicom;
     std::unique_ptr<ImageAccessor> decoded;
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
     {
-      if (dicom.get() == NULL)
-      {
-        dicom.reset(new ParsedDicomFile(buffer, size));
-      }
-
-      decoded.reset(DecodeFrameBuiltin(*dicom, frameIndex));
+      decoded.reset(DecodeFrameBuiltin(image.GetParsedDicomFile(), frameIndex));
       if (decoded.get() != NULL)
       {
         return decoded.release();
       }
     }
 
-    decoded.reset(DecodeFrameUsingPluginsDecoder(buffer, size, frameIndex));
+    decoded.reset(DecodeFrameUsingPluginsDecoder(image.GetBufferData(), image.GetBufferSize(), frameIndex));
     if (decoded.get() != NULL)
     {
       return decoded.release();
@@ -311,19 +305,14 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      if (dicom.get() == NULL)
-      {
-        dicom.reset(new ParsedDicomFile(buffer, size));
-      }
-
-      decoded.reset(DecodeFrameBuiltin(*dicom, frameIndex));
+      decoded.reset(DecodeFrameBuiltin(image.GetParsedDicomFile(), frameIndex));
       if (decoded.get() != NULL)
       {
         return decoded.release();
       }
     }
 
-    decoded.reset(DecodeFrameUsingPluginsTranscoder(buffer, size, frameIndex));
+    decoded.reset(DecodeFrameUsingPluginsTranscoder(image.GetBufferData(), image.GetBufferSize(), frameIndex));
     if (decoded.get() != NULL)
     {
       return decoded.release();

@@ -4039,7 +4039,7 @@ namespace Orthanc
         std::unique_ptr<ImageAccessor> decoded;
         {
           PImpl::ServerContextReference lock(*pimpl_);
-          decoded.reset(lock.GetContext().DecodeDicomFrame(instance, p.frameIndex));
+          decoded.reset(lock.GetContext().GetTranscoder()->DecodeFrame(instance, p.frameIndex));
         }
         
         *(p.targetImage) = ReturnImage(decoded);
@@ -4153,8 +4153,14 @@ namespace Orthanc
 
       case OrthancPluginImageFormat_Dicom:
       {
-        PImpl::ServerContextReference lock(*pimpl_);
-        image.reset(lock.GetContext().GetTranscoder()->DecodeFrame(p.data, p.size, 0 /* frame index */));
+        std::unique_ptr<DicomInstanceToStore> instance(DicomInstanceToStore::CreateFromBuffer(p.data, p.size));
+
+        {
+          PImpl::ServerContextReference lock(*pimpl_);
+          image.reset(lock.GetContext().GetTranscoder()->DecodeFrame(
+                        *instance, 0 /* frame index is not available in _OrthancPluginUncompressImage */));
+        }
+
         break;
       }
 
@@ -4828,8 +4834,13 @@ namespace Orthanc
 
       case _OrthancPluginService_DecodeDicomImage:
       {
-        PImpl::ServerContextReference lock(*pimpl_);
-        result.reset(lock.GetContext().GetTranscoder()->DecodeFrame(p.constBuffer, p.bufferSize, p.frameIndex));
+        std::unique_ptr<DicomInstanceToStore> instance(DicomInstanceToStore::CreateFromBuffer(p.constBuffer, p.bufferSize));
+
+        {
+          PImpl::ServerContextReference lock(*pimpl_);
+          result.reset(lock.GetContext().GetTranscoder()->DecodeFrame(*instance, p.frameIndex));
+        }
+
         break;
       }
 

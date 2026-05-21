@@ -541,10 +541,6 @@ namespace Orthanc
     ImageAccessor* DecodeDicomFrame(const std::string& publicId,
                                     unsigned int frameIndex);
 
-    // TODO-Streaming : To remove (or adapt)
-    ImageAccessor* DecodeDicomFrame(const DicomInstanceToStore& dicom,
-                                    unsigned int frameIndex);
-
     void PerformCStoreWithTranscoding(std::string& sopClassUid,
                                       std::string& sopInstanceUid,
                                       DicomStoreUserConnection& connection,

@@ -34,6 +34,7 @@
 namespace Orthanc
 {
   class DataSourceReader;
+  class DicomInstanceToStore;
 
 #if ORTHANC_ENABLE_PLUGINS == 1
   class OrthancPlugins;
@@ -59,7 +60,6 @@ namespace Orthanc
                                                   size_t size,
                                                   unsigned int frameIndex);
 
-    // TODO-Streaming : remove
     ImageAccessor* DecodeFrameUsingPluginsTranscoder(const void* buffer,
                                                      size_t size,
                                                      unsigned int frameIndex);
@@ -90,8 +90,8 @@ namespace Orthanc
 
     bool HasPluginsTranscoder() const;
 
-    ImageAccessor* DecodeFrame(const void* buffer,
-                               size_t size,
+    // This version should only be used by plugins
+    ImageAccessor* DecodeFrame(const DicomInstanceToStore& image,
                                unsigned int frameIndex);
 
     ImageAccessor* DecodeFrame(const boost::shared_ptr<DataSourceReader>& dicomReader,        // For built-in decoding
