@@ -587,7 +587,7 @@ namespace Orthanc
 
     void PublishCacheMetrics();
 
-    const boost::shared_ptr<ServerTranscoder>& GetTranscoder() const;  // TODO-Streaming : REMOVE
+    const boost::shared_ptr<ServerTranscoder>& GetTranscoder() const;
 
     Future* SubmitTranscodingRequest(TranscodingCallable* callable);
   };

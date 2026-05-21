@@ -1148,9 +1148,7 @@ namespace Orthanc
                                        const FileInfo& attachment,
                                        const std::string& filename)
   {
-    std::unique_ptr<StorageAreaDataSource::Range> range(
-      StorageAreaDataSource::ReadAttachment(
-        *storageAreaReader_, attachment, true /* uncompress */, checkMD5_));
+    std::unique_ptr<StorageAreaDataSource::Range> range(ReadAttachment(attachment, true /* uncompress */));
 
     BufferHttpSender sender;
     sender.SetBuffer(range->GetData(), range->GetSize());
@@ -1191,10 +1189,7 @@ namespace Orthanc
     FileInfo modified;
 
     {
-      std::unique_ptr<StorageAreaDataSource::Range> range(
-        StorageAreaDataSource::ReadAttachment(
-          *storageAreaReader_, attachment, true /* uncompress */, checkMD5_));
-
+      std::unique_ptr<StorageAreaDataSource::Range> range(ReadAttachment(attachment, true /* uncompress */));
       accessor.Write(modified, range->GetData(), range->GetSize(), attachmentType, compression, storeMD5_, NULL);
     }
 
@@ -1394,9 +1389,7 @@ namespace Orthanc
          * "/.../.../reconstruct" will disable this case.
          **/
 
-        std::unique_ptr<StorageAreaDataSource::Range> dicomAsJson(
-          StorageAreaDataSource::ReadAttachment(
-            *storageAreaReader_, attachment, true /* uncompress */, checkMD5_));
+        std::unique_ptr<StorageAreaDataSource::Range> dicomAsJson(ReadAttachment(attachment, true /* uncompress */));
 
         if (!Toolbox::ReadJson(result, dicomAsJson->GetData(), dicomAsJson->GetSize()))
         {
@@ -1417,8 +1410,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_UnknownResource);
         }
 
-        std::unique_ptr<StorageAreaDataSource::Range> range(
-          StorageAreaDataSource::ReadAttachment(*storageAreaReader_, attachment, true /* uncompress */, checkMD5_));
+        std::unique_ptr<StorageAreaDataSource::Range> range(ReadAttachment(attachment, true /* uncompress */));
 
         // We don't use the cache, as this would complexify the code for a rare edge case
         ParsedDicomFile dicom(range->GetData(), range->GetSize());
