@@ -564,6 +564,7 @@ namespace Orthanc
       {
         boost::shared_ptr<ThreadPool> pool(new ThreadPool);
         pool->SetCountThreads(4);  // TODO-Streaming - Parameter
+        pool->SetLoggingThreadName("STORAGE");
         pool->SetDequeueTimeout(100);
         pool->Start();
 
@@ -574,6 +575,7 @@ namespace Orthanc
       {
         boost::shared_ptr<ThreadPool> pool(new ThreadPool);
         pool->SetCountThreads(2);  // TODO-Streaming - Parameter
+        pool->SetLoggingThreadName("DICOM");
         pool->SetDequeueTimeout(100);
         pool->Start();
 
@@ -585,6 +587,7 @@ namespace Orthanc
       {
         transcoderThreadPool_.reset(new ThreadPool);
         transcoderThreadPool_->SetCountThreads(2);  // TODO-Streaming - Parameter
+        transcoderThreadPool_->SetLoggingThreadName("TRANSCODER");
         transcoderThreadPool_->SetDequeueTimeout(100);
         transcoderThreadPool_->Start();
 
@@ -1474,8 +1477,7 @@ namespace Orthanc
   }
 
 
-  DicomDataSource::Dicom* ServerContext::ReadParsedDicom(const std::string& instancePublicId,
-                                                         bool keepRawBuffer)
+  DicomDataSource::Dicom* ServerContext::ReadParsedDicom(const std::string& instancePublicId)
   {
     FileInfo attachment;
     int64_t revision;
@@ -1487,7 +1489,7 @@ namespace Orthanc
                              " of instance " + instancePublicId);
     }
 
-    return DicomDataSource::ReadWhole(*dicomReader_, attachment, keepRawBuffer, checkMD5_);
+    return DicomDataSource::ReadWhole(*dicomReader_, attachment, false, checkMD5_);
   }
 
 

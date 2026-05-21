@@ -294,7 +294,7 @@ namespace Orthanc
 
       if (limitToThisLevelDicomTags && instances.size() > 0) // in this case, we only need to rebuild one instance !
       {
-        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(instances.front(), false));
+        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(instances.front()));
         DicomDataSource::Dicom::Lock lock(*dicom);
 
         context.GetIndex().ReconstructInstance(lock.GetContent(), true, limitToLevel);
@@ -304,7 +304,7 @@ namespace Orthanc
         for (std::list<std::string>::const_iterator 
               it = instances.begin(); it != instances.end(); ++it)
         {
-          std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(*it, false));
+          std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(*it));
           DicomDataSource::Dicom::Lock lock(*dicom);
 
           // Delay the reconstruction of DICOM-as-JSON to its next access through "ServerContext"

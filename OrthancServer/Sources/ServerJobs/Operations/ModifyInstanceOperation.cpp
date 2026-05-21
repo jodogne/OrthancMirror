@@ -87,7 +87,7 @@ namespace Orthanc
     std::unique_ptr<ParsedDicomFile> modified;
     
     {
-      std::unique_ptr<DicomDataSource::Dicom> dicom(context_.ReadParsedDicom(instance.GetId(), false));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context_.ReadParsedDicom(instance.GetId()));
       modified.reset(dicom->Clone());
     }
 

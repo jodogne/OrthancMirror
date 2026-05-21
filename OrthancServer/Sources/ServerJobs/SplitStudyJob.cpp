@@ -72,7 +72,7 @@ namespace Orthanc
 
     try
     {
-      std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(instance, false));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(instance));
       modified.reset(dicom->Clone());
     }
     catch (OrthancException&)

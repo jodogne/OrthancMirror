@@ -291,7 +291,7 @@ namespace Orthanc
           // from the file storage, and that the actual SOP
           // class/instance UIDs do match
 
-          std::unique_ptr<DicomDataSource::Dicom> dicom(context_.ReadParsedDicom(orthancId[0], false));
+          std::unique_ptr<DicomDataSource::Dicom> dicom(context_.ReadParsedDicom(orthancId[0]));
           DicomDataSource::Dicom::Lock lock(*dicom);
 
           if (lock.GetContent().GetTagValue(a, DICOM_TAG_SOP_CLASS_UID) &&

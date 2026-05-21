@@ -97,7 +97,7 @@ namespace Orthanc
 
     try
     {
-      std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(instance, false));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(instance));
       modified.reset(dicom->Clone());
     }
     catch (OrthancException&)
@@ -201,7 +201,7 @@ namespace Orthanc
     DicomMap dicom;
 
     {
-      std::unique_ptr<DicomDataSource::Dicom> loadedDicom(GetContext().ReadParsedDicom(instances.front(), false));
+      std::unique_ptr<DicomDataSource::Dicom> loadedDicom(GetContext().ReadParsedDicom(instances.front()));
       DicomDataSource::Dicom::Lock lock(*loadedDicom);
 
       OrthancConfiguration::DefaultExtractDicomSummary(dicom, lock.GetContent());

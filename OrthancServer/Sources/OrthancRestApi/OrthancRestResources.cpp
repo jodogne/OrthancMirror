@@ -383,7 +383,7 @@ namespace Orthanc
           DicomWebJsonVisitor visitor;
           
           {
-            std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId, false));
+            std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId));
             DicomDataSource::Dicom::Lock lock(*dicom);
             lock.GetContent().Apply(visitor);
           }
@@ -426,7 +426,7 @@ namespace Orthanc
       std::unique_ptr<TranscodingCallable> callable(new TranscodingCallable);
 
       {
-        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId, false));
+        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId));
         std::unique_ptr<ParsedDicomFile> clone(dicom->Clone());
         callable->AcquireParsed(*clone);  // "clone" is invalid below this point
       }
@@ -517,7 +517,7 @@ namespace Orthanc
       Json::Value answer;
 
       {
-        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId, false));
+        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId));
         DicomDataSource::Dicom::Lock lock(*dicom);
         lock.GetContent().DatasetToJson(answer, format, flags,
                                         ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
@@ -639,7 +639,7 @@ namespace Orthanc
     unsigned int numberOfFrames;
       
     {
-      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId, false));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId));
       DicomDataSource::Dicom::Lock lock(*dicom);
       numberOfFrames = lock.GetContent().GetFramesCount();
     }
@@ -926,7 +926,7 @@ namespace Orthanc
              * interpretation, and with windowing parameters.
              **/
 
-            std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId, false));
+            std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId));
             DicomDataSource::Dicom::Lock lock(*dicom);
             handler.Handle(call, decoded, &lock.GetContent(), frame);
           }
@@ -1411,7 +1411,7 @@ namespace Orthanc
       NumpyVisitor visitor(0 /* no depth, 2D frame */, rescale);
 
       {
-        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(instanceId, false));
+        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(instanceId));
         DicomDataSource::Dicom::Lock lock(*dicom);
         visitor.WriteFrame(lock.GetContent(), frame);
       }
@@ -1441,7 +1441,7 @@ namespace Orthanc
       const bool rescale = call.GetBooleanArgument("rescale", true);
 
       {
-        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(instanceId, false));
+        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(instanceId));
         DicomDataSource::Dicom::Lock lock(*dicom);
 
         const unsigned int depth = lock.GetContent().GetFramesCount();
@@ -1499,7 +1499,7 @@ namespace Orthanc
         unsigned int framesCount = ordering.GetFramesCount(i);
 
         {
-          std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(instanceId, false));
+          std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(instanceId));
           DicomDataSource::Dicom::Lock lock(*dicom);
 
           for (unsigned int frame = 0; frame < framesCount; frame++)
@@ -1619,7 +1619,7 @@ namespace Orthanc
     MimeType mime;
 
     {
-      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId, false));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId));
       DicomDataSource::Dicom::Lock lock(*dicom);
       lock.GetContent().GetRawFrame(raw, mime, frame);
     }
@@ -2855,7 +2855,7 @@ namespace Orthanc
     std::string id = call.GetUriComponent("id", "");
 
     {
-      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id, false));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
       DicomDataSource::Dicom::Lock lock(*dicom);
       lock.GetContent().SendPathValue(call.GetOutput(), call.GetTrailingUri());
     }
@@ -3827,7 +3827,7 @@ namespace Orthanc
     std::string pdf;
 
     {
-      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id, false));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
       DicomDataSource::Dicom::Lock lock(*dicom);
 
       if (lock.GetContent().ExtractPdf(pdf))

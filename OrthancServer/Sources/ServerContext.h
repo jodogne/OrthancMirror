@@ -384,8 +384,7 @@ namespace Orthanc
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId);
 
-    DicomDataSource::Dicom* ReadParsedDicom(const std::string& instancePublicId,
-                                            bool keepRawBuffer);
+    DicomDataSource::Dicom* ReadParsedDicom(const std::string& instancePublicId);
 
     void ReadDicomForHeader(std::string& dicom,
                             const std::string& instancePublicId);

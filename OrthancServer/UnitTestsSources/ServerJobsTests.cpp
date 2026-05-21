@@ -1021,7 +1021,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   std::string study, series;
 
   {
-    std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(instance, false));
+    std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(instance));
     DicomDataSource::Dicom::Lock lock(*dicom);
 
     study = lock.GetContent().GetHasher().HashStudy();

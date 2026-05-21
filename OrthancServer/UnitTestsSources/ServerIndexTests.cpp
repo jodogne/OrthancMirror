@@ -1002,7 +1002,7 @@ TEST(ServerIndex, Overwrite)
     ASSERT_EQ("name", tmp["0010,0010"]["Value"].asString());
     
     {
-      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id, false));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
       DicomDataSource::Dicom::Lock lock(*dicom);
 
       std::string tmp;
@@ -1059,7 +1059,7 @@ TEST(ServerIndex, Overwrite)
       ASSERT_EQ("overwritten", tmp["0010,0010"]["Value"].asString());
     
       {
-        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id, false));
+        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
         DicomDataSource::Dicom::Lock lock(*dicom);
 
         std::string tmp;
@@ -1078,7 +1078,7 @@ TEST(ServerIndex, Overwrite)
       ASSERT_EQ("name", tmp["0010,0010"]["Value"].asString());
     
       {
-        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id, false));
+        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
         DicomDataSource::Dicom::Lock lock(*dicom);
 
         std::string tmp;

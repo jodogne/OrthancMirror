@@ -219,7 +219,7 @@ namespace Orthanc
     std::unique_ptr<ParsedDicomFile> modified;
 
     {
-      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id, false));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
       modified.reset(dicom->Clone());
     }
     

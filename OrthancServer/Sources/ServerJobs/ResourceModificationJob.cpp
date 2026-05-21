@@ -187,7 +187,7 @@ namespace Orthanc
     {
       for (std::set<std::string>::const_iterator it = instancesToReconstruct_.begin(); it != instancesToReconstruct_.end(); ++it)
       {
-        std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(*it, false));
+        std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(*it));
         DicomDataSource::Dicom::Lock lock(*dicom);
 
         const ParsedDicomFile& modifiedDicom = lock.GetContent();
@@ -223,7 +223,7 @@ namespace Orthanc
  
     try
     {
-      std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(instance, false));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(instance));
       DicomDataSource::Dicom::Lock lock(*dicom);
 
       const ParsedDicomFile& original = lock.GetContent();
