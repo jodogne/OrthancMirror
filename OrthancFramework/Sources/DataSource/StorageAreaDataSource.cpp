@@ -43,10 +43,13 @@ namespace Orthanc
   {
   private:
     std::unique_ptr<IMemoryBuffer>  buffer_;
+    bool                            checkMD5_;
 
   public:
-    explicit Value(IMemoryBuffer* buffer) :
-      buffer_(buffer)
+    explicit Value(IMemoryBuffer* buffer,
+                   bool checkMD5) :
+      buffer_(buffer),
+      checkMD5_(checkMD5)
     {
       if (buffer == NULL)
       {
@@ -59,17 +62,39 @@ namespace Orthanc
       assert(buffer_.get() != NULL);
       return *buffer_;
     }
+
+    bool IsCheckMD5() const
+    {
+      return checkMD5_;
+    }
+
+    static Value* CreateFromSwap(std::string& content)
+    {
+      return new Value(StringMemoryBuffer::CreateFromSwap(content), false);
+    }
+  };
+
+
+  class StorageAreaDataSource::IPostProcessing : public boost::noncopyable
+  {
+  public:
+    virtual ~IPostProcessing()
+    {
+    }
+
+    virtual boost::shared_ptr<IDynamicObject> Apply(const boost::shared_ptr<IDynamicObject>& value) const = 0;
   };
 
 
   class StorageAreaDataSource::Identifier : public IDataIdentifier
   {
   private:
-    std::string      uuid_;
-    FileContentType  type_;
-    uint64_t         start_;
-    uint64_t         end_;
-    std::string      customData_;
+    std::string                       uuid_;
+    FileContentType                   type_;
+    uint64_t                          start_;
+    uint64_t                          end_;
+    std::string                       customData_;
+    std::unique_ptr<IPostProcessing>  postProcessing_;
 
   public:
     Identifier(const std::string& uuid,
@@ -95,9 +120,9 @@ namespace Orthanc
       }
     }
 
-    Value* Read(IPluginStorageArea& area) const
+    IMemoryBuffer* Read(IPluginStorageArea& area) const
     {
-      return new Value(area.ReadRange(uuid_, type_, start_, end_, customData_));
+      return area.ReadRange(uuid_, type_, start_, end_, customData_);
     }
 
     virtual bool GetCacheKey(std::string& key) const ORTHANC_OVERRIDE
@@ -116,6 +141,130 @@ namespace Orthanc
       assert(start_ <= end_);
       return end_ - start_;
     }
+
+    void SetPostProcessing(IPostProcessing* postProcessing)
+    {
+      if (postProcessing == NULL)
+      {
+        throw OrthancException(ErrorCode_NullPointer);
+      }
+      else
+      {
+        postProcessing_.reset(postProcessing);
+      }
+    }
+
+    boost::shared_ptr<IDynamicObject> ApplyPostProcessing(const boost::shared_ptr<IDynamicObject>& value) const
+    {
+      if (value.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_NullPointer);
+      }
+      else if (postProcessing_.get() == NULL)
+      {
+        return value;
+      }
+      else
+      {
+        return postProcessing_->Apply(value);
+      }
+    }
+  };
+
+
+  class StorageAreaDataSource::AttachmentPostProcessing : public StorageAreaDataSource::IPostProcessing
+  {
+  private:
+    FileInfo  attachment_;
+    bool      uncompress_;
+
+  public:
+    AttachmentPostProcessing(const FileInfo& attachment,
+                             bool uncompress) :
+      attachment_(attachment),
+      uncompress_(uncompress)
+    {
+      if (attachment.GetCompressionType() == CompressionType_None)
+      {
+        if (attachment.GetCompressedMD5() != attachment.GetUncompressedMD5() ||
+            attachment.GetCompressedSize() != attachment.GetUncompressedSize())
+        {
+          throw OrthancException(ErrorCode_CorruptedFile);
+        }
+      }
+    }
+
+    virtual boost::shared_ptr<IDynamicObject> Apply(const boost::shared_ptr<IDynamicObject>& obj) const ORTHANC_OVERRIDE
+    {
+      if (obj.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_NullPointer);
+      }
+      else
+      {
+        const Value& value = dynamic_cast<Value&>(*obj);
+
+        if (value.IsCheckMD5())
+        {
+          std::string md5;
+          Toolbox::ComputeMD5(md5, value.GetBuffer().GetData(), value.GetBuffer().GetSize());
+
+          if (md5 != attachment_.GetCompressedMD5())
+          {
+            throw OrthancException(ErrorCode_CorruptedFile);
+          }
+        }
+
+        if (uncompress_)
+        {
+          switch (attachment_.GetCompressionType())
+          {
+            case CompressionType_None:
+              if (value.IsCheckMD5() &&
+                  attachment_.GetCompressedMD5() != attachment_.GetUncompressedMD5())
+              {
+                throw OrthancException(ErrorCode_CorruptedFile);
+              }
+              else
+              {
+                return obj;
+              }
+
+            case CompressionType_ZlibWithSize:
+            {
+#if ORTHANC_ENABLE_ZLIB == 1
+              ZlibCompressor zlib;
+
+              std::string content;
+              zlib.Uncompress(content, value.GetBuffer().GetData(), value.GetBuffer().GetSize());
+
+              if (value.IsCheckMD5())
+              {
+                std::string md5;
+                Toolbox::ComputeMD5(md5, content);
+
+                if (md5 != attachment_.GetUncompressedMD5())
+                {
+                  throw OrthancException(ErrorCode_CorruptedFile);
+                }
+              }
+
+              return boost::shared_ptr<IDynamicObject>(Value::CreateFromSwap(content));
+#else
+              throw OrthancException(ErrorCode_InternalError, "Support for zlib is disabled, cannot uncompress attachment");
+#endif
+            }
+
+            default:
+              throw OrthancException(ErrorCode_NotImplemented);
+          }
+        }
+        else
+        {
+          return obj;
+        }
+      }
+    }
   };
 
 
@@ -128,7 +277,7 @@ namespace Orthanc
   IDynamicObject* StorageAreaDataSource::Load(const IDataIdentifier& identifier)
   {
     const Identifier& id = dynamic_cast<const Identifier&>(identifier);
-    return id.Read(area_);
+    return new Value(id.Read(area_), checkMD5_);
   }
 
 
@@ -168,9 +317,15 @@ namespace Orthanc
   }
 
 
+  StorageAreaDataSource::Range* StorageAreaDataSource::Range::ApplyPostProcessing(const IDataIdentifier& identifier) const
+  {
+    return new Range(dynamic_cast<const Identifier&>(identifier).ApplyPostProcessing(value_));
+  }
+
+
   StorageAreaDataSource::Range* StorageAreaDataSource::Range::CreateFromSwap(std::string& content)
   {
-    boost::shared_ptr<Value> value(new Value(StringMemoryBuffer::CreateFromSwap(content)));
+    boost::shared_ptr<Value> value(new Value(StringMemoryBuffer::CreateFromSwap(content), false));
     return new Range(value);
   }
 
@@ -193,72 +348,17 @@ namespace Orthanc
                                                                       bool uncompress,
                                                                       bool checkMD5)
   {
-    if (attachment.GetCompressionType() == CompressionType_None)
-    {
-      if (attachment.GetCompressedMD5() != attachment.GetUncompressedMD5() ||
-          attachment.GetCompressedSize() != attachment.GetUncompressedSize())
-      {
-        throw OrthancException(ErrorCode_CorruptedFile);
-      }
-    }
+    std::unique_ptr<Identifier> id(new Identifier(attachment.GetUuid(),
+                                                  attachment.GetContentType(),
+                                                  0, attachment.GetCompressedSize(),
+                                                  attachment.GetCustomData()));
+    id->SetPostProcessing(new AttachmentPostProcessing(attachment, uncompress));
 
-    std::unique_ptr<StorageAreaDataSource::Range> range(ReadRange(reader,
-                                                                  attachment.GetUuid(),
-                                                                  attachment.GetContentType(),
-                                                                  0, attachment.GetCompressedSize(),
-                                                                  attachment.GetCustomData()));
+    std::unique_ptr<DataSourceAnswer::Item> item(reader.ReadSingleWithIdentifier(id.release()));
 
-    if (checkMD5)
-    {
-      std::string md5;
-      Toolbox::ComputeMD5(md5, range->GetData(), range->GetSize());
+    std::unique_ptr<StorageAreaDataSource::Range> range(new Range(item->GetValue()));
 
-      if (md5 != attachment.GetCompressedMD5())
-      {
-        throw OrthancException(ErrorCode_CorruptedFile);
-      }
-    }
-
-    if (uncompress)
-    {
-      switch (attachment.GetCompressionType())
-      {
-        case CompressionType_None:
-          return range.release();
-
-        case CompressionType_ZlibWithSize:
-        {
-#if ORTHANC_ENABLE_ZLIB == 1
-          ZlibCompressor zlib;
-
-          std::string content;
-          zlib.Uncompress(content, range->GetData(), range->GetSize());
-
-          if (checkMD5)
-          {
-            std::string md5;
-            Toolbox::ComputeMD5(md5, content);
-
-            if (md5 != attachment.GetUncompressedMD5())
-            {
-              throw OrthancException(ErrorCode_CorruptedFile);
-            }
-          }
-
-          return Range::CreateFromSwap(content);
-#else
-          throw OrthancException(ErrorCode_InternalError, "Support for zlib is disabled, cannot uncompress attachment");
-#endif
-        }
-
-        default:
-          throw OrthancException(ErrorCode_NotImplemented);
-      }
-    }
-    else
-    {
-      return range.release();
-    }
+    return range->ApplyPostProcessing(item->GetId());
   }
 
 

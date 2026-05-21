@@ -69,6 +69,8 @@ namespace Orthanc
 
     boost::shared_ptr<IDynamicObject> ReadSingle(IDataIdentifier* id /* takes ownership */);
 
+    DataSourceAnswer::Item* ReadSingleWithIdentifier(IDataIdentifier* id /* takes ownership */);
+
     void Stop()
     {
       executor_->Stop();

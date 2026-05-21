@@ -207,7 +207,14 @@ namespace Orthanc
   }
 
 
-  boost::shared_ptr<IDynamicObject> DataSourceReader::ReadSingle(IDataIdentifier* id)
+  boost::shared_ptr<IDynamicObject> DataSourceReader::ReadSingle(IDataIdentifier* id /* takes ownership */)
+  {
+    std::unique_ptr<DataSourceAnswer::Item> item(ReadSingleWithIdentifier(id));
+    return item->GetValue();
+  }
+
+
+  DataSourceAnswer::Item* DataSourceReader::ReadSingleWithIdentifier(IDataIdentifier* id /* takes ownership */)
   {
     std::unique_ptr<IDataIdentifier> protection(id);
 
@@ -219,7 +226,7 @@ namespace Orthanc
     std::unique_ptr<DataSourceAnswer::Item> item(answer->Dequeue());
     assert(answer->Dequeue() == NULL);
 
-    return item->GetValue();
+    return item.release();
   }
 
 

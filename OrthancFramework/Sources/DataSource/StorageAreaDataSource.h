@@ -46,13 +46,18 @@ namespace Orthanc
   private:
     class Value;
     class Identifier;
+    class IPostProcessing;
+    class AttachmentPostProcessing;
 
   private:
     IPluginStorageArea&  area_;
+    bool                 checkMD5_;
 
   public:
-    explicit StorageAreaDataSource(IPluginStorageArea& area) :
-      area_(area)
+    explicit StorageAreaDataSource(IPluginStorageArea& area,
+                                   bool checkMD5 = true /* TODO-Streaming */) :
+      area_(area),
+      checkMD5_(checkMD5)
     {
     }
 
@@ -75,6 +80,8 @@ namespace Orthanc
       size_t GetSize() const;
 
       void Copy(std::string& to) const;
+
+      Range* ApplyPostProcessing(const IDataIdentifier& identifier) const;
 
       static Range* CreateFromSwap(std::string& content);
     };
