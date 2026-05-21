@@ -26,7 +26,9 @@
 
 #include "OrthancRestApi.h"
 
+#include "../../../OrthancFramework/Sources/CompatibilityMath.h"
 #include "../../../OrthancFramework/Sources/Compression/GzipCompressor.h"
+#include "../../../OrthancFramework/Sources/Constants.h"
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomImageInformation.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/DicomWebJsonVisitor.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
@@ -38,7 +40,6 @@
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
-#include "../../../OrthancFramework/Sources/CompatibilityMath.h"
 
 #include "../OrthancConfiguration.h"
 #include "../Search/DatabaseLookup.h"
@@ -1683,8 +1684,6 @@ namespace Orthanc
       return;
     }
 
-    static const uint64_t MEGA_BYTES = 1024ull * 1024ull;
-
     std::string publicId = call.GetUriComponent("id", "");
 
     ResourceType type;
@@ -1696,14 +1695,14 @@ namespace Orthanc
 
     Json::Value result = Json::objectValue;
     result["DiskSize"] = boost::lexical_cast<std::string>(diskSize);
-    result["DiskSizeMB"] = static_cast<unsigned int>(diskSize / MEGA_BYTES);
+    result["DiskSizeMB"] = static_cast<unsigned int>(diskSize / MEGABYTE);
     result["UncompressedSize"] = boost::lexical_cast<std::string>(uncompressedSize);
-    result["UncompressedSizeMB"] = static_cast<unsigned int>(uncompressedSize / MEGA_BYTES);
+    result["UncompressedSizeMB"] = static_cast<unsigned int>(uncompressedSize / MEGABYTE);
 
     result["DicomDiskSize"] = boost::lexical_cast<std::string>(dicomDiskSize);
-    result["DicomDiskSizeMB"] = static_cast<unsigned int>(dicomDiskSize / MEGA_BYTES);
+    result["DicomDiskSizeMB"] = static_cast<unsigned int>(dicomDiskSize / MEGABYTE);
     result["DicomUncompressedSize"] = boost::lexical_cast<std::string>(dicomUncompressedSize);
-    result["DicomUncompressedSizeMB"] = static_cast<unsigned int>(dicomUncompressedSize / MEGA_BYTES);
+    result["DicomUncompressedSizeMB"] = static_cast<unsigned int>(dicomUncompressedSize / MEGABYTE);
 
     switch (type)
     {

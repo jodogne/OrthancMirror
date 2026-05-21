@@ -26,12 +26,13 @@
 
 #include "../../../OrthancFramework/Sources/Cache/SharedArchive.h"
 #include "../../../OrthancFramework/Sources/Compression/HierarchicalZipWriter.h"
+#include "../../../OrthancFramework/Sources/Constants.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/DicomDirWriter.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
-#include "../../../OrthancFramework/Sources/OrthancException.h"
-#include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 #include "../../../OrthancFramework/Sources/MultiThreading/BlockingSharedMessageQueue.h"
+#include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
@@ -44,9 +45,6 @@
 #if defined(_MSC_VER)
 #define snprintf _snprintf
 #endif
-
-static const uint64_t MEGA_BYTES = 1024ull * 1024;
-static const uint64_t GIGA_BYTES = 1024ull * 1024 * 1024;
 
 static const char* const MEDIA_IMAGES_FOLDER = "IMAGES"; 
 static const char* const KEY_DESCRIPTION = "Description";
@@ -64,7 +62,7 @@ namespace Orthanc
   static bool IsZip64Required(uint64_t uncompressedSize,
                               unsigned int countInstances)
   {
-    static const uint64_t      SAFETY_MARGIN = 64 * MEGA_BYTES;  // Should be large enough to hold DICOMDIR
+    static const uint64_t      SAFETY_MARGIN = 64 * MEGABYTE;  // Should be large enough to hold DICOMDIR
     static const unsigned int  FILES_MARGIN = 10;
 
     /**
@@ -74,7 +72,7 @@ namespace Orthanc
      * https://en.wikipedia.org/wiki/Zip_(file_format)#ZIP64
      **/
 
-    const bool isZip64 = (uncompressedSize >= 2 * GIGA_BYTES - SAFETY_MARGIN ||
+    const bool isZip64 = (uncompressedSize >= 2 * GIGABYTE - SAFETY_MARGIN ||
                           countInstances >= 65535 - FILES_MARGIN);
 
     LOG(INFO) << "Creating a ZIP file with " << countInstances << " files of size "
@@ -1353,10 +1351,8 @@ namespace Orthanc
     value = Json::objectValue;
     value[KEY_DESCRIPTION] = description_;
     value[KEY_INSTANCES_COUNT] = instancesCount_;
-    value[KEY_UNCOMPRESSED_SIZE_MB] =
-      static_cast<unsigned int>(uncompressedSize_ / MEGA_BYTES);
-    value[KEY_ARCHIVE_SIZE_MB] =
-      static_cast<unsigned int>(archiveSize_ / MEGA_BYTES);
+    value[KEY_UNCOMPRESSED_SIZE_MB] = static_cast<unsigned int>(uncompressedSize_ / MEGABYTE);
+    value[KEY_ARCHIVE_SIZE_MB] = static_cast<unsigned int>(archiveSize_ / MEGABYTE);
 
     // New in Orthanc 1.9.4
     value[KEY_ARCHIVE_SIZE] = boost::lexical_cast<std::string>(archiveSize_);

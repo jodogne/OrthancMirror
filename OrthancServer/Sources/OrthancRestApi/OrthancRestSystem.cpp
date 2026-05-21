@@ -24,6 +24,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
+#include "../../../OrthancFramework/Sources/Constants.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../Plugins/Engine/OrthancPlugins.h"
@@ -241,8 +242,6 @@ namespace Orthanc
       return;
     }
 
-    static const uint64_t MEGA_BYTES = 1024ull * 1024ull;
-
     uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
     OrthancRestApi::GetIndex(call).GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
                                                        countStudies, countSeries, countInstances);
@@ -250,8 +249,8 @@ namespace Orthanc
     Json::Value result = Json::objectValue;
     result["TotalDiskSize"] = boost::lexical_cast<std::string>(diskSize);
     result["TotalUncompressedSize"] = boost::lexical_cast<std::string>(uncompressedSize);
-    result["TotalDiskSizeMB"] = static_cast<unsigned int>(diskSize / MEGA_BYTES);
-    result["TotalUncompressedSizeMB"] = static_cast<unsigned int>(uncompressedSize / MEGA_BYTES);
+    result["TotalDiskSizeMB"] = static_cast<unsigned int>(diskSize / MEGABYTE);
+    result["TotalUncompressedSizeMB"] = static_cast<unsigned int>(uncompressedSize / MEGABYTE);
     result["CountPatients"] = static_cast<unsigned int>(countPatients);
     result["CountStudies"] = static_cast<unsigned int>(countStudies);
     result["CountSeries"] = static_cast<unsigned int>(countSeries);
@@ -978,8 +977,6 @@ namespace Orthanc
     OrthancRestApi::GetContext(call).GetPlugins().RefreshMetrics();
 #endif
 
-    static const float MEGA_BYTES = 1024 * 1024;
-
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
@@ -994,8 +991,8 @@ namespace Orthanc
     context.GetIndex().GetLastChange(lastChange);
 
     MetricsRegistry& registry = context.GetMetricsRegistry();
-    registry.SetFloatValue("orthanc_disk_size_mb", static_cast<float>(diskSize) / MEGA_BYTES);
-    registry.SetFloatValue("orthanc_uncompressed_size_mb", static_cast<float>(diskSize) / MEGA_BYTES);
+    registry.SetFloatValue("orthanc_disk_size_mb", static_cast<float>(diskSize) / MEGABYTE);
+    registry.SetFloatValue("orthanc_uncompressed_size_mb", static_cast<float>(diskSize) / MEGABYTE);
     registry.SetIntegerValue("orthanc_count_patients", static_cast<int64_t>(countPatients));
     registry.SetIntegerValue("orthanc_count_studies", static_cast<int64_t>(countStudies));
     registry.SetIntegerValue("orthanc_count_series", static_cast<int64_t>(countSeries));

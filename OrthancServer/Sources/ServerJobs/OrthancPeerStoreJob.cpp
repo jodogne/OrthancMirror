@@ -25,6 +25,7 @@
 #include "OrthancPeerStoreJob.h"
 
 #include "../../../OrthancFramework/Sources/Compression/GzipCompressor.h"
+#include "../../../OrthancFramework/Sources/Constants.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../ServerContext.h"
@@ -241,9 +242,8 @@ namespace Orthanc
       value["Transcode"] = GetTransferSyntaxUid(transferSyntax_);
     }
 
-    static const uint64_t MEGA_BYTES = 1024ull * 1024ull;
     value["Size"] = boost::lexical_cast<std::string>(size_);
-    value["SizeMB"] = static_cast<unsigned int>(size_ / MEGA_BYTES);
+    value["SizeMB"] = static_cast<unsigned int>(size_ / MEGABYTE);
   }
 
 
