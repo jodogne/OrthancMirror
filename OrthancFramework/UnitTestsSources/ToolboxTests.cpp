@@ -30,6 +30,7 @@
 #include <gtest/gtest.h>
 
 #include "../Sources/Compatibility.h"
+#include "../Sources/Constants.h"
 #include "../Sources/IDynamicObject.h"
 #include "../Sources/OrthancException.h"
 #include "../Sources/Toolbox.h"
@@ -476,4 +477,11 @@ TEST(Toolbox, BoundMemorySizeToCurrentArchitecture)
   {
     throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
   }
+}
+
+TEST(Toolbox, Constants)
+{
+  // Make sure that "16 * GIGABYTE" is not casted to a size_t on 32bit architectures
+  ASSERT_EQ(static_cast<int16_t>(16) * GIGABYTE, 16ull * 1024ull * 1024ull * 1024ull);
+  ASSERT_EQ(8, sizeof(static_cast<int16_t>(16) * GIGABYTE));
 }

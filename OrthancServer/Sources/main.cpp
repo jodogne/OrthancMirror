@@ -27,6 +27,7 @@
 #include "../../OrthancFramework/Sources/Compatibility.h"
 #include "../../OrthancFramework/Sources/Compression/GzipCompressor.h"
 #include "../../OrthancFramework/Sources/Compression/ZipReader.h"
+#include "../../OrthancFramework/Sources/Constants.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomAssociationParameters.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomServer.h"
@@ -1129,11 +1130,10 @@ static bool StartHttpServer(ServerContext& context,
       httpServer.SetRequestTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpRequestTimeout", 30));
 
       // New in Orthanc 1.12.11
-      static const uint64_t MEGABYTE = 1024ull * 1024ull;
       const unsigned int maxBodySize = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumRequestBodySizeMB", 8192);
       if (maxBodySize != 0)
       {
-        const uint64_t size = Toolbox::BoundMemorySizeToCurrentArchitecture(static_cast<uint64_t>(maxBodySize) * MEGABYTE);
+        const uint64_t size = Toolbox::BoundMemorySizeToCurrentArchitecture(maxBodySize * MEGABYTE);
         LOG(WARNING) << "Limiting the maximum body size in HTTP requests to " << (size / MEGABYTE) << "MB";
         httpServer.SetMaxBodySize(size);
       }
@@ -1145,7 +1145,7 @@ static bool StartHttpServer(ServerContext& context,
       const unsigned int maxSizeInArchive = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumFileSizeInArchiveMB", 4096);
       if (maxSizeInArchive != 0)
       {
-        const uint64_t size = Toolbox::BoundMemorySizeToCurrentArchitecture(static_cast<uint64_t>(maxSizeInArchive) * MEGABYTE);
+        const uint64_t size = Toolbox::BoundMemorySizeToCurrentArchitecture(maxSizeInArchive * MEGABYTE);
         LOG(WARNING) << "Limiting on the maximum file size uncompressed from ZIP/gzip archives to " << (size / MEGABYTE) << "MB";
         ZipReader::SetMaximumUncompressedFileSize(size);
         GzipCompressor::SetMaximumUncompressedFileSize(size);
