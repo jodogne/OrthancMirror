@@ -25,6 +25,7 @@
 #include "ServerContext.h"
 
 #include "../../OrthancFramework/Sources/Cache/SharedArchive.h"
+#include "../../OrthancFramework/Sources/Constants.h"
 #include "../../OrthancFramework/Sources/DataSource/DataSourceReader.h"
 #include "../../OrthancFramework/Sources/DataSource/TranscoderDataSource.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
@@ -66,8 +67,6 @@
 #if HAVE_MALLOC_TRIM == 1
 #  include <malloc.h>
 #endif
-
-static size_t DICOM_CACHE_SIZE = static_cast<size_t>(128) * 1024 * 1024;  // 128 MB
 
 
 /**
@@ -569,7 +568,7 @@ namespace Orthanc
         pool->Start();
 
         storageAreaReader_.reset(new DataSourceReader(pool, new StorageAreaDataSource(area_)));
-        storageAreaReader_->CreateCache(DICOM_CACHE_SIZE); // TODO-Streaming - Parameter
+        storageAreaReader_->CreateCache(128 * MEGABYTE); // 128 MB - TODO-Streaming - Parameter
       }
 
       {
@@ -580,7 +579,7 @@ namespace Orthanc
         pool->Start();
 
         dicomReader_.reset(new DataSourceReader(pool, new DicomDataSource(storageAreaReader_)));
-        dicomReader_->CreateCache(100 * 1024 * 1024); // 100 MB - TODO-Streaming - Parameter
+        dicomReader_->CreateCache(128 * MEGABYTE); // 128 MB - TODO-Streaming - Parameter
       }
 
       if (transcoder_.get() != NULL)
@@ -592,7 +591,7 @@ namespace Orthanc
         transcoderThreadPool_->Start();
 
         transcoderReader_.reset(new DataSourceReader(transcoderThreadPool_, new TranscoderDataSource(transcoder_, storageAreaReader_)));
-        transcoderReader_->CreateCache(100 * 1024 * 1024); // 100 MB - TODO-Streaming - Parameter
+        transcoderReader_->CreateCache(128 * MEGABYTE); // 128 MB - TODO-Streaming - Parameter
       }
     }
     catch (OrthancException&)

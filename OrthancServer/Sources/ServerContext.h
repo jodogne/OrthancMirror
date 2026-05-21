@@ -358,7 +358,7 @@ namespace Orthanc
 
     StoreResult TranscodeAndStore(std::string& resultPublicId,
                                   DicomInstanceToStore* dicom,
-                                  bool isReconstruct = false);
+                                  bool isReconstruct = false);  // TODO-Streaming: To check
 
     void AnswerAttachment(RestApiOutput& output,
                           const FileInfo& fileInfo,
@@ -599,11 +599,6 @@ namespace Orthanc
     DataSourceReader& GetStorageAreaReader() const  // TODO-Streaming : REMOVE?
     {
       return *storageAreaReader_;
-    }
-
-    DataSourceReader& GetDicomReader() const  // TODO-Streaming : REMOVE?
-    {
-      return *dicomReader_;
     }
 
     Future* SubmitTranscodingRequest(TranscodingCallable* callable);
