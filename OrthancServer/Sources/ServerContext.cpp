@@ -1032,6 +1032,15 @@ namespace Orthanc
       {
         // This is an uncompressed transfer syntax (new in Orthanc 1.8.2)
         transcode = ingestTranscodingOfUncompressed_;
+        
+        // If the DICOM does not have any pixel data (e.g. a DICOM SR, an ECG, a PDF, RTSTRUCT, ...), it makes no sense
+        // to transcode it to a compressed Transfer Syntax and it might actually be considered invalid or poorly handled
+        // by some softwares receiving the data.  Therefore, we skip transcoding in this case unless
+        // the ingestTransferSyntax is uncompressed in which case, we might just want to change e.g. from Implicit to Explicit.
+        if (transcode && !dicom->HasPixelData() && !IsUncompressedTransferSyntax(ingestTransferSyntax_))
+        {
+          transcode = false;
+        }
       }
       else
       {
