@@ -227,6 +227,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
+    if (attachment.GetCompressionType() != CompressionType_None)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+
     std::unique_ptr<IDataIdentifier> id(new BeginningIdentifier(attachment, static_cast<size_t>(pixelDataOffset)));
     boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
     return new Dicom(value);

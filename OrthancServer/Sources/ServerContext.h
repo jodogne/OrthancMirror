@@ -388,12 +388,7 @@ namespace Orthanc
 
     DicomDataSource::Dicom* ReadParsedDicom(const std::string& instancePublicId);
 
-    // TODO-Streaming : Remove
-    void ReadDicomForHeader(std::string& dicom,
-                            const std::string& instancePublicId);
-
-    bool ReadDicomUntilPixelData(std::string& dicom,
-                                 const std::string& instancePublicId);
+    DicomDataSource::Dicom* ReadDicomUntilPixelData(const std::string& instancePublicId);
 
     void SetStoreMD5ForAttachments(bool storeMD5);
 

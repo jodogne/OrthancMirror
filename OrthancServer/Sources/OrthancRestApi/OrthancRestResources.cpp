@@ -3895,16 +3895,16 @@ namespace Orthanc
 
     std::string publicId = call.GetUriComponent("id", "");
 
-    std::string dicomContent;
-    context.ReadDicomForHeader(dicomContent, publicId);
-
-    // TODO Consider using "DicomMap::ParseDicomMetaInformation()" to
-    // speed up things here
-
-    ParsedDicomFile dicom(dicomContent);
-
     Json::Value header;
-    OrthancConfiguration::DefaultDicomHeaderToJson(header, dicom);
+
+    {
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadDicomUntilPixelData(publicId));
+      DicomDataSource::Dicom::Lock lock(*dicom);
+
+      // TODO Consider using "DicomMap::ParseDicomMetaInformation()" to
+      // speed up things here
+      OrthancConfiguration::DefaultDicomHeaderToJson(header, lock.GetContent());
+    }
 
     AnswerDicomAsJson(call, header, OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full));
   }

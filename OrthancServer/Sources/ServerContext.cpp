@@ -1483,72 +1483,44 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ReadDicomForHeader(std::string& dicom,
-                                         const std::string& instancePublicId)
-  {
-    if (!ReadDicomUntilPixelData(dicom, instancePublicId))
-    {
-      std::unique_ptr<StorageAreaDataSource::Range> raw(ReadRawDicom(instancePublicId));
-      raw->Copy(dicom);
-    }
-  }
-
-  bool ServerContext::ReadDicomUntilPixelData(std::string& dicom,
-                                              const std::string& instancePublicId)
+  DicomDataSource::Dicom* ServerContext::ReadDicomUntilPixelData(const std::string& instancePublicId)
   {
     FileInfo attachment;
     int64_t revision;  // Ignored
-    if (index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_DicomUntilPixelData))
+
+    if (index_.LookupAttachment(attachment, revision, ResourceType_Instance,
+                                instancePublicId, FileContentType_DicomUntilPixelData))
     {
-      std::unique_ptr<StorageAreaDataSource::Range> range(
-        StorageAreaDataSource::ReadAttachment(
-          *storageAreaReader_, attachment, true /* uncompress */, checkMD5_));
-
-      assert(range->GetSize() == attachment.GetUncompressedSize());
-      range->Copy(dicom);
-
-      return true;
+      return DicomDataSource::ReadWhole(*dicomReader_, attachment, checkMD5_);
     }
-
-    if (!area_.HasEfficientReadRange())
+    else
     {
-      return false;
-    }
-    
-    if (!index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Unable to read the DICOM file of instance " + instancePublicId);
-    }
+      attachment = LookupDicomForInstance(instancePublicId);
 
-    std::string s;
+      std::string metadata;
 
-    if (attachment.GetCompressionType() == CompressionType_None &&
-        index_.LookupMetadata(s, instancePublicId, ResourceType_Instance,
-                              MetadataType_Instance_PixelDataOffset) &&
-        !s.empty())
-    {
-      uint64_t pixelDataOffset = 0;
-
-      if (SerializationToolbox::ParseUnsignedInteger64(pixelDataOffset, s))
+      if (attachment.GetCompressionType() == CompressionType_None &&
+          index_.LookupMetadata(metadata, instancePublicId, ResourceType_Instance,
+                                MetadataType_Instance_PixelDataOffset) &&
+          !metadata.empty())
       {
-        std::unique_ptr<StorageAreaDataSource::Range> range(
-          StorageAreaDataSource::ReadBeginning(*storageAreaReader_, attachment, pixelDataOffset));
+        uint64_t pixelDataOffset = 0;
 
-        assert(range->GetSize() == pixelDataOffset);
-        range->Copy(dicom);
+        if (SerializationToolbox::ParseUnsignedInteger64(pixelDataOffset, metadata))
+        {
+          return DicomDataSource::ReadUntilPixelData(*dicomReader_, attachment, pixelDataOffset);
+        }
+        else
+        {
+          LOG(ERROR) << "Metadata \"PixelDataOffset\" is corrupted for instance: " << instancePublicId;
+        }
+      }
 
-        return true;   // Success
-      }
-      else
-      {
-        LOG(ERROR) << "Metadata \"PixelDataOffset\" is corrupted for instance: " << instancePublicId;
-      }
+      // Fallback: The pixel data offset is not present or cannot be used, the whole DICOM file must be read
+      return DicomDataSource::ReadWhole(*dicomReader_, attachment, checkMD5_);
     }
-
-    return false;
   }
-  
+
 
   void ServerContext::SetStoreMD5ForAttachments(bool storeMD5)
   {
