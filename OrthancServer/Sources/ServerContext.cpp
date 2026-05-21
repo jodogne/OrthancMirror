@@ -1472,6 +1472,21 @@ namespace Orthanc
   }
 
 
+  StorageAreaDataSource::Range* ServerContext::ReadAttachment(const FileInfo& attachment,
+                                                              bool uncompress)
+  {
+    return StorageAreaDataSource::ReadAttachment(*storageAreaReader_, attachment, uncompress, checkMD5_);
+  }
+
+
+  StorageAreaDataSource::Range* ServerContext::ReadAttachment(const FileInfo& attachment,
+                                                              const StorageRange& range,
+                                                              bool uncompress)
+  {
+    return StorageAreaDataSource::ReadRange(*storageAreaReader_, attachment, range, uncompress, checkMD5_);
+  }
+
+
   StorageAreaDataSource::Range* ServerContext::ReadRawDicom(const std::string& instancePublicId)
   {
     return StorageAreaDataSource::ReadAttachment(*storageAreaReader_, LookupDicomForInstance(instancePublicId),

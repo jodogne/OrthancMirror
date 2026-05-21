@@ -2389,9 +2389,7 @@ namespace Orthanc
 
       if (hasRangeHeader)
       {
-        std::unique_ptr<StorageAreaDataSource::Range> fragment(
-          StorageAreaDataSource::ReadRange(
-            context.GetStorageAreaReader(), info, range, uncompress, context.IsCheckMD5()));
+        std::unique_ptr<StorageAreaDataSource::Range> fragment(context.ReadAttachment(info, range, uncompress));
 
         uint64_t fullSize = (uncompress ? info.GetUncompressedSize() : info.GetCompressedSize());
         call.GetOutput().GetLowLevelOutput().SetContentType(MimeType_Binary);
@@ -2406,10 +2404,7 @@ namespace Orthanc
       else
       {
         // Access to the raw attachment (which is compressed)
-        std::unique_ptr<StorageAreaDataSource::Range> content(
-          StorageAreaDataSource::ReadAttachment(
-            context.GetStorageAreaReader(), info, false /* don't uncompress */, context.IsCheckMD5()));
-
+        std::unique_ptr<StorageAreaDataSource::Range> content(context.ReadAttachment(info, false /* don't uncompress */));
         call.GetOutput().AnswerBuffer(content->GetData(), content->GetSize(), MimeType_Binary);
       }
     }
@@ -2591,9 +2586,7 @@ namespace Orthanc
     std::string compressedMD5;
 
     {
-      std::unique_ptr<StorageAreaDataSource::Range> compressed(
-        StorageAreaDataSource::ReadAttachment(
-          context.GetStorageAreaReader(), info, false /* don't uncompress */, false /* check MD5 */));
+      std::unique_ptr<StorageAreaDataSource::Range> compressed(context.ReadAttachment(info, false /* don't uncompress */));
       Toolbox::ComputeMD5(compressedMD5, compressed->GetData(), compressed->GetSize());
     }
     
@@ -2610,9 +2603,7 @@ namespace Orthanc
         std::string uncompressedMD5;
 
         {
-          std::unique_ptr<StorageAreaDataSource::Range> uncompressed(
-            StorageAreaDataSource::ReadAttachment(
-              context.GetStorageAreaReader(), info, true /* uncompress */, false /* check MD5 */));
+          std::unique_ptr<StorageAreaDataSource::Range> uncompressed(context.ReadAttachment(info, true /* uncompress */));
           Toolbox::ComputeMD5(uncompressedMD5, uncompressed->GetData(), uncompressed->GetSize());
         }
 

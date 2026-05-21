@@ -384,6 +384,13 @@ namespace Orthanc
 
     FileInfo LookupDicomForInstance(const std::string& instancePublicId);
 
+    StorageAreaDataSource::Range* ReadAttachment(const FileInfo& attachment,
+                                                 bool uncompress);
+
+    StorageAreaDataSource::Range* ReadAttachment(const FileInfo& attachment,
+                                                 const StorageRange& range,
+                                                 bool uncompress);
+
     StorageAreaDataSource::Range* ReadRawDicom(const std::string& instancePublicId);
 
     DicomDataSource::Dicom* ReadParsedDicom(const std::string& instancePublicId);
@@ -581,16 +588,6 @@ namespace Orthanc
     void PublishCacheMetrics();
 
     const boost::shared_ptr<ServerTranscoder>& GetTranscoder() const;  // TODO-Streaming : REMOVE
-
-    bool IsCheckMD5() const
-    {
-      return checkMD5_;
-    }
-
-    DataSourceReader& GetStorageAreaReader() const  // TODO-Streaming : REMOVE?
-    {
-      return *storageAreaReader_;
-    }
 
     Future* SubmitTranscodingRequest(TranscodingCallable* callable);
   };

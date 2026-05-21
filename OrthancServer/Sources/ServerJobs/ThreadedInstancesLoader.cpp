@@ -181,9 +181,7 @@ namespace Orthanc
 
         {
           std::unique_ptr<StorageAreaDataSource::Range> tmp(
-            StorageAreaDataSource::ReadAttachment(
-              that->context_.GetStorageAreaReader(), instanceToPreload->GetFileInfo(),
-              true /* uncompress */, that->context_.IsCheckMD5()));
+            that->context_.ReadAttachment(instanceToPreload->GetFileInfo(), true /* uncompress */));
           tmp->Copy(*dicomContent);
         }
 
