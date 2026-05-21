@@ -6881,7 +6881,7 @@ namespace Orthanc
 
   ImageAccessor* OrthancPlugins::Decode(const void* dicom,
                                         size_t size,
-                                        unsigned int frame)
+                                        unsigned int frame) const
   {
     boost::shared_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
 
