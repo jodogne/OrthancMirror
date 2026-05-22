@@ -57,9 +57,19 @@ namespace Orthanc
     private:
       Mutex                              mutex_;
       boost::shared_ptr<IDynamicObject>  value_;
+      std::unique_ptr<IDynamicObject>    userData_;
 
     public:
       explicit Transcoded(const boost::shared_ptr<IDynamicObject>& value);
+
+      void SetUserData(IDynamicObject* data);
+
+      bool HasUserData() const
+      {
+        return userData_.get() != NULL;
+      }
+
+      const IDynamicObject& GetUserData();
 
       class LockAsParsed : public boost::noncopyable
       {
@@ -104,14 +114,15 @@ namespace Orthanc
       };
     };
 
-    static Transcoded* Transcode(DataSourceReader& reader,
-                                 const FileInfo& attachment,
-                                 DicomTransferSyntax targetSyntax);
+    static IDataIdentifier* CreateRequest(const FileInfo& attachment,
+                                          DicomTransferSyntax targetSyntax);
 
-    static Transcoded* Transcode(DataSourceReader& reader,
-                                 const FileInfo& attachment,
-                                 DicomTransferSyntax targetSyntax,
-                                 TranscodingSopInstanceUidMode mode,
-                                 unsigned int lossyQuality);
+    static IDataIdentifier* CreateRequest(const FileInfo& attachment,
+                                          DicomTransferSyntax targetSyntax,
+                                          TranscodingSopInstanceUidMode mode,
+                                          unsigned int lossyQuality);
+
+    static Transcoded* Execute(DataSourceReader& reader,
+                               IDataIdentifier* request /* takes ownership */);
   };
 }

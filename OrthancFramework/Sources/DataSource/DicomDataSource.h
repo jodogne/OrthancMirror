@@ -68,9 +68,19 @@ namespace Orthanc
     private:
       Mutex                              mutex_;
       boost::shared_ptr<IDynamicObject>  value_;
+      std::unique_ptr<IDynamicObject>    userData_;
 
     public:
-      explicit Dicom(const boost::shared_ptr<IDynamicObject>& value);
+      Dicom(const boost::shared_ptr<IDynamicObject>& value);
+
+      void SetUserData(IDynamicObject* data);
+
+      bool HasUserData() const
+      {
+        return userData_.get() != NULL;
+      }
+
+      const IDynamicObject& GetUserData();
 
       ParsedDicomFile* Clone();
 
@@ -96,13 +106,12 @@ namespace Orthanc
       };
     };
 
-    static IDataIdentifier* CreateWholeIdentifier(const FileInfo& attachment);
+    static IDataIdentifier* CreateWholeRequest(const FileInfo& attachment);
 
-    static Dicom* ReadWhole(DataSourceReader& reader,
-                            const FileInfo& attachment);
+    static IDataIdentifier* CreateUntilPixelDataRequest(const FileInfo& attachment,
+                                                        uint64_t pixelDataOffset);
 
-    static Dicom* ReadUntilPixelData(DataSourceReader& reader,
-                                     const FileInfo& attachment,
-                                     uint64_t pixelDataOffset);
+    static Dicom* Execute(DataSourceReader& reader,
+                          IDataIdentifier* request /* takes ownership */);
   };
 }

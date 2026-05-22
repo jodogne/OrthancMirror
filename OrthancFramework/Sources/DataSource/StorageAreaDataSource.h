@@ -81,6 +81,7 @@ namespace Orthanc
 
       void Copy(std::string& to) const;
 
+      // TODO-Streaming : Post-processing is probably an overkill
       Range* ApplyPostProcessing(const IDataIdentifier& identifier) const;
 
       static Range* CreateFromSwap(std::string& content);

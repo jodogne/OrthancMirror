@@ -60,6 +60,7 @@ namespace Orthanc
       std::unique_ptr<OrthancException>           error_;
       boost::shared_ptr<Internals::DataSourceMemoryBudget>  budget_;
       size_t                                      memorySize_;
+      std::unique_ptr<IDynamicObject>             userData_;
 
       Item(IDataIdentifier* id /* takes ownership */,
            boost::shared_ptr<IDynamicObject>& value,
@@ -73,6 +74,16 @@ namespace Orthanc
       ~Item();
 
       const IDataIdentifier& GetId() const;
+
+      bool HasUserData() const
+      {
+        return userData_.get() != NULL;
+      }
+
+      IDynamicObject* ReleaseUserData()
+      {
+        return userData_.release();
+      }
 
       const boost::shared_ptr<IDynamicObject>& GetValue() const;
     };

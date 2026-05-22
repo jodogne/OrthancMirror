@@ -239,7 +239,8 @@ namespace Orthanc
                                                       const FileInfo& attachment,
                                                       unsigned int frameIndex)
   {
-    std::unique_ptr<DicomDataSource::Dicom> dicom(DicomDataSource::ReadWhole(*dicomReader, attachment));
+    std::unique_ptr<DicomDataSource::Dicom> dicom(
+      DicomDataSource::Execute(*dicomReader, DicomDataSource::CreateWholeRequest(attachment)));
 
     DicomDataSource::Dicom::Lock lock(*dicom);
 
@@ -276,7 +277,8 @@ namespace Orthanc
     else
     {
       std::unique_ptr<TranscoderDataSource::Transcoded> transcoded(
-        TranscoderDataSource::Transcode(*transcoderReader, attachment, DicomTransferSyntax_LittleEndianExplicit));
+        TranscoderDataSource::Execute(
+          *transcoderReader, TranscoderDataSource::CreateRequest(attachment, DicomTransferSyntax_LittleEndianExplicit)));
 
       TranscoderDataSource::Transcoded::LockAsParsed lock(*transcoded);
 

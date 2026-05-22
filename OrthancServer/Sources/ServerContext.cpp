@@ -1320,7 +1320,8 @@ namespace Orthanc
 
     if (LookupAttachment(attachment, FileContentType_DicomUntilPixelData, instanceAttachments))
     {
-      std::unique_ptr<DicomDataSource::Dicom> dicom(DicomDataSource::ReadWhole(*dicomReader_, attachment));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(
+        DicomDataSource::Execute(*dicomReader_, DicomDataSource::CreateWholeRequest(attachment)));
 
       {
         DicomDataSource::Dicom::Lock lock(*dicom);
@@ -1369,7 +1370,7 @@ namespace Orthanc
          **/
 
         std::unique_ptr<DicomDataSource::Dicom> dicom(
-          DicomDataSource::ReadUntilPixelData(*dicomReader_, attachment, pixelDataOffset));
+          DicomDataSource::Execute(*dicomReader_, DicomDataSource::CreateUntilPixelDataRequest(attachment, pixelDataOffset)));
 
         {
           DicomDataSource::Dicom::Lock lock(*dicom);
@@ -1500,7 +1501,7 @@ namespace Orthanc
 
   DicomDataSource::Dicom* ServerContext::ReadParsedDicom(const std::string& instancePublicId)
   {
-    return DicomDataSource::ReadWhole(*dicomReader_, LookupDicomForInstance(instancePublicId));
+    return DicomDataSource::Execute(*dicomReader_, DicomDataSource::CreateWholeRequest(LookupDicomForInstance(instancePublicId)));
   }
 
 
@@ -1512,7 +1513,7 @@ namespace Orthanc
     if (index_.LookupAttachment(attachment, revision, ResourceType_Instance,
                                 instancePublicId, FileContentType_DicomUntilPixelData))
     {
-      return DicomDataSource::ReadWhole(*dicomReader_, attachment);
+      return DicomDataSource::Execute(*dicomReader_, DicomDataSource::CreateWholeRequest(attachment));
     }
     else
     {
@@ -1529,7 +1530,7 @@ namespace Orthanc
 
         if (SerializationToolbox::ParseUnsignedInteger64(pixelDataOffset, metadata))
         {
-          return DicomDataSource::ReadUntilPixelData(*dicomReader_, attachment, pixelDataOffset);
+          return DicomDataSource::Execute(*dicomReader_, DicomDataSource::CreateUntilPixelDataRequest(attachment, pixelDataOffset));
         }
         else
         {
@@ -1538,7 +1539,7 @@ namespace Orthanc
       }
 
       // Fallback: The pixel data offset is not present or cannot be used, the whole DICOM file must be read
-      return DicomDataSource::ReadWhole(*dicomReader_, attachment);
+      return DicomDataSource::Execute(*dicomReader_, DicomDataSource::CreateWholeRequest(attachment));
     }
   }
 

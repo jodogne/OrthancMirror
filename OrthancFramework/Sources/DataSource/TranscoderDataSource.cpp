@@ -252,6 +252,34 @@ namespace Orthanc
   }
 
 
+  void TranscoderDataSource::Transcoded::SetUserData(IDynamicObject* data)
+  {
+    std::unique_ptr<IDynamicObject> protection(data);
+
+    if (userData_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      userData_.reset(data);
+    }
+  }
+
+
+  const IDynamicObject& TranscoderDataSource::Transcoded::GetUserData()
+  {
+    if (userData_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return *userData_;
+    }
+  }
+
+
   TranscoderDataSource::Transcoded::LockAsParsed::LockAsParsed(Transcoded& that) :
     lock_(that.mutex_)
   {
@@ -297,27 +325,44 @@ namespace Orthanc
   }
 
 
-  TranscoderDataSource::Transcoded* TranscoderDataSource::Transcode(DataSourceReader& reader,
-                                                                    const FileInfo& attachment,
-                                                                    DicomTransferSyntax targetSyntax)
+  IDataIdentifier* TranscoderDataSource::CreateRequest(const FileInfo& attachment,
+                                                       DicomTransferSyntax targetSyntax)
   {
-    std::unique_ptr<IDataIdentifier> id(new Identifier(attachment, targetSyntax));
-    boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
-    return new Transcoded(value);
+    return new Identifier(attachment, targetSyntax);
   }
 
 
-  TranscoderDataSource::Transcoded* TranscoderDataSource::Transcode(DataSourceReader& reader,
-                                                                    const FileInfo& attachment,
-                                                                    DicomTransferSyntax targetSyntax,
-                                                                    TranscodingSopInstanceUidMode mode,
-                                                                    unsigned int lossyQuality)
+  IDataIdentifier* TranscoderDataSource::CreateRequest(const FileInfo& attachment,
+                                                       DicomTransferSyntax targetSyntax,
+                                                       TranscodingSopInstanceUidMode mode,
+                                                       unsigned int lossyQuality)
   {
     std::unique_ptr<Identifier> id(new Identifier(attachment, targetSyntax));
     id->SetMode(mode);
     id->SetLossyQuality(lossyQuality);
+    return id.release();
+  }
 
-    boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
-    return new Transcoded(value);
+
+  TranscoderDataSource::Transcoded* TranscoderDataSource::Execute(DataSourceReader& reader,
+                                                                  IDataIdentifier* request)
+  {
+    if (request == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else
+    {
+      std::unique_ptr<DataSourceAnswer::Item> item(reader.ReadSingleWithIdentifier(request));
+
+      std::unique_ptr<Transcoded> transcoded(new Transcoded(item->GetValue()));
+
+      if (item->HasUserData())
+      {
+        transcoded->SetUserData(item->ReleaseUserData());
+      }
+
+      return transcoded.release();
+    }
   }
 }

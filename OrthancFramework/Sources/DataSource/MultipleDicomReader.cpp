@@ -55,7 +55,7 @@ namespace Orthanc
       }
       else
       {
-        request_->Enqueue(DicomDataSource::CreateWholeIdentifier(attachment));
+        request_->Enqueue(DicomDataSource::CreateWholeRequest(attachment));
       }
     }
 

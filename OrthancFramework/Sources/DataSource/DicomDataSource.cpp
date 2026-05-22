@@ -193,6 +193,34 @@ namespace Orthanc
   }
 
 
+  void DicomDataSource::Dicom::SetUserData(IDynamicObject* data)
+  {
+    std::unique_ptr<IDynamicObject> protection(data);
+
+    if (userData_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      userData_.reset(data);
+    }
+  }
+
+
+  const IDynamicObject& DicomDataSource::Dicom::GetUserData()
+  {
+    if (userData_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return *userData_;
+    }
+  }
+
+
   ParsedDicomFile* DicomDataSource::Dicom::Clone()
   {
     Lock lock(*this);
@@ -206,37 +234,49 @@ namespace Orthanc
   }
 
 
-  IDataIdentifier* DicomDataSource::CreateWholeIdentifier(const FileInfo& attachment)
+  IDataIdentifier* DicomDataSource::CreateWholeRequest(const FileInfo& attachment)
   {
     return new WholeIdentifier(attachment);
   }
 
 
-  DicomDataSource::Dicom* DicomDataSource::ReadWhole(DataSourceReader& reader,
-                                                     const FileInfo& attachment)
-  {
-    std::unique_ptr<IDataIdentifier> id(new WholeIdentifier(attachment));
-    boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
-    return new Dicom(value);
-  }
-
-
-  DicomDataSource::Dicom* DicomDataSource::ReadUntilPixelData(DataSourceReader& reader,
-                                                              const FileInfo& attachment,
+  IDataIdentifier* DicomDataSource::CreateUntilPixelDataRequest(const FileInfo& attachment,
                                                               uint64_t pixelDataOffset)
   {
     if (static_cast<uint64_t>(static_cast<size_t>(pixelDataOffset)) != pixelDataOffset)
     {
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
-
-    if (attachment.GetCompressionType() != CompressionType_None)
+    else if (attachment.GetCompressionType() != CompressionType_None)
     {
       throw OrthancException(ErrorCode_BadParameterType);
     }
+    else
+    {
+      return new BeginningIdentifier(attachment, static_cast<size_t>(pixelDataOffset));
+    }
+  }
 
-    std::unique_ptr<IDataIdentifier> id(new BeginningIdentifier(attachment, static_cast<size_t>(pixelDataOffset)));
-    boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
-    return new Dicom(value);
+
+  DicomDataSource::Dicom* DicomDataSource::Execute(DataSourceReader& reader,
+                                                   IDataIdentifier* request)
+  {
+    if (request == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else
+    {
+      std::unique_ptr<DataSourceAnswer::Item> item(reader.ReadSingleWithIdentifier(request));
+
+      std::unique_ptr<Dicom> dicom(new Dicom(item->GetValue()));
+
+      if (item->HasUserData())
+      {
+        dicom->SetUserData(item->ReleaseUserData());
+      }
+
+      return dicom.release();
+    }
   }
 }
