@@ -30,6 +30,7 @@
 #include "ServerJobs/IStorageCommitmentFactory.h"
 
 #include "../../OrthancFramework/Sources/DataSource/DicomDataSource.h"
+#include "../../OrthancFramework/Sources/DataSource/MultipleDicomReader.h"
 #include "../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/JobsEngine/JobsEngine.h"
@@ -592,6 +593,6 @@ namespace Orthanc
 
     StorageAreaDataSource::MultipleReader* CreateMultipleStorageAreaReader() const;
 
-    DicomDataSource::MultipleReader* CreateMultipleDicomReader() const;
+    MultipleDicomReader* CreateMultipleDicomReader() const;
   };
 }

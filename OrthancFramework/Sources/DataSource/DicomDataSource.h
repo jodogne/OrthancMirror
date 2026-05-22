@@ -96,27 +96,13 @@ namespace Orthanc
       };
     };
 
+    static IDataIdentifier* CreateWholeIdentifier(const FileInfo& attachment);
+
     static Dicom* ReadWhole(DataSourceReader& reader,
                             const FileInfo& attachment);
 
     static Dicom* ReadUntilPixelData(DataSourceReader& reader,
                                      const FileInfo& attachment,
                                      uint64_t pixelDataOffset);
-
-    class MultipleReader : public boost::noncopyable
-    {
-    private:
-      class PImpl;
-      PImpl* pimpl_;
-
-    public:
-      MultipleReader(const boost::shared_ptr<DataSourceReader>& reader);
-
-      ~MultipleReader();
-
-      void Enqueue(const FileInfo& item);
-
-      Dicom* Dequeue();
-    };
   };
 }
