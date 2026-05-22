@@ -145,14 +145,25 @@ namespace Orthanc
 
     void SetPostProcessing(IPostProcessing* postProcessing)
     {
+      std::unique_ptr<IPostProcessing> protection(postProcessing);
+
       if (postProcessing == NULL)
       {
         throw OrthancException(ErrorCode_NullPointer);
       }
+      else if (postProcessing_.get() != NULL)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
       else
       {
-        postProcessing_.reset(postProcessing);
+        postProcessing_.reset(protection.release());
       }
+    }
+
+    bool HasPostProcessing() const
+    {
+      return postProcessing_.get() != NULL;
     }
 
     const IPostProcessing& GetPostProcessing() const
@@ -164,22 +175,6 @@ namespace Orthanc
       else
       {
         return *postProcessing_;
-      }
-    }
-
-    boost::shared_ptr<IDynamicObject> ApplyPostProcessing(const boost::shared_ptr<IDynamicObject>& value) const
-    {
-      if (value.get() == NULL)
-      {
-        throw OrthancException(ErrorCode_NullPointer);
-      }
-      else if (postProcessing_.get() == NULL)
-      {
-        return value;
-      }
-      else
-      {
-        return postProcessing_->Apply(value);
       }
     }
   };
@@ -316,6 +311,34 @@ namespace Orthanc
   }
 
 
+  void StorageAreaDataSource::Range::SetUserData(IDynamicObject* data)
+  {
+    std::unique_ptr<IDynamicObject> protection(data);
+
+    if (userData_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      userData_.reset(data);
+    }
+  }
+
+
+  const IDynamicObject& StorageAreaDataSource::Range::GetUserData()
+  {
+    if (userData_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return *userData_;
+    }
+  }
+
+
   const void* StorageAreaDataSource::Range::GetData() const
   {
     return GetValue().GetBuffer().GetData();
@@ -332,12 +355,6 @@ namespace Orthanc
   {
     const IMemoryBuffer& buffer = GetValue().GetBuffer();
     to.assign(reinterpret_cast<const char*>(buffer.GetData()), buffer.GetSize());
-  }
-
-
-  StorageAreaDataSource::Range* StorageAreaDataSource::Range::ApplyPostProcessing(const IDataIdentifier& identifier) const
-  {
-    return new Range(dynamic_cast<const Identifier&>(identifier).ApplyPostProcessing(value_));
   }
 
 
@@ -371,11 +388,7 @@ namespace Orthanc
                                                   attachment.GetCustomData()));
     id->SetPostProcessing(new AttachmentPostProcessing(attachment, uncompress));
 
-    std::unique_ptr<DataSourceAnswer::Item> item(reader.ReadSingleWithIdentifier(id.release()));
-
-    std::unique_ptr<StorageAreaDataSource::Range> range(new Range(item->GetValue()));
-
-    return range->ApplyPostProcessing(item->GetId());
+    return Execute(reader, id.release());
   }
 
 
@@ -444,6 +457,42 @@ namespace Orthanc
   }
 
 
+  StorageAreaDataSource::Range* StorageAreaDataSource::Execute(DataSourceReader& reader,
+                                                               IDataIdentifier* request /* takes ownership */)
+  {
+    if (request == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else
+    {
+      std::unique_ptr<DataSourceAnswer::Item> item(reader.ReadSingleWithIdentifier(request));
+
+      const Identifier& id = dynamic_cast<const Identifier&>(item->GetId());
+
+      std::unique_ptr<Range> range;
+
+      if (id.HasPostProcessing())
+      {
+        range.reset(new Range(id.GetPostProcessing().Apply(item->GetValue())));
+      }
+      else
+      {
+        range.reset(new Range(item->GetValue()));
+      }
+
+      if (item->HasUserData())
+      {
+        range->SetUserData(item->ReleaseUserData());
+      }
+
+      return range.release();
+    }
+  }
+
+
+  // TODO-Streaming : REMOVE
+#if 0
   class StorageAreaDataSource::MultipleReader::PImpl : public boost::noncopyable
   {
   private:
@@ -530,4 +579,5 @@ namespace Orthanc
   {
     return pimpl_->Dequeue();
   }
+#endif
 }

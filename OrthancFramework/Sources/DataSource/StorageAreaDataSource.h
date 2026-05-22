@@ -69,20 +69,27 @@ namespace Orthanc
     {
     private:
       boost::shared_ptr<IDynamicObject>  value_;
+      std::unique_ptr<IDynamicObject>    userData_;
 
       const Value& GetValue() const;
 
     public:
       explicit Range(const boost::shared_ptr<IDynamicObject>& value);
 
+      void SetUserData(IDynamicObject* data);
+
+      bool HasUserData() const
+      {
+        return userData_.get() != NULL;
+      }
+
+      const IDynamicObject& GetUserData();
+
       const void* GetData() const;
 
       size_t GetSize() const;
 
       void Copy(std::string& to) const;
-
-      // TODO-Streaming : Post-processing is probably an overkill
-      Range* ApplyPostProcessing(const IDataIdentifier& identifier) const;
 
       static Range* CreateFromSwap(std::string& content);
     };
@@ -107,8 +114,12 @@ namespace Orthanc
                             const StorageRange& range,
                             bool uncompress);
 
+    static Range* Execute(DataSourceReader& reader,
+                          IDataIdentifier* request /* takes ownership */);
+
 
     // TODO-Streaming: Probably to be removed
+#if 0
     class MultipleReader : public boost::noncopyable
     {
     private:
@@ -151,5 +162,6 @@ namespace Orthanc
 
       Item* Dequeue();
     };
+#endif
   };
 }
