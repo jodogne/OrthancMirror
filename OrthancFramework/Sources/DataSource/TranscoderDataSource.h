@@ -61,25 +61,46 @@ namespace Orthanc
     public:
       explicit Transcoded(const boost::shared_ptr<IDynamicObject>& value);
 
-      /**
-       * Access to the DICOM value must be protected by a mutex, as it
-       * could be shared by multiple threads if caching is enabled in
-       * the DataSourceReader.
-       **/
-      class Lock : public boost::noncopyable
+      class LockAsParsed : public boost::noncopyable
       {
       private:
-        Transcoded&        that_;
-        Mutex::ScopedLock  lock_;
+        /**
+         * Access to the transcoded DICOM must be protected by a
+         * mutex, as it could be shared by multiple threads if caching
+         * is enabled in the DataSourceReader.
+         **/
+
+        Mutex::ScopedLock                 lock_;
+        std::unique_ptr<ParsedDicomFile>  parsed_;
+        const ParsedDicomFile*            content_;
 
       public:
-        explicit Lock(Transcoded& that) :
-          that_(that),
-          lock_(that.mutex_)
-        {
-        }
+        explicit LockAsParsed(Transcoded& that);
 
-        const ParsedDicomFile& GetDicom() const;
+        const ParsedDicomFile& GetContent() const
+        {
+          return *content_;
+        }
+      };
+
+      class LockAsBuffer : public boost::noncopyable
+      {
+      private:
+        /**
+         * Access to the transcoded DICOM must only be protected in
+         * the constructor, if serialization to the buffer is required.
+         **/
+
+        std::unique_ptr<std::string>  serialized_;
+        const std::string*            content_;
+
+      public:
+        explicit LockAsBuffer(Transcoded& that);
+
+        const std::string& GetContent() const
+        {
+          return *content_;
+        }
       };
     };
 

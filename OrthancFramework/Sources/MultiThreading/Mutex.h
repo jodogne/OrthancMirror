@@ -47,6 +47,10 @@ namespace Orthanc
       explicit ScopedLock(Mutex& mutex)
       {
       }
+
+      void Unlock()
+      {
+      }
     };
   };
 
@@ -67,6 +71,11 @@ namespace Orthanc
       explicit ScopedLock(Mutex& mutex) :
         lock_(mutex.mutex_)
       {
+      }
+
+      void Unlock()
+      {
+        lock_.unlock();
       }
     };
   };

@@ -201,6 +201,12 @@ namespace Orthanc
                                                                      size_t size,
                                                                      unsigned int frameIndex)
   {
+    /**
+     * Contrarily to "ServerTranscoder::Transcode()", this method
+     * doesn't use "dcmtkTranscoder_", as "DecodeFrameBuiltin()" would
+     * have succeeded in this case.
+     **/
+
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (HasPluginsTranscoder())
     {
@@ -272,9 +278,9 @@ namespace Orthanc
       std::unique_ptr<TranscoderDataSource::Transcoded> transcoded(
         TranscoderDataSource::Transcode(*transcoderReader, attachment, DicomTransferSyntax_LittleEndianExplicit));
 
-      TranscoderDataSource::Transcoded::Lock lock(*transcoded);
+      TranscoderDataSource::Transcoded::LockAsParsed lock(*transcoded);
 
-      return DecodeFrameBuiltin(lock.GetDicom(), frameIndex);
+      return DecodeFrameBuiltin(lock.GetContent(), frameIndex);
     }
   }
 

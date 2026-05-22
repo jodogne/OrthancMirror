@@ -53,29 +53,77 @@ namespace Orthanc
   class TranscoderDataSource::Value : public IDynamicObject
   {
   private:
-    std::unique_ptr<ParsedDicomFile>  dicom_;
+    std::unique_ptr<ParsedDicomFile>  parsed_;
+    std::unique_ptr<std::string>      raw_;
     size_t                            size_;
 
   public:
-    Value(ParsedDicomFile* dicom,
-          size_t size) :
-      dicom_(dicom),
-      size_(size)
+    Value(IDicomTranscoder::DicomImage* transcoded)
     {
-      if (dicom == NULL)
+      std::unique_ptr<IDicomTranscoder::DicomImage> protection(transcoded);
+
+      if (transcoded == NULL)
       {
         throw OrthancException(ErrorCode_NullPointer);
       }
-    }
 
-    ParsedDicomFile& GetContent() const
-    {
-      return *dicom_;
+      if (transcoded->HasParsed() &&
+          !transcoded->HasInternalBuffer())
+      {
+        parsed_.reset(transcoded->ReleaseAsParsedDicomFile());
+
+        DcmFileFormat& f = parsed_->GetDcmtkObject();
+        size_ = f.calcElementLength(f.getDataset()->getOriginalXfer(), EET_ExplicitLength);
+      }
+      else if (!transcoded->HasParsed() &&
+               transcoded->HasInternalBuffer())
+      {
+        raw_.reset(transcoded->ReleaseInternalBuffer());
+        size_ = raw_->size();
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
     size_t GetSize() const
     {
       return size_;
+    }
+
+    bool HasParsed() const
+    {
+      return parsed_.get() != NULL;
+    }
+
+    bool HasRawBuffer() const
+    {
+      return raw_.get() != NULL;
+    }
+
+    ParsedDicomFile& GetParsed() const
+    {
+      if (parsed_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        return *parsed_;
+      }
+    }
+
+    const std::string& GetRawBuffer() const
+    {
+      if (raw_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        return *raw_;
+      }
     }
   };
 
@@ -141,7 +189,7 @@ namespace Orthanc
       IDicomTranscoder::DicomImage source;
       source.SetExternalBuffer(range->GetData(), range->GetSize());
 
-      IDicomTranscoder::DicomImage target;
+      std::unique_ptr<IDicomTranscoder::DicomImage> target;
 
       std::set<DicomTransferSyntax> allowedSyntaxes;
       allowedSyntaxes.insert(targetSyntax_);
@@ -149,17 +197,16 @@ namespace Orthanc
       bool success;
       if (hasLossyQuality_)
       {
-        success = transcoder.Transcode(target, source, allowedSyntaxes, mode_, lossyQuality_);
+        success = transcoder.Transcode(*target, source, allowedSyntaxes, mode_, lossyQuality_);
       }
       else
       {
-        success = transcoder.Transcode(target, source, allowedSyntaxes, mode_);
+        success = transcoder.Transcode(*target, source, allowedSyntaxes, mode_);
       }
 
       if (success)
       {
-        const size_t size = target.GetBufferSize();
-        return new Value(target.ReleaseAsParsedDicomFile(), size);
+        return new Value(target.release());
       }
       else
       {
@@ -204,9 +251,48 @@ namespace Orthanc
   }
 
 
-  const ParsedDicomFile& TranscoderDataSource::Transcoded::Lock::GetDicom() const
+  TranscoderDataSource::Transcoded::LockAsParsed::LockAsParsed(Transcoded& that) :
+    lock_(that.mutex_)
   {
-    return dynamic_cast<const Value&>(*that_.value_).GetContent();
+    const Value& value = dynamic_cast<const Value&>(*that.value_);
+
+    if (value.HasParsed())
+    {
+      // Don't release the lock here
+      content_ = &value.GetParsed();
+    }
+    else
+    {
+      assert(value.HasRawBuffer());
+      parsed_.reset(new ParsedDicomFile(value.GetRawBuffer()));
+      lock_.Unlock();
+
+      content_ = parsed_.get();
+    }
+
+    assert(content_ != NULL);
+  }
+
+
+  TranscoderDataSource::Transcoded::LockAsBuffer::LockAsBuffer(Transcoded& that)
+  {
+    Mutex::ScopedLock lock(that.mutex_);
+
+    const Value& value = dynamic_cast<const Value&>(*that.value_);
+
+    if (value.HasParsed())
+    {
+      serialized_.reset(new std::string);
+      value.GetParsed().SaveToMemoryBuffer(*serialized_);
+      content_ = serialized_.get();
+    }
+    else
+    {
+      assert(value.HasRawBuffer());
+      content_ = &value.GetRawBuffer();
+    }
+
+    assert(content_ != NULL);
   }
 
 

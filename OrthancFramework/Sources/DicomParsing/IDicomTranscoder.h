@@ -91,6 +91,18 @@ namespace Orthanc
       const void* GetBufferData();
 
       size_t GetBufferSize();
+
+      bool HasParsed() const
+      {
+        return parsed_.get() != NULL;
+      }
+
+      bool HasInternalBuffer() const
+      {
+        return buffer_.get() != NULL;
+      }
+
+      std::string* ReleaseInternalBuffer();
     };
 
 
