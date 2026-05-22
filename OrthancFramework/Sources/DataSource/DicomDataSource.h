@@ -49,7 +49,7 @@ namespace Orthanc
   class DicomDataSource : public IDataSource
   {
   private:
-    class BaseIdentifier;
+    class Identifier;
     class WholeIdentifier;
     class BeginningIdentifier;
     class Value;

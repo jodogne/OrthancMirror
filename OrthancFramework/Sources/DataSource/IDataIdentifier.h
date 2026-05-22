@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "../OrthancFramework.h"
+#include "../IDynamicObject.h"
 
 #include <boost/noncopyable.hpp>
 
@@ -42,5 +42,9 @@ namespace Orthanc
     virtual bool GetCacheKey(std::string& key) const = 0;
 
     virtual bool EstimateValueSize(size_t& target) const = 0;
+
+    virtual bool HasUserData() const = 0;
+
+    virtual IDynamicObject& GetUserData() const = 0;
   };
 }

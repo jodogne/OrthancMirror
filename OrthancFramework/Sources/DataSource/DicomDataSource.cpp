@@ -27,6 +27,7 @@
 
 #include "../DicomParsing/ParsedDicomFile.h"
 #include "../OrthancException.h"
+#include "BaseDataIdentifier.h"
 #include "DataSourceReader.h"
 #include "StorageAreaDataSource.h"
 
@@ -35,14 +36,14 @@
 
 namespace Orthanc
 {
-  class DicomDataSource::BaseIdentifier : public IDataIdentifier
+  class DicomDataSource::Identifier : public BaseDataIdentifier
   {
   public:
     virtual StorageAreaDataSource::Range* ReadRange(DataSourceReader& reader) const = 0;
   };
 
 
-  class DicomDataSource::WholeIdentifier : public DicomDataSource::BaseIdentifier
+  class DicomDataSource::WholeIdentifier : public DicomDataSource::Identifier
   {
   private:
     FileInfo  attachment_;
@@ -73,7 +74,7 @@ namespace Orthanc
   };
 
 
-  class DicomDataSource::BeginningIdentifier : public DicomDataSource::BaseIdentifier
+  class DicomDataSource::BeginningIdentifier : public DicomDataSource::Identifier
   {
   private:
     FileInfo  attachment_;
@@ -152,7 +153,7 @@ namespace Orthanc
 
   IDynamicObject* DicomDataSource::Load(const IDataIdentifier& obj)
   {
-    const BaseIdentifier& id = dynamic_cast<const BaseIdentifier&>(obj);
+    const Identifier& id = dynamic_cast<const Identifier&>(obj);
 
     std::unique_ptr<StorageAreaDataSource::Range> range(id.ReadRange(*storageAreaReader_));
 

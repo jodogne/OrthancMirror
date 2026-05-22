@@ -28,6 +28,7 @@
 #include "../OrthancException.h"
 #include "../StringMemoryBuffer.h"
 #include "../Toolbox.h"
+#include "BaseDataIdentifier.h"
 #include "DataSourceReader.h"
 
 #if ORTHANC_ENABLE_ZLIB == 1
@@ -86,7 +87,7 @@ namespace Orthanc
   };
 
 
-  class StorageAreaDataSource::Identifier : public IDataIdentifier
+  class StorageAreaDataSource::Identifier : public BaseDataIdentifier
   {
   private:
     std::string                       uuid_;

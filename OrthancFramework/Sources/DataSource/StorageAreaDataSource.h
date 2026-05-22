@@ -106,6 +106,8 @@ namespace Orthanc
                             const StorageRange& range,
                             bool uncompress);
 
+
+    // TODO-Streaming: Probably to be removed
     class MultipleReader : public boost::noncopyable
     {
     private:

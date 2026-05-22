@@ -26,6 +26,7 @@
 
 #include "../DicomParsing/ParsedDicomFile.h"
 #include "../OrthancException.h"
+#include "BaseDataIdentifier.h"
 #include "DataSourceReader.h"
 #include "StorageAreaDataSource.h"
 
@@ -128,7 +129,7 @@ namespace Orthanc
   };
 
 
-  class TranscoderDataSource::Identifier : public IDataIdentifier
+  class TranscoderDataSource::Identifier : public BaseDataIdentifier
   {
   private:
     FileInfo                       attachment_;
