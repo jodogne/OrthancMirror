@@ -154,6 +154,18 @@ namespace Orthanc
       }
     }
 
+    const IPostProcessing& GetPostProcessing() const
+    {
+      if (postProcessing_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        return *postProcessing_;
+      }
+    }
+
     boost::shared_ptr<IDynamicObject> ApplyPostProcessing(const boost::shared_ptr<IDynamicObject>& value) const
     {
       if (value.get() == NULL)
@@ -192,6 +204,11 @@ namespace Orthanc
           throw OrthancException(ErrorCode_CorruptedFile);
         }
       }
+    }
+
+    const FileInfo& GetAttachment() const
+    {
+      return attachment_;
     }
 
     virtual boost::shared_ptr<IDynamicObject> Apply(const boost::shared_ptr<IDynamicObject>& obj) const ORTHANC_OVERRIDE
@@ -423,5 +440,93 @@ namespace Orthanc
                          start, endExclusive, attachment.GetCustomData());
       }
     }
+  }
+
+
+  class StorageAreaDataSource::MultipleReader::PImpl : public boost::noncopyable
+  {
+  private:
+    boost::shared_ptr<DataSourceReader>  reader_;
+    std::unique_ptr<DataSourceRequest>   request_;
+    boost::shared_ptr<DataSourceAnswer>  answer_;
+
+  public:
+    PImpl(const boost::shared_ptr<DataSourceReader>& reader) :
+      reader_(reader),
+      request_(new DataSourceRequest)
+    {
+    }
+
+    void Enqueue(const FileInfo& attachment,
+                 bool uncompress)
+    {
+      if (request_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        std::unique_ptr<Identifier> id(new Identifier(attachment.GetUuid(),
+                                                      attachment.GetContentType(),
+                                                      0, attachment.GetCompressedSize(),
+                                                      attachment.GetCustomData()));
+        id->SetPostProcessing(new AttachmentPostProcessing(attachment, uncompress));
+
+        request_->Enqueue(id.release());
+      }
+    }
+
+    Item* Dequeue()
+    {
+      if (answer_.get() == NULL)
+      {
+        assert(request_.get() != NULL);
+        answer_ = reader_->Submit(request_.release());
+      }
+
+      std::unique_ptr<DataSourceAnswer::Item> item(answer_->Dequeue());
+
+      std::unique_ptr<StorageAreaDataSource::Range> range(new Range(item->GetValue()));
+
+      const Identifier& id = dynamic_cast<const Identifier&>(item->GetId());
+      range.reset(range->ApplyPostProcessing(id));
+
+      const AttachmentPostProcessing& postProcessing = dynamic_cast<const AttachmentPostProcessing&>(id.GetPostProcessing());
+      return new Item(range.release(), postProcessing.GetAttachment());
+    }
+  };
+
+
+  StorageAreaDataSource::MultipleReader::Item::Item(Range* range,
+                                                    const FileInfo& attachment) :
+    range_(range),
+    attachment_(attachment)
+  {
+  }
+
+
+  StorageAreaDataSource::MultipleReader::MultipleReader(const boost::shared_ptr<DataSourceReader>& reader) :
+    pimpl_(new PImpl(reader))
+  {
+  }
+
+
+  StorageAreaDataSource::MultipleReader::~MultipleReader()
+  {
+    assert(pimpl_ != NULL);
+    delete pimpl_;
+  }
+
+
+  void StorageAreaDataSource::MultipleReader::Enqueue(const FileInfo& attachment,
+                                                      bool uncompress)
+  {
+    pimpl_->Enqueue(attachment, uncompress);
+  }
+
+
+  StorageAreaDataSource::MultipleReader::Item* StorageAreaDataSource::MultipleReader::Dequeue()
+  {
+    return pimpl_->Dequeue();
   }
 }

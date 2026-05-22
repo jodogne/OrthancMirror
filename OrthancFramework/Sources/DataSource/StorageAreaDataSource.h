@@ -105,5 +105,48 @@ namespace Orthanc
                             const FileInfo& attachment,
                             const StorageRange& range,
                             bool uncompress);
+
+    class MultipleReader : public boost::noncopyable
+    {
+    private:
+      class PImpl;
+      PImpl* pimpl_;
+
+    public:
+      class Item : public boost::noncopyable
+      {
+      private:
+        std::unique_ptr<Range>  range_;
+        FileInfo                attachment_;
+
+      public:
+        Item(Range* range,
+             const FileInfo& attachment);
+
+        const void* GetData() const
+        {
+          return range_->GetData();
+        }
+
+        size_t GetSize() const
+        {
+          return range_->GetSize();
+        }
+
+        const FileInfo& GetAttachment() const
+        {
+          return attachment_;
+        }
+      };
+
+      MultipleReader(const boost::shared_ptr<DataSourceReader>& reader);
+
+      ~MultipleReader();
+
+      void Enqueue(const FileInfo& item,
+                   bool uncompress);
+
+      Item* Dequeue();
+    };
   };
 }

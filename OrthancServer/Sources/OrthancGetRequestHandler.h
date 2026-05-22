@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../../OrthancFramework/Sources/Compatibility.h"  // For ORTHANC_OVERRIDE
+#include "../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/IGetRequestHandler.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.h"
 
@@ -35,7 +36,6 @@ class DcmFileFormat;
 namespace Orthanc
 {
   class ServerContext;
-  class ThreadedInstancesLoader;
   
   class OrthancGetRequestHandler : public IGetRequestHandler
   {
@@ -45,7 +45,7 @@ namespace Orthanc
     std::vector<std::string> instancesIds_;
     size_t position_;
     std::string originatorAet_;
-    std::unique_ptr<ThreadedInstancesLoader> instancesLoader_;
+    std::unique_ptr<StorageAreaDataSource::MultipleReader> instancesLoader_;  // TODO-Streaming : Should be DICOM
 
     unsigned int completedCount_;
     unsigned int warningCount_;

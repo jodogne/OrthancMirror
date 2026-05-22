@@ -589,5 +589,7 @@ namespace Orthanc
     const boost::shared_ptr<ServerTranscoder>& GetTranscoder() const;
 
     Future* SubmitTranscodingRequest(TranscodingCallable* callable);
+
+    StorageAreaDataSource::MultipleReader* CreateMultipleStorageAreaReader() const;
   };
 }

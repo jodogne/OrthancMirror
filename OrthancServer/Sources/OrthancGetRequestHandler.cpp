@@ -30,7 +30,6 @@
 #include "OrthancConfiguration.h"
 #include "ServerContext.h"
 #include "ServerJobs/DicomModalityStoreJob.h"
-#include "ServerJobs/ThreadedInstancesLoader.h"
 #include "ServerTranscoder.h"
 
 #include <dcmtk/dcmdata/dcdeftag.h>
@@ -71,18 +70,10 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    const std::string& id = instancesIds_[position_++];
-
-    std::string dicom;
-    instancesLoader_->WaitDicomInstance(dicom, id);
-    
-    if (dicom.empty())
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
+    std::unique_ptr<StorageAreaDataSource::MultipleReader::Item> item(instancesLoader_->Dequeue());
 
     std::unique_ptr<DcmFileFormat> parsed(
-      FromDcmtkBridge::LoadFromMemoryBuffer(dicom.c_str(), dicom.size()));
+      FromDcmtkBridge::LoadFromMemoryBuffer(item->GetData(), item->GetSize()));
 
     if (parsed.get() == NULL ||
         parsed->getDataset() == NULL)
@@ -551,7 +542,6 @@ namespace Orthanc
     localAet_ = context_.GetDefaultLocalApplicationEntityTitle();
     position_ = 0;
     originatorAet_ = originatorAet;
-    unsigned int loaderThreads = 1;
 
     {
       OrthancConfiguration::ReaderLock lock;
@@ -575,11 +565,10 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InexistentItem,
                                "C-GET: Rejecting SCU request from unknown modality with AET: " + originatorAet);
       }
-
-      loaderThreads = lock.GetConfiguration().GetLoaderThreads();
     }
 
-    instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads, false, DicomTransferSyntax_BigEndianExplicit /* dummy unused value */, 0, "CGET"));
+    instancesLoader_.reset(context_.CreateMultipleStorageAreaReader());
+
     std::vector<FileInfo> filesInfo;
 
     for (std::list<std::string>::const_iterator
@@ -591,9 +580,11 @@ namespace Orthanc
       context_.GetOrderedChildInstances(instancesIds_, filesInfo, *resourceId, level);
     }
 
+    // TODO-Streaming : Should instances be ordered?
+
     for (size_t i = 0; i < instancesIds_.size(); ++i)
     {
-      instancesLoader_->PreloadDicomInstance(instancesIds_[i], filesInfo[i]);
+      instancesLoader_->Enqueue(filesInfo[i], true /* uncompress */);
     }
 
     failedUIDs_.clear();

@@ -2136,4 +2136,10 @@ namespace Orthanc
 
     return transcoderThreadPool_->Submit(callable);
   }
+
+
+  StorageAreaDataSource::MultipleReader* ServerContext::CreateMultipleStorageAreaReader() const
+  {
+    return new StorageAreaDataSource::MultipleReader(storageAreaReader_);
+  }
 }
