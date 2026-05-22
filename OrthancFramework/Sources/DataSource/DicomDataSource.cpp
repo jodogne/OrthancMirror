@@ -69,7 +69,8 @@ namespace Orthanc
 
     virtual StorageAreaDataSource::Range* ReadRange(DataSourceReader& reader) const ORTHANC_OVERRIDE
     {
-      return StorageAreaDataSource::ReadAttachment(reader, attachment_, true /* uncompress */);
+      return StorageAreaDataSource::Execute(
+        reader, StorageAreaDataSource::CreateAttachmentRequest(attachment_, true /* uncompress */));
     }
   };
 
@@ -106,7 +107,7 @@ namespace Orthanc
 
     virtual StorageAreaDataSource::Range* ReadRange(DataSourceReader& reader) const ORTHANC_OVERRIDE
     {
-      return StorageAreaDataSource::ReadBeginning(reader, attachment_, pixelDataOffset_);
+      return StorageAreaDataSource::Execute(reader, StorageAreaDataSource::CreateBeginningRequest(attachment_, pixelDataOffset_));
     }
   };
 

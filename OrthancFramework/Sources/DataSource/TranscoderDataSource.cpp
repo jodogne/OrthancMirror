@@ -185,7 +185,8 @@ namespace Orthanc
                 DataSourceReader& storageAreaReader) const
     {
       std::unique_ptr<StorageAreaDataSource::Range> range(
-        StorageAreaDataSource::ReadAttachment(storageAreaReader, attachment_, true /* uncompress */));
+        StorageAreaDataSource::Execute(
+          storageAreaReader, StorageAreaDataSource::CreateAttachmentRequest(attachment_, true /* uncompress */)));
 
       IDicomTranscoder::DicomImage source;
       source.SetExternalBuffer(range->GetData(), range->GetSize());

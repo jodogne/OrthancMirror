@@ -1480,7 +1480,8 @@ namespace Orthanc
   StorageAreaDataSource::Range* ServerContext::ReadAttachment(const FileInfo& attachment,
                                                               bool uncompress)
   {
-    return StorageAreaDataSource::ReadAttachment(*storageAreaReader_, attachment, uncompress);
+    return StorageAreaDataSource::Execute(
+      *storageAreaReader_, StorageAreaDataSource::CreateAttachmentRequest(attachment, uncompress));
   }
 
 
@@ -1494,8 +1495,7 @@ namespace Orthanc
 
   StorageAreaDataSource::Range* ServerContext::ReadRawDicom(const std::string& instancePublicId)
   {
-    return StorageAreaDataSource::ReadAttachment(
-      *storageAreaReader_, LookupDicomForInstance(instancePublicId), true /* uncompress */);
+    return ReadAttachment(LookupDicomForInstance(instancePublicId), true /* uncompress */);
   }
 
 

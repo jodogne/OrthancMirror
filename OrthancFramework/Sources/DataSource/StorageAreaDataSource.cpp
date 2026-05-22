@@ -365,22 +365,18 @@ namespace Orthanc
   }
 
 
-  StorageAreaDataSource::Range* StorageAreaDataSource::ReadRange(DataSourceReader& reader,
-                                                                 const std::string& uuid,
-                                                                 FileContentType type,
-                                                                 uint64_t start,
-                                                                 uint64_t end,
-                                                                 const std::string& customData)
+  IDataIdentifier* StorageAreaDataSource::CreateRangeRequest(const std::string& uuid,
+                                                             FileContentType type,
+                                                             uint64_t start,
+                                                             uint64_t end,
+                                                             const std::string& pluginCustomData)
   {
-    std::unique_ptr<IDataIdentifier> id(new Identifier(uuid, type, start, end, customData));
-    boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
-    return new Range(value);
+    return new Identifier(uuid, type, start, end, pluginCustomData);
   }
 
 
-  StorageAreaDataSource::Range* StorageAreaDataSource::ReadAttachment(DataSourceReader& reader,
-                                                                      const FileInfo& attachment,
-                                                                      bool uncompress)
+  IDataIdentifier* StorageAreaDataSource::CreateAttachmentRequest(const FileInfo& attachment,
+                                                                  bool uncompress)
   {
     std::unique_ptr<Identifier> id(new Identifier(attachment.GetUuid(),
                                                   attachment.GetContentType(),
@@ -388,13 +384,12 @@ namespace Orthanc
                                                   attachment.GetCustomData()));
     id->SetPostProcessing(new AttachmentPostProcessing(attachment, uncompress));
 
-    return Execute(reader, id.release());
+    return id.release();
   }
 
 
-  StorageAreaDataSource::Range* StorageAreaDataSource::ReadBeginning(DataSourceReader& reader,
-                                                                     const FileInfo& attachment,
-                                                                     uint64_t untilPosition)
+  IDataIdentifier* StorageAreaDataSource::CreateBeginningRequest(const FileInfo& attachment,
+                                                                 uint64_t untilPosition)
   {
     if (attachment.GetCompressionType() != CompressionType_None)
     {
@@ -412,8 +407,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    return ReadRange(reader, attachment.GetUuid(), attachment.GetContentType(),
-                     0, untilPosition, attachment.GetCustomData());
+    return CreateRangeRequest(attachment.GetUuid(), attachment.GetContentType(),
+                              0, untilPosition, attachment.GetCustomData());
   }
 
 
@@ -428,8 +423,8 @@ namespace Orthanc
         attachment.GetCompressionType() != CompressionType_None)
     {
       // An uncompression is needed in this case
-      std::unique_ptr<StorageAreaDataSource::Range> uncompressed(
-        ReadAttachment(reader, attachment, true /* uncompress */));
+      std::unique_ptr<Range> uncompressed(
+        Execute(reader, CreateAttachmentRequest(attachment, true /* uncompress */)));
 
       std::string content;
       range.Extract(content, uncompressed->GetData(), uncompressed->GetSize());
@@ -450,8 +445,8 @@ namespace Orthanc
       }
       else
       {
-        return ReadRange(reader, attachment.GetUuid(), attachment.GetContentType(),
-                         start, endExclusive, attachment.GetCustomData());
+        return Execute(reader, CreateRangeRequest(attachment.GetUuid(), attachment.GetContentType(),
+                                                  start, endExclusive, attachment.GetCustomData()));
       }
     }
   }

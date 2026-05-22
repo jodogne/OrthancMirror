@@ -94,27 +94,24 @@ namespace Orthanc
       static Range* CreateFromSwap(std::string& content);
     };
 
-    static Range* ReadRange(DataSourceReader& reader,
-                            const std::string& uuid,
-                            FileContentType type,
-                            uint64_t start /* inclusive */,
-                            uint64_t end /* exclusive */,
-                            const std::string& customData);
+    static IDataIdentifier* CreateRangeRequest(const std::string& uuid,
+                                               FileContentType type,
+                                               uint64_t start /* inclusive */,
+                                               uint64_t end /* exclusive */,
+                                               const std::string& pluginCustomData);
 
-    static Range* ReadAttachment(DataSourceReader& reader,
-                                 const FileInfo& attachment,
-                                 bool uncompress);
+    static IDataIdentifier* CreateAttachmentRequest(const FileInfo& attachment,
+                                                    bool uncompress);
 
-    static Range* ReadBeginning(DataSourceReader& reader,
-                                const FileInfo& attachment,
-                                uint64_t untilPosition /* exclusive */);
+    static IDataIdentifier* CreateBeginningRequest(const FileInfo& attachment,
+                                                   uint64_t untilPosition /* exclusive */);
+
+    static Range* Execute(DataSourceReader& reader,
+                          IDataIdentifier* request /* takes ownership */);
 
     static Range* ReadRange(DataSourceReader& reader,
                             const FileInfo& attachment,
                             const StorageRange& range,
                             bool uncompress);
-
-    static Range* Execute(DataSourceReader& reader,
-                          IDataIdentifier* request /* takes ownership */);
   };
 }

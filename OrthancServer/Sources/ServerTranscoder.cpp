@@ -259,7 +259,8 @@ namespace Orthanc
     else
     {
       std::unique_ptr<StorageAreaDataSource::Range> range(
-        StorageAreaDataSource::ReadAttachment(*storageAreaReader, attachment, true /* uncompress */));
+        StorageAreaDataSource::Execute(
+          *storageAreaReader, StorageAreaDataSource::CreateAttachmentRequest(attachment, true /* uncompress */)));
 
       return DecodeFrameUsingPluginsDecoder(range->GetData(), range->GetSize(), frameIndex);
     }
