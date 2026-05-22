@@ -97,8 +97,7 @@ namespace Orthanc
     };
 
     static Dicom* ReadWhole(DataSourceReader& reader,
-                            const FileInfo& attachment,
-                            bool checkMD5);
+                            const FileInfo& attachment);
 
     static Dicom* ReadUntilPixelData(DataSourceReader& reader,
                                      const FileInfo& attachment,

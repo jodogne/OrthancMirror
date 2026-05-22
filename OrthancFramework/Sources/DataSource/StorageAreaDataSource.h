@@ -55,7 +55,7 @@ namespace Orthanc
 
   public:
     explicit StorageAreaDataSource(IPluginStorageArea& area,
-                                   bool checkMD5 = true /* TODO-Streaming */) :
+                                   bool checkMD5) :
       area_(area),
       checkMD5_(checkMD5)
     {
@@ -95,8 +95,7 @@ namespace Orthanc
 
     static Range* ReadAttachment(DataSourceReader& reader,
                                  const FileInfo& attachment,
-                                 bool uncompress,
-                                 bool checkMD5);
+                                 bool uncompress);
 
     static Range* ReadBeginning(DataSourceReader& reader,
                                 const FileInfo& attachment,
@@ -105,7 +104,6 @@ namespace Orthanc
     static Range* ReadRange(DataSourceReader& reader,
                             const FileInfo& attachment,
                             const StorageRange& range,
-                            bool uncompress,
-                            bool checkMD5);
+                            bool uncompress);
   };
 }

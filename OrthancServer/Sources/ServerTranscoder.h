@@ -66,18 +66,15 @@ namespace Orthanc
 
     ImageAccessor* DecodeFrameBuiltin(const boost::shared_ptr<DataSourceReader>& dicomReader,
                                       const FileInfo& attachment,
-                                      unsigned int frameIndex,
-                                      bool checkMD5);
+                                      unsigned int frameIndex);
 
     ImageAccessor* DecodeFrameUsingPluginsDecoder(const boost::shared_ptr<DataSourceReader>& storageAreaReader,
                                                   const FileInfo& attachment,
-                                                  unsigned int frameIndex,
-                                                  bool checkMD5);
+                                                  unsigned int frameIndex);
 
     ImageAccessor* DecodeFrameUsingPluginsTranscoder(const boost::shared_ptr<DataSourceReader>& transcoderReader,
                                                      const FileInfo& attachment,
-                                                     unsigned int frameIndex,
-                                                     bool checkMD5);
+                                                     unsigned int frameIndex);
 
   public:
     ServerTranscoder(unsigned int maxConcurrentDcmtkTranscoder);
@@ -98,8 +95,7 @@ namespace Orthanc
                                const boost::shared_ptr<DataSourceReader>& storageAreaReader,  // For plugin-based decoding
                                const boost::shared_ptr<DataSourceReader>& transcoderReader,   // For transcoding-based decoding
                                const FileInfo& attachment,
-                               unsigned int frameIndex,
-                               bool checkMD5);
+                               unsigned int frameIndex);
 
     // This method can be used even if the global option
     // "TranscodeDicomProtocol" is set to "false"

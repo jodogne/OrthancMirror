@@ -231,11 +231,9 @@ namespace Orthanc
 
   ImageAccessor* ServerTranscoder::DecodeFrameBuiltin(const boost::shared_ptr<DataSourceReader>& dicomReader,
                                                       const FileInfo& attachment,
-                                                      unsigned int frameIndex,
-                                                      bool checkMD5)
+                                                      unsigned int frameIndex)
   {
-    std::unique_ptr<DicomDataSource::Dicom> dicom(
-      DicomDataSource::ReadWhole(*dicomReader, attachment, checkMD5));
+    std::unique_ptr<DicomDataSource::Dicom> dicom(DicomDataSource::ReadWhole(*dicomReader, attachment));
 
     DicomDataSource::Dicom::Lock lock(*dicom);
 
@@ -245,8 +243,7 @@ namespace Orthanc
 
   ImageAccessor* ServerTranscoder::DecodeFrameUsingPluginsDecoder(const boost::shared_ptr<DataSourceReader>& storageAreaReader,
                                                                   const FileInfo& attachment,
-                                                                  unsigned int frameIndex,
-                                                                  bool checkMD5)
+                                                                  unsigned int frameIndex)
   {
     if (!HasPluginsDecoder())
     {
@@ -255,7 +252,7 @@ namespace Orthanc
     else
     {
       std::unique_ptr<StorageAreaDataSource::Range> range(
-        StorageAreaDataSource::ReadAttachment(*storageAreaReader, attachment, true /* uncompress */, checkMD5));
+        StorageAreaDataSource::ReadAttachment(*storageAreaReader, attachment, true /* uncompress */));
 
       return DecodeFrameUsingPluginsDecoder(range->GetData(), range->GetSize(), frameIndex);
     }
@@ -264,8 +261,7 @@ namespace Orthanc
 
   ImageAccessor* ServerTranscoder::DecodeFrameUsingPluginsTranscoder(const boost::shared_ptr<DataSourceReader>& transcoderReader,
                                                                      const FileInfo& attachment,
-                                                                     unsigned int frameIndex,
-                                                                     bool checkMD5)
+                                                                     unsigned int frameIndex)
   {
     if (!HasPluginsDecoder())
     {
@@ -274,7 +270,7 @@ namespace Orthanc
     else
     {
       std::unique_ptr<TranscoderDataSource::Transcoded> transcoded(
-        TranscoderDataSource::Transcode(*transcoderReader, attachment, DicomTransferSyntax_LittleEndianExplicit, checkMD5));
+        TranscoderDataSource::Transcode(*transcoderReader, attachment, DicomTransferSyntax_LittleEndianExplicit));
 
       TranscoderDataSource::Transcoded::Lock lock(*transcoded);
 
@@ -326,8 +322,7 @@ namespace Orthanc
                                                const boost::shared_ptr<DataSourceReader>& storageAreaReader,  // For plugin-based decoding
                                                const boost::shared_ptr<DataSourceReader>& transcoderReader,   // For transcoding-based decoding
                                                const FileInfo& attachment,
-                                               unsigned int frameIndex,
-                                               bool checkMD5)
+                                               unsigned int frameIndex)
   {
     // Step 1: Try with the last decoder that successfully handled this DICOM attachment
 
@@ -341,15 +336,15 @@ namespace Orthanc
         break;
 
       case WorkingSource_Builtin:
-        decoded.reset(DecodeFrameBuiltin(dicomReader, attachment, frameIndex, checkMD5));
+        decoded.reset(DecodeFrameBuiltin(dicomReader, attachment, frameIndex));
         break;
 
       case WorkingSource_PluginsDecoder:
-        decoded.reset(DecodeFrameUsingPluginsDecoder(storageAreaReader, attachment, frameIndex, checkMD5));
+        decoded.reset(DecodeFrameUsingPluginsDecoder(storageAreaReader, attachment, frameIndex));
         break;
 
       case WorkingSource_PluginsTranscoder:
-        decoded.reset(DecodeFrameUsingPluginsTranscoder(transcoderReader, attachment, frameIndex, checkMD5));
+        decoded.reset(DecodeFrameUsingPluginsTranscoder(transcoderReader, attachment, frameIndex));
         break;
 
       default:
@@ -365,7 +360,7 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
     {
-      decoded.reset(DecodeFrameBuiltin(dicomReader, attachment, frameIndex, checkMD5));
+      decoded.reset(DecodeFrameBuiltin(dicomReader, attachment, frameIndex));
 
       if (decoded.get() != NULL)
       {
@@ -376,7 +371,7 @@ namespace Orthanc
 
     if (HasPluginsDecoder())
     {
-      decoded.reset(DecodeFrameUsingPluginsDecoder(storageAreaReader, attachment, frameIndex, checkMD5));
+      decoded.reset(DecodeFrameUsingPluginsDecoder(storageAreaReader, attachment, frameIndex));
 
       if (decoded.get() != NULL)
       {
@@ -387,7 +382,7 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      decoded.reset(DecodeFrameBuiltin(dicomReader, attachment, frameIndex, checkMD5));
+      decoded.reset(DecodeFrameBuiltin(dicomReader, attachment, frameIndex));
 
       if (decoded.get() != NULL)
       {
@@ -398,7 +393,7 @@ namespace Orthanc
 
     if (HasPluginsTranscoder())
     {
-      decoded.reset(DecodeFrameUsingPluginsTranscoder(transcoderReader, attachment, frameIndex, checkMD5));
+      decoded.reset(DecodeFrameUsingPluginsTranscoder(transcoderReader, attachment, frameIndex));
 
       if (decoded.get() != NULL)
       {

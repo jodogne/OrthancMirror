@@ -424,11 +424,12 @@ namespace Orthanc
     readOnly_(readOnly),
     patientLevelEnabled_(true),
     deidentifyLogs_(false),
-    serverStartTimeUtc_(boost::posix_time::second_clock::universal_time()),
-    checkMD5_(true)
+    serverStartTimeUtc_(boost::posix_time::second_clock::universal_time())
   {
     try
     {
+      bool checkMD5 = true;
+
       {
         OrthancConfiguration::ReaderLock lock;
 
@@ -555,7 +556,7 @@ namespace Orthanc
 
         defaultDicomRetrieveMethod_ = StringToRetrieveMethod(lock.GetConfiguration().GetDicomDefaultRetrieveMethod());
 
-        checkMD5_ = lock.GetConfiguration().GetBooleanParameter("CheckMD5", true);  // TODO-Streaming - Parameter
+        checkMD5 = lock.GetConfiguration().GetBooleanParameter("CheckMD5", true);  // TODO-Streaming - Parameter
       }
 
       jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -579,7 +580,7 @@ namespace Orthanc
         pool->SetDequeueTimeout(100);
         pool->Start();
 
-        storageAreaReader_.reset(new DataSourceReader(pool, new StorageAreaDataSource(area_)));
+        storageAreaReader_.reset(new DataSourceReader(pool, new StorageAreaDataSource(area_, checkMD5)));
         storageAreaReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
         storageAreaReader_->CreateCache(256 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter
       }
@@ -1319,8 +1320,7 @@ namespace Orthanc
 
     if (LookupAttachment(attachment, FileContentType_DicomUntilPixelData, instanceAttachments))
     {
-      std::unique_ptr<DicomDataSource::Dicom> dicom(
-        DicomDataSource::ReadWhole(*dicomReader_, attachment, checkMD5_));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(DicomDataSource::ReadWhole(*dicomReader_, attachment));
 
       {
         DicomDataSource::Dicom::Lock lock(*dicom);
@@ -1479,7 +1479,7 @@ namespace Orthanc
   StorageAreaDataSource::Range* ServerContext::ReadAttachment(const FileInfo& attachment,
                                                               bool uncompress)
   {
-    return StorageAreaDataSource::ReadAttachment(*storageAreaReader_, attachment, uncompress, checkMD5_);
+    return StorageAreaDataSource::ReadAttachment(*storageAreaReader_, attachment, uncompress);
   }
 
 
@@ -1487,20 +1487,20 @@ namespace Orthanc
                                                               const StorageRange& range,
                                                               bool uncompress)
   {
-    return StorageAreaDataSource::ReadRange(*storageAreaReader_, attachment, range, uncompress, checkMD5_);
+    return StorageAreaDataSource::ReadRange(*storageAreaReader_, attachment, range, uncompress);
   }
 
 
   StorageAreaDataSource::Range* ServerContext::ReadRawDicom(const std::string& instancePublicId)
   {
-    return StorageAreaDataSource::ReadAttachment(*storageAreaReader_, LookupDicomForInstance(instancePublicId),
-                                                 true /* uncompress */, checkMD5_);
+    return StorageAreaDataSource::ReadAttachment(
+      *storageAreaReader_, LookupDicomForInstance(instancePublicId), true /* uncompress */);
   }
 
 
   DicomDataSource::Dicom* ServerContext::ReadParsedDicom(const std::string& instancePublicId)
   {
-    return DicomDataSource::ReadWhole(*dicomReader_, LookupDicomForInstance(instancePublicId), checkMD5_);
+    return DicomDataSource::ReadWhole(*dicomReader_, LookupDicomForInstance(instancePublicId));
   }
 
 
@@ -1512,7 +1512,7 @@ namespace Orthanc
     if (index_.LookupAttachment(attachment, revision, ResourceType_Instance,
                                 instancePublicId, FileContentType_DicomUntilPixelData))
     {
-      return DicomDataSource::ReadWhole(*dicomReader_, attachment, checkMD5_);
+      return DicomDataSource::ReadWhole(*dicomReader_, attachment);
     }
     else
     {
@@ -1538,7 +1538,7 @@ namespace Orthanc
       }
 
       // Fallback: The pixel data offset is not present or cannot be used, the whole DICOM file must be read
-      return DicomDataSource::ReadWhole(*dicomReader_, attachment, checkMD5_);
+      return DicomDataSource::ReadWhole(*dicomReader_, attachment);
     }
   }
 
@@ -1850,7 +1850,7 @@ namespace Orthanc
 
     std::unique_ptr<ImageAccessor> decoded;
 
-    decoded.reset(GetTranscoder()->DecodeFrame(dicomReader_, storageAreaReader_, transcoderReader_, attachment, frameIndex, checkMD5_));
+    decoded.reset(GetTranscoder()->DecodeFrame(dicomReader_, storageAreaReader_, transcoderReader_, attachment, frameIndex));
 
     if (decoded.get() == NULL)
     {

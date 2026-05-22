@@ -287,7 +287,6 @@ namespace Orthanc
     boost::posix_time::ptime serverStartTimeUtc_;
 
     // For streaming
-    bool                                 checkMD5_;
     boost::shared_ptr<DataSourceReader>  storageAreaReader_;
     boost::shared_ptr<DataSourceReader>  dicomReader_;
     boost::shared_ptr<ThreadPool>        transcoderThreadPool_;

@@ -345,8 +345,7 @@ namespace Orthanc
 
   StorageAreaDataSource::Range* StorageAreaDataSource::ReadAttachment(DataSourceReader& reader,
                                                                       const FileInfo& attachment,
-                                                                      bool uncompress,
-                                                                      bool checkMD5)
+                                                                      bool uncompress)
   {
     std::unique_ptr<Identifier> id(new Identifier(attachment.GetUuid(),
                                                   attachment.GetContentType(),
@@ -390,8 +389,7 @@ namespace Orthanc
   StorageAreaDataSource::Range* StorageAreaDataSource::ReadRange(DataSourceReader& reader,
                                                                  const FileInfo& attachment,
                                                                  const StorageRange& range,
-                                                                 bool uncompress,
-                                                                 bool checkMD5)
+                                                                 bool uncompress)
   {
     // This mimics "StorageAccessor::ReadRange()"
 
@@ -400,7 +398,7 @@ namespace Orthanc
     {
       // An uncompression is needed in this case
       std::unique_ptr<StorageAreaDataSource::Range> uncompressed(
-        ReadAttachment(reader, attachment, true /* uncompress */, checkMD5));
+        ReadAttachment(reader, attachment, true /* uncompress */));
 
       std::string content;
       range.Extract(content, uncompressed->GetData(), uncompressed->GetSize());

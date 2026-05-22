@@ -46,13 +46,10 @@ namespace Orthanc
   {
   private:
     FileInfo  attachment_;
-    bool      checkMD5_;
 
   public:
-    explicit WholeIdentifier(const FileInfo& attachment,
-                             bool checkMD5) :
-      attachment_(attachment),
-      checkMD5_(checkMD5)
+    explicit WholeIdentifier(const FileInfo& attachment) :
+      attachment_(attachment)
     {
     }
 
@@ -71,7 +68,7 @@ namespace Orthanc
 
     virtual StorageAreaDataSource::Range* ReadRange(DataSourceReader& reader) const ORTHANC_OVERRIDE
     {
-      return StorageAreaDataSource::ReadAttachment(reader, attachment_, true /* uncompress */, checkMD5_);
+      return StorageAreaDataSource::ReadAttachment(reader, attachment_, true /* uncompress */);
     }
   };
 
@@ -209,10 +206,9 @@ namespace Orthanc
 
 
   DicomDataSource::Dicom* DicomDataSource::ReadWhole(DataSourceReader& reader,
-                                                     const FileInfo& attachment,
-                                                     bool checkMD5)
+                                                     const FileInfo& attachment)
   {
-    std::unique_ptr<IDataIdentifier> id(new WholeIdentifier(attachment, checkMD5));
+    std::unique_ptr<IDataIdentifier> id(new WholeIdentifier(attachment));
     boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
     return new Dicom(value);
   }

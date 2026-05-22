@@ -85,18 +85,15 @@ namespace Orthanc
   private:
     FileInfo                       attachment_;
     DicomTransferSyntax            targetSyntax_;
-    bool                           checkMD5_;
     TranscodingSopInstanceUidMode  mode_;
     bool                           hasLossyQuality_;
     unsigned int                   lossyQuality_;
 
   public:
     Identifier(const FileInfo& attachment,
-               DicomTransferSyntax targetSyntax,
-               bool checkMD5) :
+               DicomTransferSyntax targetSyntax) :
       attachment_(attachment),
       targetSyntax_(targetSyntax),
-      checkMD5_(checkMD5),
       mode_(TranscodingSopInstanceUidMode_AllowNew),
       hasLossyQuality_(false),
       lossyQuality_(0)
@@ -139,8 +136,7 @@ namespace Orthanc
                 DataSourceReader& storageAreaReader) const
     {
       std::unique_ptr<StorageAreaDataSource::Range> range(
-        StorageAreaDataSource::ReadAttachment(
-          storageAreaReader, attachment_, true /* uncompress */, checkMD5_));
+        StorageAreaDataSource::ReadAttachment(storageAreaReader, attachment_, true /* uncompress */));
 
       IDicomTranscoder::DicomImage source;
       source.SetExternalBuffer(range->GetData(), range->GetSize());
@@ -216,10 +212,9 @@ namespace Orthanc
 
   TranscoderDataSource::Transcoded* TranscoderDataSource::Transcode(DataSourceReader& reader,
                                                                     const FileInfo& attachment,
-                                                                    DicomTransferSyntax targetSyntax,
-                                                                    bool checkMD5)
+                                                                    DicomTransferSyntax targetSyntax)
   {
-    std::unique_ptr<IDataIdentifier> id(new Identifier(attachment, targetSyntax, checkMD5));
+    std::unique_ptr<IDataIdentifier> id(new Identifier(attachment, targetSyntax));
     boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
     return new Transcoded(value);
   }
@@ -229,10 +224,9 @@ namespace Orthanc
                                                                     const FileInfo& attachment,
                                                                     DicomTransferSyntax targetSyntax,
                                                                     TranscodingSopInstanceUidMode mode,
-                                                                    unsigned int lossyQuality,
-                                                                    bool checkMD5)
+                                                                    unsigned int lossyQuality)
   {
-    std::unique_ptr<Identifier> id(new Identifier(attachment, targetSyntax, checkMD5));
+    std::unique_ptr<Identifier> id(new Identifier(attachment, targetSyntax));
     id->SetMode(mode);
     id->SetLossyQuality(lossyQuality);
 

@@ -85,14 +85,12 @@ namespace Orthanc
 
     static Transcoded* Transcode(DataSourceReader& reader,
                                  const FileInfo& attachment,
-                                 DicomTransferSyntax targetSyntax,
-                                 bool checkMD5);
+                                 DicomTransferSyntax targetSyntax);
 
     static Transcoded* Transcode(DataSourceReader& reader,
                                  const FileInfo& attachment,
                                  DicomTransferSyntax targetSyntax,
                                  TranscodingSopInstanceUidMode mode,
-                                 unsigned int lossyQuality,
-                                 bool checkMD5);
+                                 unsigned int lossyQuality);
   };
 }
