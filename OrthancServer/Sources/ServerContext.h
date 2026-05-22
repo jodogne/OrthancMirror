@@ -591,5 +591,7 @@ namespace Orthanc
     Future* SubmitTranscodingRequest(TranscodingCallable* callable);
 
     StorageAreaDataSource::MultipleReader* CreateMultipleStorageAreaReader() const;
+
+    DicomDataSource::MultipleReader* CreateMultipleDicomReader() const;
   };
 }

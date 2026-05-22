@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../../OrthancFramework/Sources/Compatibility.h"  // For ORTHANC_OVERRIDE
-#include "../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
+#include "../../OrthancFramework/Sources/DataSource/DicomDataSource.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/IGetRequestHandler.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.h"
 
@@ -45,7 +45,7 @@ namespace Orthanc
     std::vector<std::string> instancesIds_;
     size_t position_;
     std::string originatorAet_;
-    std::unique_ptr<StorageAreaDataSource::MultipleReader> instancesLoader_;  // TODO-Streaming : Should be DICOM
+    std::unique_ptr<DicomDataSource::MultipleReader> instancesLoader_;
 
     unsigned int completedCount_;
     unsigned int warningCount_;
@@ -63,7 +63,7 @@ namespace Orthanc
     bool PerformGetSubOp(T_ASC_Association *assoc,
                          const std::string& sopClassUid,
                          const std::string& sopInstanceUid,
-                         DcmFileFormat* datasetRaw);
+                         DcmFileFormat& dicom);
     
     void AddFailedUIDInstance(const std::string& sopInstance);
 

@@ -92,7 +92,7 @@ namespace Orthanc
         {
         }
 
-        const ParsedDicomFile& GetContent() const;
+        ParsedDicomFile& GetContent() const;
       };
     };
 
@@ -102,5 +102,21 @@ namespace Orthanc
     static Dicom* ReadUntilPixelData(DataSourceReader& reader,
                                      const FileInfo& attachment,
                                      uint64_t pixelDataOffset);
+
+    class MultipleReader : public boost::noncopyable
+    {
+    private:
+      class PImpl;
+      PImpl* pimpl_;
+
+    public:
+      MultipleReader(const boost::shared_ptr<DataSourceReader>& reader);
+
+      ~MultipleReader();
+
+      void Enqueue(const FileInfo& item);
+
+      Dicom* Dequeue();
+    };
   };
 }

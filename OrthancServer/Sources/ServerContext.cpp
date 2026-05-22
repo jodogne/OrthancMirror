@@ -2142,4 +2142,10 @@ namespace Orthanc
   {
     return new StorageAreaDataSource::MultipleReader(storageAreaReader_);
   }
+
+
+  DicomDataSource::MultipleReader* ServerContext::CreateMultipleDicomReader() const
+  {
+    return new DicomDataSource::MultipleReader(dicomReader_);
+  }
 }

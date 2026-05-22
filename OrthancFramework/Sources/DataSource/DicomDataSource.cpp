@@ -199,7 +199,7 @@ namespace Orthanc
   }
 
 
-  const ParsedDicomFile& DicomDataSource::Dicom::Lock::GetContent() const
+  ParsedDicomFile& DicomDataSource::Dicom::Lock::GetContent() const
   {
     return dynamic_cast<const Value&>(*that_.value_).GetContent();
   }
@@ -231,5 +231,70 @@ namespace Orthanc
     std::unique_ptr<IDataIdentifier> id(new BeginningIdentifier(attachment, static_cast<size_t>(pixelDataOffset)));
     boost::shared_ptr<IDynamicObject> value = reader.ReadSingle(id.release());
     return new Dicom(value);
+  }
+
+
+  class DicomDataSource::MultipleReader::PImpl : public boost::noncopyable
+  {
+  private:
+    boost::shared_ptr<DataSourceReader>  reader_;
+    std::unique_ptr<DataSourceRequest>   request_;
+    boost::shared_ptr<DataSourceAnswer>  answer_;
+
+  public:
+    PImpl(const boost::shared_ptr<DataSourceReader>& reader) :
+      reader_(reader),
+      request_(new DataSourceRequest)
+    {
+    }
+
+    void Enqueue(const FileInfo& attachment)
+    {
+      if (request_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        request_->Enqueue(new WholeIdentifier(attachment));
+      }
+    }
+
+    Dicom* Dequeue()
+    {
+      if (answer_.get() == NULL)
+      {
+        assert(request_.get() != NULL);
+        answer_ = reader_->Submit(request_.release());
+      }
+
+      std::unique_ptr<DataSourceAnswer::Item> item(answer_->Dequeue());
+      return new Dicom(item->GetValue());
+    }
+  };
+
+
+  DicomDataSource::MultipleReader::MultipleReader(const boost::shared_ptr<DataSourceReader>& reader) :
+    pimpl_(new PImpl(reader))
+  {
+  }
+
+
+  DicomDataSource::MultipleReader::~MultipleReader()
+  {
+    assert(pimpl_ != NULL);
+    delete pimpl_;
+  }
+
+
+  void DicomDataSource::MultipleReader::Enqueue(const FileInfo& attachment)
+  {
+    pimpl_->Enqueue(attachment);
+  }
+
+
+  DicomDataSource::Dicom* DicomDataSource::MultipleReader::Dequeue()
+  {
+    return pimpl_->Dequeue();
   }
 }

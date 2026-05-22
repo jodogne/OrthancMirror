@@ -70,32 +70,35 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    std::unique_ptr<StorageAreaDataSource::MultipleReader::Item> item(instancesLoader_->Dequeue());
-
-    std::unique_ptr<DcmFileFormat> parsed(
-      FromDcmtkBridge::LoadFromMemoryBuffer(item->GetData(), item->GetSize()));
-
-    if (parsed.get() == NULL ||
-        parsed->getDataset() == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-    
-    DcmDataset& dataset = *parsed->getDataset();
-    
-    OFString a, b;
-    if (!dataset.findAndGetOFString(DCM_SOPClassUID, a).good() ||
-        !dataset.findAndGetOFString(DCM_SOPInstanceUID, b).good())
-    {
-      throw OrthancException(ErrorCode_NoSopClassOrInstance,
-                             "Unable to determine the SOP class/instance for C-STORE with AET " +
-                             originatorAet_);
-    }
+      std::unique_ptr<DicomDataSource::Dicom> item(instancesLoader_->Dequeue());
 
-    std::string sopClassUid(a.c_str());
-    std::string sopInstanceUid(b.c_str());
+      if (item == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
     
-    return PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, parsed.release());
+      DicomDataSource::Dicom::Lock lock(*item);
+
+      if (lock.GetContent().GetDcmtkObject().getDataset() == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    
+      OFString a, b;
+      if (!lock.GetContent().GetDcmtkObject().getDataset()->findAndGetOFString(DCM_SOPClassUID, a).good() ||
+          !lock.GetContent().GetDcmtkObject().getDataset()->findAndGetOFString(DCM_SOPInstanceUID, b).good())
+      {
+        throw OrthancException(ErrorCode_NoSopClassOrInstance,
+                               "Unable to determine the SOP class/instance for C-STORE with AET " +
+                               originatorAet_);
+      }
+
+      std::string sopClassUid(a.c_str());
+      std::string sopInstanceUid(b.c_str());
+
+      return PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, lock.GetContent().GetDcmtkObject());
+    }
   }
 
   
@@ -225,13 +228,10 @@ namespace Orthanc
   bool OrthancGetRequestHandler::PerformGetSubOp(T_ASC_Association* assoc,
                                                  const std::string& sopClassUid,
                                                  const std::string& sopInstanceUid,
-                                                 DcmFileFormat* dicomRaw)
+                                                 DcmFileFormat& dicom)
   {
-    assert(dicomRaw != NULL);
-    std::unique_ptr<DcmFileFormat> dicom(dicomRaw);
-    
     DicomTransferSyntax sourceSyntax;
-    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, *dicom))
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, dicom))
     {
       failedCount_++;
       AddFailedUIDInstance(sopInstanceUid);
@@ -308,7 +308,7 @@ namespace Orthanc
       // No transcoding is required
       DcmDataset *stDetailTmp = NULL;
       cond = DIMSE_storeUser(
-        assoc, presId, &req, NULL /* imageFileName */, dicom->getDataset(),
+        assoc, presId, &req, NULL /* imageFileName */, dicom.getDataset(),
         ProgressCallback, NULL /* callbackData */,
         (timeout_ > 0 ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), static_cast<int>(timeout_),
         &rsp, &stDetailTmp, &cancelParameters);
@@ -318,7 +318,7 @@ namespace Orthanc
     {
       // Transcoding to the selected uncompressed transfer syntax
       IDicomTranscoder::DicomImage source, transcoded;
-      source.AcquireParsed(dicom.release());
+      source.AcquireParsed(new DcmFileFormat(dicom));        // TODO-Streaming : Trancode upfront
 
       std::set<DicomTransferSyntax> ts;
       ts.insert(selectedSyntax);
@@ -567,7 +567,7 @@ namespace Orthanc
       }
     }
 
-    instancesLoader_.reset(context_.CreateMultipleStorageAreaReader());
+    instancesLoader_.reset(context_.CreateMultipleDicomReader());
 
     std::vector<FileInfo> filesInfo;
 
@@ -584,7 +584,7 @@ namespace Orthanc
 
     for (size_t i = 0; i < instancesIds_.size(); ++i)
     {
-      instancesLoader_->Enqueue(filesInfo[i], true /* uncompress */);
+      instancesLoader_->Enqueue(filesInfo[i]);
     }
 
     failedUIDs_.clear();
