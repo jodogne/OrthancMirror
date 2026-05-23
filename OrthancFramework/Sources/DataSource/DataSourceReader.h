@@ -41,6 +41,7 @@ namespace Orthanc
     class DataSourceMemoryBudget;
   }
 
+  // TODO-Streaming: Is it useful for DataSourceRequest and DataSourceAnswer to handle multiple requests?
   class ORTHANC_PUBLIC DataSourceReader : public boost::noncopyable
   {
   private:
