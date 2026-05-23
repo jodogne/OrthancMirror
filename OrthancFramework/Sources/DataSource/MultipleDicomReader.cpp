@@ -67,8 +67,7 @@ namespace Orthanc
         answer_ = reader_->Submit(request_.release());
       }
 
-      std::unique_ptr<DataSourceAnswer::Item> item(answer_->Dequeue());
-      return new DicomDataSource::Dicom(item->GetValue());
+      return new DicomDataSource::Dicom(answer_->Dequeue());
     }
   };
 

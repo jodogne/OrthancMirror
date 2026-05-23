@@ -26,6 +26,7 @@
 #include "../DicomParsing/IDicomTranscoder.h"
 #include "../FileStorage/FileInfo.h"
 #include "../MultiThreading/Mutex.h"
+#include "DataSourceAnswer.h"
 #include "IDataSource.h"
 
 #include <boost/shared_ptr.hpp>
@@ -55,21 +56,11 @@ namespace Orthanc
     class Transcoded : public boost::noncopyable
     {
     private:
-      Mutex                              mutex_;
-      boost::shared_ptr<IDynamicObject>  value_;
-      std::unique_ptr<IDynamicObject>    userData_;
+      Mutex                                    mutex_;
+      std::unique_ptr<DataSourceAnswer::Item>  item_;   // Holding item puts backpressure on the data source
 
     public:
-      explicit Transcoded(const boost::shared_ptr<IDynamicObject>& value);
-
-      void SetUserData(IDynamicObject* data);
-
-      bool HasUserData() const
-      {
-        return userData_.get() != NULL;
-      }
-
-      const IDynamicObject& GetUserData();
+      explicit Transcoded(DataSourceAnswer::Item* item /* takes ownership */);
 
       class LockAsParsed : public boost::noncopyable
       {

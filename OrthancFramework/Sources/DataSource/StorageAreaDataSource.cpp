@@ -68,11 +68,6 @@ namespace Orthanc
     {
       return checkMD5_;
     }
-
-    static Value* CreateFromSwap(std::string& content)
-    {
-      return new Value(StringMemoryBuffer::CreateFromSwap(content), false);
-    }
   };
 
 
@@ -83,7 +78,8 @@ namespace Orthanc
     {
     }
 
-    virtual boost::shared_ptr<IDynamicObject> Apply(const boost::shared_ptr<IDynamicObject>& value) const = 0;
+    // This method can return NULL if no post-processing is required
+    virtual IMemoryBuffer* Apply(const Value& value) const = 0;
   };
 
 
@@ -207,75 +203,66 @@ namespace Orthanc
       return attachment_;
     }
 
-    virtual boost::shared_ptr<IDynamicObject> Apply(const boost::shared_ptr<IDynamicObject>& obj) const ORTHANC_OVERRIDE
+    virtual IMemoryBuffer* Apply(const Value& value) const ORTHANC_OVERRIDE
     {
-      if (obj.get() == NULL)
+      if (value.IsCheckMD5())
       {
-        throw OrthancException(ErrorCode_NullPointer);
-      }
-      else
-      {
-        const Value& value = dynamic_cast<Value&>(*obj);
+        std::string md5;
+        Toolbox::ComputeMD5(md5, value.GetBuffer().GetData(), value.GetBuffer().GetSize());
 
-        if (value.IsCheckMD5())
+        if (md5 != attachment_.GetCompressedMD5())
         {
-          std::string md5;
-          Toolbox::ComputeMD5(md5, value.GetBuffer().GetData(), value.GetBuffer().GetSize());
-
-          if (md5 != attachment_.GetCompressedMD5())
-          {
-            throw OrthancException(ErrorCode_CorruptedFile);
-          }
+          throw OrthancException(ErrorCode_CorruptedFile);
         }
+      }
 
-        if (uncompress_)
+      if (uncompress_)
+      {
+        switch (attachment_.GetCompressionType())
         {
-          switch (attachment_.GetCompressionType())
+          case CompressionType_None:
+            if (value.IsCheckMD5() &&
+                attachment_.GetCompressedMD5() != attachment_.GetUncompressedMD5())
+            {
+              throw OrthancException(ErrorCode_CorruptedFile);
+            }
+            else
+            {
+              return NULL;
+            }
+
+          case CompressionType_ZlibWithSize:
           {
-            case CompressionType_None:
-              if (value.IsCheckMD5() &&
-                  attachment_.GetCompressedMD5() != attachment_.GetUncompressedMD5())
+#if ORTHANC_ENABLE_ZLIB == 1
+            ZlibCompressor zlib;
+
+            std::string content;
+            zlib.Uncompress(content, value.GetBuffer().GetData(), value.GetBuffer().GetSize());
+
+            if (value.IsCheckMD5())
+            {
+              std::string md5;
+              Toolbox::ComputeMD5(md5, content);
+
+              if (md5 != attachment_.GetUncompressedMD5())
               {
                 throw OrthancException(ErrorCode_CorruptedFile);
               }
-              else
-              {
-                return obj;
-              }
-
-            case CompressionType_ZlibWithSize:
-            {
-#if ORTHANC_ENABLE_ZLIB == 1
-              ZlibCompressor zlib;
-
-              std::string content;
-              zlib.Uncompress(content, value.GetBuffer().GetData(), value.GetBuffer().GetSize());
-
-              if (value.IsCheckMD5())
-              {
-                std::string md5;
-                Toolbox::ComputeMD5(md5, content);
-
-                if (md5 != attachment_.GetUncompressedMD5())
-                {
-                  throw OrthancException(ErrorCode_CorruptedFile);
-                }
-              }
-
-              return boost::shared_ptr<IDynamicObject>(Value::CreateFromSwap(content));
-#else
-              throw OrthancException(ErrorCode_InternalError, "Support for zlib is disabled, cannot uncompress attachment");
-#endif
             }
 
-            default:
-              throw OrthancException(ErrorCode_NotImplemented);
+            return StringMemoryBuffer::CreateFromSwap(content);
+#else
+            throw OrthancException(ErrorCode_InternalError, "Support for zlib is disabled, cannot uncompress attachment");
+#endif
           }
+
+          default:
+            throw OrthancException(ErrorCode_NotImplemented);
         }
-        else
-        {
-          return obj;
-        }
+      }
+      else
+      {
+        return NULL;
       }
     }
   };
@@ -287,6 +274,7 @@ namespace Orthanc
     return tmp.GetBuffer().GetSize();
   }
 
+
   IDynamicObject* StorageAreaDataSource::Load(const IDataIdentifier& identifier)
   {
     const Identifier& id = dynamic_cast<const Identifier&>(identifier);
@@ -294,74 +282,42 @@ namespace Orthanc
   }
 
 
-  const StorageAreaDataSource::Value& StorageAreaDataSource::Range::GetValue() const
+  const IMemoryBuffer& StorageAreaDataSource::Range::GetBuffer() const
   {
-    assert(value_.get() != NULL);
-    return dynamic_cast<const StorageAreaDataSource::Value&>(*value_);
+    if (item_.get() != NULL)
+    {
+      assert(buffer_.get() == NULL);
+      return dynamic_cast<const Value&>(*item_->GetValue()).GetBuffer();
+    }
+    else if (buffer_.get() != NULL)
+    {
+      assert(item_.get() == NULL);
+      return *buffer_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
   }
 
 
-  StorageAreaDataSource::Range::Range(const boost::shared_ptr<IDynamicObject>& value) :
-    value_(value)
+  StorageAreaDataSource::Range::Range(IMemoryBuffer* buffer /* takes ownership */) :
+    buffer_(buffer)
   {
-    if (value_.get() == NULL)
+    if (buffer == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
   }
 
 
-  void StorageAreaDataSource::Range::SetUserData(IDynamicObject* data)
+  StorageAreaDataSource::Range::Range(DataSourceAnswer::Item* item) :
+    item_(item)
   {
-    std::unique_ptr<IDynamicObject> protection(data);
-
-    if (userData_.get() == NULL)
+    if (item == NULL)
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      throw OrthancException(ErrorCode_NullPointer);
     }
-    else
-    {
-      userData_.reset(data);
-    }
-  }
-
-
-  const IDynamicObject& StorageAreaDataSource::Range::GetUserData()
-  {
-    if (userData_.get() == NULL)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      return *userData_;
-    }
-  }
-
-
-  const void* StorageAreaDataSource::Range::GetData() const
-  {
-    return GetValue().GetBuffer().GetData();
-  }
-
-
-  size_t StorageAreaDataSource::Range::GetSize() const
-  {
-    return GetValue().GetBuffer().GetSize();
-  }
-
-
-  void StorageAreaDataSource::Range::Copy(std::string& to) const
-  {
-    const IMemoryBuffer& buffer = GetValue().GetBuffer();
-    to.assign(reinterpret_cast<const char*>(buffer.GetData()), buffer.GetSize());
-  }
-
-
-  StorageAreaDataSource::Range* StorageAreaDataSource::Range::CreateFromSwap(std::string& content)
-  {
-    boost::shared_ptr<Value> value(new Value(StringMemoryBuffer::CreateFromSwap(content), false));
-    return new Range(value);
   }
 
 
@@ -429,7 +385,7 @@ namespace Orthanc
       std::string content;
       range.Extract(content, uncompressed->GetData(), uncompressed->GetSize());
 
-      return Range::CreateFromSwap(content);
+      return new Range(StringMemoryBuffer::CreateFromSwap(content));
     }
     else
     {
@@ -469,19 +425,24 @@ namespace Orthanc
 
       if (id.HasPostProcessing())
       {
-        range.reset(new Range(id.GetPostProcessing().Apply(item->GetValue())));
+        const Value& value = dynamic_cast<const Value&>(*item->GetValue());
+        std::unique_ptr<IMemoryBuffer> postProcessed(id.GetPostProcessing().Apply(value));
+
+        if (postProcessed.get() != NULL)
+        {
+          range.reset(new Range(postProcessed.release()));
+        }
+      }
+
+      if (range.get() == NULL)  // No postprocessing was applied
+      {
+        return new Range(item.release());   // Keep backpressure on "item"
       }
       else
       {
-        range.reset(new Range(item->GetValue()));
+        // In this case, the backporessure on the source "item" is released
+        return range.release();
       }
-
-      if (item->HasUserData())
-      {
-        range->SetUserData(item->ReleaseUserData());
-      }
-
-      return range.release();
     }
   }
 }

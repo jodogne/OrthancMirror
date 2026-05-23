@@ -243,40 +243,12 @@ namespace Orthanc
   }
 
 
-  TranscoderDataSource::Transcoded::Transcoded(const boost::shared_ptr<IDynamicObject>& value) :
-    value_(value)
+  TranscoderDataSource::Transcoded::Transcoded(DataSourceAnswer::Item* item) :
+    item_(item)
   {
-    if (!value)
+    if (!item)
     {
       throw OrthancException(ErrorCode_NullPointer);
-    }
-  }
-
-
-  void TranscoderDataSource::Transcoded::SetUserData(IDynamicObject* data)
-  {
-    std::unique_ptr<IDynamicObject> protection(data);
-
-    if (userData_.get() == NULL)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      userData_.reset(data);
-    }
-  }
-
-
-  const IDynamicObject& TranscoderDataSource::Transcoded::GetUserData()
-  {
-    if (userData_.get() == NULL)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      return *userData_;
     }
   }
 
@@ -284,7 +256,7 @@ namespace Orthanc
   TranscoderDataSource::Transcoded::LockAsParsed::LockAsParsed(Transcoded& that) :
     lock_(that.mutex_)
   {
-    const Value& value = dynamic_cast<const Value&>(*that.value_);
+    const Value& value = dynamic_cast<const Value&>(*that.item_->GetValue());
 
     if (value.HasParsed())
     {
@@ -308,7 +280,7 @@ namespace Orthanc
   {
     Mutex::ScopedLock lock(that.mutex_);
 
-    const Value& value = dynamic_cast<const Value&>(*that.value_);
+    const Value& value = dynamic_cast<const Value&>(*that.item_->GetValue());
 
     if (value.HasParsed())
     {
@@ -355,15 +327,7 @@ namespace Orthanc
     else
     {
       std::unique_ptr<DataSourceAnswer::Item> item(reader.ReadSingleWithIdentifier(request));
-
-      std::unique_ptr<Transcoded> transcoded(new Transcoded(item->GetValue()));
-
-      if (item->HasUserData())
-      {
-        transcoded->SetUserData(item->ReleaseUserData());
-      }
-
-      return transcoded.release();
+      return new Transcoded(item.release());
     }
   }
 }

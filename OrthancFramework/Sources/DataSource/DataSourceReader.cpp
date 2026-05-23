@@ -224,6 +224,7 @@ namespace Orthanc
     boost::shared_ptr<DataSourceAnswer> answer(Submit(request.release()));
 
     std::unique_ptr<DataSourceAnswer::Item> item(answer->Dequeue());
+    assert(item != NULL);
     assert(answer->Dequeue() == NULL);
 
     return item.release();

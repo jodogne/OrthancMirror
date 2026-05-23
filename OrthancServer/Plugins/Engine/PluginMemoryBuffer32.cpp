@@ -61,6 +61,19 @@ namespace Orthanc
   }
 
 
+  void PluginMemoryBuffer32::CopyToString(std::string& target) const
+  {
+    SanityCheck();
+
+    target.resize(buffer_.size);
+
+    if (buffer_.size != 0)
+    {
+      memcpy(&target[0], buffer_.data, buffer_.size);
+    }
+  }
+
+
   void PluginMemoryBuffer32::MoveToString(std::string& target)
   {
     SanityCheck();

@@ -35,6 +35,7 @@
 #include "../Compatibility.h"
 #include "../FileStorage/FileInfo.h"
 #include "../MultiThreading/Mutex.h"
+#include "DataSourceAnswer.h"
 #include "IDataIdentifier.h"
 #include "IDataSource.h"
 
@@ -66,21 +67,11 @@ namespace Orthanc
     class Dicom : public boost::noncopyable
     {
     private:
-      Mutex                              mutex_;
-      boost::shared_ptr<IDynamicObject>  value_;
-      std::unique_ptr<IDynamicObject>    userData_;
+      Mutex                                    mutex_;
+      std::unique_ptr<DataSourceAnswer::Item>  item_;   // Holding item puts backpressure on the data source
 
     public:
-      Dicom(const boost::shared_ptr<IDynamicObject>& value);
-
-      void SetUserData(IDynamicObject* data);
-
-      bool HasUserData() const
-      {
-        return userData_.get() != NULL;
-      }
-
-      const IDynamicObject& GetUserData();
+      Dicom(DataSourceAnswer::Item* item /* takes ownership */);
 
       ParsedDicomFile* Clone();
 

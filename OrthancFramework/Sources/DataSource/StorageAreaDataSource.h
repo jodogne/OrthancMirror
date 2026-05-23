@@ -32,6 +32,8 @@
 #include "../FileStorage/FileInfo.h"
 #include "../FileStorage/IStorageArea.h"
 #include "../FileStorage/StorageRange.h"
+#include "../IMemoryBuffer.h"
+#include "DataSourceAnswer.h"
 #include "IDataSource.h"
 
 #include <boost/shared_ptr.hpp>
@@ -68,30 +70,30 @@ namespace Orthanc
     class Range : public boost::noncopyable
     {
     private:
-      boost::shared_ptr<IDynamicObject>  value_;
-      std::unique_ptr<IDynamicObject>    userData_;
+      std::unique_ptr<DataSourceAnswer::Item>  item_;   // Holding item puts backpressure on the data source (can be NULL)
+      std::unique_ptr<IMemoryBuffer>           buffer_;  // To be used if "item_ == NULL"
 
-      const Value& GetValue() const;
+      const IMemoryBuffer& GetBuffer() const;
 
     public:
-      explicit Range(const boost::shared_ptr<IDynamicObject>& value);
+      explicit Range(DataSourceAnswer::Item* item /* takes ownership */);
 
-      void SetUserData(IDynamicObject* data);
+      explicit Range(IMemoryBuffer* buffer /* takes ownership */);
 
-      bool HasUserData() const
+      const void* GetData() const
       {
-        return userData_.get() != NULL;
+        return GetBuffer().GetData();
       }
 
-      const IDynamicObject& GetUserData();
+      const size_t GetSize() const
+      {
+        return GetBuffer().GetSize();
+      }
 
-      const void* GetData() const;
-
-      size_t GetSize() const;
-
-      void Copy(std::string& to) const;
-
-      static Range* CreateFromSwap(std::string& content);
+      void Copy(std::string& target) const
+      {
+        GetBuffer().CopyToString(target);
+      }
     };
 
     static IDataIdentifier* CreateRangeRequest(const std::string& uuid,

@@ -581,7 +581,8 @@ namespace Orthanc
         pool->Start();
 
         storageAreaReader_.reset(new DataSourceReader(pool, new StorageAreaDataSource(area_, checkMD5)));
-        storageAreaReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
+        storageAreaReader_->SetCapacity(1);  // Put highest pressure
+        //storageAreaReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
         storageAreaReader_->CreateCache(256 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter
       }
 
@@ -593,7 +594,8 @@ namespace Orthanc
         pool->Start();
 
         dicomReader_.reset(new DataSourceReader(pool, new DicomDataSource(storageAreaReader_)));
-        dicomReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
+        dicomReader_->SetCapacity(1);  // Put highest pressure
+        //dicomReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
         dicomReader_->CreateCache(32 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter
       }
 
@@ -606,7 +608,8 @@ namespace Orthanc
         transcoderThreadPool_->Start();
 
         transcoderReader_.reset(new DataSourceReader(transcoderThreadPool_, new TranscoderDataSource(transcoder_, storageAreaReader_)));
-        transcoderReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
+        transcoderReader_->SetCapacity(1);  // Put highest pressure
+        //transcoderReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
         transcoderReader_->CreateCache(256 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter
       }
     }

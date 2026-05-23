@@ -184,40 +184,12 @@ namespace Orthanc
   }
 
 
-  DicomDataSource::Dicom::Dicom(const boost::shared_ptr<IDynamicObject>& value) :
-    value_(value)
+  DicomDataSource::Dicom::Dicom(DataSourceAnswer::Item* item) :
+    item_(item)
   {
-    if (value.get() == NULL)
+    if (item == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
-    }
-  }
-
-
-  void DicomDataSource::Dicom::SetUserData(IDynamicObject* data)
-  {
-    std::unique_ptr<IDynamicObject> protection(data);
-
-    if (userData_.get() == NULL)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      userData_.reset(data);
-    }
-  }
-
-
-  const IDynamicObject& DicomDataSource::Dicom::GetUserData()
-  {
-    if (userData_.get() == NULL)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      return *userData_;
     }
   }
 
@@ -231,7 +203,7 @@ namespace Orthanc
 
   ParsedDicomFile& DicomDataSource::Dicom::Lock::GetContent() const
   {
-    return dynamic_cast<const Value&>(*that_.value_).GetContent();
+    return dynamic_cast<const Value&>(*that_.item_->GetValue()).GetContent();
   }
 
 
@@ -269,15 +241,7 @@ namespace Orthanc
     else
     {
       std::unique_ptr<DataSourceAnswer::Item> item(reader.ReadSingleWithIdentifier(request));
-
-      std::unique_ptr<Dicom> dicom(new Dicom(item->GetValue()));
-
-      if (item->HasUserData())
-      {
-        dicom->SetUserData(item->ReleaseUserData());
-      }
-
-      return dicom.release();
+      return new Dicom(item.release());
     }
   }
 }

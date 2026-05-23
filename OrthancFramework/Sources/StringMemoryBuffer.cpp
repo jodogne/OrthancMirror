@@ -28,6 +28,12 @@
 
 namespace Orthanc
 {
+  void StringMemoryBuffer::CopyToString(std::string& target) const
+  {
+    target = buffer_;
+  }
+
+
   void StringMemoryBuffer::MoveToString(std::string& target)
   {
     buffer_.swap(target);

@@ -67,6 +67,7 @@ namespace Orthanc
 
     boost::shared_ptr<DataSourceAnswer> Submit(DataSourceRequest* request /* takes ownership */);
 
+    // TODO-Streaming REMOVE
     boost::shared_ptr<IDynamicObject> ReadSingle(IDataIdentifier* id /* takes ownership */);
 
     DataSourceAnswer::Item* ReadSingleWithIdentifier(IDataIdentifier* id /* takes ownership */);
