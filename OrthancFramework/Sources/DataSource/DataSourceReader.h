@@ -41,7 +41,6 @@ namespace Orthanc
     class DataSourceMemoryBudget;
   }
 
-  // TODO-Streaming: Is it useful for DataSourceRequest and DataSourceAnswer to handle multiple requests?
   class ORTHANC_PUBLIC DataSourceReader : public boost::noncopyable
   {
   private:
@@ -66,9 +65,17 @@ namespace Orthanc
      **/
     void SetCapacity(uint64_t maximumMemory);
 
+    /**
+     * Request the data source to load a set of items. The values will
+     * be read in parallel by a thread pool (cf. "executor_") and will
+     * be answered in no specific order through a message queue
+     * (cf. class "DataSourceAnswer"). The user data stored in
+     * "IDataIdentifier" can be used to identify items. If order is
+     * important, use the class "DataSourceSequentialReader" instead.
+     **/
     boost::shared_ptr<DataSourceAnswer> Submit(DataSourceRequest* request /* takes ownership */);
 
-    DataSourceAnswer::Item* ReadSingleWithIdentifier(IDataIdentifier* id /* takes ownership */);
+    DataSourceAnswer::Item* ReadSingle(IDataIdentifier* id /* takes ownership */);
 
     void Stop()
     {

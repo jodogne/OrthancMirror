@@ -46,7 +46,7 @@ namespace Orthanc
     boost::shared_ptr<Internals::DataSourceMemoryBudget>  budget_;
 
   public:
-    DataSourceRunnable(boost::shared_ptr<DataSourceAnswer>& answer,
+    DataSourceRunnable(const boost::shared_ptr<DataSourceAnswer>& answer,
                        IDataSource& source,
                        IDataIdentifier* id,
                        boost::shared_ptr<SharedObjectCache>& cache,
@@ -66,7 +66,17 @@ namespace Orthanc
 
     virtual void Run() ORTHANC_OVERRIDE
     {
-      // Phase 1: Do all the work WITHOUT holding a strong reference to "DataSourceAnswer".
+      // Phase 1: Make sure the target answer is still alive before doing unnecessary work.
+      {
+        boost::shared_ptr<DataSourceAnswer> lock = answer_.lock();
+        if (!lock)
+        {
+          // The answer was abandonned, give up the request
+          return;
+        }
+      }
+
+      // Phase 2: Do all the work WITHOUT holding a strong reference to "DataSourceAnswer".
       boost::shared_ptr<IDynamicObject> value;
       std::unique_ptr<OrthancException> error;
 
@@ -119,7 +129,7 @@ namespace Orthanc
         error.reset(new OrthancException(ErrorCode_InternalError));
       }
 
-      // Phase 2: Acquire budget WITHOUT holding a strong reference to "DataSourceAnswer".
+      // Phase 3: Acquire budget WITHOUT holding a strong reference to "DataSourceAnswer".
       // If the "DataSourceAnswer" has been dropped, "answer_.lock()" below will return NULL
       // and we will immediately "Release()" to revert this.
       if (!error)
@@ -127,7 +137,7 @@ namespace Orthanc
         budget_->Acquire(size);   // may block; "DataSourceAnswer" CAN be destroyed here
       }
 
-      // Phase 3: Only now take a strong reference to "DataSourceAnswer".
+      // Phase 4: Only now take a strong reference to "DataSourceAnswer".
       {
         boost::shared_ptr<DataSourceAnswer> lock = answer_.lock();
 
@@ -207,7 +217,7 @@ namespace Orthanc
   }
 
 
-  DataSourceAnswer::Item* DataSourceReader::ReadSingleWithIdentifier(IDataIdentifier* id /* takes ownership */)
+  DataSourceAnswer::Item* DataSourceReader::ReadSingle(IDataIdentifier* id /* takes ownership */)
   {
     std::unique_ptr<IDataIdentifier> protection(id);
 

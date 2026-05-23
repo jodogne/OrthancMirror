@@ -326,7 +326,7 @@ namespace Orthanc
     }
     else
     {
-      std::unique_ptr<DataSourceAnswer::Item> item(reader.ReadSingleWithIdentifier(request));
+      std::unique_ptr<DataSourceAnswer::Item> item(reader.ReadSingle(request));
       return new Transcoded(item.release());
     }
   }
