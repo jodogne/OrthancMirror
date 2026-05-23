@@ -75,9 +75,16 @@ namespace Orthanc
 
   const IDataIdentifier& DataSourceAnswer::Item::GetId() const
   {
-    assert(id_.get() != NULL);
-    return *id_;
+    if (id_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return *id_;
+    }
   }
+
 
   const boost::shared_ptr<IDynamicObject>& DataSourceAnswer::Item::GetValue() const
   {
@@ -92,6 +99,19 @@ namespace Orthanc
     else
     {
       throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  IDataIdentifier* DataSourceAnswer::Item::ReleaseIdentifier()
+  {
+    if (id_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return id_.release();
     }
   }
 

@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../../OrthancFramework/Sources/Compatibility.h"  // For ORTHANC_OVERRIDE
-#include "../../OrthancFramework/Sources/DataSource/MultipleDicomReader.h"
+#include "../../OrthancFramework/Sources/DataSource/DicomSequentialReader.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/IGetRequestHandler.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.h"
 
@@ -45,7 +45,7 @@ namespace Orthanc
     std::vector<std::string> instancesIds_;
     size_t position_;
     std::string originatorAet_;
-    std::unique_ptr<MultipleDicomReader> instancesLoader_;
+    std::unique_ptr<DicomSequentialReader> instancesLoader_;
 
     unsigned int completedCount_;
     unsigned int warningCount_;

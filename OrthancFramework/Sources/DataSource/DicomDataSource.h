@@ -67,7 +67,6 @@ namespace Orthanc
     class Dicom : public boost::noncopyable
     {
     private:
-      Mutex                                    mutex_;
       std::unique_ptr<DataSourceAnswer::Item>  item_;   // Holding item puts backpressure on the data source
 
     public:
@@ -83,15 +82,11 @@ namespace Orthanc
       class Lock : public boost::noncopyable
       {
       private:
-        Dicom&             that_;
-        Mutex::ScopedLock  lock_;
+        Dicom&                              that_;
+        std::unique_ptr<Mutex::ScopedLock>  lock_;
 
       public:
-        explicit Lock(Dicom& that) :
-          that_(that),
-          lock_(that.mutex_)
-        {
-        }
+        explicit Lock(Dicom& that);
 
         ParsedDicomFile& GetContent() const;
       };

@@ -42,7 +42,9 @@
 namespace Orthanc
 {
   class DicomElement;
+  class DicomSequentialReader;
   class DicomStoreUserConnection;
+  class IExecutorService;
   class OrthancPlugins;
   class ServerTranscoder;
   class SharedArchive;
@@ -50,7 +52,7 @@ namespace Orthanc
   class ThreadPool;
   class TranscodingCallable;
   
-  
+
   /**
    * This class is responsible for maintaining the storage area on the
    * filesystem (including compression), as well as the index of the
@@ -292,6 +294,7 @@ namespace Orthanc
     boost::shared_ptr<DataSourceReader>  dicomReader_;
     boost::shared_ptr<ThreadPool>        transcoderThreadPool_;
     boost::shared_ptr<DataSourceReader>  transcoderReader_;
+    boost::shared_ptr<IExecutorService>  sequentialReaderThreadPool_;
 
   public:
     ServerContext(IDatabaseWrapper& database,
@@ -592,5 +595,9 @@ namespace Orthanc
     Future* SubmitTranscodingRequest(TranscodingCallable* callable);
 
     MultipleDicomReader* CreateMultipleDicomReader() const;
+
+    DicomSequentialReader* CreateDicomSequentialReader();
+
+    DicomSequentialReader* CreateDicomSequentialReader(DicomTransferSyntax transcodingSyntax);
   };
 }

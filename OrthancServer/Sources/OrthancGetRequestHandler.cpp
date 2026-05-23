@@ -65,29 +65,28 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
     
-    if (instancesLoader_.get() == NULL)
+    if (instancesLoader_.get() == NULL ||
+        !instancesLoader_->HasNext())
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      throw OrthancException(ErrorCode_InternalError);
     }
 
     {
-      std::unique_ptr<DicomDataSource::Dicom> item(instancesLoader_->Dequeue());
+      std::unique_ptr<ParsedDicomFile> dicom(instancesLoader_->Next());
 
-      if (item == NULL)
+      if (dicom.get() == NULL)
       {
         throw OrthancException(ErrorCode_InternalError);
       }
     
-      DicomDataSource::Dicom::Lock lock(*item);
-
-      if (lock.GetContent().GetDcmtkObject().getDataset() == NULL)
+      if (dicom->GetDcmtkObject().getDataset() == NULL)
       {
         throw OrthancException(ErrorCode_InternalError);
       }
     
       OFString a, b;
-      if (!lock.GetContent().GetDcmtkObject().getDataset()->findAndGetOFString(DCM_SOPClassUID, a).good() ||
-          !lock.GetContent().GetDcmtkObject().getDataset()->findAndGetOFString(DCM_SOPInstanceUID, b).good())
+      if (!dicom->GetDcmtkObject().getDataset()->findAndGetOFString(DCM_SOPClassUID, a).good() ||
+          !dicom->GetDcmtkObject().getDataset()->findAndGetOFString(DCM_SOPInstanceUID, b).good())
       {
         throw OrthancException(ErrorCode_NoSopClassOrInstance,
                                "Unable to determine the SOP class/instance for C-STORE with AET " +
@@ -97,7 +96,7 @@ namespace Orthanc
       std::string sopClassUid(a.c_str());
       std::string sopInstanceUid(b.c_str());
 
-      return PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, lock.GetContent().GetDcmtkObject());
+      return PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, dicom->GetDcmtkObject());
     }
   }
 
@@ -567,8 +566,6 @@ namespace Orthanc
       }
     }
 
-    instancesLoader_.reset(context_.CreateMultipleDicomReader());
-
     std::vector<FileInfo> filesInfo;
 
     for (std::list<std::string>::const_iterator
@@ -580,12 +577,15 @@ namespace Orthanc
       context_.GetOrderedChildInstances(instancesIds_, filesInfo, *resourceId, level);
     }
 
-    // TODO-Streaming : Should instances be ordered?
+
+    instancesLoader_.reset(context_.CreateDicomSequentialReader());
 
     for (size_t i = 0; i < instancesIds_.size(); ++i)
     {
-      instancesLoader_->Enqueue(filesInfo[i]);
+      instancesLoader_->Submit(filesInfo[i]);
     }
+
+    instancesLoader_->Start();
 
     failedUIDs_.clear();
 

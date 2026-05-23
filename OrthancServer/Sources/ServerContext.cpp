@@ -27,6 +27,7 @@
 #include "../../OrthancFramework/Sources/Cache/SharedArchive.h"
 #include "../../OrthancFramework/Sources/Constants.h"
 #include "../../OrthancFramework/Sources/DataSource/DataSourceReader.h"
+#include "../../OrthancFramework/Sources/DataSource/DicomSequentialReader.h"
 #include "../../OrthancFramework/Sources/DataSource/TranscoderDataSource.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomStreamReader.h"
@@ -611,6 +612,16 @@ namespace Orthanc
         transcoderReader_->SetCapacity(1);  // Put highest pressure
         //transcoderReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
         transcoderReader_->CreateCache(256 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter
+      }
+
+      {
+        std::unique_ptr<ThreadPool> pool(new ThreadPool);
+        pool->SetCountThreads(16);  // TODO-Streaming - Parameter
+        pool->SetLoggingThreadName("READER");
+        pool->SetDequeueTimeout(100);
+        pool->Start();
+
+        sequentialReaderThreadPool_.reset(pool.release());
       }
     }
     catch (OrthancException&)
@@ -2145,5 +2156,23 @@ namespace Orthanc
   MultipleDicomReader* ServerContext::CreateMultipleDicomReader() const
   {
     return new MultipleDicomReader(dicomReader_);
+  }
+
+
+  DicomSequentialReader* ServerContext::CreateDicomSequentialReader()
+  {
+    return DicomSequentialReader::CreateForOriginal(
+      sequentialReaderThreadPool_, dicomReader_,
+      4 /* TODO-Streaming: Parameter */,
+      0  /* TODO-Streaming: Parameter */);
+  }
+
+
+  DicomSequentialReader* ServerContext::CreateDicomSequentialReader(DicomTransferSyntax transcodingSyntax)
+  {
+    return DicomSequentialReader::CreateForTranscoded(
+      sequentialReaderThreadPool_, transcodingSyntax, transcoderReader_,
+      4 /* TODO-Streaming: Parameter */,
+      0  /* TODO-Streaming: Parameter */);
   }
 }

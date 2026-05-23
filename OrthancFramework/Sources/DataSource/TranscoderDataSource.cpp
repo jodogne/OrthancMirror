@@ -54,6 +54,7 @@ namespace Orthanc
   class TranscoderDataSource::Value : public IDynamicObject
   {
   private:
+    Mutex                             parsedMutex_;
     std::unique_ptr<ParsedDicomFile>  parsed_;
     std::unique_ptr<std::string>      raw_;
     size_t                            size_;
@@ -101,6 +102,11 @@ namespace Orthanc
     bool HasRawBuffer() const
     {
       return raw_.get() != NULL;
+    }
+
+    Mutex::ScopedLock* LockParsed()
+    {
+      return new Mutex::ScopedLock(parsedMutex_);
     }
 
     ParsedDicomFile& GetParsed() const
@@ -253,21 +259,19 @@ namespace Orthanc
   }
 
 
-  TranscoderDataSource::Transcoded::LockAsParsed::LockAsParsed(Transcoded& that) :
-    lock_(that.mutex_)
+  TranscoderDataSource::Transcoded::LockAsParsed::LockAsParsed(Transcoded& that)
   {
-    const Value& value = dynamic_cast<const Value&>(*that.item_->GetValue());
+    Value& value = dynamic_cast<Value&>(*that.item_->GetValue());
 
     if (value.HasParsed())
     {
-      // Don't release the lock here
+      lock_.reset(value.LockParsed());
       content_ = &value.GetParsed();
     }
     else
     {
       assert(value.HasRawBuffer());
       parsed_.reset(new ParsedDicomFile(value.GetRawBuffer()));
-      lock_.Unlock();
 
       content_ = parsed_.get();
     }
@@ -278,12 +282,11 @@ namespace Orthanc
 
   TranscoderDataSource::Transcoded::LockAsBuffer::LockAsBuffer(Transcoded& that)
   {
-    Mutex::ScopedLock lock(that.mutex_);
-
-    const Value& value = dynamic_cast<const Value&>(*that.item_->GetValue());
+    Value& value = dynamic_cast<Value&>(*that.item_->GetValue());
 
     if (value.HasParsed())
     {
+      std::unique_ptr<Mutex::ScopedLock> lock(value.LockParsed());
       serialized_.reset(new std::string);
       value.GetParsed().SaveToMemoryBuffer(*serialized_);
       content_ = serialized_.get();

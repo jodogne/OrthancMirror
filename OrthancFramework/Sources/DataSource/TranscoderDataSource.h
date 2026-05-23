@@ -56,7 +56,6 @@ namespace Orthanc
     class Transcoded : public boost::noncopyable
     {
     private:
-      Mutex                                    mutex_;
       std::unique_ptr<DataSourceAnswer::Item>  item_;   // Holding item puts backpressure on the data source
 
     public:
@@ -71,9 +70,9 @@ namespace Orthanc
          * is enabled in the DataSourceReader.
          **/
 
-        Mutex::ScopedLock                 lock_;
-        std::unique_ptr<ParsedDicomFile>  parsed_;
-        const ParsedDicomFile*            content_;
+        std::unique_ptr<Mutex::ScopedLock>  lock_;
+        std::unique_ptr<ParsedDicomFile>    parsed_;
+        const ParsedDicomFile*              content_;
 
       public:
         explicit LockAsParsed(Transcoded& that);

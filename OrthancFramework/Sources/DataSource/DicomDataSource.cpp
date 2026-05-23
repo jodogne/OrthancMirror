@@ -115,8 +115,9 @@ namespace Orthanc
   class DicomDataSource::Value : public IDynamicObject
   {
   private:
-    std::unique_ptr<ParsedDicomFile>   dicom_;
-    size_t                             size_;
+    Mutex                             mutex_;
+    std::unique_ptr<ParsedDicomFile>  dicom_;
+    size_t                            size_;
 
   public:
     Value(ParsedDicomFile* dicom,
@@ -130,14 +131,19 @@ namespace Orthanc
       }
     }
 
-    ParsedDicomFile& GetContent() const
-    {
-      return *dicom_;
-    }
-
     size_t GetSize() const
     {
       return size_;
+    }
+
+    Mutex::ScopedLock* Lock()
+    {
+      return new Mutex::ScopedLock(mutex_);
+    }
+
+    ParsedDicomFile& GetContent() const
+    {
+      return *dicom_;
     }
   };
 
@@ -201,9 +207,18 @@ namespace Orthanc
   }
 
 
+  DicomDataSource::Dicom::Lock::Lock(Dicom& that):
+    that_(that)
+  {
+    Value& value = dynamic_cast<Value&>(*that_.item_->GetValue());
+    lock_.reset(value.Lock());
+  }
+
+
   ParsedDicomFile& DicomDataSource::Dicom::Lock::GetContent() const
   {
-    return dynamic_cast<const Value&>(*that_.item_->GetValue()).GetContent();
+    const Value& value = dynamic_cast<const Value&>(*that_.item_->GetValue());
+    return value.GetContent();
   }
 
 
