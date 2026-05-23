@@ -2153,12 +2153,6 @@ namespace Orthanc
   }
 
 
-  MultipleDicomReader* ServerContext::CreateMultipleDicomReader() const
-  {
-    return new MultipleDicomReader(dicomReader_);
-  }
-
-
   DicomSequentialReader* ServerContext::CreateDicomSequentialReader()
   {
     return DicomSequentialReader::CreateForOriginal(
