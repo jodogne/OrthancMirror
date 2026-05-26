@@ -301,7 +301,7 @@ namespace Orthanc
   }
 
 
-  StorageAreaDataSource::Range::Range(IMemoryBuffer* buffer /* takes ownership */) :
+  StorageAreaDataSource::Range::Range(IMemoryBuffer* buffer) :
     buffer_(buffer)
   {
     if (buffer == NULL)
@@ -317,6 +317,25 @@ namespace Orthanc
     if (item == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    const Identifier& id = dynamic_cast<const Identifier&>(item->GetId());
+
+    if (id.HasPostProcessing())
+    {
+      const Value& value = dynamic_cast<const Value&>(*item->GetValue());
+      std::unique_ptr<IMemoryBuffer> postProcessed(id.GetPostProcessing().Apply(value));
+
+      if (postProcessed.get() != NULL)
+      {
+        // In this case, the backpressure on the source "item" is released
+        item_.reset(NULL);
+        buffer_.reset(postProcessed.release());
+      }
+      else
+      {
+        // No postprocessing was applied, keep backpressure on "item"
+      }
     }
   }
 
@@ -417,32 +436,7 @@ namespace Orthanc
     }
     else
     {
-      std::unique_ptr<DataSourceAnswer::Item> item(reader.ReadSingle(request));
-
-      const Identifier& id = dynamic_cast<const Identifier&>(item->GetId());
-
-      std::unique_ptr<Range> range;
-
-      if (id.HasPostProcessing())
-      {
-        const Value& value = dynamic_cast<const Value&>(*item->GetValue());
-        std::unique_ptr<IMemoryBuffer> postProcessed(id.GetPostProcessing().Apply(value));
-
-        if (postProcessed.get() != NULL)
-        {
-          range.reset(new Range(postProcessed.release()));
-        }
-      }
-
-      if (range.get() == NULL)  // No postprocessing was applied
-      {
-        return new Range(item.release());   // Keep backpressure on "item"
-      }
-      else
-      {
-        // In this case, the backporessure on the source "item" is released
-        return range.release();
-      }
+      return new Range(reader.ReadSingle(request));
     }
   }
 }
