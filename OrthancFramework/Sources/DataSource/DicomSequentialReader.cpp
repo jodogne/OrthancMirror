@@ -71,12 +71,18 @@ namespace Orthanc
 
   DicomSequentialReader::DicomSequentialReader(Type type,
                                                const boost::shared_ptr<IExecutorService>& executor,
-                                               DicomTransferSyntax transferSyntax,
+                                               DicomTransferSyntax targetSyntax,
+                                               TranscodingSopInstanceUidMode mode,
+                                               bool hasLossyQuality,
+                                               unsigned int lossyQuality,
                                                const boost::shared_ptr<DataSourceReader>& reader,
                                                unsigned int windowSize,
                                                uint64_t windowCapacity) :
     type_(type),
-    transferSyntax_(transferSyntax),
+    targetSyntax_(targetSyntax),
+    mode_(mode),
+    hasLossyQuality_(hasLossyQuality),
+    lossyQuality_(lossyQuality),
     reader_(executor, reader, new Disconnector(type), windowSize, windowCapacity)
   {
   }
@@ -93,6 +99,10 @@ namespace Orthanc
     {
       case Type_Original:
         id.reset(DicomDataSource::CreateWholeRequest(attachment));
+        break;
+
+      case Type_Transcoded:
+        id.reset(TranscoderDataSource::CreateRequest(attachment, targetSyntax_, mode_, hasLossyQuality_, lossyQuality_));
         break;
 
       default:
@@ -114,19 +124,26 @@ namespace Orthanc
                                                                   uint64_t windowCapacity)
   {
     return new DicomSequentialReader(
-      Type_Original, executor, DicomTransferSyntax_LittleEndianImplicit /* dummy value */,
+      Type_Original, executor,
+      DicomTransferSyntax_LittleEndianImplicit, TranscodingSopInstanceUidMode_AllowNew,
+      false /* no lossy */, 0 /* unused lossy quality */,
       dicomReader, windowSize, windowCapacity);
   }
 
 
   DicomSequentialReader* DicomSequentialReader::CreateForTranscoded(const boost::shared_ptr<IExecutorService>& executor,
-                                                                    DicomTransferSyntax transferSyntax,
+                                                                    DicomTransferSyntax targetSyntax,
+                                                                    TranscodingSopInstanceUidMode mode,
+                                                                    bool hasLossyQuality,
+                                                                    unsigned int lossyQuality,
                                                                     const boost::shared_ptr<DataSourceReader>& transcoderReader,
                                                                     unsigned int windowSize,
                                                                     uint64_t windowCapacity)
   {
     return new DicomSequentialReader(
-      Type_Transcoded, executor, transferSyntax, transcoderReader, windowSize, windowCapacity);
+      Type_Transcoded, executor,
+      targetSyntax, mode, hasLossyQuality, lossyQuality,
+      transcoderReader, windowSize, windowCapacity);
   }
 
 

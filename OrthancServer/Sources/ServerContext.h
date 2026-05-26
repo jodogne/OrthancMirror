@@ -595,6 +595,9 @@ namespace Orthanc
 
     DicomSequentialReader* CreateDicomSequentialReader();
 
-    DicomSequentialReader* CreateDicomSequentialReader(DicomTransferSyntax transcodingSyntax);
+    DicomSequentialReader* CreateTranscodedSequentialReader(DicomTransferSyntax targetSyntax,
+                                                            TranscodingSopInstanceUidMode mode,
+                                                            bool hasLossyQuality,
+                                                            unsigned int lossyQuality);
   };
 }

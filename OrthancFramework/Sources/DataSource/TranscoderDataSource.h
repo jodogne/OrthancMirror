@@ -105,11 +105,9 @@ namespace Orthanc
     };
 
     static IDataIdentifier* CreateRequest(const FileInfo& attachment,
-                                          DicomTransferSyntax targetSyntax);
-
-    static IDataIdentifier* CreateRequest(const FileInfo& attachment,
                                           DicomTransferSyntax targetSyntax,
                                           TranscodingSopInstanceUidMode mode,
+                                          bool hasLossyQuality,
                                           unsigned int lossyQuality);
 
     static Transcoded* Execute(DataSourceReader& reader,

@@ -146,18 +146,14 @@ namespace Orthanc
 
   public:
     Identifier(const FileInfo& attachment,
-               DicomTransferSyntax targetSyntax) :
+               DicomTransferSyntax targetSyntax,
+               TranscodingSopInstanceUidMode mode) :
       attachment_(attachment),
       targetSyntax_(targetSyntax),
-      mode_(TranscodingSopInstanceUidMode_AllowNew),
+      mode_(mode),
       hasLossyQuality_(false),
       lossyQuality_(0)
     {
-    }
-
-    void SetMode(TranscodingSopInstanceUidMode mode)
-    {
-      mode_ = mode;
     }
 
     void SetLossyQuality(unsigned int quality)
@@ -172,8 +168,7 @@ namespace Orthanc
              GetTransferSyntaxUid(targetSyntax_) + "|" +
              boost::lexical_cast<std::string>(mode_));
 
-      if (hasLossyQuality_ &&
-          !IsLosslessTransferSyntax(targetSyntax_))
+      if (hasLossyQuality_)
       {
         key += "|" + boost::lexical_cast<std::string>(lossyQuality_);
       }
@@ -302,20 +297,19 @@ namespace Orthanc
 
 
   IDataIdentifier* TranscoderDataSource::CreateRequest(const FileInfo& attachment,
-                                                       DicomTransferSyntax targetSyntax)
-  {
-    return new Identifier(attachment, targetSyntax);
-  }
-
-
-  IDataIdentifier* TranscoderDataSource::CreateRequest(const FileInfo& attachment,
                                                        DicomTransferSyntax targetSyntax,
                                                        TranscodingSopInstanceUidMode mode,
+                                                       bool hasLossyQuality,
                                                        unsigned int lossyQuality)
   {
-    std::unique_ptr<Identifier> id(new Identifier(attachment, targetSyntax));
-    id->SetMode(mode);
-    id->SetLossyQuality(lossyQuality);
+    std::unique_ptr<Identifier> id(new Identifier(attachment, targetSyntax, mode));
+
+    if (hasLossyQuality &&
+        !IsLosslessTransferSyntax(targetSyntax))
+    {
+      id->SetLossyQuality(lossyQuality);
+    }
+
     return id.release();
   }
 

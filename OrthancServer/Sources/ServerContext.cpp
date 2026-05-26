@@ -2162,10 +2162,13 @@ namespace Orthanc
   }
 
 
-  DicomSequentialReader* ServerContext::CreateDicomSequentialReader(DicomTransferSyntax transcodingSyntax)
+  DicomSequentialReader* ServerContext::CreateTranscodedSequentialReader(DicomTransferSyntax targetSyntax,
+                                                                         TranscodingSopInstanceUidMode mode,
+                                                                         bool hasLossyQuality,
+                                                                         unsigned int lossyQuality)
   {
     return DicomSequentialReader::CreateForTranscoded(
-      sequentialReaderThreadPool_, transcodingSyntax, transcoderReader_,
+      sequentialReaderThreadPool_, targetSyntax, mode, hasLossyQuality, lossyQuality, transcoderReader_,
       4 /* TODO-Streaming: Parameter */,
       0  /* TODO-Streaming: Parameter */);
   }

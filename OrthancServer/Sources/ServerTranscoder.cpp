@@ -278,8 +278,9 @@ namespace Orthanc
     else
     {
       std::unique_ptr<TranscoderDataSource::Transcoded> transcoded(
-        TranscoderDataSource::Execute(
-          *transcoderReader, TranscoderDataSource::CreateRequest(attachment, DicomTransferSyntax_LittleEndianExplicit)));
+        TranscoderDataSource::Execute(*transcoderReader, TranscoderDataSource::CreateRequest(
+                                        attachment, DicomTransferSyntax_LittleEndianExplicit,
+                                        TranscodingSopInstanceUidMode_AllowNew, false /* no lossy quality specified */, 0)));
 
       TranscoderDataSource::Transcoded::LockAsParsed lock(*transcoded);
 
