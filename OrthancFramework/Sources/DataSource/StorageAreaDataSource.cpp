@@ -43,8 +43,8 @@ namespace Orthanc
   class StorageAreaDataSource::Value : public IDynamicObject
   {
   private:
-    std::unique_ptr<IMemoryBuffer>  buffer_;
-    bool                            checkMD5_;
+    boost::shared_ptr<IMemoryBuffer>  buffer_;
+    bool                              checkMD5_;
 
   public:
     explicit Value(IMemoryBuffer* buffer,
@@ -58,10 +58,10 @@ namespace Orthanc
       }
     }
 
-    const IMemoryBuffer& GetBuffer() const
+    const boost::shared_ptr<IMemoryBuffer>& GetBuffer() const
     {
       assert(buffer_.get() != NULL);
-      return *buffer_;
+      return buffer_;
     }
 
     bool IsCheckMD5() const
@@ -208,7 +208,7 @@ namespace Orthanc
       if (value.IsCheckMD5())
       {
         std::string md5;
-        Toolbox::ComputeMD5(md5, value.GetBuffer().GetData(), value.GetBuffer().GetSize());
+        Toolbox::ComputeMD5(md5, value.GetBuffer()->GetData(), value.GetBuffer()->GetSize());
 
         if (md5 != attachment_.GetCompressedMD5())
         {
@@ -237,7 +237,7 @@ namespace Orthanc
             ZlibCompressor zlib;
 
             std::string content;
-            zlib.Uncompress(content, value.GetBuffer().GetData(), value.GetBuffer().GetSize());
+            zlib.Uncompress(content, value.GetBuffer()->GetData(), value.GetBuffer()->GetSize());
 
             if (value.IsCheckMD5())
             {
@@ -271,7 +271,7 @@ namespace Orthanc
   size_t StorageAreaDataSource::GetValueSize(const IDynamicObject& value) const
   {
     const Value& tmp = dynamic_cast<const Value&>(value);
-    return tmp.GetBuffer().GetSize();
+    return tmp.GetBuffer()->GetSize();
   }
 
 
@@ -282,7 +282,7 @@ namespace Orthanc
   }
 
 
-  const IMemoryBuffer& StorageAreaDataSource::Range::GetBuffer() const
+  const boost::shared_ptr<IMemoryBuffer>& StorageAreaDataSource::Range::GetBuffer() const
   {
     if (item_.get() != NULL)
     {
@@ -292,7 +292,7 @@ namespace Orthanc
     else if (buffer_.get() != NULL)
     {
       assert(item_.get() == NULL);
-      return *buffer_;
+      return buffer_;
     }
     else
     {
@@ -336,24 +336,6 @@ namespace Orthanc
       {
         // No postprocessing was applied, keep backpressure on "item"
       }
-    }
-  }
-
-
-  boost::shared_ptr<IMemoryBuffer> StorageAreaDataSource::Range::GetSharedBuffer() const
-  {
-    if (buffer_.get() != NULL)
-    {
-      return buffer_;
-    }
-    else if (item_.get() != NULL)
-    {
-      // TODO-Streaming : Any way to shared the value with the "Item"?
-      return boost::shared_ptr<IMemoryBuffer>(StringMemoryBuffer::CreateFromBuffer(GetData(), GetSize()));
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_InternalError);
     }
   }
 

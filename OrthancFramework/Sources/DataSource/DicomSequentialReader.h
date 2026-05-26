@@ -48,9 +48,11 @@ namespace Orthanc
 
       explicit Item(const boost::shared_ptr<IMemoryBuffer>& raw);
 
+    private:
       Item(ParsedDicomFile* parsed /* takes ownership */,
            IMemoryBuffer* raw /* takes ownership */);
 
+    public:
       ParsedDicomFile& GetParsedDicomFile();
 
       const IMemoryBuffer& GetRawMemoryBuffer();
