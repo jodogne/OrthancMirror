@@ -26,6 +26,7 @@
 
 #include "../../OrthancFramework/Sources/Cache/SharedArchive.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomImageInformation.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomStreamReader.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
@@ -1064,6 +1065,15 @@ namespace Orthanc
         
         IDicomTranscoder::DicomImage transcoded;
         
+        if (dicom->HasPixelData())
+        {// check that the target image has a valid/reasonable size before transcoding to avoid possible crash or OOB during transcoding
+          DicomMap summary;
+          dicom->GetSummary(summary);
+
+          DicomImageInformation imageInfo(summary);
+          imageInfo.ThrowIfInvalidFrameSize();
+        }
+
         if (GetTranscoder().Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew /* allow new SOP instance UID */))
         {
           std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
