@@ -56,6 +56,7 @@ static const char* const KEY_UNCOMPRESSED_SIZE = "UncompressedSize";
 static const char* const KEY_ARCHIVE_SIZE = "ArchiveSize";
 static const char* const KEY_TRANSCODE = "Transcode";
 static const char* const KEY_ALLOW_UTF8 = "Utf8";
+static const char* const KEY_LOSSY_QUALITY = "LossyQuality";
 
 
 namespace Orthanc
@@ -940,9 +941,7 @@ namespace Orthanc
     }
 
     void RunStep(ThreadedInstancesLoader& instancesLoader,
-                 size_t index,
-                 bool transcode,
-                 DicomTransferSyntax transferSyntax)
+                 size_t index)
     {
       if (index > commands_.GetSize())
       {
@@ -1007,6 +1006,7 @@ namespace Orthanc
     archiveSize_(0),
     transcode_(false),
     transferSyntax_(DicomTransferSyntax_LittleEndianImplicit),
+    hasLossyQuality_(false),
     lossyQuality_(100),
     loaderThreads_(1),
     allowUtf8_(false)
@@ -1117,6 +1117,7 @@ namespace Orthanc
     }
     else
     {
+      hasLossyQuality_ = true;
       lossyQuality_ = lossyQuality;
     }
   }
@@ -1261,7 +1262,7 @@ namespace Orthanc
     {
       try
       {
-        writer_->RunStep(*instancesLoader_, currentStep_, transcode_, transferSyntax_);
+        writer_->RunStep(*instancesLoader_, currentStep_);
       }
       catch (Orthanc::OrthancException& e)
       {
@@ -1361,6 +1362,12 @@ namespace Orthanc
 
     // New in Orthanc 1.12.11
     value[KEY_ALLOW_UTF8] = allowUtf8_;
+
+    // New in Orthanc 1.12.12
+    if (hasLossyQuality_)
+    {
+      value[KEY_LOSSY_QUALITY] = lossyQuality_;
+    }
   }
 
 
