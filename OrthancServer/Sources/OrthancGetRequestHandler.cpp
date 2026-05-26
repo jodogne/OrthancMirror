@@ -72,14 +72,15 @@ namespace Orthanc
     }
 
     {
+      /**
+       * It is OK to modify the content of "dicom", as
+       * "DicomSequentialReader" returns copies of the cached objects
+       * (cf. "DataSourceSequentialReader::IValueDisconnector"). (*)
+       **/
       std::unique_ptr<ParsedDicomFile> dicom(instancesLoader_->Next());
 
-      if (dicom.get() == NULL)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-    
-      if (dicom->GetDcmtkObject().getDataset() == NULL)
+      if (dicom.get() == NULL ||
+          dicom->GetDcmtkObject().getDataset() == NULL)
       {
         throw OrthancException(ErrorCode_InternalError);
       }
@@ -96,7 +97,7 @@ namespace Orthanc
       std::string sopClassUid(a.c_str());
       std::string sopInstanceUid(b.c_str());
 
-      return PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, dicom->GetDcmtkObject());
+      return PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, *dicom);
     }
   }
 
@@ -227,10 +228,10 @@ namespace Orthanc
   bool OrthancGetRequestHandler::PerformGetSubOp(T_ASC_Association* assoc,
                                                  const std::string& sopClassUid,
                                                  const std::string& sopInstanceUid,
-                                                 DcmFileFormat& dicom)
+                                                 ParsedDicomFile& dicom)
   {
     DicomTransferSyntax sourceSyntax;
-    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, dicom))
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, dicom.GetDcmtkObject()))
     {
       failedCount_++;
       AddFailedUIDInstance(sopInstanceUid);
@@ -307,7 +308,7 @@ namespace Orthanc
       // No transcoding is required
       DcmDataset *stDetailTmp = NULL;
       cond = DIMSE_storeUser(
-        assoc, presId, &req, NULL /* imageFileName */, dicom.getDataset(),
+        assoc, presId, &req, NULL /* imageFileName */, dicom.GetDcmtkObject().getDataset(),
         ProgressCallback, NULL /* callbackData */,
         (timeout_ > 0 ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), static_cast<int>(timeout_),
         &rsp, &stDetailTmp, &cancelParameters);
@@ -317,7 +318,9 @@ namespace Orthanc
     {
       // Transcoding to the selected uncompressed transfer syntax
       IDicomTranscoder::DicomImage source, transcoded;
-      source.AcquireParsed(new DcmFileFormat(dicom));        // TODO-Streaming : Trancode upfront
+      source.AcquireParsed(dicom);  // This invalidates the "dicom" object, cf. (*)
+
+      // TODO-Streaming : Trancode upfront
 
       std::set<DicomTransferSyntax> ts;
       ts.insert(selectedSyntax);

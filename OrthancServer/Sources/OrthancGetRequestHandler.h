@@ -27,14 +27,11 @@
 #include "../../OrthancFramework/Sources/DicomNetworking/IGetRequestHandler.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.h"
 
-#include <dcmtk/dcmnet/dimse.h>
-
 #include <list>
-
-class DcmFileFormat;
 
 namespace Orthanc
 {
+  class ParsedDicomFile;
   class ServerContext;
   
   class OrthancGetRequestHandler : public IGetRequestHandler
@@ -63,7 +60,7 @@ namespace Orthanc
     bool PerformGetSubOp(T_ASC_Association *assoc,
                          const std::string& sopClassUid,
                          const std::string& sopInstanceUid,
-                         DcmFileFormat& dicom);
+                         ParsedDicomFile& dicom);
     
     void AddFailedUIDInstance(const std::string& sopInstance);
 

@@ -57,6 +57,7 @@
 #include "StorageCommitmentReports.h"
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <dcmtk/dcmnet/dimse.h>  // For STATUS_STORE_Error_CannotUnderstand
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
