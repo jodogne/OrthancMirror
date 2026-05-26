@@ -192,7 +192,7 @@ namespace Orthanc
       IDicomTranscoder::DicomImage source;
       source.SetExternalBuffer(range->GetData(), range->GetSize());
 
-      std::unique_ptr<IDicomTranscoder::DicomImage> target;
+      std::unique_ptr<IDicomTranscoder::DicomImage> target(new IDicomTranscoder::DicomImage);
 
       std::set<DicomTransferSyntax> allowedSyntaxes;
       allowedSyntaxes.insert(targetSyntax_);
