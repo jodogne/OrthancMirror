@@ -37,25 +37,39 @@ namespace Orthanc
   class ORTHANC_PUBLIC DicomSequentialReader : public boost::noncopyable
   {
   public:
+    enum ExpectedAnswer
+    {
+      ExpectedAnswer_ParsedDicomFile,
+      ExpectedAnswer_RawMemoryBuffer
+    };
+
     class ORTHANC_PUBLIC Item : public IDynamicObject
     {
     private:
       std::unique_ptr<ParsedDicomFile>  parsed_;
       boost::shared_ptr<IMemoryBuffer>  raw_;
+      std::unique_ptr<IDynamicObject>   userData_;
 
     public:
       explicit Item(ParsedDicomFile* parsed /* takes ownership */);
 
       explicit Item(const boost::shared_ptr<IMemoryBuffer>& raw);
 
-    private:
       Item(ParsedDicomFile* parsed /* takes ownership */,
            IMemoryBuffer* raw /* takes ownership */);
 
-    public:
       ParsedDicomFile& GetParsedDicomFile();
 
       const IMemoryBuffer& GetRawMemoryBuffer();
+
+      void SetUserData(IDynamicObject* userData /* takes ownership */);
+
+      bool HasUserData() const
+      {
+        return userData_.get() != NULL;
+      }
+
+      const IDynamicObject& GetUserData() const;
     };
 
   private:
@@ -90,11 +104,13 @@ namespace Orthanc
 
   public:
     static DicomSequentialReader* CreateForOriginal(const boost::shared_ptr<IExecutorService>& executor,
+                                                    ExpectedAnswer expectedAnswer,
                                                     const boost::shared_ptr<DataSourceReader>& dicomReader,
                                                     unsigned int windowSize,
                                                     uint64_t windowCapacity);
 
     static DicomSequentialReader* CreateForTranscoded(const boost::shared_ptr<IExecutorService>& executor,
+                                                      ExpectedAnswer expectedAnswer,
                                                       DicomTransferSyntax targetSyntax,
                                                       TranscodingSopInstanceUidMode mode,
                                                       bool hasLossyQuality,

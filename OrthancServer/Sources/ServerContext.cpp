@@ -2172,22 +2172,38 @@ namespace Orthanc
   }
 
 
-  DicomSequentialReader* ServerContext::CreateDicomSequentialReader()
+  static DicomSequentialReader::ExpectedAnswer ConvertToExpectedAnswer(bool asParsedDicomFile)
+  {
+    if (asParsedDicomFile)
+    {
+      return DicomSequentialReader::ExpectedAnswer_ParsedDicomFile;
+    }
+    else
+    {
+      return DicomSequentialReader::ExpectedAnswer_RawMemoryBuffer;
+    }
+  }
+
+
+  DicomSequentialReader* ServerContext::CreateDicomSequentialReader(bool asParsedDicomFile)
   {
     return DicomSequentialReader::CreateForOriginal(
-      sequentialReaderThreadPool_, dicomReader_,
+      sequentialReaderThreadPool_, ConvertToExpectedAnswer(asParsedDicomFile),
+      asParsedDicomFile ? dicomReader_ : storageAreaReader_,
       4 /* TODO-Streaming: Parameter */,
       0  /* TODO-Streaming: Parameter */);
   }
 
 
-  DicomSequentialReader* ServerContext::CreateTranscodedSequentialReader(DicomTransferSyntax targetSyntax,
+  DicomSequentialReader* ServerContext::CreateTranscodedSequentialReader(bool asParsedDicomFile,
+                                                                         DicomTransferSyntax targetSyntax,
                                                                          TranscodingSopInstanceUidMode mode,
                                                                          bool hasLossyQuality,
                                                                          unsigned int lossyQuality)
   {
     return DicomSequentialReader::CreateForTranscoded(
-      sequentialReaderThreadPool_, targetSyntax, mode, hasLossyQuality, lossyQuality, transcoderReader_,
+      sequentialReaderThreadPool_, ConvertToExpectedAnswer(asParsedDicomFile),
+      targetSyntax, mode, hasLossyQuality, lossyQuality, transcoderReader_,
       4 /* TODO-Streaming: Parameter */,
       0  /* TODO-Streaming: Parameter */);
   }

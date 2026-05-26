@@ -593,9 +593,16 @@ namespace Orthanc
 
     Future* SubmitTranscodingRequest(TranscodingCallable* callable);
 
-    DicomSequentialReader* CreateDicomSequentialReader();
+    /**
+     * If "asParsedDicomFile" is "false", the reader will prioritize
+     * the downloading of the raw DICOM files (and avoid parsing if
+     * possible). If it is "true", the reader will prioritize the
+     * parsing of the DICOM files.
+     **/
+    DicomSequentialReader* CreateDicomSequentialReader(bool asParsedDicomFile);
 
-    DicomSequentialReader* CreateTranscodedSequentialReader(DicomTransferSyntax targetSyntax,
+    DicomSequentialReader* CreateTranscodedSequentialReader(bool asParsedDicomFile,
+                                                            DicomTransferSyntax targetSyntax,
                                                             TranscodingSopInstanceUidMode mode,
                                                             bool hasLossyQuality,
                                                             unsigned int lossyQuality);

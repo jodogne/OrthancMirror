@@ -103,19 +103,6 @@ namespace Orthanc
   }
 
 
-  IDataIdentifier* DataSourceAnswer::Item::ReleaseIdentifier()
-  {
-    if (id_.get() == NULL)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      return id_.release();
-    }
-  }
-
-
   void DataSourceAnswer::EnqueueInternal(Item* item)
   {
     std::unique_ptr<Item> protection(item);

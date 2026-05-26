@@ -76,7 +76,15 @@ namespace Orthanc
 
       const boost::shared_ptr<IDynamicObject>& GetValue() const;
 
-      IDataIdentifier* ReleaseIdentifier();
+      bool HasUserData() const
+      {
+        return id_->HasUserData();
+      }
+
+      IDynamicObject* ReleaseUserData()
+      {
+        return id_->ReleaseUserData();
+      }
     };
 
   private:

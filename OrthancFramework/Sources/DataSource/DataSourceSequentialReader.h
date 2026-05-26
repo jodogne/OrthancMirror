@@ -54,22 +54,27 @@ namespace Orthanc
     class Item : public IDynamicObject
     {
     private:
-      std::unique_ptr<IDataIdentifier>   id_;
       std::unique_ptr<IDynamicObject>    value_;
       std::unique_ptr<OrthancException>  error_;
+      std::unique_ptr<IDynamicObject>    userData_;
       size_t                             estimatedSize_;
 
     public:
-      Item(IDataIdentifier* id,
-           IDynamicObject* value,
+      Item(IDynamicObject* value,
            size_t estimatedSize);
 
-      Item(IDataIdentifier* id,
-           const OrthancException& error);
-
-      const IDataIdentifier& GetIdentifier() const;
+      Item(const OrthancException& error);
 
       const IDynamicObject& GetValue() const;
+
+      void SetUserData(IDynamicObject* userData);
+
+      bool HasUserData() const
+      {
+        return userData_.get() != NULL;
+      }
+
+      const IDynamicObject& GetUserData() const;
 
       size_t GetEstimatedSize() const
       {
@@ -77,6 +82,8 @@ namespace Orthanc
       }
 
       IDynamicObject* ReleaseValue();
+
+      IDynamicObject* ReleaseUserData();
     };
 
 
@@ -92,6 +99,7 @@ namespace Orthanc
       {
       }
 
+      // Note that "source" will never contain user data, those are handled at the level above
       virtual IDynamicObject* Apply(DataSourceAnswer::Item* source) = 0;
     };
 

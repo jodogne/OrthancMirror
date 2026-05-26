@@ -41,5 +41,7 @@ namespace Orthanc
     virtual bool HasUserData() const ORTHANC_OVERRIDE;
 
     virtual const IDynamicObject& GetUserData() const ORTHANC_OVERRIDE;
+
+    virtual IDynamicObject* ReleaseUserData() ORTHANC_OVERRIDE;
   };
 }

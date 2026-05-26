@@ -588,7 +588,7 @@ namespace Orthanc
     }
 
 
-    instancesLoader_.reset(context_.CreateDicomSequentialReader());
+    instancesLoader_.reset(context_.CreateDicomSequentialReader(true /* we want ParsedDicomFile */));
 
     for (size_t i = 0; i < instancesIds_.size(); ++i)
     {

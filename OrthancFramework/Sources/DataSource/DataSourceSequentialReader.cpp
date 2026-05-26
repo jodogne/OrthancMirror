@@ -30,38 +30,22 @@
 
 namespace Orthanc
 {
-  DataSourceSequentialReader::Item::Item(IDataIdentifier* id,
-                                         IDynamicObject* value,
+  DataSourceSequentialReader::Item::Item(IDynamicObject* value,
                                          size_t estimatedSize) :
-    id_(id),
     value_(value),
     estimatedSize_(estimatedSize)
   {
-    if (id == NULL ||
-        value == NULL)
+    if (value == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
   }
 
 
-  DataSourceSequentialReader::Item::Item(IDataIdentifier* id,
-                                         const OrthancException& error) :
-    id_(id),
+  DataSourceSequentialReader::Item::Item(const OrthancException& error) :
     error_(new OrthancException(error)),
     estimatedSize_(0)
   {
-    if (id == NULL)
-    {
-      throw OrthancException(ErrorCode_NullPointer);
-    }
-  }
-
-
-  const IDataIdentifier& DataSourceSequentialReader::Item::GetIdentifier() const
-  {
-    assert(id_.get() != NULL);
-    return *id_;
   }
 
 
@@ -83,6 +67,32 @@ namespace Orthanc
   }
 
 
+  void DataSourceSequentialReader::Item::SetUserData(IDynamicObject* userData)
+  {
+    if (userData == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else
+    {
+      userData_.reset(userData);
+    }
+  }
+
+
+  const IDynamicObject& DataSourceSequentialReader::Item::GetUserData() const
+  {
+    if (userData_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return *userData_;
+    }
+  }
+
+
   IDynamicObject* DataSourceSequentialReader::Item::ReleaseValue()
   {
     if (value_.get() != NULL)
@@ -97,6 +107,19 @@ namespace Orthanc
     else
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  IDynamicObject* DataSourceSequentialReader::Item::ReleaseUserData()
+  {
+    if (userData_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return userData_.release();
     }
   }
 
@@ -131,18 +154,40 @@ namespace Orthanc
     {
       std::unique_ptr<DataSourceAnswer::Item> answer(reader_->ReadSingle(request_.release()));
 
+      std::unique_ptr<IDynamicObject> userData;
+
+      if (answer->HasUserData())
+      {
+        userData.reset(answer->ReleaseUserData());
+      }
+
+      std::unique_ptr<Item> item;
+
       try
       {
-        return new Item(answer->ReleaseIdentifier(), disconnector_->Apply(answer.release()), estimatedSize_);
+        std::unique_ptr<IDynamicObject> detached(disconnector_->Apply(answer.release()));
+        if (detached.get() == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+
+        item.reset(new Item(detached.release(), estimatedSize_));
       }
       catch (OrthancException& e)
       {
-        return new Item(answer->ReleaseIdentifier(), e);
+        item.reset(new Item(e));
       }
       catch (...)
       {
-        return new Item(answer->ReleaseIdentifier(), OrthancException(ErrorCode_InternalError));
+        item.reset(new Item(OrthancException(ErrorCode_InternalError)));
       }
+
+      if (userData.get() != NULL)
+      {
+        item->SetUserData(userData.release());
+      }
+
+      return item.release();
     }
   };
 

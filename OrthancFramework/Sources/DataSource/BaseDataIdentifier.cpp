@@ -62,4 +62,17 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
+
+
+  IDynamicObject* BaseDataIdentifier::ReleaseUserData()
+  {
+    if (userData_.get() != NULL)
+    {
+      return userData_.release();
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
 }

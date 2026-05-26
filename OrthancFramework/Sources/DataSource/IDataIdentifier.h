@@ -46,5 +46,7 @@ namespace Orthanc
     virtual bool HasUserData() const = 0;
 
     virtual const IDynamicObject& GetUserData() const = 0;
+
+    virtual IDynamicObject* ReleaseUserData() = 0;
   };
 }
