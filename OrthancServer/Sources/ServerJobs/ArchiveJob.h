@@ -44,6 +44,7 @@ namespace Orthanc
     class IArchiveVisitor;
     class MediaIndexVisitor;
     class ResourceIdentifiers;
+    class IZipCommand;
     class ZipCommands;
     class ZipWriterIterator;
 
