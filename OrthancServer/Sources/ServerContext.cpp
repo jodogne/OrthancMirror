@@ -30,6 +30,7 @@
 #include "../../OrthancFramework/Sources/DataSource/DicomSequentialReader.h"
 #include "../../OrthancFramework/Sources/DataSource/TranscoderDataSource.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomImageInformation.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomStreamReader.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
@@ -1104,6 +1105,15 @@ namespace Orthanc
       {
         // This is an uncompressed transfer syntax (new in Orthanc 1.8.2)
         transcode = ingestTranscodingOfUncompressed_;
+        
+        // If the DICOM does not have any pixel data (e.g. a DICOM SR, an ECG, a PDF, RTSTRUCT, ...), it makes no sense
+        // to transcode it to a compressed Transfer Syntax and it might actually be considered invalid or poorly handled
+        // by some softwares receiving the data.  Therefore, we skip transcoding in this case unless
+        // the ingestTransferSyntax is uncompressed in which case, we might just want to change e.g. from Implicit to Explicit.
+        if (transcode && !dicom->HasPixelData() && !IsUncompressedTransferSyntax(ingestTransferSyntax_))
+        {
+          transcode = false;
+        }
       }
       else
       {
@@ -1127,6 +1137,15 @@ namespace Orthanc
         
         IDicomTranscoder::DicomImage transcoded;
         
+        if (dicom->HasPixelData())
+        {// check that the target image has a valid/reasonable size before transcoding to avoid possible crash or OOB during transcoding
+          DicomMap summary;
+          dicom->GetSummary(summary);
+
+          DicomImageInformation imageInfo(summary);
+          imageInfo.ThrowIfInvalidFrameSize();
+        }
+
         if (GetTranscoder()->Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew /* allow new SOP instance UID */))
         {
           std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());

@@ -39,6 +39,7 @@
 #include "../SimpleInstanceOrdering.h"
 #include "ThreadedInstancesLoader.h"
 
+#include <cassert>
 #include <stdio.h>
 #include <boost/range/algorithm/count.hpp>
 
@@ -55,6 +56,7 @@ static const char* const KEY_UNCOMPRESSED_SIZE = "UncompressedSize";
 static const char* const KEY_ARCHIVE_SIZE = "ArchiveSize";
 static const char* const KEY_TRANSCODE = "Transcode";
 static const char* const KEY_ALLOW_UTF8 = "Utf8";
+static const char* const KEY_LOSSY_QUALITY = "LossyQuality";
 
 
 namespace Orthanc
@@ -467,137 +469,136 @@ namespace Orthanc
   };
 
 
+  class ArchiveJob::IZipCommand : public boost::noncopyable
+  {
+  public:
+    virtual ~IZipCommand()
+    {
+    }
+
+    virtual void Preload(ThreadedInstancesLoader& instancesLoader) const = 0;
+
+    // In the "archive" flavor (without DICOMDIR), dicomDir is NULL
+    // In the "media" flavor (with DICOMDIR), dicomDir is not NULL
+    virtual void Execute(HierarchicalZipWriter& writer,
+                         ThreadedInstancesLoader& instancesLoader,
+                         DicomDirWriter* dicomDir) const = 0;
+  };
+
 
   class ArchiveJob::ZipCommands : public boost::noncopyable
   {
   private:
-    enum Type
-    {
-      Type_OpenDirectory,
-      Type_CloseDirectory,
-      Type_WriteInstance
-    };
-
-    class Command : public boost::noncopyable
+    class OpenDirectoryCommand : public IZipCommand
     {
     private:
-      Type          type_;
+      std::string   filename_;
+
+    public:
+      OpenDirectoryCommand(const std::string& filename) :
+        filename_(filename)
+      {
+      }
+
+      virtual void Preload(ThreadedInstancesLoader& instancesLoader) const ORTHANC_OVERRIDE
+      {
+      }
+
+      virtual void Execute(HierarchicalZipWriter& writer,
+                           ThreadedInstancesLoader& instancesLoader,
+                           DicomDirWriter* dicomDir) const ORTHANC_OVERRIDE
+      {
+        writer.OpenDirectory(filename_);
+      }
+    };
+
+
+    class CloseDirectoryCommand : public IZipCommand
+    {
+    public:
+      virtual void Preload(ThreadedInstancesLoader& instancesLoader) const ORTHANC_OVERRIDE
+      {
+      }
+
+      virtual void Execute(HierarchicalZipWriter& writer,
+                           ThreadedInstancesLoader& instancesLoader,
+                           DicomDirWriter* dicomDir) const ORTHANC_OVERRIDE
+      {
+        writer.CloseDirectory();
+      }
+    };
+
+
+    class WriteInstanceCommand : public IZipCommand
+    {
+    private:
       std::string   filename_;
       std::string   instanceId_;
       FileInfo      fileInfo_;
+      std::string   dicomDirFolder_;
 
     public:
-      explicit Command(Type type) :
-        type_(type)
-      {
-        assert(type_ == Type_CloseDirectory);
-      }
-        
-      Command(Type type,
-              const std::string& filename) :
-        type_(type),
-        filename_(filename)
-      {
-        assert(type_ == Type_OpenDirectory);
-      }
-        
-      Command(Type type,
-              const std::string& filename,
-              const std::string& instanceId,
-              const FileInfo& fileInfo) :
-        type_(type),
+      WriteInstanceCommand(const std::string& filename,
+                           const std::string& instanceId,
+                           const FileInfo& fileInfo,
+                           const std::string& dicomDirFolder /* in practice, this is the constant "IMAGES" */) :
         filename_(filename),
         instanceId_(instanceId),
-        fileInfo_(fileInfo)
+        fileInfo_(fileInfo),
+        dicomDirFolder_(dicomDirFolder)
       {
-        assert(type_ == Type_WriteInstance);
+        assert(dicomDirFolder.empty() ||
+               dicomDirFolder == MEDIA_IMAGES_FOLDER);
       }
-        
-      void Apply(HierarchicalZipWriter& writer,
-                 ThreadedInstancesLoader& instancesLoader,
-                 DicomDirWriter* dicomDir,
-                 const std::string& dicomDirFolder,
-                 bool transcode,
-                 DicomTransferSyntax transferSyntax) const
+
+      virtual void Preload(ThreadedInstancesLoader& instancesLoader) const ORTHANC_OVERRIDE
       {
-        switch (type_)
+        instancesLoader.PreloadDicomInstance(instanceId_, fileInfo_);
+      }
+
+      virtual void Execute(HierarchicalZipWriter& writer,
+                           ThreadedInstancesLoader& instancesLoader,
+                           DicomDirWriter* dicomDir) const ORTHANC_OVERRIDE
+      {
+        std::string content;
+
+        try
         {
-          case Type_OpenDirectory:
-            writer.OpenDirectory(filename_);
-            break;
+          LOG(INFO) << "Adding instance " << instanceId_ << " in zip";
+          instancesLoader.WaitDicomInstance(content, instanceId_);
+        }
+        catch (OrthancException& e)
+        {
+          LOG(WARNING) << "An instance was removed after the job was issued: " << instanceId_;
+          return;
+        }
 
-          case Type_CloseDirectory:
-            writer.CloseDirectory();
-            break;
+        writer.OpenFile(filename_);
 
-          case Type_WriteInstance:
-          {
-            std::string content;
+        writer.Write(content);
 
-            try
-            {
-              LOG(INFO) << "Adding instance " << instanceId_ << " in zip";
-              instancesLoader.WaitDicomInstance(content, instanceId_);
-            }
-            catch (OrthancException& e)
-            {
-              LOG(WARNING) << "An instance was removed after the job was issued: " << instanceId_;
-              return;
-            }
-
-            writer.OpenFile(filename_);
-
-            writer.Write(content);
-
-            if (dicomDir != NULL)
-            {
-              std::unique_ptr<ParsedDicomFile> parsed(new ParsedDicomFile(content));
-
-              dicomDir->Add(dicomDirFolder, filename_, *parsed);
-            }
-              
-            break;
-          }
-
-          default:
-            throw OrthancException(ErrorCode_InternalError);
+        if (dicomDir != NULL)
+        {
+          std::unique_ptr<ParsedDicomFile> parsed(new ParsedDicomFile(content));
+          dicomDir->Add(dicomDirFolder_, filename_, *parsed);
         }
       }
     };
       
-    std::deque<Command*>  commands_;
-    uint64_t              uncompressedSize_;
-    unsigned int          instancesCount_;
-    ThreadedInstancesLoader& instancesLoader_;
-
-      
-    void ApplyInternal(HierarchicalZipWriter& writer,
-                       ThreadedInstancesLoader& instancesLoader,
-                       size_t index,
-                       DicomDirWriter* dicomDir,
-                       const std::string& dicomDirFolder,
-                       bool transcode,
-                       DicomTransferSyntax transferSyntax) const
-    {
-      if (index >= commands_.size())
-      {
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-
-      commands_[index]->Apply(writer, instancesLoader, dicomDir, dicomDirFolder, transcode, transferSyntax);
-    }
+    std::deque<IZipCommand*>  commands_;
+    uint64_t                  uncompressedSize_;
+    unsigned int              instancesCount_;
       
   public:
-    explicit ZipCommands(ThreadedInstancesLoader& instancesLoader) :
+    explicit ZipCommands() :
       uncompressedSize_(0),
-      instancesCount_(0),
-      instancesLoader_(instancesLoader)
+      instancesCount_(0)
     {
     }
       
     ~ZipCommands()
     {
-      for (std::deque<Command*>::iterator it = commands_.begin();
+      for (std::deque<IZipCommand*>::iterator it = commands_.begin();
            it != commands_.end(); ++it)
       {
         assert(*it != NULL);
@@ -620,44 +621,22 @@ namespace Orthanc
       return uncompressedSize_;
     }
 
-    // "media" flavor (with DICOMDIR)
-    void Apply(HierarchicalZipWriter& writer,
-               ThreadedInstancesLoader& instancesLoader,
-               size_t index,
-               DicomDirWriter& dicomDir,
-               const std::string& dicomDirFolder,
-               bool transcode,
-               DicomTransferSyntax transferSyntax) const
-    {
-      ApplyInternal(writer, instancesLoader, index, &dicomDir, dicomDirFolder, transcode, transferSyntax);
-    }
-
-    // "archive" flavor (without DICOMDIR)
-    void Apply(HierarchicalZipWriter& writer,
-               ThreadedInstancesLoader& instancesLoader,
-               size_t index,
-               bool transcode,
-               DicomTransferSyntax transferSyntax) const
-    {
-      ApplyInternal(writer, instancesLoader, index, NULL, "", transcode, transferSyntax);
-    }
-      
     void AddOpenDirectory(const std::string& filename)
     {
-      commands_.push_back(new Command(Type_OpenDirectory, filename));
+      commands_.push_back(new OpenDirectoryCommand(filename));
     }
 
     void AddCloseDirectory()
     {
-      commands_.push_back(new Command(Type_CloseDirectory));
+      commands_.push_back(new CloseDirectoryCommand);
     }
 
     void AddWriteInstance(const std::string& filename,
                           const std::string& instanceId,
-                          const FileInfo& fileInfo)
+                          const FileInfo& fileInfo,
+                          const std::string& dicomDirFolder)
     {
-      instancesLoader_.PreloadDicomInstance(instanceId, fileInfo);
-      commands_.push_back(new Command(Type_WriteInstance, filename, instanceId, fileInfo));
+      commands_.push_back(new WriteInstanceCommand(filename, instanceId, fileInfo, dicomDirFolder));
       instancesCount_ ++;
       uncompressedSize_ += fileInfo.GetUncompressedSize();
     }
@@ -665,6 +644,19 @@ namespace Orthanc
     bool IsZip64() const
     {
       return IsZip64Required(GetUncompressedSize(), GetInstancesCount());
+    }
+
+    const IZipCommand& GetCommand(size_t index) const
+    {
+      if (index < commands_.size())
+      {
+        assert(commands_[index] != NULL);
+        return *commands_[index];
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
     }
   };
     
@@ -784,7 +776,7 @@ namespace Orthanc
       char filename[24];
       snprintf(filename, sizeof(filename) - 1, instanceFormat_, index);
 
-      commands_.AddWriteInstance(filename, instanceId, fileInfo);
+      commands_.AddWriteInstance(filename, instanceId, fileInfo, "" /* no DICOMDIR */);
     }
   };
 
@@ -819,7 +811,7 @@ namespace Orthanc
       // characters (some systems wrongly use 8.3, but this does not
       // conform to the standard)."
       std::string filename = "IM" + boost::lexical_cast<std::string>(counter_);
-      commands_.AddWriteInstance(filename, instanceId, fileInfo);
+      commands_.AddWriteInstance(filename, instanceId, fileInfo, MEDIA_IMAGES_FOLDER);
 
       counter_ ++;
     }
@@ -830,7 +822,6 @@ namespace Orthanc
   {
   private:
     ServerContext&                          context_;
-    ThreadedInstancesLoader&                instancesLoader_;
     ZipCommands                             commands_;
     std::unique_ptr<HierarchicalZipWriter>  zip_;
     std::unique_ptr<DicomDirWriter>         dicomDir_;
@@ -840,14 +831,11 @@ namespace Orthanc
 
   public:
     ZipWriterIterator(ServerContext& context,
-                      ThreadedInstancesLoader& instancesLoader,
                       ArchiveIndex& archive,
                       bool isMedia,
                       bool enableExtendedSopClass,
                       bool allowUtf8) :
       context_(context),
-      instancesLoader_(instancesLoader),
-      commands_(instancesLoader),
       isMedia_(isMedia),
       isStream_(false),
       allowUtf8_(allowUtf8)
@@ -944,9 +932,16 @@ namespace Orthanc
       return commands_.GetSize() + 1;
     }
 
-    void RunStep(size_t index,
-                 bool transcode,
-                 DicomTransferSyntax transferSyntax)
+    void PreloadAllCommands(ThreadedInstancesLoader& instancesLoader)
+    {
+      for (size_t i = 0; i < commands_.GetSize(); i++)
+      {
+        commands_.GetCommand(i).Preload(instancesLoader);
+      }
+    }
+
+    void RunStep(ThreadedInstancesLoader& instancesLoader,
+                 size_t index)
     {
       if (index > commands_.GetSize())
       {
@@ -974,13 +969,12 @@ namespace Orthanc
         if (isMedia_)
         {
           assert(dicomDir_.get() != NULL);
-          commands_.Apply(*zip_, instancesLoader_, index, *dicomDir_,
-                          MEDIA_IMAGES_FOLDER, transcode, transferSyntax);
+          commands_.GetCommand(index).Execute(*zip_, instancesLoader, dicomDir_.get());
         }
         else
         {
           assert(dicomDir_.get() == NULL);
-          commands_.Apply(*zip_, instancesLoader_, index, transcode, transferSyntax);
+          commands_.GetCommand(index).Execute(*zip_, instancesLoader, NULL);
         }
       }
     }
@@ -1012,6 +1006,7 @@ namespace Orthanc
     archiveSize_(0),
     transcode_(false),
     transferSyntax_(DicomTransferSyntax_LittleEndianImplicit),
+    hasLossyQuality_(false),
     lossyQuality_(100),
     loaderThreads_(1),
     allowUtf8_(false)
@@ -1122,6 +1117,7 @@ namespace Orthanc
     }
     else
     {
+      hasLossyQuality_ = true;
       lossyQuality_ = lossyQuality;
     }
   }
@@ -1162,8 +1158,6 @@ namespace Orthanc
   
   void ArchiveJob::Start()
   {
-    instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads_, transcode_, transferSyntax_, lossyQuality_, "ARCH"));
-
     if (writer_.get() != NULL)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
@@ -1185,7 +1179,7 @@ namespace Orthanc
           assert(asynchronousTarget_.get() != NULL);
           asynchronousTarget_->Touch();  // Make sure we can write to the temporary file
           
-          writer_.reset(new ZipWriterIterator(context_, *instancesLoader_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
+          writer_.reset(new ZipWriterIterator(context_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
           writer_->SetOutputFile(asynchronousTarget_->GetPath());
         }
       }
@@ -1193,12 +1187,15 @@ namespace Orthanc
       {
         assert(synchronousTarget_.get() != NULL);
     
-        writer_.reset(new ZipWriterIterator(context_, *instancesLoader_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
+        writer_.reset(new ZipWriterIterator(context_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
         writer_->AcquireOutputStream(synchronousTarget_.release());
       }
 
       instancesCount_ = writer_->GetInstancesCount();
       uncompressedSize_ = writer_->GetUncompressedSize();
+
+      instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads_, transcode_, transferSyntax_, lossyQuality_, "ARCH"));
+      writer_->PreloadAllCommands(*instancesLoader_);
     }
   }
 
@@ -1265,7 +1262,7 @@ namespace Orthanc
     {
       try
       {
-        writer_->RunStep(currentStep_, transcode_, transferSyntax_);
+        writer_->RunStep(*instancesLoader_, currentStep_);
       }
       catch (Orthanc::OrthancException& e)
       {
@@ -1365,6 +1362,12 @@ namespace Orthanc
 
     // New in Orthanc 1.12.11
     value[KEY_ALLOW_UTF8] = allowUtf8_;
+
+    // New in Orthanc 1.12.12
+    if (hasLossyQuality_)
+    {
+      value[KEY_LOSSY_QUALITY] = lossyQuality_;
+    }
   }
 
 

@@ -503,6 +503,11 @@ namespace Orthanc
   }
 
 
+  void DicomImageInformation::ThrowIfInvalidFrameSize() const
+  {
+    GetFrameSize(); // GetFrameSize() will throw if the image dimensions are too large
+  }
+
   unsigned int DicomImageInformation::GetUsefulTagLength()
   {
     return 256;

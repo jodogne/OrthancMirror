@@ -92,6 +92,8 @@ namespace Orthanc
 
     size_t GetFrameSize() const;
 
+    void ThrowIfInvalidFrameSize() const;
+
     /**
      * This constant gives a bound on the maximum tag length that is
      * useful to class "DicomImageInformation", in order to avoid

@@ -44,6 +44,7 @@ namespace Orthanc
     class IArchiveVisitor;
     class MediaIndexVisitor;
     class ResourceIdentifiers;
+    class IZipCommand;
     class ZipCommands;
     class ZipWriterIterator;
 
@@ -68,6 +69,7 @@ namespace Orthanc
     // New in Orthanc 1.7.0
     bool                 transcode_;
     DicomTransferSyntax  transferSyntax_;
+    bool                 hasLossyQuality_;
     unsigned int         lossyQuality_;
 
     // New in Orthanc 1.10.0
