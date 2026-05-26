@@ -552,6 +552,7 @@ namespace Orthanc
 
       virtual void Preload(ThreadedInstancesLoader& instancesLoader) const ORTHANC_OVERRIDE
       {
+        instancesLoader.PreloadDicomInstance(instanceId_, fileInfo_);
       }
 
       virtual void Execute(HierarchicalZipWriter& writer,
@@ -586,26 +587,11 @@ namespace Orthanc
     std::deque<IZipCommand*>  commands_;
     uint64_t                  uncompressedSize_;
     unsigned int              instancesCount_;
-    ThreadedInstancesLoader&  instancesLoader_;
-
-      
-    void ApplyInternal(HierarchicalZipWriter& writer,
-                       size_t index,
-                       DicomDirWriter* dicomDir) const
-    {
-      if (index >= commands_.size())
-      {
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-
-      commands_[index]->Execute(writer, instancesLoader_, dicomDir);
-    }
       
   public:
-    explicit ZipCommands(ThreadedInstancesLoader& instancesLoader) :
+    explicit ZipCommands() :
       uncompressedSize_(0),
-      instancesCount_(0),
-      instancesLoader_(instancesLoader)
+      instancesCount_(0)
     {
     }
       
@@ -634,21 +620,6 @@ namespace Orthanc
       return uncompressedSize_;
     }
 
-    // "media" flavor (with DICOMDIR)
-    void Apply(HierarchicalZipWriter& writer,
-               size_t index,
-               DicomDirWriter& dicomDir) const
-    {
-      ApplyInternal(writer, index, &dicomDir);
-    }
-
-    // "archive" flavor (without DICOMDIR)
-    void Apply(HierarchicalZipWriter& writer,
-               size_t index) const
-    {
-      ApplyInternal(writer, index, NULL);
-    }
-      
     void AddOpenDirectory(const std::string& filename)
     {
       commands_.push_back(new OpenDirectoryCommand(filename));
@@ -664,7 +635,6 @@ namespace Orthanc
                           const FileInfo& fileInfo,
                           const std::string& dicomDirFolder)
     {
-      instancesLoader_.PreloadDicomInstance(instanceId, fileInfo);
       commands_.push_back(new WriteInstanceCommand(filename, instanceId, fileInfo, dicomDirFolder));
       instancesCount_ ++;
       uncompressedSize_ += fileInfo.GetUncompressedSize();
@@ -673,6 +643,19 @@ namespace Orthanc
     bool IsZip64() const
     {
       return IsZip64Required(GetUncompressedSize(), GetInstancesCount());
+    }
+
+    const IZipCommand& GetCommand(size_t index) const
+    {
+      if (index < commands_.size())
+      {
+        assert(commands_[index] != NULL);
+        return *commands_[index];
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
     }
   };
     
@@ -838,7 +821,6 @@ namespace Orthanc
   {
   private:
     ServerContext&                          context_;
-    ThreadedInstancesLoader&                instancesLoader_;
     ZipCommands                             commands_;
     std::unique_ptr<HierarchicalZipWriter>  zip_;
     std::unique_ptr<DicomDirWriter>         dicomDir_;
@@ -848,14 +830,11 @@ namespace Orthanc
 
   public:
     ZipWriterIterator(ServerContext& context,
-                      ThreadedInstancesLoader& instancesLoader,
                       ArchiveIndex& archive,
                       bool isMedia,
                       bool enableExtendedSopClass,
                       bool allowUtf8) :
       context_(context),
-      instancesLoader_(instancesLoader),
-      commands_(instancesLoader),
       isMedia_(isMedia),
       isStream_(false),
       allowUtf8_(allowUtf8)
@@ -952,7 +931,16 @@ namespace Orthanc
       return commands_.GetSize() + 1;
     }
 
-    void RunStep(size_t index,
+    void PreloadAllCommands(ThreadedInstancesLoader& instancesLoader)
+    {
+      for (size_t i = 0; i < commands_.GetSize(); i++)
+      {
+        commands_.GetCommand(i).Preload(instancesLoader);
+      }
+    }
+
+    void RunStep(ThreadedInstancesLoader& instancesLoader,
+                 size_t index,
                  bool transcode,
                  DicomTransferSyntax transferSyntax)
     {
@@ -982,12 +970,12 @@ namespace Orthanc
         if (isMedia_)
         {
           assert(dicomDir_.get() != NULL);
-          commands_.Apply(*zip_, index, *dicomDir_);
+          commands_.GetCommand(index).Execute(*zip_, instancesLoader, dicomDir_.get());
         }
         else
         {
           assert(dicomDir_.get() == NULL);
-          commands_.Apply(*zip_, index);
+          commands_.GetCommand(index).Execute(*zip_, instancesLoader, NULL);
         }
       }
     }
@@ -1169,8 +1157,6 @@ namespace Orthanc
   
   void ArchiveJob::Start()
   {
-    instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads_, transcode_, transferSyntax_, lossyQuality_, "ARCH"));
-
     if (writer_.get() != NULL)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
@@ -1192,7 +1178,7 @@ namespace Orthanc
           assert(asynchronousTarget_.get() != NULL);
           asynchronousTarget_->Touch();  // Make sure we can write to the temporary file
           
-          writer_.reset(new ZipWriterIterator(context_, *instancesLoader_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
+          writer_.reset(new ZipWriterIterator(context_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
           writer_->SetOutputFile(asynchronousTarget_->GetPath());
         }
       }
@@ -1200,12 +1186,15 @@ namespace Orthanc
       {
         assert(synchronousTarget_.get() != NULL);
     
-        writer_.reset(new ZipWriterIterator(context_, *instancesLoader_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
+        writer_.reset(new ZipWriterIterator(context_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
         writer_->AcquireOutputStream(synchronousTarget_.release());
       }
 
       instancesCount_ = writer_->GetInstancesCount();
       uncompressedSize_ = writer_->GetUncompressedSize();
+
+      instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads_, transcode_, transferSyntax_, lossyQuality_, "ARCH"));
+      writer_->PreloadAllCommands(*instancesLoader_);
     }
   }
 
@@ -1272,7 +1261,7 @@ namespace Orthanc
     {
       try
       {
-        writer_->RunStep(currentStep_, transcode_, transferSyntax_);
+        writer_->RunStep(*instancesLoader_, currentStep_, transcode_, transferSyntax_);
       }
       catch (Orthanc::OrthancException& e)
       {
