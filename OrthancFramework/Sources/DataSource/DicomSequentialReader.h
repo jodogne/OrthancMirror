@@ -24,8 +24,8 @@
 
 #pragma once
 
-#include "../Enumerations.h"
 #include "../FileStorage/FileInfo.h"
+#include "../IMemoryBuffer.h"
 #include "../MultiThreading/IExecutorService.h"
 #include "DataSourceSequentialReader.h"
 
@@ -36,23 +36,44 @@ namespace Orthanc
 
   class ORTHANC_PUBLIC DicomSequentialReader : public boost::noncopyable
   {
+  public:
+    class ORTHANC_PUBLIC Item : public IDynamicObject
+    {
+    private:
+      std::unique_ptr<ParsedDicomFile>  parsed_;
+      boost::shared_ptr<IMemoryBuffer>  raw_;
+
+    public:
+      explicit Item(ParsedDicomFile* parsed /* takes ownership */);
+
+      explicit Item(const boost::shared_ptr<IMemoryBuffer>& raw);
+
+      Item(ParsedDicomFile* parsed /* takes ownership */,
+           IMemoryBuffer* raw /* takes ownership */);
+
+      ParsedDicomFile& GetParsedDicomFile();
+
+      const IMemoryBuffer& GetRawMemoryBuffer();
+    };
+
   private:
     class Disconnector;
 
-    enum Type
+    enum SourceType
     {
-      Type_Original,
-      Type_Transcoded
+      SourceType_StorageArea,
+      SourceType_Dicom,
+      SourceType_Transcoder
     };
 
-    Type                           type_;
+    SourceType                     sourceType_;
     DicomTransferSyntax            targetSyntax_;
     TranscodingSopInstanceUidMode  mode_;
     bool                           hasLossyQuality_;
     unsigned int                   lossyQuality_;
     DataSourceSequentialReader     reader_;
 
-    DicomSequentialReader(Type type,
+    DicomSequentialReader(SourceType sourceType,
                           const boost::shared_ptr<IExecutorService>& executor,
                           DicomTransferSyntax targetSyntax,
                           TranscodingSopInstanceUidMode mode,
@@ -89,6 +110,6 @@ namespace Orthanc
 
     bool HasNext();
 
-    ParsedDicomFile* Next();
+    Item* Next();
   };
 }

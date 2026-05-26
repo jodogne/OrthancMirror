@@ -25,6 +25,8 @@
 #include "PrecompiledHeaders.h"
 #include "StringMemoryBuffer.h"
 
+#include "OrthancException.h"
+
 
 namespace Orthanc
 {
@@ -64,5 +66,22 @@ namespace Orthanc
     std::unique_ptr<StringMemoryBuffer> result(new StringMemoryBuffer);
     result->Copy(buffer, start, end);
     return result.release();
+  }
+
+
+  IMemoryBuffer* StringMemoryBuffer::CreateFromBuffer(const void* data,
+                                                      size_t size)
+  {
+    if (size != 0 &&
+        data == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else
+    {
+      std::string s;
+      s.assign(reinterpret_cast<const char*>(data), size);
+      return CreateFromSwap(s);
+    }
   }
 }

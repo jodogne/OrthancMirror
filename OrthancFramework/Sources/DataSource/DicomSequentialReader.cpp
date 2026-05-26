@@ -27,39 +27,121 @@
 
 #include "../DicomParsing/ParsedDicomFile.h"
 #include "../OrthancException.h"
+#include "../StringMemoryBuffer.h"
 #include "BaseDataIdentifier.h"
 #include "DicomDataSource.h"
+#include "StorageAreaDataSource.h"
 #include "TranscoderDataSource.h"
 
 
 namespace Orthanc
 {
+  DicomSequentialReader::Item::Item(ParsedDicomFile* parsed) :
+    parsed_(parsed)
+  {
+    if (parsed == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+  }
+
+
+  DicomSequentialReader::Item::Item(const boost::shared_ptr<IMemoryBuffer>& raw) :
+    raw_(raw)
+  {
+    if (raw.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+  }
+
+
+  DicomSequentialReader::Item::Item(ParsedDicomFile* parsed /* takes ownership */,
+                                    IMemoryBuffer* raw /* takes ownership */) :
+    parsed_(parsed),
+    raw_(raw)
+  {
+    if (parsed == NULL ||
+        raw == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+  }
+
+
+  ParsedDicomFile& DicomSequentialReader::Item::GetParsedDicomFile()
+  {
+    if (parsed_.get() != NULL)
+    {
+      return *parsed_;
+    }
+    else if (raw_.get() != NULL)
+    {
+      parsed_.reset(new ParsedDicomFile(raw_->GetData(), raw_->GetSize()));
+      return *parsed_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  const IMemoryBuffer& DicomSequentialReader::Item::GetRawMemoryBuffer()
+  {
+    if (raw_.get() != NULL)
+    {
+      return *raw_;
+    }
+    else if (parsed_.get() != NULL)
+    {
+      std::string s;
+      parsed_->SaveToMemoryBuffer(s);
+
+      raw_.reset(StringMemoryBuffer::CreateFromSwap(s));
+      return *raw_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
   class DicomSequentialReader::Disconnector : public DataSourceSequentialReader::IValueDisconnector
   {
   private:
-    Type  type_;
+    SourceType  sourceType_;
 
   public:
-    Disconnector(Type type) :
-      type_(type)
+    Disconnector(SourceType sourceType) :
+      sourceType_(sourceType)
     {
     }
 
     virtual IDynamicObject* Apply(DataSourceAnswer::Item* source)
     {
-      switch (type_)
+      std::unique_ptr<DataSourceAnswer::Item> protection(source);
+
+      switch (sourceType_)
       {
-        case Type_Original:
+        case SourceType_StorageArea:
         {
-          std::unique_ptr<DicomDataSource::Dicom> dicom(new DicomDataSource::Dicom(source));
-          return dicom->Clone();
+          std::unique_ptr<StorageAreaDataSource::Range> range(new StorageAreaDataSource::Range(protection.release()));
+          return new Item(range->GetSharedBuffer());
         }
 
-        case Type_Transcoded:
+        case SourceType_Dicom:
         {
-          std::unique_ptr<TranscoderDataSource::Transcoded> dicom(new TranscoderDataSource::Transcoded(source));
+          std::unique_ptr<DicomDataSource::Dicom> dicom(new DicomDataSource::Dicom(protection.release()));
+          return new Item(dicom->Clone());
+        }
+
+        case SourceType_Transcoder:
+        {
+          std::unique_ptr<TranscoderDataSource::Transcoded> dicom(new TranscoderDataSource::Transcoded(protection.release()));
           TranscoderDataSource::Transcoded::LockAsParsed lock(*dicom);
-          return lock.GetContent().Clone(true);
+          return new Item(lock.GetContent().Clone(true));
         }
 
         default:
@@ -69,7 +151,7 @@ namespace Orthanc
   };
 
 
-  DicomSequentialReader::DicomSequentialReader(Type type,
+  DicomSequentialReader::DicomSequentialReader(SourceType sourceType,
                                                const boost::shared_ptr<IExecutorService>& executor,
                                                DicomTransferSyntax targetSyntax,
                                                TranscodingSopInstanceUidMode mode,
@@ -78,12 +160,12 @@ namespace Orthanc
                                                const boost::shared_ptr<DataSourceReader>& reader,
                                                unsigned int windowSize,
                                                uint64_t windowCapacity) :
-    type_(type),
+    sourceType_(sourceType),
     targetSyntax_(targetSyntax),
     mode_(mode),
     hasLossyQuality_(hasLossyQuality),
     lossyQuality_(lossyQuality),
-    reader_(executor, reader, new Disconnector(type), windowSize, windowCapacity)
+    reader_(executor, reader, new Disconnector(sourceType), windowSize, windowCapacity)
   {
   }
 
@@ -95,13 +177,17 @@ namespace Orthanc
 
     std::unique_ptr<IDataIdentifier> id;
 
-    switch (type_)
+    switch (sourceType_)
     {
-      case Type_Original:
+      case SourceType_StorageArea:
+        id.reset(StorageAreaDataSource::CreateAttachmentRequest(attachment, true /* uncompress */));
+        break;
+
+      case SourceType_Dicom:
         id.reset(DicomDataSource::CreateWholeRequest(attachment));
         break;
 
-      case Type_Transcoded:
+      case SourceType_Transcoder:
         id.reset(TranscoderDataSource::CreateRequest(attachment, targetSyntax_, mode_, hasLossyQuality_, lossyQuality_));
         break;
 
@@ -124,7 +210,7 @@ namespace Orthanc
                                                                   uint64_t windowCapacity)
   {
     return new DicomSequentialReader(
-      Type_Original, executor,
+      SourceType_Dicom, executor,
       DicomTransferSyntax_LittleEndianImplicit, TranscodingSopInstanceUidMode_AllowNew,
       false /* no lossy */, 0 /* unused lossy quality */,
       dicomReader, windowSize, windowCapacity);
@@ -141,7 +227,7 @@ namespace Orthanc
                                                                     uint64_t windowCapacity)
   {
     return new DicomSequentialReader(
-      Type_Transcoded, executor,
+      SourceType_Transcoder, executor,
       targetSyntax, mode, hasLossyQuality, lossyQuality,
       transcoderReader, windowSize, windowCapacity);
   }
@@ -177,9 +263,9 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile* DicomSequentialReader::Next()
+  DicomSequentialReader::Item* DicomSequentialReader::Next()
   {
     std::unique_ptr<DataSourceSequentialReader::Item> item(reader_.Next());
-    return dynamic_cast<ParsedDicomFile*>(item->ReleaseValue());
+    return dynamic_cast<Item*>(item->ReleaseValue());
   }
 }

@@ -566,9 +566,7 @@ namespace Orthanc
         }
         else
         {
-          std::unique_ptr<ParsedDicomFile> next;
-
-          std::string content;
+          std::unique_ptr<DicomSequentialReader::Item> next;
 
           try
           {
@@ -581,14 +579,14 @@ namespace Orthanc
             return;
           }
 
-          next->SaveToMemoryBuffer(content);
+          const IMemoryBuffer& dicom = next->GetRawMemoryBuffer();
 
           writer.OpenFile(filename_);
-          writer.Write(content);
+          writer.Write(dicom.GetData(), dicom.GetSize());
 
           if (dicomDir != NULL)
           {
-            dicomDir->Add(dicomDirFolder_, filename_, *next);
+            dicomDir->Add(dicomDirFolder_, filename_, next->GetParsedDicomFile());
           }
         }
       }

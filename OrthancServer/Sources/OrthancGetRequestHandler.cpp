@@ -77,17 +77,19 @@ namespace Orthanc
        * "DicomSequentialReader" returns copies of the cached objects
        * (cf. "DataSourceSequentialReader::IValueDisconnector"). (*)
        **/
-      std::unique_ptr<ParsedDicomFile> dicom(instancesLoader_->Next());
+      std::unique_ptr<DicomSequentialReader::Item> next(instancesLoader_->Next());
+      assert(next.get() != NULL);
 
-      if (dicom.get() == NULL ||
-          dicom->GetDcmtkObject().getDataset() == NULL)
+      ParsedDicomFile& dicom = next->GetParsedDicomFile();
+
+      if (dicom.GetDcmtkObject().getDataset() == NULL)
       {
         throw OrthancException(ErrorCode_InternalError);
       }
     
       OFString a, b;
-      if (!dicom->GetDcmtkObject().getDataset()->findAndGetOFString(DCM_SOPClassUID, a).good() ||
-          !dicom->GetDcmtkObject().getDataset()->findAndGetOFString(DCM_SOPInstanceUID, b).good())
+      if (!dicom.GetDcmtkObject().getDataset()->findAndGetOFString(DCM_SOPClassUID, a).good() ||
+          !dicom.GetDcmtkObject().getDataset()->findAndGetOFString(DCM_SOPInstanceUID, b).good())
       {
         throw OrthancException(ErrorCode_NoSopClassOrInstance,
                                "Unable to determine the SOP class/instance for C-STORE with AET " +
@@ -97,7 +99,7 @@ namespace Orthanc
       std::string sopClassUid(a.c_str());
       std::string sopInstanceUid(b.c_str());
 
-      return PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, *dicom);
+      return PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, dicom);
     }
   }
 

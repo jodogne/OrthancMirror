@@ -340,6 +340,24 @@ namespace Orthanc
   }
 
 
+  boost::shared_ptr<IMemoryBuffer> StorageAreaDataSource::Range::GetSharedBuffer() const
+  {
+    if (buffer_.get() != NULL)
+    {
+      return buffer_;
+    }
+    else if (item_.get() != NULL)
+    {
+      // TODO-Streaming : Any way to shared the value with the "Item"?
+      return boost::shared_ptr<IMemoryBuffer>(StringMemoryBuffer::CreateFromBuffer(GetData(), GetSize()));
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
   IDataIdentifier* StorageAreaDataSource::CreateRangeRequest(const std::string& uuid,
                                                              FileContentType type,
                                                              uint64_t start,

@@ -71,7 +71,7 @@ namespace Orthanc
     {
     private:
       std::unique_ptr<DataSourceAnswer::Item>  item_;   // Holding item puts backpressure on the data source (can be NULL)
-      std::unique_ptr<IMemoryBuffer>           buffer_;  // To be used if "item_ == NULL"
+      boost::shared_ptr<IMemoryBuffer>         buffer_;  // To be used if "item_ == NULL"
 
       const IMemoryBuffer& GetBuffer() const;
 
@@ -94,6 +94,8 @@ namespace Orthanc
       {
         GetBuffer().CopyToString(target);
       }
+
+      boost::shared_ptr<IMemoryBuffer> GetSharedBuffer() const;
     };
 
     static IDataIdentifier* CreateRangeRequest(const std::string& uuid,

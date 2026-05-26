@@ -69,5 +69,8 @@ namespace Orthanc
     static IMemoryBuffer* CreateFromCopy(const std::string& buffer);
 
     static IMemoryBuffer* CreateFromCopy(const std::string& buffer, size_t start /* inclusive */, size_t end /* exclusive */);
+
+    static IMemoryBuffer* CreateFromBuffer(const void* data,
+                                           size_t size);
   };
 }
