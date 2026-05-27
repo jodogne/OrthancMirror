@@ -37,6 +37,8 @@ namespace Orthanc
   class OrthancGetRequestHandler : public IGetRequestHandler
   {
   private:
+    class ReaderUserData;
+
     ServerContext& context_;
     std::string localAet_;
     std::vector<std::string> instancesIds_;

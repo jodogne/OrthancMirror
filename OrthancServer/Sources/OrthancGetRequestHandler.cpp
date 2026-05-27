@@ -44,6 +44,24 @@
 
 namespace Orthanc
 {
+  class OrthancGetRequestHandler::ReaderUserData : public IDynamicObject
+  {
+  private:
+    std::string instanceId_;
+
+  public:
+    ReaderUserData(const std::string& instanceId) :
+      instanceId_(instanceId)
+    {
+    }
+
+    const std::string& GetInstanceId() const
+    {
+      return instanceId_;
+    }
+  };
+
+
   static void ProgressCallback(void *callbackData,
                                T_DIMSE_StoreProgress *progress,
                                T_DIMSE_C_StoreRQ *req)
@@ -78,7 +96,20 @@ namespace Orthanc
        * (cf. "DataSourceSequentialReader::IValueDisconnector"). (*)
        **/
       std::unique_ptr<DicomSequentialReader::Item> next(instancesLoader_->Next());
-      assert(next.get() != NULL);
+      assert(next.get() != NULL &&
+             next->HasUserData());
+
+      {
+        const std::string& expectedId = instancesIds_[position_];
+        position_++;
+
+        // This is just a sanity check, the class "ReaderUserData" could be removed
+        const ReaderUserData& userData = dynamic_cast<const ReaderUserData&>(next->GetUserData());
+        if (userData.GetInstanceId() != expectedId)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
 
       ParsedDicomFile& dicom = next->GetParsedDicomFile();
 
@@ -592,7 +623,7 @@ namespace Orthanc
 
     for (size_t i = 0; i < instancesIds_.size(); ++i)
     {
-      instancesLoader_->Submit(filesInfo[i]);
+      instancesLoader_->Submit(filesInfo[i], new ReaderUserData(instancesIds_[i]));
     }
 
     instancesLoader_->Start();
