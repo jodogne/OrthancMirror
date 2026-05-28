@@ -616,8 +616,15 @@ namespace Orthanc
       }
 
       {
+        unsigned int loaderThreads;
+
+        {
+          OrthancConfiguration::ReaderLock lock;
+          loaderThreads = lock.GetConfiguration().GetLoaderThreads();
+        }
+
         std::unique_ptr<ThreadPool> pool(new ThreadPool);
-        pool->SetCountThreads(16);  // TODO-Streaming - Parameter
+        pool->SetCountThreads(loaderThreads);  // TODO-Streaming - Check
         pool->SetLoggingThreadName("READER");
         pool->SetDequeueTimeout(100);
         pool->Start();
@@ -1910,19 +1917,19 @@ namespace Orthanc
   void ServerContext::PerformCStoreWithTranscoding(std::string& sopClassUid,
                                                    std::string& sopInstanceUid,
                                                    DicomStoreUserConnection& connection,
-                                                   const std::string& dicom,
+                                                   const void* dicomData,
+                                                   size_t dicomSize,
                                                    bool hasMoveOriginator,
                                                    const std::string& moveOriginatorAet,
                                                    uint16_t moveOriginatorId)
   {
-    const void* data = dicom.empty() ? NULL : dicom.c_str();
     const RemoteModalityParameters& modality = connection.GetParameters().GetRemoteModality();
 
     // Filter out outgoing C-Store instances
     {
       boost::shared_lock<boost::shared_mutex> lock(listenersMutex_);
 
-      std::unique_ptr<OutgoingDicomInstance> outgoingInstance(OutgoingDicomInstance::CreateFromBuffer(dicom));
+      std::unique_ptr<OutgoingDicomInstance> outgoingInstance(OutgoingDicomInstance::CreateFromBuffer(dicomData, dicomSize));
       outgoingInstance->SetDestination(DicomInstanceDestination(connection.GetParameters().GetRemoteModality().GetHost(),
                                                                 connection.GetParameters().GetRemoteModality().GetApplicationEntityTitle()));
 
@@ -1951,12 +1958,12 @@ namespace Orthanc
     if (!transcodeDicomProtocol_ ||
         !modality.IsTranscodingAllowed())
     {
-      connection.Store(sopClassUid, sopInstanceUid, data, dicom.size(),
+      connection.Store(sopClassUid, sopInstanceUid, dicomData, dicomSize,
                        hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
     }
     else
     {
-      connection.Transcode(sopClassUid, sopInstanceUid, *transcoder_, data, dicom.size(), preferredTransferSyntax_,
+      connection.Transcode(sopClassUid, sopInstanceUid, *transcoder_, dicomData, dicomSize, preferredTransferSyntax_,
                            hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
     }
   }

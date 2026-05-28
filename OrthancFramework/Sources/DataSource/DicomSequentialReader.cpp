@@ -317,11 +317,8 @@ namespace Orthanc
                                                                                             bool hasLossyQuality,
                                                                                             unsigned int lossyQuality) const
   {
-    // TODO
-    return new DicomSequentialReader(
-      DicomSequentialReader::SourceType_Transcoder, executor_,
-      targetSyntax, mode, hasLossyQuality, lossyQuality,
-      transcoderReader_, windowSize_, windowCapacity_);
+    // TODO-Streaming : No optimization seems possible, we need to go through the transcoder anyway
+    return CreateForTranscodedParsedDicomFile(targetSyntax, mode, hasLossyQuality, lossyQuality);
   }
 
 

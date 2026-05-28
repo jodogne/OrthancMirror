@@ -27,13 +27,13 @@
 #include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomConnectionInfo.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/DataSource/DicomSequentialReader.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
 
 #include "OrthancConfiguration.h"
 #include "ServerContext.h"
 #include "ServerJobs/DicomModalityStoreJob.h"
-#include "ServerJobs/ThreadedInstancesLoader.h"
 
 
 namespace Orthanc
@@ -42,14 +42,31 @@ namespace Orthanc
   {
     // Anonymous namespace to avoid clashes between compilation modules
 
+    class MoveReaderUserData : public IDynamicObject
+    {
+    private:
+      std::string instanceId_;
+
+    public:
+      MoveReaderUserData(const std::string& instanceId) :
+        instanceId_(instanceId)
+      {
+      }
+
+      const std::string& GetInstanceId() const
+      {
+        return instanceId_;
+      }
+    };
+
+
     class SynchronousMove : public IMoveRequestIterator
     {
     private:
       ServerContext& context_;
       std::string localAet_;
       std::vector<std::string> instancesIds_;
-      // std::vector<FileInfo> filesInfo_;
-      std::unique_ptr<ThreadedInstancesLoader> instancesLoader_;
+      std::unique_ptr<DicomSequentialReader> instancesLoader_;
       size_t position_;
       RemoteModalityParameters remote_;
       std::string originatorAet_;
@@ -69,20 +86,15 @@ namespace Orthanc
         originatorAet_(originatorAet),
         originatorId_(originatorId)
       {
-        unsigned int loaderThreads;
-
         {
           OrthancConfiguration::ReaderLock lock;
           remote_ = lock.GetConfiguration().GetModalityUsingAet(targetAet);
-          loaderThreads = lock.GetConfiguration().GetLoaderThreads();
         }
 
         if (remote_.HasLocalAet())
         {
           localAet_ = remote_.GetLocalAet();  // from the DicomModalities config
         }
-
-        instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads, false, DicomTransferSyntax_BigEndianExplicit /* dummy value*/, 0, "CSTO"));
 
         std::vector<FileInfo> filesInfo;
         for (size_t i = 0; i < publicIds.size(); i++)
@@ -95,10 +107,14 @@ namespace Orthanc
           context.GetOrderedChildInstances(instancesIds_, filesInfo, resourceId, resourceType);
         }
 
+        instancesLoader_.reset(context_.GetDicomSequentialReaderFactory().CreateForOriginalRawMemoryBuffer());
+
         for (size_t i = 0; i < instancesIds_.size(); ++i)
         {
-          instancesLoader_->PreloadDicomInstance(instancesIds_[i], filesInfo[i]);
+          instancesLoader_->Submit(filesInfo[i], new MoveReaderUserData(instancesIds_[i]));
         }
+
+        instancesLoader_->Start();
       }
 
       virtual unsigned int GetSubOperationCount() const ORTHANC_OVERRIDE
@@ -113,10 +129,26 @@ namespace Orthanc
           return Status_Failure;
         }
 
+        if (instancesLoader_.get() == NULL ||
+            !instancesLoader_->HasNext())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
         const std::string& id = instancesIds_[position_++];
 
-        std::string dicom;
-        instancesLoader_->WaitDicomInstance(dicom, id);
+        std::unique_ptr<DicomSequentialReader::Item> next(instancesLoader_->Next());
+        assert(next.get() != NULL &&
+               next->HasUserData());
+
+        {
+          // This is just a sanity check, the class "MoveReaderUserData" could be removed
+          const MoveReaderUserData& userData = dynamic_cast<const MoveReaderUserData&>(next->GetUserData());
+          if (userData.GetInstanceId() != id)
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+        }
 
         if (connection_.get() == NULL)
         {
@@ -124,8 +156,11 @@ namespace Orthanc
           connection_.reset(new DicomStoreUserConnection(params));
         }
 
+        const IMemoryBuffer& dicom = next->GetRawMemoryBuffer();
+
         std::string sopClassUid, sopInstanceUid;  // Unused
-        context_.PerformCStoreWithTranscoding(sopClassUid, sopInstanceUid, *connection_, dicom,
+        context_.PerformCStoreWithTranscoding(sopClassUid, sopInstanceUid, *connection_,
+                                              dicom.GetData(), dicom.GetSize(),
                                               true, originatorAet_, originatorId_);
 
         return Status_Success;

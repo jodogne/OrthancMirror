@@ -553,7 +553,8 @@ namespace Orthanc
     void PerformCStoreWithTranscoding(std::string& sopClassUid,
                                       std::string& sopInstanceUid,
                                       DicomStoreUserConnection& connection,
-                                      const std::string& dicom,
+                                      const void* dicomData,
+                                      size_t dicomSize,
                                       bool hasMoveOriginator,
                                       const std::string& moveOriginatorAet,
                                       uint16_t moveOriginatorId);
