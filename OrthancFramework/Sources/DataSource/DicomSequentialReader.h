@@ -27,22 +27,17 @@
 #include "../FileStorage/FileInfo.h"
 #include "../IMemoryBuffer.h"
 #include "../MultiThreading/IExecutorService.h"
-#include "DataSourceSequentialReader.h"
 
 
 namespace Orthanc
 {
+  class DataSourceReader;
+  class DataSourceSequentialReader;
   class ParsedDicomFile;
 
   class ORTHANC_PUBLIC DicomSequentialReader : public boost::noncopyable
   {
   public:
-    enum ExpectedAnswer
-    {
-      ExpectedAnswer_ParsedDicomFile,
-      ExpectedAnswer_RawMemoryBuffer
-    };
-
     class ORTHANC_PUBLIC Item : public IDynamicObject
     {
     private:
@@ -82,12 +77,12 @@ namespace Orthanc
       SourceType_Transcoder
     };
 
-    SourceType                     sourceType_;
-    DicomTransferSyntax            targetSyntax_;
-    TranscodingSopInstanceUidMode  mode_;
-    bool                           hasLossyQuality_;
-    unsigned int                   lossyQuality_;
-    DataSourceSequentialReader     reader_;
+    SourceType                                     sourceType_;
+    DicomTransferSyntax                            targetSyntax_;
+    TranscodingSopInstanceUidMode                  mode_;
+    bool                                           hasLossyQuality_;
+    unsigned int                                   lossyQuality_;
+    boost::shared_ptr<DataSourceSequentialReader>  reader_;  // boost::shared_ptr<> for PImpl
 
     DicomSequentialReader(SourceType sourceType,
                           const boost::shared_ptr<IExecutorService>& executor,
@@ -103,21 +98,50 @@ namespace Orthanc
                         IDynamicObject* userData);
 
   public:
-    static DicomSequentialReader* CreateForOriginal(const boost::shared_ptr<IExecutorService>& executor,
-                                                    ExpectedAnswer expectedAnswer,
-                                                    const boost::shared_ptr<DataSourceReader>& dicomReader,
-                                                    unsigned int windowSize,
-                                                    uint64_t windowCapacity);
+    // The factory can be called from multiple threads
+    class ORTHANC_PUBLIC Factory : public boost::noncopyable
+    {
+    private:
+      boost::shared_ptr<IExecutorService>  executor_;
+      boost::shared_ptr<DataSourceReader>  storageAreaReader_;
+      boost::shared_ptr<DataSourceReader>  dicomReader_;
+      boost::shared_ptr<DataSourceReader>  transcoderReader_;
+      unsigned int                         windowSize_;
+      uint64_t                             windowCapacity_;
 
-    static DicomSequentialReader* CreateForTranscoded(const boost::shared_ptr<IExecutorService>& executor,
-                                                      ExpectedAnswer expectedAnswer,
-                                                      DicomTransferSyntax targetSyntax,
-                                                      TranscodingSopInstanceUidMode mode,
-                                                      bool hasLossyQuality,
-                                                      unsigned int lossyQuality,
-                                                      const boost::shared_ptr<DataSourceReader>& transcoderReader,
-                                                      unsigned int windowSize,
-                                                      uint64_t windowCapacity);
+    public:
+      // The readers are allowed to be NULL, for unit tests
+      Factory(const boost::shared_ptr<IExecutorService>& executor,
+              const boost::shared_ptr<DataSourceReader>& storageAreaReader,
+              const boost::shared_ptr<DataSourceReader>& dicomReader,
+              const boost::shared_ptr<DataSourceReader>& transcoderReader,
+              unsigned int windowSize,
+              uint64_t windowCapacity);
+
+      /**
+       * Methods below prioritize the downloading of the raw DICOM
+       * files (and avoid DICOM parsing if possible).
+       **/
+
+      DicomSequentialReader* CreateForOriginalRawMemoryBuffer() const;
+
+      DicomSequentialReader* CreateForTranscodedRawMemoryBuffer(DicomTransferSyntax targetSyntax,
+                                                                TranscodingSopInstanceUidMode mode,
+                                                                bool hasLossyQuality,
+                                                                unsigned int lossyQuality) const;
+
+      /**
+       * Methods below prioritize the parsing of the DICOM files (and
+       * exploit the DICOM cache if possible).
+       **/
+
+      DicomSequentialReader* CreateForOriginalParsedDicomFile() const;
+
+      DicomSequentialReader* CreateForTranscodedParsedDicomFile(DicomTransferSyntax targetSyntax,
+                                                                TranscodingSopInstanceUidMode mode,
+                                                                bool hasLossyQuality,
+                                                                unsigned int lossyQuality) const;
+    };
 
     void Submit(const FileInfo& attachment);
 

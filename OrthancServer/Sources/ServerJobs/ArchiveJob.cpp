@@ -1203,13 +1203,12 @@ namespace Orthanc
 
       if (transcode_)
       {
-        instancesLoader_.reset(context_.CreateTranscodedSequentialReader(
-                                 false /* prioritize raw DICOM files */, transferSyntax_,
-                                 TranscodingSopInstanceUidMode_AllowNew, hasLossyQuality_, lossyQuality_));
+        instancesLoader_.reset(context_.GetDicomSequentialReaderFactory().CreateForTranscodedRawMemoryBuffer(
+                                 transferSyntax_, TranscodingSopInstanceUidMode_AllowNew, hasLossyQuality_, lossyQuality_));
       }
       else
       {
-        instancesLoader_.reset(context_.CreateDicomSequentialReader(false /* prioritize raw DICOM files */));
+        instancesLoader_.reset(context_.GetDicomSequentialReaderFactory().CreateForOriginalRawMemoryBuffer());
       }
 
       writer_->PreloadAllCommands(*instancesLoader_);

@@ -30,6 +30,7 @@
 #include "ServerJobs/IStorageCommitmentFactory.h"
 
 #include "../../OrthancFramework/Sources/DataSource/DicomDataSource.h"
+#include "../../OrthancFramework/Sources/DataSource/DicomSequentialReader.h"
 #include "../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/JobsEngine/JobsEngine.h"
@@ -41,7 +42,6 @@
 namespace Orthanc
 {
   class DicomElement;
-  class DicomSequentialReader;
   class DicomStoreUserConnection;
   class IExecutorService;
   class OrthancPlugins;
@@ -289,11 +289,11 @@ namespace Orthanc
     boost::posix_time::ptime serverStartTimeUtc_;
 
     // For streaming
-    boost::shared_ptr<DataSourceReader>  storageAreaReader_;
-    boost::shared_ptr<DataSourceReader>  dicomReader_;
-    boost::shared_ptr<ThreadPool>        transcoderThreadPool_;
-    boost::shared_ptr<DataSourceReader>  transcoderReader_;
-    boost::shared_ptr<IExecutorService>  sequentialReaderThreadPool_;
+    boost::shared_ptr<DataSourceReader>                storageAreaReader_;
+    boost::shared_ptr<DataSourceReader>                dicomReader_;
+    boost::shared_ptr<ThreadPool>                      transcoderThreadPool_;
+    boost::shared_ptr<DataSourceReader>                transcoderReader_;
+    boost::shared_ptr<DicomSequentialReader::Factory>  dicomSequentialReaderFactory_;
 
   public:
     ServerContext(IDatabaseWrapper& database,
@@ -593,18 +593,6 @@ namespace Orthanc
 
     Future* SubmitTranscodingRequest(TranscodingCallable* callable);
 
-    /**
-     * If "asParsedDicomFile" is "false", the reader will prioritize
-     * the downloading of the raw DICOM files (and avoid parsing if
-     * possible). If it is "true", the reader will prioritize the
-     * parsing of the DICOM files.
-     **/
-    DicomSequentialReader* CreateDicomSequentialReader(bool asParsedDicomFile);
-
-    DicomSequentialReader* CreateTranscodedSequentialReader(bool asParsedDicomFile,
-                                                            DicomTransferSyntax targetSyntax,
-                                                            TranscodingSopInstanceUidMode mode,
-                                                            bool hasLossyQuality,
-                                                            unsigned int lossyQuality);
+    DicomSequentialReader::Factory& GetDicomSequentialReaderFactory();
   };
 }

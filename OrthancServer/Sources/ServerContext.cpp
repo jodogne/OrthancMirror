@@ -622,7 +622,11 @@ namespace Orthanc
         pool->SetDequeueTimeout(100);
         pool->Start();
 
-        sequentialReaderThreadPool_.reset(pool.release());
+        boost::shared_ptr<IExecutorService> executor(pool.release());
+        dicomSequentialReaderFactory_.reset(new DicomSequentialReader::Factory(
+                                              executor, storageAreaReader_, dicomReader_, transcoderReader_,
+                                              4 /* TODO-Streaming: Parameter */,
+                                              0  /* TODO-Streaming: Parameter */));
       }
     }
     catch (OrthancException&)
@@ -2172,39 +2176,8 @@ namespace Orthanc
   }
 
 
-  static DicomSequentialReader::ExpectedAnswer ConvertToExpectedAnswer(bool asParsedDicomFile)
+  DicomSequentialReader::Factory& ServerContext::GetDicomSequentialReaderFactory()
   {
-    if (asParsedDicomFile)
-    {
-      return DicomSequentialReader::ExpectedAnswer_ParsedDicomFile;
-    }
-    else
-    {
-      return DicomSequentialReader::ExpectedAnswer_RawMemoryBuffer;
-    }
-  }
-
-
-  DicomSequentialReader* ServerContext::CreateDicomSequentialReader(bool asParsedDicomFile)
-  {
-    return DicomSequentialReader::CreateForOriginal(
-      sequentialReaderThreadPool_, ConvertToExpectedAnswer(asParsedDicomFile),
-      asParsedDicomFile ? dicomReader_ : storageAreaReader_,
-      4 /* TODO-Streaming: Parameter */,
-      0  /* TODO-Streaming: Parameter */);
-  }
-
-
-  DicomSequentialReader* ServerContext::CreateTranscodedSequentialReader(bool asParsedDicomFile,
-                                                                         DicomTransferSyntax targetSyntax,
-                                                                         TranscodingSopInstanceUidMode mode,
-                                                                         bool hasLossyQuality,
-                                                                         unsigned int lossyQuality)
-  {
-    return DicomSequentialReader::CreateForTranscoded(
-      sequentialReaderThreadPool_, ConvertToExpectedAnswer(asParsedDicomFile),
-      targetSyntax, mode, hasLossyQuality, lossyQuality, transcoderReader_,
-      4 /* TODO-Streaming: Parameter */,
-      0  /* TODO-Streaming: Parameter */);
+    return *dicomSequentialReaderFactory_;
   }
 }

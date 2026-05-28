@@ -29,6 +29,8 @@
 #include "../OrthancException.h"
 #include "../StringMemoryBuffer.h"
 #include "BaseDataIdentifier.h"
+#include "DataSourceReader.h"
+#include "DataSourceSequentialReader.h"
 #include "DicomDataSource.h"
 #include "StorageAreaDataSource.h"
 #include "TranscoderDataSource.h"
@@ -191,7 +193,7 @@ namespace Orthanc
     mode_(mode),
     hasLossyQuality_(hasLossyQuality),
     lossyQuality_(lossyQuality),
-    reader_(executor, reader, new Disconnector(sourceType), windowSize, windowCapacity)
+    reader_(new DataSourceSequentialReader(executor, reader, new Disconnector(sourceType), windowSize, windowCapacity))
   {
   }
 
@@ -226,62 +228,7 @@ namespace Orthanc
       dynamic_cast<BaseDataIdentifier&>(*id).SetUserData(protection.release());
     }
 
-    reader_.Submit(id.release());
-  }
-
-
-  DicomSequentialReader* DicomSequentialReader::CreateForOriginal(const boost::shared_ptr<IExecutorService>& executor,
-                                                                  ExpectedAnswer expectedAnswer,
-                                                                  const boost::shared_ptr<DataSourceReader>& dicomReader,
-                                                                  unsigned int windowSize,
-                                                                  uint64_t windowCapacity)
-  {
-    switch (expectedAnswer)
-    {
-      case ExpectedAnswer_ParsedDicomFile:
-        return new DicomSequentialReader(
-          SourceType_Dicom, executor,
-          DicomTransferSyntax_LittleEndianImplicit, TranscodingSopInstanceUidMode_AllowNew,  /* dummy values */
-          false /* no lossy */, 0 /* unused lossy quality */,
-          dicomReader, windowSize, windowCapacity);
-
-      case ExpectedAnswer_RawMemoryBuffer:
-        return new DicomSequentialReader(
-          SourceType_StorageArea, executor,
-          DicomTransferSyntax_LittleEndianImplicit, TranscodingSopInstanceUidMode_AllowNew,  /* dummy values */
-          false /* no lossy */, 0 /* unused lossy quality */,
-          dicomReader, windowSize, windowCapacity);
-
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
-    }
-  }
-
-
-  DicomSequentialReader* DicomSequentialReader::CreateForTranscoded(const boost::shared_ptr<IExecutorService>& executor,
-                                                                    ExpectedAnswer expectedAnswer,
-                                                                    DicomTransferSyntax targetSyntax,
-                                                                    TranscodingSopInstanceUidMode mode,
-                                                                    bool hasLossyQuality,
-                                                                    unsigned int lossyQuality,
-                                                                    const boost::shared_ptr<DataSourceReader>& transcoderReader,
-                                                                    unsigned int windowSize,
-                                                                    uint64_t windowCapacity)
-  {
-    switch (expectedAnswer)
-    {
-      case ExpectedAnswer_RawMemoryBuffer:
-        // TODO
-
-      case ExpectedAnswer_ParsedDicomFile:
-        return new DicomSequentialReader(
-          SourceType_Transcoder, executor,
-          targetSyntax, mode, hasLossyQuality, lossyQuality,
-          transcoderReader, windowSize, windowCapacity);
-
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
-    }
+    reader_->Submit(id.release());
   }
 
 
@@ -305,19 +252,19 @@ namespace Orthanc
 
   void DicomSequentialReader::Start()
   {
-    reader_.Start();
+    reader_->Start();
   }
 
 
   bool DicomSequentialReader::HasNext()
   {
-    return reader_.HasNext();
+    return reader_->HasNext();
   }
 
 
   DicomSequentialReader::Item* DicomSequentialReader::Next()
   {
-    std::unique_ptr<DataSourceSequentialReader::Item> source(reader_.Next());
+    std::unique_ptr<DataSourceSequentialReader::Item> source(reader_->Next());
 
     std::unique_ptr<Item> target(dynamic_cast<Item*>(source->ReleaseValue()));
 
@@ -327,5 +274,75 @@ namespace Orthanc
     }
 
     return target.release();
+  }
+
+
+  DicomSequentialReader::Factory::Factory(const boost::shared_ptr<IExecutorService>& executor,
+                                          const boost::shared_ptr<DataSourceReader>& storageAreaReader,
+                                          const boost::shared_ptr<DataSourceReader>& dicomReader,
+                                          const boost::shared_ptr<DataSourceReader>& transcoderReader,
+                                          unsigned int windowSize,
+                                          uint64_t windowCapacity) :
+    executor_(executor),
+    storageAreaReader_(storageAreaReader),
+    dicomReader_(dicomReader),
+    transcoderReader_(transcoderReader),
+    windowSize_(windowSize),
+    windowCapacity_(windowCapacity)
+  {
+    if (!executor)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    if (windowSize == 0)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  DicomSequentialReader* DicomSequentialReader::Factory::CreateForOriginalRawMemoryBuffer() const
+  {
+    return new DicomSequentialReader(
+      DicomSequentialReader::SourceType_StorageArea, executor_,
+      DicomTransferSyntax_LittleEndianImplicit, TranscodingSopInstanceUidMode_AllowNew,  /* dummy values */
+      false /* no lossy */, 0 /* unused lossy quality */,
+      storageAreaReader_, windowSize_, windowCapacity_);
+  }
+
+
+  DicomSequentialReader* DicomSequentialReader::Factory::CreateForTranscodedRawMemoryBuffer(DicomTransferSyntax targetSyntax,
+                                                                                            TranscodingSopInstanceUidMode mode,
+                                                                                            bool hasLossyQuality,
+                                                                                            unsigned int lossyQuality) const
+  {
+    // TODO
+    return new DicomSequentialReader(
+      DicomSequentialReader::SourceType_Transcoder, executor_,
+      targetSyntax, mode, hasLossyQuality, lossyQuality,
+      transcoderReader_, windowSize_, windowCapacity_);
+  }
+
+
+  DicomSequentialReader* DicomSequentialReader::Factory::CreateForOriginalParsedDicomFile() const
+  {
+    return new DicomSequentialReader(
+      DicomSequentialReader::SourceType_Dicom, executor_,
+      DicomTransferSyntax_LittleEndianImplicit, TranscodingSopInstanceUidMode_AllowNew,  /* dummy values */
+      false /* no lossy */, 0 /* unused lossy quality */,
+      dicomReader_, windowSize_, windowCapacity_);
+  }
+
+
+  DicomSequentialReader* DicomSequentialReader::Factory::CreateForTranscodedParsedDicomFile(DicomTransferSyntax targetSyntax,
+                                                                                            TranscodingSopInstanceUidMode mode,
+                                                                                            bool hasLossyQuality,
+                                                                                            unsigned int lossyQuality) const
+  {
+    return new DicomSequentialReader(
+      DicomSequentialReader::SourceType_Transcoder, executor_,
+      targetSyntax, mode, hasLossyQuality, lossyQuality,
+      transcoderReader_, windowSize_, windowCapacity_);
   }
 }
