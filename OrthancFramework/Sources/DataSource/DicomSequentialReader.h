@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "../Compatibility.h"
 #include "../FileStorage/FileInfo.h"
 #include "../IMemoryBuffer.h"
 #include "../MultiThreading/IExecutorService.h"
