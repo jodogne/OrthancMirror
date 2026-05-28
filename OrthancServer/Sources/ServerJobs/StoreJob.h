@@ -24,27 +24,30 @@
 #pragma once
 
 #include "../../../OrthancFramework/Sources/Compatibility.h"
-#include "../../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h"
+#include "../../../OrthancFramework/Sources/DataSource/DicomSequentialReader.h"
 #include "../../../OrthancFramework/Sources/FileStorage/FileInfo.h"
-#include "ThreadedInstancesLoader.h"
+#include "../../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h"
 
 #include <vector>
 
 namespace Orthanc
 {
+  class DicomSequentialReader;
   class ServerContext;
 
   class StoreJob : public SetOfInstancesJob
   {
+  private:
+    class ReaderUserData;
+
+    std::unique_ptr<DicomSequentialReader>  instancesLoader_;
+    std::vector<std::string>                instancesIds_;
+    std::vector<FileInfo>                   filesInfo_;
+
   protected:
-    ServerContext&                             context_;
-    std::unique_ptr<ThreadedInstancesLoader>   instancesLoader_;
-    std::vector<std::string>                   instancesIds_;
-    std::vector<FileInfo>                      filesInfo_;
+    ServerContext&  context_;
 
-    virtual const char* GetLoaderPrefix() const = 0;
-
-    void StartLoaderThreads();
+    DicomSequentialReader::Item* WaitDicomInstance(const std::string& instanceId);
 
   public:
     explicit StoreJob(ServerContext& context);

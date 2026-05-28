@@ -35,6 +35,24 @@
 
 namespace Orthanc
 {
+  class StoreJob::ReaderUserData : public IDynamicObject
+  {
+  private:
+    std::string instanceId_;
+
+  public:
+    ReaderUserData(const std::string& instanceId) :
+      instanceId_(instanceId)
+    {
+    }
+
+    const std::string& GetInstanceId() const
+    {
+      return instanceId_;
+    }
+  };
+
+
   StoreJob::StoreJob(ServerContext& context) :
     context_(context)
   {
@@ -63,6 +81,51 @@ namespace Orthanc
   }
 
 
+  DicomSequentialReader::Item* StoreJob::WaitDicomInstance(const std::string& instanceId)
+  {
+    assert(IsStarted());
+
+    if (instancesLoader_.get() == NULL)
+    {
+      instancesLoader_.reset(context_.GetDicomSequentialReaderFactory().CreateForOriginalRawMemoryBuffer());
+
+      const size_t position = GetPosition(); // in case we reload a job in progress, we shall not preload the first instances
+
+      if (instanceId != instancesIds_[position])
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      for (size_t i = position; i < instancesIds_.size(); ++i)
+      {
+        instancesLoader_->Submit(filesInfo_[i], new ReaderUserData(instancesIds_[i]));
+      }
+
+      instancesLoader_->Start();
+    }
+
+    if (!instancesLoader_->HasNext())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    std::unique_ptr<DicomSequentialReader::Item> next(instancesLoader_->Next());
+    assert(next.get() != NULL &&
+           next->HasUserData());
+
+    {
+      // This is just a sanity check, the class "MoveReaderUserData" could be removed
+      const ReaderUserData& userData = dynamic_cast<const ReaderUserData&>(next->GetUserData());
+      if (userData.GetInstanceId() != instanceId)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    return next.release();
+  }
+
+
   void StoreJob::AddInstances(const std::vector<std::string>& instancesIds,
                               const std::vector<FileInfo>& filesInfo)
   {
@@ -78,24 +141,6 @@ namespace Orthanc
     for (size_t i = 0; i < instancesIds.size(); ++i)
     {
       AddInstance(instancesIds[i]);
-    }
-  }
-
-
-  void StoreJob::StartLoaderThreads()
-  {
-    size_t loaderThreads = 1;
-    {
-      OrthancConfiguration::ReaderLock lock;
-      loaderThreads = lock.GetConfiguration().GetLoaderThreads();
-    }
-
-    instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads, false, DicomTransferSyntax_LittleEndianImplicit /* dummy value not used*/, 0, GetLoaderPrefix()));
-
-    size_t position = GetPosition(); // in case we reload a job in progress, we shall not preload the first instances
-    for (size_t i = position; i < instancesIds_.size(); ++i)
-    {
-      instancesLoader_->PreloadDicomInstance(instancesIds_[i], filesInfo_[i]);
     }
   }
 

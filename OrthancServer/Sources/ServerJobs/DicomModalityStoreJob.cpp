@@ -48,19 +48,14 @@ namespace Orthanc
     assert(IsStarted());
     OpenConnection();
 
-    if (instancesLoader_.get() == NULL)
-    {
-      StartLoaderThreads();
-    }
-
     LOG(INFO) << "Sending instance " << instance << " to modality \"" 
               << parameters_.GetRemoteModality().GetApplicationEntityTitle() << "\"";
 
-    std::string dicom;
+    std::unique_ptr<DicomSequentialReader::Item> item;
 
     try
     {
-      instancesLoader_->WaitDicomInstance(dicom, instance);
+      item.reset(WaitDicomInstance(instance));
     }
     catch (OrthancException& e)
     {
@@ -68,9 +63,10 @@ namespace Orthanc
       return false;
     }
 
+    const IMemoryBuffer& dicom = item->GetRawMemoryBuffer();
+
     std::string sopClassUid, sopInstanceUid;
-    context_.PerformCStoreWithTranscoding(sopClassUid, sopInstanceUid, *connection_,
-                                          dicom.empty() ? NULL : dicom.c_str(), dicom.size(),
+    context_.PerformCStoreWithTranscoding(sopClassUid, sopInstanceUid, *connection_, dicom.GetData(), dicom.GetSize(),
                                           HasMoveOriginator(), moveOriginatorAet_, moveOriginatorId_);
 
     if (storageCommitment_)

@@ -55,6 +55,7 @@ namespace Orthanc
 
       ParsedDicomFile& GetParsedDicomFile();
 
+      // There is a "const" here, as the value could be shared through the cache, so it cannot be modified
       const IMemoryBuffer& GetRawMemoryBuffer();
 
       void SetUserData(IDynamicObject* userData /* takes ownership */);

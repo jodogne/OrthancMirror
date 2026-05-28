@@ -38,10 +38,7 @@ namespace Orthanc
 {
   bool OrthancPeerStoreJob::HandleInstance(const std::string& instance)
   {
-    if (instancesLoader_.get() == NULL)
-    {
-      StartLoaderThreads();
-    }
+    assert(IsStarted());
 
     if (client_.get() == NULL)
     {
@@ -63,8 +60,10 @@ namespace Orthanc
 
     try
     {
-      std::string dicom;
-      instancesLoader_->WaitDicomInstance(dicom, instance);
+      std::unique_ptr<DicomSequentialReader::Item> item;
+      item.reset(WaitDicomInstance(instance));
+
+      const IMemoryBuffer& dicom = item->GetRawMemoryBuffer();
 
       if (transcode_)
       {
@@ -72,7 +71,7 @@ namespace Orthanc
         syntaxes.insert(transferSyntax_);
         
         IDicomTranscoder::DicomImage source, transcoded;
-        source.SetExternalBuffer(dicom);
+        source.SetExternalBuffer(dicom.GetData(), dicom.GetSize());
 
         if (context_.GetTranscoder()->Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew))
         {
@@ -81,12 +80,12 @@ namespace Orthanc
         }
         else
         {
-          body.swap(dicom);
+          dicom.CopyToString(body);
         }
       }
       else
       {
-        body.swap(dicom);
+        dicom.CopyToString(body);
       }
     }
     catch (OrthancException& e)

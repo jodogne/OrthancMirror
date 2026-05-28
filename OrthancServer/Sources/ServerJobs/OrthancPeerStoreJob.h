@@ -49,11 +49,6 @@ namespace Orthanc
     
     virtual bool HandleTrailingStep() ORTHANC_OVERRIDE;
 
-    virtual const char* GetLoaderPrefix() const ORTHANC_OVERRIDE
-    {
-      return "PSTO";
-    }
-
   public:
     explicit OrthancPeerStoreJob(ServerContext& context) :
       StoreJob(context),

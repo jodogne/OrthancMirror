@@ -56,11 +56,6 @@ namespace Orthanc
     
     virtual bool HandleTrailingStep() ORTHANC_OVERRIDE;
 
-    virtual const char* GetLoaderPrefix() const ORTHANC_OVERRIDE
-    {
-      return "CSTO";
-    }
-
   public:
     explicit DicomModalityStoreJob(ServerContext& context);
 

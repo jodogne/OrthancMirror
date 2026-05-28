@@ -156,7 +156,7 @@ namespace Orthanc
         case SourceType_StorageArea:
         {
           std::unique_ptr<StorageAreaDataSource::Range> range(new StorageAreaDataSource::Range(protection.release()));
-          return new Item(range->GetBuffer());
+          return new Item(range->GetBuffer());  // The buffer is shared through the cache
         }
 
         case SourceType_Dicom:
