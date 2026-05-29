@@ -27,6 +27,7 @@ REST API
 * The "LocalAet" field of the payload to "/modalities/../move", "/modalities/../store", 
   "/modalities/../get", "queries/../answers/../retrieve" now always overwrites the "DicomAet"
   and the "DicomModalities.LocalAet" configurations.
+* Optimized the "/patients|studies|series|instances/../statistics" routes.
 
 
 Maintenance

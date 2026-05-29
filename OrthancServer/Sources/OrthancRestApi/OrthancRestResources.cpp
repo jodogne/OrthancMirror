@@ -1630,6 +1630,7 @@ namespace Orthanc
   }
 
 
+  template <enum ResourceType resourceType>
   static void GetResourceStatistics(RestApiGetCall& call)
   {
     const ResourceType level = GetResourceTypeFromUri(call);
@@ -1686,13 +1687,12 @@ namespace Orthanc
 
     std::string publicId = call.GetUriComponent("id", "");
 
-    ResourceType type;
     uint64_t diskSize, uncompressedSize, dicomDiskSize, dicomUncompressedSize;
     unsigned int countStudies, countSeries, countInstances;
-    OrthancRestApi::GetIndex(call).GetResourceStatistics(
-      type, diskSize, uncompressedSize, countStudies, countSeries, 
-      countInstances, dicomDiskSize, dicomUncompressedSize, publicId);
 
+    OrthancRestApi::GetIndex(call).GetResourceStatistics(
+      diskSize, uncompressedSize, countStudies, countSeries, 
+      countInstances, dicomDiskSize, dicomUncompressedSize, resourceType, publicId);    
     Json::Value result = Json::objectValue;
     result["DiskSize"] = boost::lexical_cast<std::string>(diskSize);
     result["DiskSizeMB"] = static_cast<unsigned int>(diskSize / MEGABYTE);
@@ -1704,7 +1704,7 @@ namespace Orthanc
     result["DicomUncompressedSize"] = boost::lexical_cast<std::string>(dicomUncompressedSize);
     result["DicomUncompressedSizeMB"] = static_cast<unsigned int>(dicomUncompressedSize / MEGABYTE);
 
-    switch (type)
+    switch (resourceType)
     {
       // Do NOT add "break" below this point!
       case ResourceType_Patient:
@@ -4305,13 +4305,13 @@ namespace Orthanc
     Register("/series/{id}", GetSingleResource<ResourceType_Series>);
     Register("/studies/{id}", GetSingleResource<ResourceType_Study>);
 
-    Register("/instances/{id}/statistics", GetResourceStatistics);
+    Register("/instances/{id}/statistics", GetResourceStatistics<ResourceType_Instance>);
     if (context_.IsPatientLevelEnabled())
     {
-      Register("/patients/{id}/statistics", GetResourceStatistics);
+      Register("/patients/{id}/statistics", GetResourceStatistics<ResourceType_Patient>);
     }
-    Register("/studies/{id}/statistics", GetResourceStatistics);
-    Register("/series/{id}/statistics", GetResourceStatistics);
+    Register("/studies/{id}/statistics", GetResourceStatistics<ResourceType_Study>);
+    Register("/series/{id}/statistics", GetResourceStatistics<ResourceType_Series>);
 
     if (context_.IsPatientLevelEnabled())
     {
