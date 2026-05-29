@@ -37,7 +37,6 @@
 #include "../Search/DatabaseLookup.h"
 #include "../ServerIndexChange.h"
 #include "../ServerToolbox.h"
-#include "../ResourceFinder.h"
 #include "ResourcesContent.h"
 
 #include <boost/lexical_cast.hpp>
