@@ -67,7 +67,7 @@ namespace Orthanc
 
     virtual IDynamicObject* Load(const IDataIdentifier& identifier) ORTHANC_OVERRIDE;
 
-    class Range : public boost::noncopyable
+    class ORTHANC_PUBLIC Range : public boost::noncopyable
     {
     private:
       std::unique_ptr<DataSourceAnswer::Item>  item_;   // Holding item puts backpressure on the data source (can be NULL)

@@ -29,6 +29,7 @@
 #endif
 
 #include "../Compatibility.h"
+#include "../OrthancFramework.h"
 
 #include <boost/noncopyable.hpp>
 #include <boost/thread/condition_variable.hpp>
@@ -41,7 +42,7 @@ namespace Orthanc
   namespace Internals
   {
     // This is basically a semaphore with the uint64_t data type
-    class DataSourceMemoryBudget : public boost::noncopyable
+    class ORTHANC_PUBLIC DataSourceMemoryBudget : public boost::noncopyable
     {
     private:
       boost::mutex               mutex_;
@@ -59,7 +60,7 @@ namespace Orthanc
 
       uint64_t GetCurrentMemory() ORTHANC_NOEXCEPT;
 
-      class Lock : public boost::noncopyable
+      class ORTHANC_PUBLIC Lock : public boost::noncopyable
       {
       private:
         DataSourceMemoryBudget&  that_;

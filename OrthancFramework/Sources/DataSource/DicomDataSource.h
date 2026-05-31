@@ -47,7 +47,7 @@ namespace Orthanc
   class DataSourceReader;
   class ParsedDicomFile;
 
-  class DicomDataSource : public IDataSource
+  class ORTHANC_PUBLIC DicomDataSource : public IDataSource
   {
   private:
     class Identifier;
@@ -64,7 +64,7 @@ namespace Orthanc
 
     virtual size_t GetValueSize(const IDynamicObject& obj) const ORTHANC_OVERRIDE;
 
-    class Dicom : public boost::noncopyable
+    class ORTHANC_PUBLIC Dicom : public boost::noncopyable
     {
     private:
       std::unique_ptr<DataSourceAnswer::Item>  item_;   // Holding item puts backpressure on the data source
@@ -79,7 +79,7 @@ namespace Orthanc
        * could be shared by multiple threads if caching is enabled in
        * the DataSourceReader.
        **/
-      class Lock : public boost::noncopyable
+      class ORTHANC_PUBLIC Lock : public boost::noncopyable
       {
       private:
         Dicom&                              that_;

@@ -48,10 +48,10 @@ namespace Orthanc
    * Note that this class is not thread safe, it should be invoked
    * from a single thread.
    **/
-  class DataSourceSequentialReader : public boost::noncopyable
+  class ORTHANC_PUBLIC DataSourceSequentialReader : public boost::noncopyable
   {
   public:
-    class Item : public IDynamicObject
+    class ORTHANC_PUBLIC Item : public IDynamicObject
     {
     private:
       std::unique_ptr<IDynamicObject>    value_;
@@ -92,7 +92,7 @@ namespace Orthanc
      * buffered independently and is no longer subject to
      * backpressure.
      **/
-    class IValueDisconnector : public boost::noncopyable
+    class ORTHANC_PUBLIC IValueDisconnector : public boost::noncopyable
     {
     public:
       virtual ~IValueDisconnector()

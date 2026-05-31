@@ -36,7 +36,7 @@ namespace Orthanc
 {
   class DataSourceReader;
 
-  class TranscoderDataSource : public IDataSource
+  class ORTHANC_PUBLIC TranscoderDataSource : public IDataSource
   {
   private:
     class Value;
@@ -53,7 +53,7 @@ namespace Orthanc
 
     virtual size_t GetValueSize(const IDynamicObject& value) const ORTHANC_OVERRIDE;
 
-    class Transcoded : public boost::noncopyable
+    class ORTHANC_PUBLIC Transcoded : public boost::noncopyable
     {
     private:
       std::unique_ptr<DataSourceAnswer::Item>  item_;   // Holding item puts backpressure on the data source
@@ -61,7 +61,7 @@ namespace Orthanc
     public:
       explicit Transcoded(DataSourceAnswer::Item* item /* takes ownership */);
 
-      class LockAsParsed : public boost::noncopyable
+      class ORTHANC_PUBLIC LockAsParsed : public boost::noncopyable
       {
       private:
         /**
@@ -83,7 +83,7 @@ namespace Orthanc
         }
       };
 
-      class LockAsBuffer : public boost::noncopyable
+      class ORTHANC_PUBLIC LockAsBuffer : public boost::noncopyable
       {
       private:
         /**
