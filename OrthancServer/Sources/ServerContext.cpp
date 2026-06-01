@@ -69,6 +69,27 @@
 #endif
 
 
+// Those metrics correspond to those in StorageAccessor
+static const std::string METRICS_STORAGE_AREA_READ_BYTES = "orthanc_storage_read_bytes";
+static const std::string METRICS_STORAGE_AREA_READ_DURATION = "orthanc_storage_read_duration_ms";
+
+static const std::string METRICS_STORAGE_AREA_CACHE_COUNT = "orthanc_storage_cache_count";
+static const std::string METRICS_STORAGE_AREA_CACHE_HIT_COUNT = "orthanc_storage_cache_hit_count";
+static const std::string METRICS_STORAGE_AREA_CACHE_MISS_COUNT = "orthanc_storage_cache_miss_count";
+static const std::string METRICS_STORAGE_AREA_CACHE_SIZE_MB = "orthanc_storage_cache_size_mb";
+
+static const std::string METRICS_DICOM_CACHE_COUNT = "orthanc_dicom_cache_count";
+static const std::string METRICS_DICOM_CACHE_HIT_COUNT = "orthanc_dicom_cache_hit_count";
+static const std::string METRICS_DICOM_CACHE_MISS_COUNT = "orthanc_dicom_cache_miss_count";
+static const std::string METRICS_DICOM_CACHE_SIZE_MB = "orthanc_dicom_cache_size_mb";
+
+static const std::string METRICS_TRANSCODER_CACHE_COUNT = "orthanc_transcoder_cache_count";
+static const std::string METRICS_TRANSCODER_CACHE_HIT_COUNT = "orthanc_transcoder_cache_hit_count";
+static const std::string METRICS_TRANSCODER_CACHE_MISS_COUNT = "orthanc_transcoder_cache_miss_count";
+static const std::string METRICS_TRANSCODER_CACHE_SIZE_MB = "orthanc_transcoder_cache_size_mb";
+
+
+
 /**
  * IMPORTANT: We make the assumption that the same instance of
  * FileStorage can be accessed from multiple threads. This seems OK
@@ -360,35 +381,6 @@ namespace Orthanc
   }
 
 
-  void ServerContext::PublishCacheMetrics()
-  {
-    uint64_t tasksMaximumMemory;
-    uint64_t tasksCurrentMemory;
-    unsigned int tasksReservations;
-    size_t cacheCapacity;
-    size_t cacheCurrentCount;
-    size_t cacheCurrentSize;
-
-    storageAreaReader_->GetStatistics(tasksMaximumMemory, tasksCurrentMemory, tasksReservations,
-                                      cacheCapacity, cacheCurrentCount, cacheCurrentSize);
-    metricsRegistry_->SetFloatValue("orthanc_storage_cache_size_mb",
-                                    static_cast<float>(cacheCurrentSize) / static_cast<float>(MEGABYTE));
-    metricsRegistry_->SetIntegerValue("orthanc_storage_cache_count", cacheCurrentCount);
-
-    dicomReader_->GetStatistics(tasksMaximumMemory, tasksCurrentMemory, tasksReservations,
-                                cacheCapacity, cacheCurrentCount, cacheCurrentSize);
-    metricsRegistry_->SetFloatValue("orthanc_dicom_cache_size_mb",
-                                    static_cast<float>(cacheCurrentSize) / static_cast<float>(MEGABYTE));
-    metricsRegistry_->SetIntegerValue("orthanc_dicom_cache_count", cacheCurrentCount);
-
-    transcoderReader_->GetStatistics(tasksMaximumMemory, tasksCurrentMemory, tasksReservations,
-                                     cacheCapacity, cacheCurrentCount, cacheCurrentSize);
-    metricsRegistry_->SetFloatValue("orthanc_transcoder_cache_size_mb",
-                                    static_cast<float>(cacheCurrentSize) / static_cast<float>(MEGABYTE));
-    metricsRegistry_->SetIntegerValue("orthanc_transcoder_cache_count", cacheCurrentCount);
-  }
-
-
   ServerContext::ServerContext(IDatabaseWrapper& database,
                                IPluginStorageArea& area,
                                ServerTranscoder* transcoder /* takes ownership */,
@@ -580,10 +572,22 @@ namespace Orthanc
         pool->SetDequeueTimeout(100);
         pool->Start();
 
-        storageAreaReader_.reset(new DataSourceReader(pool, new StorageAreaDataSource(area_, checkMD5)));
+        std::unique_ptr<StorageAreaDataSource> source(new StorageAreaDataSource(area_, checkMD5));
+        source->SetMetricsRegistry(metricsRegistry_,
+                                   METRICS_STORAGE_AREA_READ_BYTES, METRICS_STORAGE_AREA_READ_DURATION);
+
+        storageAreaReader_.reset(new DataSourceReader(pool, source.release()));
+        storageAreaReader_->SetMetricsConfiguration(
+          DataSourceReader::MetricsConfiguration(metricsRegistry_,
+                                                 METRICS_STORAGE_AREA_CACHE_SIZE_MB,
+                                                 METRICS_STORAGE_AREA_CACHE_COUNT,
+                                                 METRICS_STORAGE_AREA_CACHE_HIT_COUNT,
+                                                 METRICS_STORAGE_AREA_CACHE_MISS_COUNT));
+
         storageAreaReader_->SetCapacity(1);  // Put highest pressure
         //storageAreaReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
-        storageAreaReader_->CreateCache(256 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter
+        //storageAreaReader_->CreateCache(256 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter
+        storageAreaReader_->CreateCache(1 * GIGABYTE); // 1 GB - TODO-Streaming - Parameter
       }
 
       {
@@ -594,9 +598,16 @@ namespace Orthanc
         pool->Start();
 
         dicomReader_.reset(new DataSourceReader(pool, new DicomDataSource(storageAreaReader_)));
+        dicomReader_->SetMetricsConfiguration(
+          DataSourceReader::MetricsConfiguration(metricsRegistry_,
+                                                 METRICS_DICOM_CACHE_SIZE_MB,
+                                                 METRICS_DICOM_CACHE_COUNT,
+                                                 METRICS_DICOM_CACHE_HIT_COUNT,
+                                                 METRICS_DICOM_CACHE_MISS_COUNT));
+
         dicomReader_->SetCapacity(1);  // Put highest pressure
         //dicomReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
-        dicomReader_->CreateCache(32 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter
+        dicomReader_->CreateCache(256 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter
       }
 
       if (transcoder_.get() != NULL)
@@ -608,6 +619,13 @@ namespace Orthanc
         transcoderThreadPool_->Start();
 
         transcoderReader_.reset(new DataSourceReader(transcoderThreadPool_, new TranscoderDataSource(transcoder_, storageAreaReader_)));
+        transcoderReader_->SetMetricsConfiguration(
+          DataSourceReader::MetricsConfiguration(metricsRegistry_,
+                                                 METRICS_TRANSCODER_CACHE_SIZE_MB,
+                                                 METRICS_TRANSCODER_CACHE_COUNT,
+                                                 METRICS_TRANSCODER_CACHE_HIT_COUNT,
+                                                 METRICS_TRANSCODER_CACHE_MISS_COUNT));
+
         transcoderReader_->SetCapacity(1);  // Put highest pressure
         //transcoderReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
         transcoderReader_->CreateCache(256 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter

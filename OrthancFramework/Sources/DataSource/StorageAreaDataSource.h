@@ -42,6 +42,7 @@
 namespace Orthanc
 {
   class DataSourceReader;
+  class MetricsRegistry;
 
   class ORTHANC_PUBLIC StorageAreaDataSource : public IDataSource
   {
@@ -52,16 +53,19 @@ namespace Orthanc
     class AttachmentPostProcessing;
 
   private:
-    IPluginStorageArea&  area_;
-    bool                 checkMD5_;
+    IPluginStorageArea&                 area_;
+    bool                                checkMD5_;
+    boost::shared_ptr<MetricsRegistry>  metrics_;
+    std::string                         metricsReadBytesName_;
+    std::string                         metricsReadDurationName_;
 
   public:
     explicit StorageAreaDataSource(IPluginStorageArea& area,
-                                   bool checkMD5) :
-      area_(area),
-      checkMD5_(checkMD5)
-    {
-    }
+                                   bool checkMD5);
+
+    void SetMetricsRegistry(const boost::shared_ptr<MetricsRegistry>& metrics,
+                            const std::string& metricsReadBytesName,
+                            const std::string& metricsReadDurationName);
 
     virtual size_t GetValueSize(const IDynamicObject& value) const ORTHANC_OVERRIDE;
 

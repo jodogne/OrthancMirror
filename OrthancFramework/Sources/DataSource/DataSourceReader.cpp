@@ -26,6 +26,8 @@
 #include "DataSourceReader.h"
 
 #include "../Cache/SharedObjectCache.h"
+#include "../Constants.h"
+#include "../MetricsRegistry.h"
 #include "../OrthancException.h"
 #include "DataSourceMemoryBudget.h"
 
@@ -36,6 +38,70 @@
 
 namespace Orthanc
 {
+  DataSourceReader::MetricsConfiguration::MetricsConfiguration(const boost::shared_ptr<MetricsRegistry>& metrics,
+                                                               const std::string& cacheSizeMegabytesName,
+                                                               const std::string& cacheCountName,
+                                                               const std::string& cacheHitCountName,
+                                                               const std::string& cacheMissCountName)
+  {
+    if (metrics.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else if (cacheSizeMegabytesName.empty() ||
+             cacheCountName.empty() ||
+             cacheHitCountName.empty() ||
+             cacheMissCountName.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      metrics_ = metrics;
+      cacheSizeMegabytesName_ = cacheSizeMegabytesName;
+      cacheCountName_ = cacheCountName;
+      cacheHitCountName_ = cacheHitCountName;
+      cacheMissCountName_ = cacheMissCountName;
+
+      metrics_->SetFloatValue(cacheSizeMegabytesName_, 0);
+      metrics_->SetIntegerValue(cacheCountName_, 0);
+      metrics_->SetIntegerValue(cacheHitCountName_, 0);
+      metrics_->SetIntegerValue(cacheMissCountName_, 0);
+    }
+  }
+
+
+  void DataSourceReader::MetricsConfiguration::SetCacheStatistics(SharedObjectCache& cache)
+  {
+    if (metrics_)
+    {
+      size_t capacity, count, size;
+      cache.GetStatistics(capacity, count, size);
+
+      metrics_->SetFloatValue(cacheSizeMegabytesName_, static_cast<float>(size) / static_cast<float>(MEGABYTE));
+      metrics_->SetIntegerValue(cacheCountName_, count);
+    }
+  }
+
+
+  void DataSourceReader::MetricsConfiguration::IncrementCacheHitCount()
+  {
+    if (metrics_)
+    {
+      metrics_->IncrementIntegerValue(cacheHitCountName_, 1);
+    }
+  }
+
+
+  void DataSourceReader::MetricsConfiguration::IncrementCacheMissCount()
+  {
+    if (metrics_)
+    {
+      metrics_->IncrementIntegerValue(cacheMissCountName_, 1);
+    }
+  }
+
+
   class DataSourceReader::DataSourceRunnable : public IRunnable
   {
   private:
@@ -44,18 +110,21 @@ namespace Orthanc
     std::unique_ptr<IDataIdentifier>                      id_;
     boost::shared_ptr<SharedObjectCache>                  cache_;
     boost::shared_ptr<Internals::DataSourceMemoryBudget>  budget_;
+    MetricsConfiguration                                  metricsConfiguration_;
 
   public:
     DataSourceRunnable(const boost::shared_ptr<DataSourceAnswer>& answer,
                        IDataSource& source,
                        IDataIdentifier* id,
                        boost::shared_ptr<SharedObjectCache>& cache,
-                       boost::shared_ptr<Internals::DataSourceMemoryBudget>& budget) :
+                       boost::shared_ptr<Internals::DataSourceMemoryBudget>& budget,
+                       const MetricsConfiguration& metrics) :
       answer_(answer),
       source_(source),
       id_(id),
       cache_(cache),
-      budget_(budget)
+      budget_(budget),
+      metricsConfiguration_(metrics)
     {
       if (id == NULL ||
           answer.get() == NULL)
@@ -90,6 +159,15 @@ namespace Orthanc
         if (cache_ && hasCacheKey)
         {
           value = cache_->GetCachedValue(cacheKey);
+
+          if (value)
+          {
+            metricsConfiguration_.IncrementCacheHitCount();
+          }
+          else
+          {
+            metricsConfiguration_.IncrementCacheMissCount();
+          }
         }
 
         if (!value)
@@ -112,6 +190,7 @@ namespace Orthanc
           if (!error && cache_ && hasCacheKey)
           {
             cache_->Store(cacheKey, value, source_.GetValueSize(*value));
+            metricsConfiguration_.SetCacheStatistics(*cache_);
           }
         }
 
@@ -210,7 +289,7 @@ namespace Orthanc
     while (!protection->IsEmpty())
     {
       std::unique_ptr<IDataIdentifier> identifier(protection->Dequeue());
-      executor_->Submit(new DataSourceRunnable(answer, *source_, identifier.release(), cache_, budget_));
+      executor_->Submit(new DataSourceRunnable(answer, *source_, identifier.release(), cache_, budget_, metricsConfiguration_));
     }
 
     return answer;
@@ -236,29 +315,11 @@ namespace Orthanc
 
   void DataSourceReader::GetStatistics(uint64_t& tasksMaximumMemory,
                                        uint64_t& tasksCurrentMemory,
-                                       unsigned int& tasksReservations,
-                                       size_t& cacheCapacity,
-                                       size_t& cacheCurrentCount,
-                                       size_t& cacheCurrentSize)
+                                       unsigned int& tasksReservations)
   {
     {
       boost::shared_ptr<Internals::DataSourceMemoryBudget> budgetCopy(budget_);
       budgetCopy->GetStatistics(tasksMaximumMemory, tasksCurrentMemory, tasksReservations);
-    }
-
-    {
-      boost::shared_ptr<SharedObjectCache> cacheCopy(cache_);
-
-      if (cacheCopy)
-      {
-        cacheCopy->GetStatistics(cacheCapacity, cacheCurrentCount, cacheCurrentSize);
-      }
-      else
-      {
-        cacheCapacity = 0;
-        cacheCurrentCount = 0;
-        cacheCurrentSize = 0;
-      }
     }
   }
 }

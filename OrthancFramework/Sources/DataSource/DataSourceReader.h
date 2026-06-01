@@ -34,6 +34,7 @@
 
 namespace Orthanc
 {
+  class MetricsRegistry;
   class SharedObjectCache;
 
   namespace Internals
@@ -43,6 +44,34 @@ namespace Orthanc
 
   class ORTHANC_PUBLIC DataSourceReader : public boost::noncopyable
   {
+  public:
+    class MetricsConfiguration
+    {
+    private:
+      boost::shared_ptr<MetricsRegistry>  metrics_;
+      std::string                         cacheSizeMegabytesName_;
+      std::string                         cacheCountName_;
+      std::string                         cacheHitCountName_;
+      std::string                         cacheMissCountName_;
+
+    public:
+      MetricsConfiguration()
+      {
+      }
+
+      MetricsConfiguration(const boost::shared_ptr<MetricsRegistry>& metrics,
+                           const std::string& cacheSizeMegabytesName,
+                           const std::string& cacheCountName,
+                           const std::string& cacheHitCountName,
+                           const std::string& cacheMissCountName);
+
+      void SetCacheStatistics(SharedObjectCache& cache);
+
+      void IncrementCacheHitCount();
+
+      void IncrementCacheMissCount();
+    };
+
   private:
     class DataSourceRunnable;
 
@@ -50,12 +79,18 @@ namespace Orthanc
     std::unique_ptr<IDataSource>                          source_;
     boost::shared_ptr<SharedObjectCache>                  cache_;
     boost::shared_ptr<Internals::DataSourceMemoryBudget>  budget_;
+    MetricsConfiguration                                  metricsConfiguration_;
 
   public:
     DataSourceReader(const boost::shared_ptr<IExecutorService>& executor,
                      IDataSource* source /* takes ownership */);
 
     ~DataSourceReader();
+
+    void SetMetricsConfiguration(const MetricsConfiguration& configuration)
+    {
+      metricsConfiguration_ = configuration;
+    }
 
     void CreateCache(size_t capacity);
 
@@ -84,9 +119,6 @@ namespace Orthanc
 
     void GetStatistics(uint64_t& tasksMaximumMemory,
                        uint64_t& tasksCurrentMemory,
-                       unsigned int& tasksReservations,
-                       size_t& cacheCapacity,
-                       size_t& cacheCurrentCount,
-                       size_t& cacheCurrentSize);
+                       unsigned int& tasksReservations);
   };
 }

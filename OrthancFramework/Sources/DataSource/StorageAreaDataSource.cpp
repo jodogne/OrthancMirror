@@ -25,6 +25,7 @@
 #include "../PrecompiledHeaders.h"
 #include "StorageAreaDataSource.h"
 
+#include "../MetricsRegistry.h"
 #include "../OrthancException.h"
 #include "../StringMemoryBuffer.h"
 #include "../Toolbox.h"
@@ -37,6 +38,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <cassert>
+
 
 namespace Orthanc
 {
@@ -268,6 +270,34 @@ namespace Orthanc
   };
 
 
+  StorageAreaDataSource::StorageAreaDataSource(IPluginStorageArea& area,
+                                               bool checkMD5) :
+    area_(area),
+    checkMD5_(checkMD5)
+  {
+  }
+
+
+  void StorageAreaDataSource::SetMetricsRegistry(const boost::shared_ptr<MetricsRegistry>& metrics,
+                                                 const std::string& metricsReadBytesName,
+                                                 const std::string& metricsReadDurationName)
+  {
+    if (metrics.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else
+    {
+      metrics_ = metrics;
+      metricsReadBytesName_ = metricsReadBytesName;
+      metricsReadDurationName_ = metricsReadDurationName;
+
+      metrics_->SetIntegerValue(metricsReadBytesName_, 0);
+      metrics_->SetIntegerValue(metricsReadDurationName_, 0);
+    }
+  }
+
+
   size_t StorageAreaDataSource::GetValueSize(const IDynamicObject& value) const
   {
     const Value& tmp = dynamic_cast<const Value&>(value);
@@ -278,7 +308,25 @@ namespace Orthanc
   IDynamicObject* StorageAreaDataSource::Load(const IDataIdentifier& identifier)
   {
     const Identifier& id = dynamic_cast<const Identifier&>(identifier);
-    return new Value(id.Read(area_), checkMD5_);
+
+    std::unique_ptr<IMemoryBuffer> buffer;
+
+    {
+      std::unique_ptr<MetricsRegistry::Timer> timer;
+      if (metrics_)
+      {
+        timer.reset(new MetricsRegistry::Timer(*metrics_, metricsReadDurationName_));
+      }
+
+      buffer.reset(id.Read(area_));
+    }
+
+    if (metrics_)
+    {
+      metrics_->IncrementIntegerValue(metricsReadBytesName_, static_cast<int64_t>(buffer->GetSize()));
+    }
+
+    return new Value(buffer.release(), checkMD5_);
   }
 
 

@@ -241,7 +241,7 @@ namespace Orthanc
     unsigned int limitFindInstances_;
     unsigned int limitFindResults_;
 
-    std::unique_ptr<MetricsRegistry>  metricsRegistry_;
+    boost::shared_ptr<MetricsRegistry>  metricsRegistry_;
     bool isHttpServerSecure_;
     bool isExecuteLuaEnabled_;
     bool isRestApiWriteToFileSystemEnabled_;
@@ -593,8 +593,6 @@ namespace Orthanc
     }
 
     int64_t GetServerUpTime() const;
-
-    void PublishCacheMetrics();
 
     const boost::shared_ptr<ServerTranscoder>& GetTranscoder() const;
 
