@@ -49,7 +49,6 @@ namespace Orthanc
   class ServerTranscoder;
   class SharedArchive;
   class StorageCommitmentReports;
-  class ThreadPool;
   
 
   /**
@@ -291,7 +290,6 @@ namespace Orthanc
     // For streaming
     boost::shared_ptr<DataSourceReader>                storageAreaReader_;
     boost::shared_ptr<DataSourceReader>                dicomReader_;
-    boost::shared_ptr<ThreadPool>                      transcoderThreadPool_;
     boost::shared_ptr<DataSourceReader>                transcoderReader_;
     boost::shared_ptr<DicomSequentialReader::Factory>  dicomSequentialReaderFactory_;
 

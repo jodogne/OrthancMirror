@@ -612,13 +612,14 @@ namespace Orthanc
 
       if (transcoder_.get() != NULL)
       {
-        transcoderThreadPool_.reset(new ThreadPool);
-        transcoderThreadPool_->SetCountThreads(2);  // TODO-Streaming - Parameter
-        transcoderThreadPool_->SetLoggingThreadName("TRANSCODER");
-        transcoderThreadPool_->SetDequeueTimeout(100);
-        transcoderThreadPool_->Start();
+        boost::shared_ptr<ThreadPool> pool(new ThreadPool);
+        pool.reset(new ThreadPool);
+        pool->SetCountThreads(2);  // TODO-Streaming - Parameter
+        pool->SetLoggingThreadName("TRANSCODER");
+        pool->SetDequeueTimeout(100);
+        pool->Start();
 
-        transcoderReader_.reset(new DataSourceReader(transcoderThreadPool_, new TranscoderDataSource(transcoder_, storageAreaReader_)));
+        transcoderReader_.reset(new DataSourceReader(pool, new TranscoderDataSource(transcoder_, storageAreaReader_)));
         transcoderReader_->SetMetricsConfiguration(
           DataSourceReader::MetricsConfiguration(metricsRegistry_,
                                                  METRICS_TRANSCODER_CACHE_SIZE_MB,
