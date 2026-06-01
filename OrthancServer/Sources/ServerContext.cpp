@@ -25,6 +25,7 @@
 #include "ServerContext.h"
 
 #include "../../OrthancFramework/Sources/Cache/SharedArchive.h"
+#include "../../OrthancFramework/Sources/Compression/ZlibCompressor.h"
 #include "../../OrthancFramework/Sources/Constants.h"
 #include "../../OrthancFramework/Sources/DataSource/DataSourceReader.h"
 #include "../../OrthancFramework/Sources/DataSource/DicomSequentialReader.h"
@@ -34,7 +35,6 @@
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
-#include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
 #include "../../OrthancFramework/Sources/HttpServer/FilesystemHttpSender.h"
 #include "../../OrthancFramework/Sources/HttpServer/HttpStreamTranscoder.h"
 #include "../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h"
@@ -69,9 +69,14 @@
 #endif
 
 
-// Those metrics correspond to those in StorageAccessor
+// Those metrics correspond to those found in StorageAccessor in Orthanc <= 1.12.11
+static const std::string METRICS_STORAGE_AREA_CREATE_DURATION = "orthanc_storage_create_duration_ms";
 static const std::string METRICS_STORAGE_AREA_READ_BYTES = "orthanc_storage_read_bytes";
 static const std::string METRICS_STORAGE_AREA_READ_DURATION = "orthanc_storage_read_duration_ms";
+static const std::string METRICS_STORAGE_AREA_REMOVE_DURATION = "orthanc_storage_remove_duration_ms";
+static const std::string METRICS_STORAGE_AREA_WRITTEN_BYTES = "orthanc_storage_written_bytes";
+
+
 
 static const std::string METRICS_STORAGE_AREA_CACHE_COUNT = "orthanc_storage_cache_count";
 static const std::string METRICS_STORAGE_AREA_CACHE_HIT_COUNT = "orthanc_storage_cache_hit_count";
@@ -126,6 +131,86 @@ namespace Orthanc
       // Do not try to transcode special transfer syntaxes
       transferSyntax != DicomTransferSyntax_RFC2557MimeEncapsulation &&
       transferSyntax != DicomTransferSyntax_XML);
+  }
+
+
+  // This corresponds to StorageArea::Create() in Orthanc <= 1.12.11
+  static void CreateFile(IPluginStorageArea& area,
+                         MetricsRegistry& metrics,
+                         FileInfo& info,
+                         const void* data,
+                         size_t size,
+                         FileContentType type,
+                         CompressionType compression,
+                         const std::string& precomputedMd5,
+                         bool storeMd5,
+                         const DicomInstanceToStore* instance)
+  {
+    const std::string uuid = Toolbox::GenerateUuid();
+
+    std::string md5 = precomputedMd5;
+
+    if (storeMd5 && md5.empty()) // if it has not been precomputed, compute it now
+    {
+      Toolbox::ComputeMD5(md5, data, size);
+    }
+
+    std::string customData;
+
+    switch (compression)
+    {
+      case CompressionType_None:
+      {
+        {
+          MetricsRegistry::Timer timer(metrics, METRICS_STORAGE_AREA_CREATE_DURATION);
+          area.Create(customData, uuid, data, size, type, compression, instance);
+        }
+
+        metrics.IncrementIntegerValue(METRICS_STORAGE_AREA_WRITTEN_BYTES, static_cast<int64_t>(size));
+
+        info = FileInfo(uuid, type, size, md5);
+        info.SetCustomData(customData);
+        return;
+      }
+
+      case CompressionType_ZlibWithSize:
+      {
+        ZlibCompressor zlib;
+
+        std::string compressed;
+        zlib.Compress(compressed, data, size);
+
+        std::string compressedMD5;
+
+        if (storeMd5)
+        {
+          Toolbox::ComputeMD5(compressedMD5, compressed);
+        }
+
+        {
+          MetricsRegistry::Timer timer(metrics, METRICS_STORAGE_AREA_CREATE_DURATION);
+
+          if (compressed.size() > 0)
+          {
+            area.Create(customData, uuid, &compressed[0], compressed.size(), type, compression, instance);
+          }
+          else
+          {
+            area.Create(customData, uuid, NULL, 0, type, compression, instance);
+          }
+        }
+
+        metrics.IncrementIntegerValue(METRICS_STORAGE_AREA_WRITTEN_BYTES, static_cast<int64_t>(compressed.size()));
+
+        info = FileInfo(uuid, type, size, md5, CompressionType_ZlibWithSize,
+                        compressed.size(), compressedMD5);
+        info.SetCustomData(customData);
+        return;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
   }
 
 
@@ -747,8 +832,14 @@ namespace Orthanc
                                  FileContentType type,
                                  const std::string& customData)
   {
-    StorageAccessor accessor(area_, GetMetricsRegistry());
-    accessor.Remove(fileUuid, type, customData);
+    MetricsRegistry::Timer timer(*metricsRegistry_, METRICS_STORAGE_AREA_REMOVE_DURATION);
+    area_.Remove(fileUuid, type, customData);
+  }
+
+
+  void ServerContext::RemoveFile(const FileInfo& attachment)
+  {
+    RemoveFile(attachment.GetUuid(), attachment.GetContentType(), attachment.GetCustomData());
   }
 
 
@@ -809,7 +900,6 @@ namespace Orthanc
     try
     {
       MetricsRegistry::Timer timer(GetMetricsRegistry(), "orthanc_store_dicom_duration_ms");
-      StorageAccessor accessor(area_, GetMetricsRegistry());
 
       DicomInstanceHasher hasher(summary);
       resultPublicId = hasher.HashInstance();
@@ -908,7 +998,9 @@ namespace Orthanc
 
       if (!isAdoption)
       {
-        accessor.Write(dicomInfo, dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom, compression, dicomMd5, storeMD5_, &dicom);
+        CreateFile(area_, GetMetricsRegistry(),
+                   dicomInfo, dicom.GetBufferData(), dicom.GetBufferSize(),
+                   FileContentType_Dicom, compression, dicomMd5, storeMD5_, &dicom);
         attachments.push_back(dicomInfo);
       }
       else
@@ -921,7 +1013,10 @@ namespace Orthanc
           (!area_.HasEfficientReadRange() ||
            compressionEnabled_))
       {
-        accessor.Write(dicomUntilPixelData, dicom.GetBufferData(), pixelDataOffset, FileContentType_DicomUntilPixelData, compression, storeMD5_, NULL);
+        CreateFile(area_, GetMetricsRegistry(),
+                   dicomUntilPixelData, dicom.GetBufferData(), pixelDataOffset,
+                   FileContentType_DicomUntilPixelData, compression,
+                   "" /* MD5 will be computed if needed */, storeMD5_, NULL);
         attachments.push_back(dicomUntilPixelData);
       }
 
@@ -945,11 +1040,11 @@ namespace Orthanc
           LOG(ERROR) << "Unexpected error while storing an instance in DB, cancelling and deleting the attachments: " << ex.GetDetails();
         }
 
-        accessor.Remove(dicomInfo);
+        RemoveFile(dicomInfo);
 
         if (dicomUntilPixelData.IsValid())
         {
-          accessor.Remove(dicomUntilPixelData);
+          RemoveFile(dicomUntilPixelData);
         }
         
         throw;
@@ -968,12 +1063,12 @@ namespace Orthanc
       {
         if (!isAdoption)
         {
-          accessor.Remove(dicomInfo);
+          RemoveFile(dicomInfo);
         }
 
         if (dicomUntilPixelData.IsValid())
         {
-          accessor.Remove(dicomUntilPixelData);
+          RemoveFile(dicomUntilPixelData);
         }
       }
 
@@ -1249,13 +1344,14 @@ namespace Orthanc
     }
 
 
-    StorageAccessor accessor(area_, GetMetricsRegistry());
-
     FileInfo modified;
 
     {
       std::unique_ptr<StorageAreaDataSource::Range> range(ReadAttachment(attachment, true /* uncompress */));
-      accessor.Write(modified, range->GetData(), range->GetSize(), attachmentType, compression, storeMD5_, NULL);
+
+      CreateFile(area_, GetMetricsRegistry(),
+                 modified, range->GetData(), range->GetSize(), attachmentType, compression,
+                 "" /* MD5 will be computed if needed */, storeMD5_, NULL);
     }
 
     try
@@ -1265,13 +1361,13 @@ namespace Orthanc
                                                 true, revision, modified.GetUncompressedMD5());
       if (status != StoreStatus_Success)
       {
-        accessor.Remove(modified);
+        RemoveFile(modified);
         throw OrthancException(ErrorCode_Database);
       }
     }
     catch (OrthancException&)
     {
-      accessor.Remove(modified);
+      RemoveFile(modified);
       throw;
     }    
   }
@@ -1642,12 +1738,12 @@ namespace Orthanc
     // TODO Should we use "gzip" instead?
     CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-    StorageAccessor accessor(area_, GetMetricsRegistry());
-
     assert(attachmentType != FileContentType_Dicom && attachmentType != FileContentType_DicomUntilPixelData); // this method can not be used to store instances
 
     FileInfo attachment;
-    accessor.Write(attachment, data, size, attachmentType, compression, storeMD5_, NULL);
+    CreateFile(area_, GetMetricsRegistry(),
+               attachment, data, size, attachmentType, compression,
+               "" /* MD5 will be computed if needed */, storeMD5_, NULL);
 
     try
     {
@@ -1655,7 +1751,7 @@ namespace Orthanc
         newRevision, attachment, resourceId, hasOldRevision, oldRevision, oldMD5);
       if (status != StoreStatus_Success)
       {
-        accessor.Remove(attachment);
+        RemoveFile(attachment);
         return false;
       }
       else
@@ -1666,7 +1762,7 @@ namespace Orthanc
     catch (OrthancException&)
     {
       // Fixed in Orthanc 1.9.6
-      accessor.Remove(attachment);
+      RemoveFile(attachment);
       throw;
     }
   }

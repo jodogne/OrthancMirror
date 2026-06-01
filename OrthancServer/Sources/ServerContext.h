@@ -279,6 +279,8 @@ namespace Orthanc
                     FileContentType type,
                     const std::string& customData);
 
+    void RemoveFile(const FileInfo& attachment);
+
     // This DicomModification object is intended to be used as a
     // "rules engine" when de-identifying logs for C-Find, C-Get, and
     // C-Move queries (new in Orthanc 1.8.2)
