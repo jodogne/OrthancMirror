@@ -83,7 +83,7 @@ namespace Orthanc
 
   void DicomArray::Print(FILE* fp) const
   {
-    for (size_t  i = 0; i < elements_.size(); i++)
+    for (size_t i = 0; i < elements_.size(); i++)
     {
       DicomTag t = elements_[i]->GetTag();
       const DicomValue& v = elements_[i]->GetValue();
@@ -103,7 +103,7 @@ namespace Orthanc
         s = v.GetContent();
       }
 
-      printf("0x%04x 0x%04x [%s]\n", t.GetGroup(), t.GetElement(), s.c_str());
+      fprintf(fp, "0x%04x 0x%04x [%s]\n", t.GetGroup(), t.GetElement(), s.c_str());
     }
   }
 }
