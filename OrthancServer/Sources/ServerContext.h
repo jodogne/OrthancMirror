@@ -50,7 +50,6 @@ namespace Orthanc
   class SharedArchive;
   class StorageCommitmentReports;
   class ThreadPool;
-  class TranscodingCallable;
   
 
   /**
@@ -598,8 +597,6 @@ namespace Orthanc
     void PublishCacheMetrics();
 
     const boost::shared_ptr<ServerTranscoder>& GetTranscoder() const;
-
-    Future* SubmitTranscodingRequest(TranscodingCallable* callable);
 
     DicomSequentialReader::Factory& GetDicomSequentialReaderFactory();
   };

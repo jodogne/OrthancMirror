@@ -34,7 +34,6 @@
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
-#include "../../OrthancFramework/Sources/DicomParsing/TranscodingCallable.h"
 #include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
 #include "../../OrthancFramework/Sources/HttpServer/FilesystemHttpSender.h"
 #include "../../OrthancFramework/Sources/HttpServer/HttpStreamTranscoder.h"
@@ -2178,19 +2177,6 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls, "No transcoder is available");
     }
-  }
-
-
-  Future* ServerContext::SubmitTranscodingRequest(TranscodingCallable* callable)
-  {
-    if (callable == NULL)
-    {
-      throw OrthancException(ErrorCode_NullPointer);
-    }
-
-    callable->SetTranscoder(transcoder_);
-
-    return transcoderThreadPool_->Submit(callable);
   }
 
 

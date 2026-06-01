@@ -685,7 +685,6 @@ else()
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DicomDataSource.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DicomSequentialReader.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/TranscoderDataSource.cpp
-      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/TranscodingCallable.cpp
       )
   endif()
 
