@@ -37,7 +37,7 @@ namespace Orthanc
     /**
      * WARNING: This class is NOT thread-safe.
      **/
-    class ORTHANC_PUBLIC MemoryCache : public boost::noncopyable
+    class ORTHANC_PUBLIC ORTHANC_DEPRECATED(MemoryCache) : public boost::noncopyable
     {
     private:
       struct Page

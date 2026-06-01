@@ -29,6 +29,10 @@
 
 #include <gtest/gtest.h>
 
+#if defined(__GNUC__) || defined(__clang__)
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include "../Sources/Cache/MemoryCache.h"
 #include "../Sources/Cache/MemoryStringCache.h"
 #include "../Sources/Cache/SharedArchive.h"

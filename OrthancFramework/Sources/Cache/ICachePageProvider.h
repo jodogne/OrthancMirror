@@ -24,14 +24,16 @@
 
 #pragma once
 
-#include <string>
+#include "../Compatibility.h"
 #include "../IDynamicObject.h"
+
+#include <string>
 
 namespace Orthanc
 {
   namespace Deprecated
   {
-    class ICachePageProvider
+    class ORTHANC_DEPRECATED(ICachePageProvider)
     {
     public:
       virtual ~ICachePageProvider()

@@ -42,7 +42,7 @@ namespace Orthanc
   /**
    *  Note: this class is thread safe
    **/
-  class ORTHANC_PUBLIC MemoryObjectCache : public boost::noncopyable
+  class ORTHANC_PUBLIC ORTHANC_DEPRECATED(MemoryObjectCache) : public boost::noncopyable
   {
   private:
     class Item;
@@ -82,7 +82,7 @@ namespace Orthanc
 
     void Invalidate(const std::string& key);
 
-    class Accessor : public boost::noncopyable
+    class ORTHANC_PUBLIC Accessor : public boost::noncopyable
     {
     private:
 #if !defined(__EMSCRIPTEN__)

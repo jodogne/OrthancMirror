@@ -22,10 +22,15 @@
  **/
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include "../PrecompiledHeaders.h"
 #include "MemoryCache.h"
 
 #include "../Logging.h"
+
 
 namespace Orthanc
 {

@@ -24,6 +24,11 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include <gtest/gtest.h>
 
+#if defined(__GNUC__) || defined(__clang__)
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+
 #include "../../OrthancFramework/Sources/Cache/ICachePageProvider.h"
 #include "../../OrthancFramework/Sources/Cache/ICacheable.h"
 #include "../../OrthancFramework/Sources/Cache/LeastRecentlyUsedIndex.h"

@@ -46,7 +46,7 @@ namespace Orthanc
    * 
    * Note: this class is thread safe
    **/
-  class ORTHANC_PUBLIC MemoryStringCache : public boost::noncopyable
+  class ORTHANC_PUBLIC ORTHANC_DEPRECATED(MemoryStringCache) : public boost::noncopyable
   {
   public:
     class ORTHANC_PUBLIC Accessor : public boost::noncopyable

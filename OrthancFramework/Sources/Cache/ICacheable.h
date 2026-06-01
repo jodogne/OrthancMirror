@@ -24,11 +24,13 @@
 
 #pragma once
 
+#include "../Compatibility.h"
+
 #include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class ICacheable : public boost::noncopyable
+  class ORTHANC_DEPRECATED(ICacheable) : public boost::noncopyable
   {
   public:
     virtual ~ICacheable()
