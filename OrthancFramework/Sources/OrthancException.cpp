@@ -126,7 +126,7 @@ namespace Orthanc
   OrthancException::OrthancException(ErrorCode errorCode) : 
     errorCode_(errorCode),
     httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
-    logged_(false)
+    logged_(errorCode == ErrorCode_NotImplemented || errorCode == ErrorCode_InternalError) // always log these internal errors to help identify the faulty code
   {
   }
 
