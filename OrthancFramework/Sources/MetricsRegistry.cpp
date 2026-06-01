@@ -152,7 +152,7 @@ namespace Orthanc
             }
             break;
           default:
-            throw OrthancException(ErrorCode_NotImplemented);
+            throw OrthancException(ErrorCode_NotImplemented, "Unsupported metrics policy");
         }
       }
 
@@ -179,7 +179,7 @@ namespace Orthanc
             break;
 
           default:
-            throw OrthancException(ErrorCode_NotImplemented);
+            throw OrthancException(ErrorCode_NotImplemented, "Unsupported metrics policy");
         }
       }
 

@@ -212,7 +212,7 @@ namespace Orthanc
         value.find(";") != std::string::npos ||
         value.find(" ") != std::string::npos)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_NotImplemented, "Cookies may not contain space or semicolon");
     }
 
     CheckStatus();
