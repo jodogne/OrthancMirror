@@ -25,7 +25,6 @@
 #include "OrthancRestApi.h"
 
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
-#include "../../../OrthancFramework/Sources/DicomParsing/TranscodingCallable.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../DicomInstanceToStore.h"
@@ -218,30 +217,22 @@ namespace Orthanc
 
     std::unique_ptr<ParsedDicomFile> modified;
 
+    if (transcode)
+    {
+      std::unique_ptr<TranscoderDataSource::Transcoded> transcoded(
+        context.ReadTranscodedDicom(id, targetSyntax, TranscodingSopInstanceUidMode_AllowNew, true, lossyQuality));
+
+      TranscoderDataSource::Transcoded::LockAsParsed lock(*transcoded);
+      modified.reset(lock.GetContent().Clone(true));
+    }
+    else
     {
       std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
       modified.reset(dicom->Clone());
     }
     
     modification.Apply(modified);
-
-    if (transcode)
-    {
-      std::unique_ptr<TranscodingCallable> callable(new TranscodingCallable);
-      callable->AcquireParsed(*modified);  // "modified" is invalid below this point
-      callable->AddTransferSyntax(targetSyntax);
-      callable->SetLossyQuality(lossyQuality);
-
-      std::unique_ptr<Future> future(context.SubmitTranscodingRequest(callable.release()));
-
-      std::unique_ptr<IDicomTranscoder::DicomImage> transcoded(dynamic_cast<IDicomTranscoder::DicomImage*>(future->ReleaseResult()));
-      call.GetOutput().AnswerBuffer(transcoded->GetBufferData(),
-                                    transcoded->GetBufferSize(), MimeType_Dicom);
-    }
-    else
-    {
-      modified->Answer(call.GetOutput());
-    }
+    modified->Answer(call.GetOutput());
   }
 
 
