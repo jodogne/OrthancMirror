@@ -114,7 +114,7 @@ namespace Orthanc
 
         std::set<DicomTag> ignoreTagLength;
         std::unique_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
-                                          (*element, DicomToJsonFlags_None, 0, encoding, hasCodeExtensions,
+                                          (*element, DicomToJsonFlags_None, 0, 0, encoding, hasCodeExtensions,
                                            ignoreTagLength, FromDcmtkBridge::Convert(element->getVR())));
 
         // WARNING: Also modify "DatabaseLookup::IsMatch()" if modifying this code

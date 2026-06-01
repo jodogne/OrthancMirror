@@ -40,6 +40,8 @@ Maintenance
 * Fix usage of "LocalAet" in C-Find and "queries/../answers/../retrieve".
 * Fix Orthanc::ImageAccessor that was broken in Orthanc Framework 1.12.11
 * Fix a memory leak in C-GET (https://github.com/orthanc-server/orthanc-builder/issues/36)
+* Fix slow ingest of files containing huge arrays of float/double values in their
+  DICOM tags (https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448)
 * Fix a Denial of Service via Deeply Nested DICOM Sequences
   https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=258
   Security issue reported by Jose Lopez Martinez (aka elpe_pinillo) from Deloitte.
