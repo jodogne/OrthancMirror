@@ -69,23 +69,33 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NullPointer);
       }
 
-      if (transcoded->HasParsed() &&
+      if (!transcoded->HasParsed() &&
           !transcoded->HasInternalBuffer())
       {
-        parsed_.reset(transcoded->ReleaseAsParsedDicomFile());
-
-        DcmFileFormat& f = parsed_->GetDcmtkObject();
-        size_ = f.calcElementLength(f.getDataset()->getOriginalXfer(), EET_ExplicitLength);
+        throw OrthancException(ErrorCode_InternalError, "No transcoded image is available");
       }
-      else if (!transcoded->HasParsed() &&
-               transcoded->HasInternalBuffer())
+
+      /**
+       * Note that both "transcoded->HasParsed()" and
+       * "transcoded->HasInternalBuffer()" could be true in debug
+       * mode, because of "IDicomTranscoder::CheckTranscoding()".
+       **/
+
+      if (transcoded->HasParsed())
+      {
+        parsed_.reset(transcoded->ReleaseAsParsedDicomFile());
+      }
+
+      if (transcoded->HasInternalBuffer())
       {
         raw_.reset(transcoded->ReleaseInternalBuffer());
-        size_ = raw_->size();
+        size_ = raw_->size();  // This is more accurate than "f.calcElementLength()" below
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        assert(parsed_.get() != NULL);
+        DcmFileFormat& f = parsed_->GetDcmtkObject();
+        size_ = f.calcElementLength(f.getDataset()->getOriginalXfer(), EET_ExplicitLength);
       }
     }
 

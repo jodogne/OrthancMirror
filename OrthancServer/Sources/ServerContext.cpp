@@ -28,7 +28,6 @@
 #include "../../OrthancFramework/Sources/Constants.h"
 #include "../../OrthancFramework/Sources/DataSource/DataSourceReader.h"
 #include "../../OrthancFramework/Sources/DataSource/DicomSequentialReader.h"
-#include "../../OrthancFramework/Sources/DataSource/TranscoderDataSource.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomImageInformation.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomStreamReader.h"
@@ -1585,6 +1584,18 @@ namespace Orthanc
       // Fallback: The pixel data offset is not present or cannot be used, the whole DICOM file must be read
       return DicomDataSource::Execute(*dicomReader_, DicomDataSource::CreateWholeRequest(attachment));
     }
+  }
+
+
+  TranscoderDataSource::Transcoded* ServerContext::ReadTranscodedDicom(const std::string& instancePublicId,
+                                                                       DicomTransferSyntax targetSyntax,
+                                                                       TranscodingSopInstanceUidMode mode,
+                                                                       bool hasLossyQuality,
+                                                                       unsigned int lossyQuality)
+  {
+    const FileInfo& attachment = LookupDicomForInstance(instancePublicId);
+    return TranscoderDataSource::Execute(*transcoderReader_, TranscoderDataSource::CreateRequest(
+                                           attachment, targetSyntax, mode, hasLossyQuality, lossyQuality));
   }
 
 

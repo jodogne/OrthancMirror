@@ -32,6 +32,7 @@
 #include "../../OrthancFramework/Sources/DataSource/DicomDataSource.h"
 #include "../../OrthancFramework/Sources/DataSource/DicomSequentialReader.h"
 #include "../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
+#include "../../OrthancFramework/Sources/DataSource/TranscoderDataSource.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/JobsEngine/JobsEngine.h"
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
@@ -398,6 +399,12 @@ namespace Orthanc
     DicomDataSource::Dicom* ReadParsedDicom(const std::string& instancePublicId);
 
     DicomDataSource::Dicom* ReadDicomUntilPixelData(const std::string& instancePublicId);
+
+    TranscoderDataSource::Transcoded* ReadTranscodedDicom(const std::string& instancePublicId,
+                                                          DicomTransferSyntax targetSyntax,
+                                                          TranscodingSopInstanceUidMode mode,
+                                                          bool hasLossyQuality,
+                                                          unsigned int lossyQuality);
 
     void SetStoreMD5ForAttachments(bool storeMD5);
 

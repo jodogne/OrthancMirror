@@ -34,7 +34,6 @@
 #include "../../../OrthancFramework/Sources/DicomParsing/DicomWebJsonVisitor.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.h"
-#include "../../../OrthancFramework/Sources/DicomParsing/TranscodingCallable.h"
 #include "../../../OrthancFramework/Sources/HttpServer/HttpContentNegociation.h"
 #include "../../../OrthancFramework/Sources/Images/Image.h"
 #include "../../../OrthancFramework/Sources/Images/ImageProcessing.h"
@@ -413,6 +412,8 @@ namespace Orthanc
 
     if (call.HasArgument(GET_TRANSCODE))
     {
+      const DicomTransferSyntax transferSyntax = GetTransferSyntax(call.GetArgument(GET_TRANSCODE, ""));
+
       unsigned int lossyQuality;
       unsigned int defaultLossyQuality;
 
@@ -423,23 +424,13 @@ namespace Orthanc
 
       lossyQuality = call.GetUnsignedInteger32Argument(GET_LOSSY_QUALITY, defaultLossyQuality);
 
-      std::unique_ptr<TranscodingCallable> callable(new TranscodingCallable);
+      std::unique_ptr<TranscoderDataSource::Transcoded> transcoded2(
+        context.ReadTranscodedDicom(publicId, transferSyntax, TranscodingSopInstanceUidMode_AllowNew, true, lossyQuality));
 
-      {
-        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId));
-        std::unique_ptr<ParsedDicomFile> clone(dicom->Clone());
-        callable->AcquireParsed(*clone);  // "clone" is invalid below this point
-      }
-
-      callable->AddTransferSyntax(GetTransferSyntax(call.GetArgument(GET_TRANSCODE, "")));
-      callable->SetLossyQuality(lossyQuality);
-
-      std::unique_ptr<Future> future(context.SubmitTranscodingRequest(callable.release()));
-      std::unique_ptr<IDicomTranscoder::DicomImage> transcoded(dynamic_cast<IDicomTranscoder::DicomImage*>(future->ReleaseResult()));
+      TranscoderDataSource::Transcoded::LockAsBuffer lock(*transcoded2);
 
       call.GetOutput().SetContentFilename(filename.c_str());
-      call.GetOutput().AnswerBuffer(transcoded->GetBufferData(),
-                                    transcoded->GetBufferSize(), MimeType_Dicom);
+      call.GetOutput().AnswerBuffer(lock.GetContent(), MimeType_Dicom);
     }
     else
     {
