@@ -101,7 +101,6 @@
 #include "../../OrthancFramework/Sources/FileStorage/IStorageArea.h"
 #include "../../OrthancFramework/Sources/FileStorage/MemoryStorageArea.h"
 #include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
-#include "../../OrthancFramework/Sources/FileStorage/StorageCache.h"
 #include "../../OrthancFramework/Sources/HttpClient.h"
 #include "../../OrthancFramework/Sources/HttpServer/BufferHttpSender.h"
 #include "../../OrthancFramework/Sources/HttpServer/FilesystemHttpHandler.h"

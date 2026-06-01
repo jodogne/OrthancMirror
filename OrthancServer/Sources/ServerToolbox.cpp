@@ -26,7 +26,6 @@
 
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
 #include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
-#include "../../OrthancFramework/Sources/FileStorage/StorageCache.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "Database/IDatabaseWrapper.h"

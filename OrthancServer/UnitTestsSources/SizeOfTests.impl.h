@@ -105,7 +105,6 @@
   printf("sizeof(::Orthanc::SharedLibrary) == %d\n", static_cast<int>(sizeof(::Orthanc::SharedLibrary)));
   printf("sizeof(::Orthanc::SharedMessageQueue) == %d\n", static_cast<int>(sizeof(::Orthanc::SharedMessageQueue)));
   printf("sizeof(::Orthanc::StorageAccessor) == %d\n", static_cast<int>(sizeof(::Orthanc::StorageAccessor)));
-  printf("sizeof(::Orthanc::StorageCache) == %d\n", static_cast<int>(sizeof(::Orthanc::StorageCache)));
   printf("sizeof(::Orthanc::StreamBlockReader) == %d\n", static_cast<int>(sizeof(::Orthanc::StreamBlockReader)));
   printf("sizeof(::Orthanc::StringMatcher) == %d\n", static_cast<int>(sizeof(::Orthanc::StringMatcher)));
   printf("sizeof(::Orthanc::StringOperationValue) == %d\n", static_cast<int>(sizeof(::Orthanc::StringOperationValue)));

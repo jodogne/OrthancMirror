@@ -24,7 +24,6 @@
 
 #include "../PrecompiledHeaders.h"
 #include "StorageAccessor.h"
-#include "StorageCache.h"
 
 #include "../Logging.h"
 #include "../StringMemoryBuffer.h"
@@ -47,8 +46,6 @@ static const std::string METRICS_READ_DURATION = "orthanc_storage_read_duration_
 static const std::string METRICS_REMOVE_DURATION = "orthanc_storage_remove_duration_ms";
 static const std::string METRICS_READ_BYTES = "orthanc_storage_read_bytes";
 static const std::string METRICS_WRITTEN_BYTES = "orthanc_storage_written_bytes";
-static const std::string METRICS_CACHE_HIT_COUNT = "orthanc_storage_cache_hit_count";
-static const std::string METRICS_CACHE_MISS_COUNT = "orthanc_storage_cache_miss_count";
 
 
 namespace Orthanc
@@ -72,34 +69,14 @@ namespace Orthanc
 
   StorageAccessor::StorageAccessor(IPluginStorageArea& area) :
     area_(area),
-    cache_(NULL),
     metrics_(NULL)
   {
   }
   
 
   StorageAccessor::StorageAccessor(IPluginStorageArea& area,
-                                   StorageCache& cache) :
-    area_(area),
-    cache_(&cache),
-    metrics_(NULL)
-  {
-  }
-
-
-  StorageAccessor::StorageAccessor(IPluginStorageArea& area,
                                    MetricsRegistry& metrics) :
     area_(area),
-    cache_(NULL),
-    metrics_(&metrics)
-  {
-  }
-
-  StorageAccessor::StorageAccessor(IPluginStorageArea& area,
-                                   StorageCache& cache,
-                                   MetricsRegistry& metrics) :
-    area_(area),
-    cache_(&cache),
     metrics_(&metrics)
   {
   }
@@ -151,12 +128,6 @@ namespace Orthanc
           metrics_->IncrementIntegerValue(METRICS_WRITTEN_BYTES, static_cast<int64_t>(size));
         }
         
-        if (cache_ != NULL)
-        {
-          StorageCache::Accessor cacheAccessor(*cache_);
-          cacheAccessor.Add(uuid, type, data, size);
-        }
-
         info = FileInfo(uuid, type, size, md5);
         info.SetCustomData(customData);
         return;
@@ -194,12 +165,6 @@ namespace Orthanc
           metrics_->IncrementIntegerValue(METRICS_WRITTEN_BYTES, static_cast<int64_t>(compressed.size()));
         }
 
-        if (cache_ != NULL)
-        {
-          StorageCache::Accessor cacheAccessor(*cache_);
-          cacheAccessor.Add(uuid, type, data, size);    // always add uncompressed data to cache
-        }
-
         info = FileInfo(uuid, type, size, md5,
                         CompressionType_ZlibWithSize, compressed.size(), compressedMD5);
         info.SetCustomData(customData);
@@ -211,38 +176,9 @@ namespace Orthanc
     }
   }
 
+
   void StorageAccessor::Read(std::string& content,
                              const FileInfo& info)
-  {
-    if (cache_ == NULL)
-    {
-      ReadWholeInternal(content, info);
-    }
-    else
-    {
-      StorageCache::Accessor cacheAccessor(*cache_);
-
-      if (!cacheAccessor.Fetch(content, info.GetUuid(), info.GetContentType()))
-      {
-        if (metrics_ != NULL)
-        {
-          metrics_->IncrementIntegerValue(METRICS_CACHE_MISS_COUNT, 1);
-        }
-
-        ReadWholeInternal(content, info);
-
-        // always store the uncompressed data in cache
-        cacheAccessor.Add(info.GetUuid(), info.GetContentType(), content);
-      } 
-      else if (metrics_ != NULL)
-      {
-        metrics_->IncrementIntegerValue(METRICS_CACHE_HIT_COUNT, 1);
-      }
-    }
-  }
-
-  void StorageAccessor::ReadWholeInternal(std::string& content,
-                                          const FileInfo& info)
   {
     switch (info.GetCompressionType())
     {
@@ -299,35 +235,6 @@ namespace Orthanc
   void StorageAccessor::ReadRaw(std::string& content,
                                 const FileInfo& info)
   {
-    if (cache_ == NULL || info.GetCompressionType() != CompressionType_None)
-    {
-      ReadRawInternal(content, info);
-    }
-    else
-    {// use the cache only if the data is uncompressed.
-      StorageCache::Accessor cacheAccessor(*cache_);
-
-      if (!cacheAccessor.Fetch(content, info.GetUuid(), info.GetContentType()))
-      {
-        if (metrics_ != NULL)
-        {
-          metrics_->IncrementIntegerValue(METRICS_CACHE_MISS_COUNT, 1);
-        }
-
-        ReadRawInternal(content, info);
-
-        cacheAccessor.Add(info.GetUuid(), info.GetContentType(), content);
-      }
-      else if (metrics_ != NULL)
-      {
-        metrics_->IncrementIntegerValue(METRICS_CACHE_HIT_COUNT, 1);
-      }
-    }
-  }
-
-  void StorageAccessor::ReadRawInternal(std::string& content,
-                                        const FileInfo& info)
-  {
     std::unique_ptr<IMemoryBuffer> buffer;
 
     {
@@ -348,11 +255,6 @@ namespace Orthanc
                                FileContentType type,
                                const std::string& customData)
   {
-    if (cache_ != NULL)
-    {
-      cache_->Invalidate(fileUuid, type);
-    }
-
     {
       MetricsTimer timer(*this, METRICS_REMOVE_DURATION);
       area_.Remove(fileUuid, type, customData);
@@ -369,55 +271,6 @@ namespace Orthanc
   void StorageAccessor::ReadStartRange(std::string& target,
                                        const FileInfo& info,
                                        uint64_t end /* exclusive */)
-  {
-    if (cache_ == NULL)
-    {
-      ReadStartRangeInternal(target, info, end);
-    }
-    else
-    {
-      StorageCache::Accessor accessorStartRange(*cache_);
-      if (!accessorStartRange.FetchStartRange(target, info.GetUuid(), info.GetContentType(), end))
-      {
-        // the start range is not in cache, let's check if the whole file is
-        StorageCache::Accessor accessorWhole(*cache_);
-        if (!accessorWhole.Fetch(target, info.GetUuid(), info.GetContentType()))
-        {
-          if (metrics_ != NULL)
-          {
-            metrics_->IncrementIntegerValue(METRICS_CACHE_MISS_COUNT, 1);
-          }
-
-          // if nothing is in the cache, let's read and cache only the start
-          ReadStartRangeInternal(target, info, end);
-          accessorStartRange.AddStartRange(info.GetUuid(), info.GetContentType(), target);
-        }
-        else
-        {
-          if (metrics_ != NULL)
-          {
-            metrics_->IncrementIntegerValue(METRICS_CACHE_HIT_COUNT, 1);
-          }
-
-          // we have read the whole file, check size and resize if needed
-          if (target.size() < end)
-          {
-            throw OrthancException(ErrorCode_CorruptedFile);
-          }
-
-          target.resize(end);
-        }
-      }
-      else if (metrics_ != NULL)
-      {
-        metrics_->IncrementIntegerValue(METRICS_CACHE_HIT_COUNT, 1);
-      }
-    }
-  }
-
-  void StorageAccessor::ReadStartRangeInternal(std::string& target,
-                                                const FileInfo& info,
-                                                uint64_t end /* exclusive */)
   {
     std::unique_ptr<IMemoryBuffer> buffer;
 
@@ -445,41 +298,14 @@ namespace Orthanc
         info.GetCompressionType() != CompressionType_None)
     {
       // An uncompression is needed in this case
-      if (cache_ != NULL)
-      {
-        StorageCache::Accessor cacheAccessor(*cache_);
-
-        std::string content;
-        if (cacheAccessor.Fetch(content, info.GetUuid(), info.GetContentType()))
-        {
-          range.Extract(target, content);
-          return;
-        }
-      }
-
       std::string content;
       Read(content, info);
       range.Extract(target, content);
     }
     else
     {
-      // Access to the raw attachment is sufficient in this case
-      if (info.GetCompressionType() == CompressionType_None &&
-          cache_ != NULL)
-      {
-        // Check out whether the raw attachment is already present in the cache, by chance
-        StorageCache::Accessor cacheAccessor(*cache_);
-
-        std::string content;
-        if (cacheAccessor.Fetch(content, info.GetUuid(), info.GetContentType()))
-        {
-          range.Extract(target, content);
-          return;
-        }
-      }
-
       if (range.HasEnd() &&
-        range.GetEndInclusive() >= info.GetCompressedSize())
+          range.GetEndInclusive() >= info.GetCompressedSize())
       {
         throw OrthancException(ErrorCode_BadRange);
       }

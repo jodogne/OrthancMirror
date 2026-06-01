@@ -55,7 +55,6 @@
 namespace Orthanc
 {
   class MetricsRegistry;
-  class StorageCache;
 
   /**
    * This class handles the compression/decompression of the raw files
@@ -67,9 +66,8 @@ namespace Orthanc
   private:
     class MetricsTimer;
 
-    IPluginStorageArea&     area_;
-    StorageCache*     cache_;
-    MetricsRegistry*  metrics_;
+    IPluginStorageArea&  area_;
+    MetricsRegistry*     metrics_;
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
     void SetupSender(BufferHttpSender& sender,
@@ -81,13 +79,6 @@ namespace Orthanc
     explicit StorageAccessor(IPluginStorageArea& area);
 
     StorageAccessor(IPluginStorageArea& area,
-                    StorageCache& cache);
-
-    StorageAccessor(IPluginStorageArea& area,
-                    MetricsRegistry& metrics);
-
-    StorageAccessor(IPluginStorageArea& area,
-                    StorageCache& cache,
                     MetricsRegistry& metrics);
 
     void Write(FileInfo& info /* out */,
@@ -149,17 +140,5 @@ namespace Orthanc
                     const std::string& mime,
                     const std::string& contentFilename);
 #endif
-
-  private:
-    void ReadStartRangeInternal(std::string& target,
-                                const FileInfo& info,
-                                uint64_t end /* exclusive */);
-
-    void ReadWholeInternal(std::string& content,
-                           const FileInfo& info);
-
-    void ReadRawInternal(std::string& content,
-                         const FileInfo& info);
-
   };
 }
