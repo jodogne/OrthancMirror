@@ -50,7 +50,7 @@ namespace Orthanc
     std::string instanceId_;
 
   public:
-    ReaderUserData(const std::string& instanceId) :
+    explicit ReaderUserData(const std::string& instanceId) :
       instanceId_(instanceId)
     {
     }

@@ -142,7 +142,7 @@ namespace Orthanc
     SourceType  sourceType_;
 
   public:
-    Disconnector(SourceType sourceType) :
+    explicit Disconnector(SourceType sourceType) :
       sourceType_(sourceType)
     {
     }

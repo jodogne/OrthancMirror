@@ -48,7 +48,7 @@ namespace Orthanc
       std::string instanceId_;
 
     public:
-      MoveReaderUserData(const std::string& instanceId) :
+      explicit MoveReaderUserData(const std::string& instanceId) :
         instanceId_(instanceId)
       {
       }

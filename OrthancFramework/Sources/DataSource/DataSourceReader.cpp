@@ -182,7 +182,7 @@ namespace Orthanc
 
           value.reset(source_.Load(*id_));
 
-          if (!error && !value)
+          if (!value)
           {
             error.reset(new OrthancException(ErrorCode_NullPointer));
           }

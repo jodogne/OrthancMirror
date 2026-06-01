@@ -15,8 +15,8 @@ assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cp
 assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:279
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
-assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3078
-assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:287
+assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3110
+assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:293
 constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
 knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
@@ -26,18 +26,18 @@ stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cp
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
 stlFindInsert:../../OrthancServer/Sources/Database/MainDicomTagsRegistry.cpp:65
 stlFindInsert:../../OrthancServer/Sources/Database/ResourcesContent.h:141
-stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:329
+stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:333
 stlFindInsert:../../OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp:42
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:362
+stlFindInsert:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:368
 stlFindInsert:../../OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp:192
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
-unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1173
-useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:92
+unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1174
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:100
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
-useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:277
 EOF
 
 CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.1/

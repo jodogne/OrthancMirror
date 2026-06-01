@@ -12,24 +12,20 @@ fi
 cat <<EOF > /tmp/cppcheck-suppressions.txt
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
-assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:287
+assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:293
 constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.cpp:50
 constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp:112
 constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp:113
 constParameterCallback:../../OrthancFramework/Sources/Pkcs11.cpp:125
 constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3553
-constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp:48
+constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp:66
 constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:450
 constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:454
 constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3351
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:112
-knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:440
-knownConditionTrueFalse:../../OrthancFramework/Sources/Images/PamReader.cpp:204
-knownConditionTrueFalse:../../OrthancFramework/Sources/Images/PamReader.cpp:207
+knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:441
+knownConditionTrueFalse:../../OrthancFramework/Sources/Images/PamReader.cpp:208
 knownConditionTrueFalse:../../OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp:345
-knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2444
-knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2445
-knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2446
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2447
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2448
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2449
@@ -37,6 +33,9 @@ knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:24
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2451
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2452
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2453
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2454
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2455
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2456
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
@@ -45,11 +44,11 @@ syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
-useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:99
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:100
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
-useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:280
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:277
 variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:230
-variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:97
+variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:98
 EOF
 
 CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.17.1/

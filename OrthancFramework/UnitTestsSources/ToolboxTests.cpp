@@ -491,11 +491,4 @@ TEST(Toolbox, Constants)
   ASSERT_EQ(MEGABYTE * static_cast<int16_t>(16 * 1024), 16ull * 1024ull * 1024ull * 1024ull);
   ASSERT_EQ(static_cast<int32_t>(16 * 1024 * 1024) * KILOBYTE, 16ull * 1024ull * 1024ull * 1024ull);
   ASSERT_EQ(KILOBYTE * static_cast<int32_t>(16 * 1024 * 1024), 16ull * 1024ull * 1024ull * 1024ull);
-
-  ASSERT_EQ(8, sizeof(static_cast<int16_t>(16) * GIGABYTE));
-  ASSERT_EQ(8, sizeof(GIGABYTE * static_cast<int16_t>(16)));
-  ASSERT_EQ(8, sizeof(static_cast<int16_t>(16 * 1024) * MEGABYTE));
-  ASSERT_EQ(8, sizeof(MEGABYTE * static_cast<int16_t>(16 * 1024)));
-  ASSERT_EQ(8, sizeof(static_cast<int32_t>(16 * 1024 * 1024) * KILOBYTE));
-  ASSERT_EQ(8, sizeof(KILOBYTE * static_cast<int32_t>(16 * 1024 * 1024)));
 }

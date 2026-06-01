@@ -77,7 +77,7 @@ namespace Orthanc
                                                      unsigned int frameIndex);
 
   public:
-    ServerTranscoder(unsigned int maxConcurrentDcmtkTranscoder);
+    explicit ServerTranscoder(unsigned int maxConcurrentDcmtkTranscoder);
 
 #if ORTHANC_ENABLE_PLUGINS == 1
     void SetPlugins(OrthancPlugins& plugins);

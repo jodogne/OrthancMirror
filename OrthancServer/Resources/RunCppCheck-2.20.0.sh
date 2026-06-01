@@ -10,10 +10,10 @@ if [ $# -ge 1 ]; then
 fi
 
 cat <<EOF > /tmp/cppcheck-suppressions.txt
-assertWithSideEffect:../../OrthancFramework/Sources/DataSource/DataSourceReader.cpp:220
+assertWithSideEffect:../../OrthancFramework/Sources/DataSource/DataSourceReader.cpp:310
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
-assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:287
+assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:293
 constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:450
 constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:454
 constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3351
@@ -25,11 +25,11 @@ stlFindInsert:../../OrthancServer/Sources/Database/ResourcesContent.h:141
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:325
-useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:99
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:100
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
-useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:280
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:277
 variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:230
-variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:97
+variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:98
 EOF
 
 CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.20.0/

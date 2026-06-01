@@ -63,7 +63,7 @@ namespace Orthanc
       Item(IDynamicObject* value,
            size_t estimatedSize);
 
-      Item(const OrthancException& error);
+      explicit Item(const OrthancException& error);
 
       const IDynamicObject& GetValue() const;
 

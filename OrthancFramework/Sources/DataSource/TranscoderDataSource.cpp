@@ -61,7 +61,7 @@ namespace Orthanc
     size_t                            size_;
 
   public:
-    Value(IDicomTranscoder::DicomImage* transcoded)
+    explicit Value(IDicomTranscoder::DicomImage* transcoded)
     {
       std::unique_ptr<IDicomTranscoder::DicomImage> protection(transcoded);
 

@@ -70,7 +70,7 @@ namespace Orthanc
       std::unique_ptr<DataSourceAnswer::Item>  item_;   // Holding item puts backpressure on the data source
 
     public:
-      Dicom(DataSourceAnswer::Item* item /* takes ownership */);
+      explicit Dicom(DataSourceAnswer::Item* item /* takes ownership */);
 
       ParsedDicomFile* Clone();
 

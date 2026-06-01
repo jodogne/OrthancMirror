@@ -495,7 +495,7 @@ namespace Orthanc
       std::string   filename_;
 
     public:
-      OpenDirectoryCommand(const std::string& filename) :
+      explicit OpenDirectoryCommand(const std::string& filename) :
         filename_(filename)
       {
       }

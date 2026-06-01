@@ -3806,12 +3806,12 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     const std::string id = call.GetUriComponent("id", "");
-    std::string pdf;
 
     {
       std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
       DicomDataSource::Dicom::Lock lock(*dicom);
 
+      std::string pdf;
       if (lock.GetContent().ExtractPdf(pdf))
       {
         call.GetOutput().AnswerBuffer(pdf, MimeType_Pdf);

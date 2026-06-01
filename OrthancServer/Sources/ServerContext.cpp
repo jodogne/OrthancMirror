@@ -1218,7 +1218,7 @@ namespace Orthanc
     BufferHttpSender sender;
     sender.SetBuffer(range->GetData(), range->GetSize());
     sender.SetContentType(GetFileContentMime(attachment.GetContentType()));
-    sender.SetContentFilename(filename.c_str());
+    sender.SetContentFilename(filename);
 
     HttpStreamTranscoder transcoder(sender, CompressionType_None);
     output.AnswerStream(transcoder);
