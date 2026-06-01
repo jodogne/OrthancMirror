@@ -92,7 +92,7 @@ macro(DownloadFile MD5 Url)
 
   set(TMP_PATH "${CMAKE_SOURCE_DIR}/ThirdPartyDownloads/${TMP_FILENAME}")
   if (NOT EXISTS "${TMP_PATH}")
-    message("Downloading ${Url}")
+    message("Downloading ${Url} since the file was not found in ${TMP_PATH}")
 
     # This fixes issue 6: "I think cmake shouldn't download the
     # packages which are not in the system, it should stop and let
