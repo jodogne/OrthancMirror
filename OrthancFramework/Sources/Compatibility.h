@@ -47,6 +47,18 @@
 #endif
 
 
+// Macro "ORTHANC_DEPRECATED_CLASS" tags a class as having been deprecated
+#if (__cplusplus >= 201402L)  // C++14
+#  define ORTHANC_DEPRECATED_CLASS(f) [[deprecated]] f
+#elif defined(__GNUC__) || defined(__clang__)
+#  define ORTHANC_DEPRECATED_CLASS(f) __attribute__((deprecated)) f
+#elif defined(_MSC_VER)
+#  define ORTHANC_DEPRECATED_CLASS(f) __declspec(deprecated) f
+#else
+#  define ORTHANC_DEPRECATED
+#endif
+
+
 // Macros "ORTHANC_OVERRIDE" and "ORTHANC_FINAL" wrap the "override"
 // and "final" keywords introduced in C++11, to do compile-time
 // checking of virtual methods

@@ -29,7 +29,7 @@
 
 namespace Orthanc
 {
-  class ORTHANC_PUBLIC ORTHANC_DEPRECATED(ParsedDicomCache) : public boost::noncopyable
+  class ORTHANC_PUBLIC ORTHANC_DEPRECATED_CLASS(ParsedDicomCache) : public boost::noncopyable
   {
   private:
     class Item;

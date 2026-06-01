@@ -42,7 +42,7 @@ namespace Orthanc
   /**
    *  Note: this class is thread safe
    **/
-  class ORTHANC_PUBLIC ORTHANC_DEPRECATED(MemoryObjectCache) : public boost::noncopyable
+  class ORTHANC_PUBLIC ORTHANC_DEPRECATED_CLASS(MemoryObjectCache) : public boost::noncopyable
   {
   private:
     class Item;

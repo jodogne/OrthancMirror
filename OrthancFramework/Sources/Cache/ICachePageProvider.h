@@ -33,7 +33,7 @@ namespace Orthanc
 {
   namespace Deprecated
   {
-    class ORTHANC_DEPRECATED(ICachePageProvider)
+    class ORTHANC_DEPRECATED_CLASS(ICachePageProvider)
     {
     public:
       virtual ~ICachePageProvider()
