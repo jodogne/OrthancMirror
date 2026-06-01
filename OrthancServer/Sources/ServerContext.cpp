@@ -584,10 +584,11 @@ namespace Orthanc
                                                  METRICS_STORAGE_AREA_CACHE_HIT_COUNT,
                                                  METRICS_STORAGE_AREA_CACHE_MISS_COUNT));
 
-        storageAreaReader_->SetCapacity(1);  // Put highest pressure
-        //storageAreaReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
-        //storageAreaReader_->CreateCache(256 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter
-        storageAreaReader_->CreateCache(1 * GIGABYTE); // 1 GB - TODO-Streaming - Parameter
+        //storageAreaReader_->SetCapacity(1);  // To test on highest pressure
+        storageAreaReader_->SetCapacity(256 * MEGABYTE); // TODO-Streaming - Parameter
+
+        //storageAreaReader_->CreateCache(256 * MEGABYTE); // TODO-Streaming - Parameter
+        storageAreaReader_->CreateCache(1 * GIGABYTE); // TODO-Streaming - Parameter
       }
 
       {
@@ -605,9 +606,10 @@ namespace Orthanc
                                                  METRICS_DICOM_CACHE_HIT_COUNT,
                                                  METRICS_DICOM_CACHE_MISS_COUNT));
 
-        dicomReader_->SetCapacity(1);  // Put highest pressure
-        //dicomReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
-        dicomReader_->CreateCache(256 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter
+        //dicomReader_->SetCapacity(1);  // To test on highest pressure
+        dicomReader_->SetCapacity(256 * MEGABYTE); // TODO-Streaming - Parameter
+
+        dicomReader_->CreateCache(256 * MEGABYTE); // TODO-Streaming - Parameter
       }
 
       if (transcoder_.get() != NULL)
@@ -627,9 +629,10 @@ namespace Orthanc
                                                  METRICS_TRANSCODER_CACHE_HIT_COUNT,
                                                  METRICS_TRANSCODER_CACHE_MISS_COUNT));
 
-        transcoderReader_->SetCapacity(1);  // Put highest pressure
-        //transcoderReader_->SetCapacity(1 * GIGABYTE);  // 1 GB - TODO-Streaming - Parameter
-        transcoderReader_->CreateCache(256 * MEGABYTE); // 256 MB - TODO-Streaming - Parameter
+        //transcoderReader_->SetCapacity(1);  // To test on highest pressure
+        transcoderReader_->SetCapacity(256 * MEGABYTE); // TODO-Streaming - Parameter
+
+        transcoderReader_->CreateCache(256 * MEGABYTE); // TODO-Streaming - Parameter
       }
 
       {

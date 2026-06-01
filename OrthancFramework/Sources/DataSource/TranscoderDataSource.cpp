@@ -25,6 +25,7 @@
 #include "TranscoderDataSource.h"
 
 #include "../DicomParsing/ParsedDicomFile.h"
+#include "../Logging.h"
 #include "../OrthancException.h"
 #include "BaseDataIdentifier.h"
 #include "DataSourceReader.h"
@@ -206,6 +207,8 @@ namespace Orthanc
 
       std::set<DicomTransferSyntax> allowedSyntaxes;
       allowedSyntaxes.insert(targetSyntax_);
+
+      LOG(INFO) << "Transcoding DICOM attachment to " << GetTransferSyntaxUid(targetSyntax_) << ": " << attachment_.GetUuid();
 
       bool success;
       if (hasLossyQuality_)

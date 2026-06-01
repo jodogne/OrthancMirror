@@ -26,6 +26,7 @@
 #include "DicomDataSource.h"
 
 #include "../DicomParsing/ParsedDicomFile.h"
+#include "../Logging.h"
 #include "../OrthancException.h"
 #include "BaseDataIdentifier.h"
 #include "DataSourceReader.h"
@@ -40,6 +41,10 @@ namespace Orthanc
   {
   public:
     virtual StorageAreaDataSource::Range* ReadRange(DataSourceReader& reader) const = 0;
+
+    virtual const FileInfo& GetAttachment() const = 0;
+
+    virtual bool IsUntilPixelData() const = 0;
   };
 
 
@@ -71,6 +76,16 @@ namespace Orthanc
     {
       return StorageAreaDataSource::Execute(
         reader, StorageAreaDataSource::CreateAttachmentRequest(attachment_, true /* uncompress */));
+    }
+
+    virtual const FileInfo& GetAttachment() const ORTHANC_OVERRIDE
+    {
+      return attachment_;
+    }
+
+    virtual bool IsUntilPixelData() const ORTHANC_OVERRIDE
+    {
+      return false;
     }
   };
 
@@ -108,6 +123,16 @@ namespace Orthanc
     virtual StorageAreaDataSource::Range* ReadRange(DataSourceReader& reader) const ORTHANC_OVERRIDE
     {
       return StorageAreaDataSource::Execute(reader, StorageAreaDataSource::CreateBeginningRequest(attachment_, pixelDataOffset_));
+    }
+
+    virtual const FileInfo& GetAttachment() const ORTHANC_OVERRIDE
+    {
+      return attachment_;
+    }
+
+    virtual bool IsUntilPixelData() const ORTHANC_OVERRIDE
+    {
+      return true;
     }
   };
 
@@ -176,6 +201,9 @@ namespace Orthanc
       }
     }
 
+    LOG(INFO) << "Parsing DICOM attachment"
+              << (id.IsUntilPixelData() ? " (until pixel data): " : ": ")
+              << id.GetAttachment().GetUuid();
     std::unique_ptr<Value> value(new Value(new ParsedDicomFile(range->GetData(), size), size));
     assert(GetValueSize(*value) == size);
 
