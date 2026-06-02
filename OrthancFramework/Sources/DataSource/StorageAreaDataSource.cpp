@@ -25,6 +25,7 @@
 #include "../PrecompiledHeaders.h"
 #include "StorageAreaDataSource.h"
 
+#include "../Cache/SharedObjectCache.h"
 #include "../MetricsRegistry.h"
 #include "../OrthancException.h"
 #include "../StringMemoryBuffer.h"
@@ -42,6 +43,19 @@
 
 namespace Orthanc
 {
+  static std::string ComputeCacheKey(std::string uuid,
+                                     FileContentType type,
+                                     uint64_t start,
+                                     uint64_t end)
+  {
+    // custom data is not part of the cache key, as it is for internal use by the plugin
+    // (it is opaque to the Orthanc core)
+    return (uuid + "|" +
+            boost::lexical_cast<std::string>(type) + "|" +
+            boost::lexical_cast<std::string>(start) + "|" +
+            boost::lexical_cast<std::string>(end));
+  }
+
   class StorageAreaDataSource::Value : public IDynamicObject
   {
   private:
@@ -70,6 +84,21 @@ namespace Orthanc
     {
       return checkMD5_;
     }
+
+    void ExtractRange(std::string& target,
+                      uint64_t start,
+                      uint64_t end) const
+    {
+      if (start >= buffer_->GetSize() ||
+          end > buffer_->GetSize())
+      {
+        throw OrthancException(ErrorCode_BadRange);
+      }
+      else
+      {
+        target.assign(reinterpret_cast<const char*>(buffer_->GetData()) + start, end - start);
+      }
+    }
   };
 
 
@@ -94,6 +123,8 @@ namespace Orthanc
     uint64_t                          end_;
     std::string                       customData_;
     std::unique_ptr<IPostProcessing>  postProcessing_;
+    bool                              hasWholeKey_;
+    std::string                       wholeKey_;
 
   public:
     Identifier(const std::string& uuid,
@@ -105,7 +136,8 @@ namespace Orthanc
       type_(type),
       start_(start),
       end_(end),
-      customData_(customData)
+      customData_(customData),
+      hasWholeKey_(false)
     {
       if (start > end)
       {
@@ -119,6 +151,54 @@ namespace Orthanc
       }
     }
 
+    uint64_t GetStart() const
+    {
+      return start_;
+    }
+
+    uint64_t GetEnd() const
+    {
+      return end_;
+    }
+
+    /**
+     * WARNING: SetWholeKey() must only be used to retrieve compressed
+     * date from the storage area (or if there is no compression).
+     **/
+    void SetWholeKey(const std::string& key)
+    {
+      if (hasWholeKey_)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else if (key.empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        hasWholeKey_ = true;
+        wholeKey_ = key;
+      }
+    }
+
+    bool HasWholeKey() const
+    {
+      return hasWholeKey_;
+    }
+
+    const std::string GetWholeKey() const
+    {
+      if (hasWholeKey_)
+      {
+        return wholeKey_;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+    }
+
     IMemoryBuffer* Read(IPluginStorageArea& area) const
     {
       return area.ReadRange(uuid_, type_, start_, end_, customData_);
@@ -126,12 +206,7 @@ namespace Orthanc
 
     virtual bool GetCacheKey(std::string& key) const ORTHANC_OVERRIDE
     {
-      // custom data is not part of the cache key, as it is for internal use by the plugin
-      // (it is opaque to the Orthanc core)
-      key = (uuid_ + "|" +
-             boost::lexical_cast<std::string>(type_) + "|" +
-             boost::lexical_cast<std::string>(start_) + "|" +
-             boost::lexical_cast<std::string>(end_));
+      key = ComputeCacheKey(uuid_, type_, start_, end_);
       return true;
     }
 
@@ -305,9 +380,26 @@ namespace Orthanc
   }
 
 
-  IDynamicObject* StorageAreaDataSource::Load(const IDataIdentifier& identifier)
+  IDynamicObject* StorageAreaDataSource::Load(const IDataIdentifier& identifier,
+                                              const boost::shared_ptr<SharedObjectCache>& readerCache)
   {
     const Identifier& id = dynamic_cast<const Identifier&>(identifier);
+
+    if (id.HasWholeKey() &&
+        readerCache)
+    {
+      // Extract the request range from the whole compressed attachment if the latter is already present in the cache
+      boost::shared_ptr<IDynamicObject> wholeCached = readerCache->GetCachedValue(id.GetWholeKey());
+      if (wholeCached)
+      {
+        const Value& wholeRange = dynamic_cast<const Value&>(*wholeCached);
+
+        std::string content;
+        wholeRange.ExtractRange(content, id.GetStart(), id.GetEnd());
+
+        return new Value(StringMemoryBuffer::CreateFromSwap(content), false);
+      }
+    }
 
     std::unique_ptr<IMemoryBuffer> buffer;
 
@@ -430,8 +522,14 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    return CreateRangeRequest(attachment.GetUuid(), attachment.GetContentType(),
-                              0, untilPosition, attachment.GetCustomData());
+    std::unique_ptr<Identifier> id(new Identifier(attachment.GetUuid(), attachment.GetContentType(),
+                                                  0, untilPosition, attachment.GetCustomData()));
+
+    // Using "SetWholeKey()" allows to extract a range if the whole attachment is already in the reader cache
+    assert(attachment.GetCompressionType() == CompressionType_None);
+    id->SetWholeKey(ComputeCacheKey(attachment.GetUuid(), attachment.GetContentType(), 0, attachment.GetCompressedSize()));
+
+    return id.release();
   }
 
 
@@ -468,8 +566,14 @@ namespace Orthanc
       }
       else
       {
-        return Execute(reader, CreateRangeRequest(attachment.GetUuid(), attachment.GetContentType(),
-                                                  start, endExclusive, attachment.GetCustomData()));
+        std::unique_ptr<Identifier> id(new Identifier(attachment.GetUuid(), attachment.GetContentType(),
+                                                      start, endExclusive, attachment.GetCustomData()));
+
+        // Using "SetWholeKey()" allows to extract a range if the whole compressed attachment is already in the reader cache
+        assert(!uncompress || attachment.GetCompressionType() == CompressionType_None);
+        id->SetWholeKey(ComputeCacheKey(attachment.GetUuid(), attachment.GetContentType(), 0, attachment.GetCompressedSize()));
+
+        return Execute(reader, id.release());
       }
     }
   }

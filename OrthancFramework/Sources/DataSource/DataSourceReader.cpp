@@ -180,7 +180,7 @@ namespace Orthanc
             preReservation.reset(new Internals::DataSourceMemoryBudget::Lock(*budget_, estimatedSize));
           }
 
-          value.reset(source_.Load(*id_));
+          value.reset(source_.Load(*id_, cache_));
 
           if (!value)
           {

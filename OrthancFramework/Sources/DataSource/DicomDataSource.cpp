@@ -183,7 +183,8 @@ namespace Orthanc
   }
 
 
-  IDynamicObject* DicomDataSource::Load(const IDataIdentifier& obj)
+  IDynamicObject* DicomDataSource::Load(const IDataIdentifier& obj,
+                                        const boost::shared_ptr<SharedObjectCache>& readerCache)
   {
     const Identifier& id = dynamic_cast<const Identifier&>(obj);
 

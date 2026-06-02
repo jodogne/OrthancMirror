@@ -245,7 +245,8 @@ namespace Orthanc
   }
 
 
-  IDynamicObject* TranscoderDataSource::Load(const IDataIdentifier& id)
+  IDynamicObject* TranscoderDataSource::Load(const IDataIdentifier& id,
+                                             const boost::shared_ptr<SharedObjectCache>& readerCache)
   {
     return dynamic_cast<const Identifier&>(id).Load(*transcoder_, *storageAreaReader_);
   }

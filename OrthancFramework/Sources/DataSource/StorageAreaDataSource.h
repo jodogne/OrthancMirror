@@ -69,7 +69,8 @@ namespace Orthanc
 
     virtual size_t GetValueSize(const IDynamicObject& value) const ORTHANC_OVERRIDE;
 
-    virtual IDynamicObject* Load(const IDataIdentifier& identifier) ORTHANC_OVERRIDE;
+    virtual IDynamicObject* Load(const IDataIdentifier& identifier,
+                                 const boost::shared_ptr<SharedObjectCache>& readerCache /* could be NULL */) ORTHANC_OVERRIDE;
 
     class ORTHANC_PUBLIC Range : public boost::noncopyable
     {

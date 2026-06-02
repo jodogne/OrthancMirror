@@ -60,7 +60,8 @@ namespace Orthanc
   public:
     explicit DicomDataSource(const boost::shared_ptr<DataSourceReader>& storageAreaReader);
 
-    virtual IDynamicObject* Load(const IDataIdentifier& obj) ORTHANC_OVERRIDE;
+    virtual IDynamicObject* Load(const IDataIdentifier& obj,
+                                 const boost::shared_ptr<SharedObjectCache>& readerCache /* could be NULL */) ORTHANC_OVERRIDE;
 
     virtual size_t GetValueSize(const IDynamicObject& obj) const ORTHANC_OVERRIDE;
 

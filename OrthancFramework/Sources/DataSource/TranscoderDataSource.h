@@ -49,7 +49,8 @@ namespace Orthanc
     TranscoderDataSource(const boost::shared_ptr<IDicomTranscoder>& transcoder,
                          const boost::shared_ptr<DataSourceReader>& storageAreaReader);
 
-    virtual IDynamicObject* Load(const IDataIdentifier& id) ORTHANC_OVERRIDE;
+    virtual IDynamicObject* Load(const IDataIdentifier& id,
+                                 const boost::shared_ptr<SharedObjectCache>& readerCache /* could be NULL */) ORTHANC_OVERRIDE;
 
     virtual size_t GetValueSize(const IDynamicObject& value) const ORTHANC_OVERRIDE;
 
