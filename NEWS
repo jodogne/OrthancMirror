@@ -48,7 +48,7 @@ Maintenance
   https://github.com/orthanc-server/orthanc-builder/issues/36
 * Fix slow ingest of files containing huge arrays of float/double values in their DICOM tags:
   https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448)
-* Fix a Denial of Service via Deeply Nested DICOM Sequences:
+* Fix a Denial of Service via Deeply Nested DICOM Sequences (CVE-2026-10528):
   https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=258
   Security issue reported by Jose Lopez Martinez (aka elpe_pinillo) from Deloitte.
 * Fixed various OOB read/write (TODO: finalize release notes)
