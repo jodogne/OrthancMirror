@@ -31,6 +31,14 @@
 #include <json/value.h>
 #include <stdint.h>  // For uint16_t
 
+#if ORTHANC_ENABLE_LOGGING == 1
+  #define STRINGIFY_LINE_HELPER(line) #line
+  #define STRINGIFY_LINE(line) STRINGIFY_LINE_HELPER(line)
+  #define THROW_WITH_FILE_AND_LINE_INFO(errorCode) throw OrthancException(errorCode, #errorCode " triggered from " __ORTHANC_FILE__ ":" STRINGIFY_LINE(__LINE__))
+#else
+  #define THROW_WITH_FILE_AND_LINE_INFO() throw OrthancException(errorCode)
+#endif
+
 namespace Orthanc
 {
   class ORTHANC_PUBLIC ErrorPayload
