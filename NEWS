@@ -52,9 +52,12 @@ Maintenance
   https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=258
   Security issue reported by Jose Lopez Martinez (aka elpe_pinillo) from Deloitte.
 * Fixed various OOB read/write (TODO: finalize release notes)
+* Lua: Fix the "ReceivedCStoreInstanceFilter" Lua callback whose return value was
+  not taken into account.
 * Upgraded dependencies for static builds:
-  - dcmtk 3.7.0 hot-fix: https://github.com/DCMTK/dcmtk/commit/847d50e83ae5bbfbc731c99c142ee1410303d222
-* Lua: fix the "ReceivedCStoreInstanceFilter" Lua callback whose return value was not taken into account.
+  - dcmtk 3.7.0 hot-fix for CVE-2026-10528:
+    https://github.com/DCMTK/dcmtk/commit/885ff0f10372bd589b5f44cea974f28a3964cb0f
+    https://github.com/DCMTK/dcmtk/commit/847d50e83ae5bbfbc731c99c142ee1410303d222
 
 
 Version 1.12.11 (2026-04-14)
