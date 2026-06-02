@@ -3097,7 +3097,7 @@ namespace Orthanc
     if (sizeInBytes < 1024)
     {
       std::ostringstream oss;
-      oss << sizeInBytes << "bytes";
+      oss << sizeInBytes << " bytes";
       return oss.str();
     }
     else

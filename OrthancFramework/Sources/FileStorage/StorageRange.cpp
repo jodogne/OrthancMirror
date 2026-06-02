@@ -245,6 +245,10 @@ namespace Orthanc
       {
         range.SetStartInclusive(tmp);
       }
+      else
+      {
+        throw OrthancException(ErrorCode_BadRange);
+      }
     }
 
     if (!tokens[1].empty())
@@ -252,6 +256,10 @@ namespace Orthanc
       if (SerializationToolbox::ParseUnsignedInteger64(tmp, tokens[1]))
       {
         range.SetEndInclusive(tmp);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadRange);
       }
     }
 

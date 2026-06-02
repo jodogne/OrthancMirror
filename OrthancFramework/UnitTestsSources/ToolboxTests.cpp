@@ -380,7 +380,7 @@ TEST(Toolbox, JoinUri)
 
 TEST(Toolbox, GetHumanFileSize)
 {
-  ASSERT_EQ("234bytes", Toolbox::GetHumanFileSize(234));
+  ASSERT_EQ("234 bytes", Toolbox::GetHumanFileSize(234));
   ASSERT_EQ("2.29KB", Toolbox::GetHumanFileSize(2345));
   ASSERT_EQ("22.91KB", Toolbox::GetHumanFileSize(23456));
   ASSERT_EQ("229.07KB", Toolbox::GetHumanFileSize(234567));

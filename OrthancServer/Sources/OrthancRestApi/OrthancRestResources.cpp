@@ -2327,7 +2327,7 @@ namespace Orthanc
         .AddAnswerType(MimeType_Binary, "The attachment")
         .SetAnswerHeader("ETag", "Revision of the attachment, to be used in further `PUT` or `DELETE` operations")
         .SetHttpHeader("If-None-Match", "Optional revision of the attachment, to check if its content has changed")
-        .SetHttpHeader("Content-Range", "Optional content range to access part of the attachment (new in Orthanc 1.12.5)");
+        .SetHttpHeader("Range", "Optional content range to access part of the attachment (new in Orthanc 1.12.5)");
     
         return;
     }
