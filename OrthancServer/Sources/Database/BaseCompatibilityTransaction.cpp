@@ -32,7 +32,7 @@ namespace Orthanc
                                                                 int64_t increment,
                                                                 bool shared)
   {
-    throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+    throw OrthancException(ErrorCode_NotImplemented, "BaseCompatibilityTransaction::IncrementGlobalProperty");  // Not supported
   }
 
   void BaseCompatibilityTransaction::UpdateAndGetStatistics(int64_t& patientsCount,
@@ -42,7 +42,7 @@ namespace Orthanc
                                                             int64_t& compressedSize,
                                                             int64_t& uncompressedSize)
   {
-    throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+    throw OrthancException(ErrorCode_NotImplemented, "BaseCompatibilityTransaction::UpdateAndGetStatistics");  // Not supported
   }
 
   void BaseCompatibilityTransaction::GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
@@ -52,21 +52,21 @@ namespace Orthanc
                                                         uint32_t limit,
                                                         const std::set<ChangeType>& filterType)
   {
-    throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+    throw OrthancException(ErrorCode_NotImplemented, "BaseCompatibilityTransaction::GetChangesExtended");  // Not supported
   }
 
   void BaseCompatibilityTransaction::ExecuteCount(uint64_t& count,
                                                   const FindRequest& request,
                                                   const IDatabaseWrapper::Capabilities& capabilities)
   {
-    throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+    throw OrthancException(ErrorCode_NotImplemented, "BaseCompatibilityTransaction::ExecuteCount");  // Not supported
   }
 
   void BaseCompatibilityTransaction::ExecuteFind(FindResponse& response,
                                                  const FindRequest& request,
                                                  const IDatabaseWrapper::Capabilities& capabilities)
   {
-    throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+    throw OrthancException(ErrorCode_NotImplemented, "BaseCompatibilityTransaction::ExecuteFind");  // Not supported
   }
 
   void BaseCompatibilityTransaction::ExecuteFind(std::list<std::string>& identifiers,

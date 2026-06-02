@@ -1597,7 +1597,7 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_NotImplemented);
+        throw OrthancException(ErrorCode_NotImplemented, "No count support");
       }
     }
 
@@ -1823,7 +1823,7 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_NotImplemented);
+        throw OrthancException(ErrorCode_NotImplemented, "No find support");
       }
     }
 

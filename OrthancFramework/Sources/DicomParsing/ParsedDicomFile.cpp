@@ -892,7 +892,7 @@ namespace Orthanc
       std::set<DicomTag> tmp;
       std::unique_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
                                     (*element, DicomToJsonFlags_Default, 
-                                     0, encoding, hasCodeExtensions, tmp, FromDcmtkBridge::Convert(element->getVR())));
+                                     0, 0, encoding, hasCodeExtensions, tmp, FromDcmtkBridge::Convert(element->getVR())));
       
       if (v.get() == NULL ||
           v->IsNull())

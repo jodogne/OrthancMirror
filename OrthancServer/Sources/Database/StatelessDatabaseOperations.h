@@ -683,14 +683,14 @@ namespace Orthanc
     bool LookupParent(std::string& target,
                       const std::string& publicId);
 
-    void GetResourceStatistics(/* out */ ResourceType& type,
-                               /* out */ uint64_t& diskSize, 
+    void GetResourceStatistics(/* out */ uint64_t& diskSize, 
                                /* out */ uint64_t& uncompressedSize, 
                                /* out */ unsigned int& countStudies, 
                                /* out */ unsigned int& countSeries, 
                                /* out */ unsigned int& countInstances, 
                                /* out */ uint64_t& dicomDiskSize, 
                                /* out */ uint64_t& dicomUncompressedSize, 
+                               ResourceType type,
                                const std::string& publicId);
 
     void LookupIdentifierExact(std::vector<std::string>& result,

@@ -1086,20 +1086,19 @@ namespace Orthanc
   }
 
 
-  void StatelessDatabaseOperations::GetResourceStatistics(/* out */ ResourceType& type,
-                                                          /* out */ uint64_t& diskSize, 
+  void StatelessDatabaseOperations::GetResourceStatistics(/* out */ uint64_t& diskSize, 
                                                           /* out */ uint64_t& uncompressedSize, 
                                                           /* out */ unsigned int& countStudies, 
                                                           /* out */ unsigned int& countSeries, 
                                                           /* out */ unsigned int& countInstances, 
                                                           /* out */ uint64_t& dicomDiskSize, 
-                                                          /* out */ uint64_t& dicomUncompressedSize, 
+                                                          /* out */ uint64_t& dicomUncompressedSize,
+                                                          ResourceType type, 
                                                           const std::string& publicId)
   {
     class Operations : public IReadOnlyOperations
     {
     private:
-      ResourceType&      type_;
       uint64_t&          diskSize_; 
       uint64_t&          uncompressedSize_; 
       unsigned int&      countStudies_; 
@@ -1108,18 +1107,20 @@ namespace Orthanc
       uint64_t&          dicomDiskSize_; 
       uint64_t&          dicomUncompressedSize_; 
       const std::string& publicId_;
-        
+      ResourceType       type_;
+      const IDatabaseWrapper::Capabilities& dbCapabilities_;
+
     public:
-      explicit Operations(ResourceType& type,
-                          uint64_t& diskSize, 
+      explicit Operations(uint64_t& diskSize, 
                           uint64_t& uncompressedSize, 
                           unsigned int& countStudies, 
                           unsigned int& countSeries, 
                           unsigned int& countInstances, 
                           uint64_t& dicomDiskSize, 
                           uint64_t& dicomUncompressedSize, 
-                          const std::string& publicId) :
-        type_(type),
+                          ResourceType type,
+                          const std::string& publicId,
+                          const IDatabaseWrapper::Capabilities& dbCapabilities) :
         diskSize_(diskSize),
         uncompressedSize_(uncompressedSize),
         countStudies_(countStudies),
@@ -1127,105 +1128,88 @@ namespace Orthanc
         countInstances_(countInstances),
         dicomDiskSize_(dicomDiskSize),
         dicomUncompressedSize_(dicomUncompressedSize),
-        publicId_(publicId)
+        publicId_(publicId),
+        type_(type),
+        dbCapabilities_(dbCapabilities)
       {
       }
-      
+
+      void AddAttachmentSizes(const FindResponse::Resource& resource)
+      {
+        const std::map<FileContentType, FileInfo>& attachments = resource.GetAttachments();
+
+        for (std::map<FileContentType, FileInfo>::const_iterator it = attachments.begin(); it != attachments.end(); ++it)
+        {
+          if (it->first == FileContentType_Dicom)
+          {
+            dicomDiskSize_ += it->second.GetCompressedSize();
+            dicomUncompressedSize_ += it->second.GetUncompressedSize();
+          }
+
+          diskSize_ += it->second.GetCompressedSize();
+          uncompressedSize_ += it->second.GetUncompressedSize();
+        }
+      }
+
       virtual void Apply(ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
       {
-        int64_t top;
-        if (!transaction.LookupResource(top, type_, publicId_))
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else
-        {
-          countInstances_ = 0;
-          countSeries_ = 0;
-          countStudies_ = 0;
-          diskSize_ = 0;
-          uncompressedSize_ = 0;
-          dicomDiskSize_ = 0;
-          dicomUncompressedSize_ = 0;
+        countInstances_ = 0;
+        countSeries_ = 0;
+        countStudies_ = 0;
+        diskSize_ = 0;
+        uncompressedSize_ = 0;
+        dicomDiskSize_ = 0;
+        dicomUncompressedSize_ = 0;
 
-          std::stack<int64_t> toExplore;
-          toExplore.push(top);
+        ResourceType currentLevel = type_;
+        bool hasProcessedInstanceLevel = false;
+        while (!hasProcessedInstanceLevel)
+        {
+          // get the attachments at the currentLevel (but the parent remains the same resource)
+          FindRequest request(currentLevel);
+          request.SetOrthancId(type_, publicId_);
+          request.SetRetrieveAttachments(true);
 
-          while (!toExplore.empty())
+          FindResponse response;
+          transaction.ExecuteFind(response, request, dbCapabilities_);
+
+          for (size_t i = 0; i < response.GetSize(); i++)
           {
-            // Get the internal ID of the current resource
-            int64_t resource = toExplore.top();
-            toExplore.pop();
+            AddAttachmentSizes(response.GetResourceByIndex(i));
 
-            ResourceType thisType = transaction.GetResourceType(resource);
-
-            std::set<FileContentType> f;
-            transaction.ListAvailableAttachments(f, resource);
-
-            for (std::set<FileContentType>::const_iterator
-                   it = f.begin(); it != f.end(); ++it)
+            switch (currentLevel)
             {
-              FileInfo attachment;
-              int64_t revision;  // ignored
-              if (transaction.LookupAttachment(attachment, revision, resource, *it))
-              {
-                if (attachment.GetContentType() == FileContentType_Dicom)
-                {
-                  dicomDiskSize_ += attachment.GetCompressedSize();
-                  dicomUncompressedSize_ += attachment.GetUncompressedSize();
-                }
-          
-                diskSize_ += attachment.GetCompressedSize();
-                uncompressedSize_ += attachment.GetUncompressedSize();
-              }
-            }
-
-            if (thisType == ResourceType_Instance)
-            {
-              countInstances_++;
-            }
-            else
-            {
-              switch (thisType)
-              {
-                case ResourceType_Study:
-                  countStudies_++;
-                  break;
-
-                case ResourceType_Series:
-                  countSeries_++;
-                  break;
-
-                default:
-                  break;
-              }
-
-              // Tag all the children of this resource as to be explored
-              std::list<int64_t> tmp;
-              transaction.GetChildrenInternalId(tmp, resource);
-              for (std::list<int64_t>::const_iterator 
-                     it = tmp.begin(); it != tmp.end(); ++it)
-              {
-                toExplore.push(*it);
-              }
+              case ResourceType_Study:
+                ++countStudies_;
+                break;
+              case ResourceType_Series:
+                ++countSeries_;
+                break;
+              case ResourceType_Instance:
+                ++countInstances_;
+                break;
+              case ResourceType_Patient:
+                // don't count patients
+                break;
+              default:
+                throw OrthancException(ErrorCode_InternalError);
             }
           }
 
-          if (countStudies_ == 0)
+          if (currentLevel == ResourceType_Instance)
           {
-            countStudies_ = 1;
+            hasProcessedInstanceLevel = true;
           }
-
-          if (countSeries_ == 0)
+          else
           {
-            countSeries_ = 1;
+            currentLevel = GetChildResourceType(currentLevel);
           }
         }
       }
     };
 
-    Operations operations(type, diskSize, uncompressedSize, countStudies, countSeries,
-                          countInstances, dicomDiskSize, dicomUncompressedSize, publicId);
+    Operations operations(diskSize, uncompressedSize, countStudies, countSeries,
+                          countInstances, dicomDiskSize, dicomUncompressedSize, type, publicId, db_.GetDatabaseCapabilities());
     Apply(operations);
   }
 

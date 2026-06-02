@@ -86,7 +86,7 @@ namespace Orthanc
     class ORTHANC_PUBLIC MD5Context : public boost::noncopyable
     {
     private:
-      class PImpl;
+      struct PImpl;
       PImpl* pimpl_;  // Don't use "boost::shared_ptr<PImpl>" here to speed up compilation time of this common header
 
     public:

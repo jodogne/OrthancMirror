@@ -634,8 +634,8 @@ namespace Orthanc
       {
         target.SetValueInternal(element->getTag().getGTag(),
                                 element->getTag().getETag(),
-                                ConvertLeafElement(*element, DicomToJsonFlags_Default, maxStringLength, encoding,
-                                                   hasCodeExtensions, ignoreTagLength, Convert(element->getVR())));
+                                ConvertLeafElement(*element, DicomToJsonFlags_Default, maxStringLength, maxStringLength /* maxBinaryArrayLength: consider the same value as the maxStringLength */, 
+                                                   encoding, hasCodeExtensions, ignoreTagLength, Convert(element->getVR())));
       }
       else
       {
@@ -694,6 +694,7 @@ namespace Orthanc
   DicomValue* FromDcmtkBridge::ConvertLeafElement(DcmElement& element,
                                                   DicomToJsonFlags flags,
                                                   unsigned int maxStringLength,
+                                                  unsigned int maxBinaryArrayLength,
                                                   Encoding encoding,
                                                   bool hasCodeExtensions,
                                                   const std::set<DicomTag>& ignoreTagLength,
@@ -894,8 +895,21 @@ namespace Orthanc
               throw OrthancException(ErrorCode_BadFileFormat);
             }
 
-            const unsigned long numFloats = element.getLength() / sizeof(Float32);
+            uint64_t numFloats = static_cast<uint64_t>(element.getLength()) / sizeof(Float32);
+            numFloats = std::min(numFloats, static_cast<uint64_t>(maxBinaryArrayLength));
+
+            uint64_t preAllocateStringSize = static_cast<uint64_t>(maxStringLength); // We have seen files with 100M floats: https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448
+            if (maxStringLength == 0) // no limit, use an heuristic to reserve the string: 12 chars per float
+            {
+              preAllocateStringSize = 12ull * numFloats;
+              if (preAllocateStringSize > static_cast<uint64_t>(std::numeric_limits<size_t>::max()))
+              {
+                throw OrthancException(ErrorCode_BadFileFormat, "Too many values in binary array");
+              }
+            }
+
             std::string result;
+            result.reserve(static_cast<size_t>(preAllocateStringSize));
             for (unsigned long i = 0; i < numFloats; i++)
             {
               if (i > 0)
@@ -927,8 +941,21 @@ namespace Orthanc
               throw OrthancException(ErrorCode_BadFileFormat);
             }
 
-            const unsigned long numDoubles = element.getLength() / sizeof(Float64);
+            uint64_t numDoubles = static_cast<uint64_t>(element.getLength()) / sizeof(Float64);
+            numDoubles = std::min(numDoubles, static_cast<uint64_t>(maxBinaryArrayLength));
+
+            uint64_t preAllocateStringSize = static_cast<uint64_t>(maxStringLength); // We have seen files with 100M floats: https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448
+            if (maxStringLength == 0) // no limit, use an heuristic to reserve the string: 20 chars per float
+            {
+              preAllocateStringSize = 20ull * numDoubles;
+              if (preAllocateStringSize > static_cast<uint64_t>(std::numeric_limits<size_t>::max()))
+              {
+                throw OrthancException(ErrorCode_BadFileFormat, "Too many values in binary array");
+              }
+            }
+
             std::string result;
+            result.reserve(static_cast<size_t>(preAllocateStringSize));
             for (unsigned long i = 0; i < numDoubles; i++)
             {
               if (i > 0)
@@ -961,7 +988,19 @@ namespace Orthanc
               throw OrthancException(ErrorCode_BadFileFormat);
             }
 
-            const unsigned long numValues = element.getLength() / sizeof(Uint32);
+            uint64_t numValues = static_cast<uint64_t>(element.getLength()) / sizeof(Uint32);
+            numValues = std::min(numValues, static_cast<uint64_t>(maxBinaryArrayLength));
+
+            uint64_t preAllocateStringSize = static_cast<uint64_t>(maxStringLength); // We have seen files with 100M floats: https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448
+            if (maxStringLength == 0) // no limit, use an heuristic to reserve the string: 10 chars per float
+            {
+              preAllocateStringSize = 10ull * numValues;
+              if (preAllocateStringSize > static_cast<uint64_t>(std::numeric_limits<size_t>::max()))
+              {
+                throw OrthancException(ErrorCode_BadFileFormat, "Too many values in binary array");
+              }
+            }
+
             std::string result;
             for (unsigned long i = 0; i < numValues; i++)
             {
@@ -1203,9 +1242,14 @@ namespace Orthanc
 
     if (element.isLeaf())
     {
-      // The "0" below lets "LeafValueToJson()" take care of "TooLong" values
+      // The "maxStringLength=0" below lets "LeafValueToJson()" take care of "TooLong" values
+      // And the "maxBinaryArrayLength=maxStringLength" is there to limit the size of binary arrays that are actually returned 
+      // as string that is later clipped in LeafValueToJson.
+      // Since we have seen files with 100M float values, we don't want to generate a 1GB string that would be clipped to 256 bytes
+      // in LeafValueToJson.
+      // https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448
       std::unique_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
-                                    (element, flags, 0, encoding, hasCodeExtensions, ignoreTagLength, Convert(element.getVR())));
+                                    (element, flags, 0, maxStringLength /* maxBinaryArrayLength: consider the same value as the maxStringLength */, encoding, hasCodeExtensions, ignoreTagLength, Convert(element.getVR())));
 
       if (ignoreTagLength.find(GetTag(element)) == ignoreTagLength.end())
       {

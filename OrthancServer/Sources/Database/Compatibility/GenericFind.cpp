@@ -198,7 +198,7 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_NotImplemented);
+        throw OrthancException(ErrorCode_NotImplemented, "ExecuteFind - unhandled request");
       }
     }
 

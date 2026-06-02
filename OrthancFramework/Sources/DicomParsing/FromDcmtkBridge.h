@@ -190,6 +190,7 @@ namespace Orthanc
     static DicomValue* ConvertLeafElement(DcmElement& element,
                                           DicomToJsonFlags flags,
                                           unsigned int maxStringLength,
+                                          unsigned int maxBinaryArrayLength,
                                           Encoding encoding,
                                           bool hasCodeExtensions,
                                           const std::set<DicomTag>& ignoreTagLength,
