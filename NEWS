@@ -54,6 +54,7 @@ Maintenance
 * Fixed various OOB read/write (TODO: finalize release notes)
 * Upgraded dependencies for static builds:
   - dcmtk 3.7.0 hot-fix: https://github.com/DCMTK/dcmtk/commit/847d50e83ae5bbfbc731c99c142ee1410303d222
+* Lua: fix the "ReceivedCStoreInstanceFilter" Lua callback whose return value was not taken into account.
 
 
 Version 1.12.11 (2026-04-14)

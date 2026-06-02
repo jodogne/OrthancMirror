@@ -1057,7 +1057,7 @@ namespace Orthanc
     return true;
   }
 
-  bool LuaScripting::FilterIncomingCStoreInstance(uint16_t& /*dimseStatus*/,
+  bool LuaScripting::FilterIncomingCStoreInstance(uint16_t& dimseStatus,
                                                   const DicomInstanceToStore& instance,
                                                   const Json::Value& simplified)
   {
@@ -1087,10 +1087,16 @@ namespace Orthanc
 
       int result;
       call.ExecuteToInt(result);
-      return static_cast<uint16_t>(result);
+      if (result > 0xFFFF || result < 0)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "The returned DIMSE status should be >= 0 and <= 0xFFFF");
+      }
+
+      dimseStatus = static_cast<uint16_t>(result);
+      return dimseStatus == 0; // keep if DimseStatus is SUCCESS
     }
 
-    return true;
+    return true; // keep
   }
 
 
