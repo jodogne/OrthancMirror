@@ -120,5 +120,10 @@ namespace Orthanc
                             const FileInfo& attachment,
                             const StorageRange& range,
                             bool uncompress);
+
+    static void StoreIntoCache(DataSourceReader& reader,
+                               const FileInfo& attachment,
+                               const void* data,
+                               size_t size);
   };
 }

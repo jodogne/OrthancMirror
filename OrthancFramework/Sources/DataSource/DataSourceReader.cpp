@@ -75,8 +75,8 @@ namespace Orthanc
   {
     if (metrics_)
     {
-      size_t capacity, count, size;
-      cache.GetStatistics(capacity, count, size);
+      size_t count, size;
+      cache.GetStatistics(count, size);
 
       metrics_->SetFloatValue(cacheSizeMegabytesName_, static_cast<float>(size) / static_cast<float>(MEGABYTE));
       metrics_->SetIntegerValue(cacheCountName_, count);
@@ -320,6 +320,40 @@ namespace Orthanc
     {
       boost::shared_ptr<Internals::DataSourceMemoryBudget> budgetCopy(budget_);
       budgetCopy->GetStatistics(tasksMaximumMemory, tasksCurrentMemory, tasksReservations);
+    }
+  }
+
+
+  size_t DataSourceReader::GetCacheCapacity() const
+  {
+    boost::shared_ptr<SharedObjectCache> lock(cache_);
+
+    if (lock)
+    {
+      return lock->GetCapacity();
+    }
+    else
+    {
+      return 0;
+    }
+  }
+
+
+  void DataSourceReader::StoreIntoCache(const std::string& key,
+                                        IDynamicObject* value /* takes ownership */)
+  {
+    boost::shared_ptr<IDynamicObject> protection(value);
+
+    if (value == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    if (cache_)
+    {
+      size_t size = source_->GetValueSize(*value);
+      cache_->Store(key, protection, size);
+      metricsConfiguration_.SetCacheStatistics(*cache_);
     }
   }
 }

@@ -191,12 +191,10 @@ namespace Orthanc
   }
 
 
-  void SharedObjectCache::GetStatistics(size_t& capacity,
-                                        size_t& currentCount,
+  void SharedObjectCache::GetStatistics(size_t& currentCount,
                                         size_t& currentSize)
   {
     Mutex::ScopedLock lock(mutex_);
-    capacity = capacity_;
     currentCount = lru_.GetSize();
     currentSize = currentSize_;
   }

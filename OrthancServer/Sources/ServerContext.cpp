@@ -168,6 +168,16 @@ namespace Orthanc
 
         info = FileInfo(uuid, type, size, md5);
         info.SetCustomData(customData);
+
+        try
+        {
+          StorageAreaDataSource::StoreIntoCache(*storageAreaReader_, info, data, size);
+        }
+        catch (OrthancException& e)
+        {
+          LOG(WARNING) << "Unable to store a new attachment into the cache: " << e.What();
+        }
+
         return;
       }
 
@@ -178,6 +188,8 @@ namespace Orthanc
         std::string compressed;
         zlib.Compress(compressed, data, size);
 
+        const void* compressedData = compressed.empty() ? NULL : compressed.c_str();
+
         std::string compressedMD5;
 
         if (storeMD5_)
@@ -187,22 +199,23 @@ namespace Orthanc
 
         {
           MetricsRegistry::Timer timer(*metricsRegistry_, METRICS_STORAGE_AREA_CREATE_DURATION);
-
-          if (compressed.size() > 0)
-          {
-            area_.Create(customData, uuid, &compressed[0], compressed.size(), type, compression, instance);
-          }
-          else
-          {
-            area_.Create(customData, uuid, NULL, 0, type, compression, instance);
-          }
+          area_.Create(customData, uuid, compressedData, compressed.size(), type, compression, instance);
         }
 
         metricsRegistry_->IncrementIntegerValue(METRICS_STORAGE_AREA_WRITTEN_BYTES, static_cast<int64_t>(compressed.size()));
 
-        info = FileInfo(uuid, type, size, md5,
-                        CompressionType_ZlibWithSize, compressed.size(), compressedMD5);
+        info = FileInfo(uuid, type, size, md5, CompressionType_ZlibWithSize, compressed.size(), compressedMD5);
         info.SetCustomData(customData);
+
+        try
+        {
+          StorageAreaDataSource::StoreIntoCache(*storageAreaReader_, info, compressedData, compressed.size());
+        }
+        catch (OrthancException& e)
+        {
+          LOG(WARNING) << "Unable to store a new attachment into the cache: " << e.What();
+        }
+
         return;
       }
 

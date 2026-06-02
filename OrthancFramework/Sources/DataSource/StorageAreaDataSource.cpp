@@ -26,6 +26,7 @@
 #include "StorageAreaDataSource.h"
 
 #include "../Cache/SharedObjectCache.h"
+#include "../Logging.h"
 #include "../MetricsRegistry.h"
 #include "../OrthancException.h"
 #include "../StringMemoryBuffer.h"
@@ -55,6 +56,13 @@ namespace Orthanc
             boost::lexical_cast<std::string>(start) + "|" +
             boost::lexical_cast<std::string>(end));
   }
+
+
+  static std::string ComputeCacheKeyForWholeAttachment(const FileInfo& attachment)
+  {
+    return ComputeCacheKey(attachment.GetUuid(), attachment.GetContentType(), 0, attachment.GetCompressedSize());
+  }
+
 
   class StorageAreaDataSource::Value : public IDynamicObject
   {
@@ -527,7 +535,7 @@ namespace Orthanc
 
     // Using "SetWholeKey()" allows to extract a range if the whole attachment is already in the reader cache
     assert(attachment.GetCompressionType() == CompressionType_None);
-    id->SetWholeKey(ComputeCacheKey(attachment.GetUuid(), attachment.GetContentType(), 0, attachment.GetCompressedSize()));
+    id->SetWholeKey(ComputeCacheKeyForWholeAttachment(attachment));
 
     return id.release();
   }
@@ -571,7 +579,7 @@ namespace Orthanc
 
         // Using "SetWholeKey()" allows to extract a range if the whole compressed attachment is already in the reader cache
         assert(!uncompress || attachment.GetCompressionType() == CompressionType_None);
-        id->SetWholeKey(ComputeCacheKey(attachment.GetUuid(), attachment.GetContentType(), 0, attachment.GetCompressedSize()));
+        id->SetWholeKey(ComputeCacheKeyForWholeAttachment(attachment));
 
         return Execute(reader, id.release());
       }
@@ -589,6 +597,29 @@ namespace Orthanc
     else
     {
       return new Range(reader.ReadSingle(request));
+    }
+  }
+
+
+  void StorageAreaDataSource::StoreIntoCache(DataSourceReader& reader,
+                                             const FileInfo& attachment,
+                                             const void* data,
+                                             size_t size)
+  {
+    if (size != attachment.GetCompressedSize())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    const size_t capacity = reader.GetCacheCapacity();
+
+    if (capacity != 0 &&
+        size <= capacity)
+    {
+      const std::string key = ComputeCacheKeyForWholeAttachment(attachment);
+      std::unique_ptr<Value> value(new Value(StringMemoryBuffer::CreateFromBuffer(data, size), false /* no MD5 */));
+
+      reader.StoreIntoCache(key, value.release());
     }
   }
 }

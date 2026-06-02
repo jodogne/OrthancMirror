@@ -77,6 +77,7 @@ namespace Orthanc
 
     boost::shared_ptr<IExecutorService>                   executor_;
     std::unique_ptr<IDataSource>                          source_;
+    size_t                                                cacheSize_;
     boost::shared_ptr<SharedObjectCache>                  cache_;
     boost::shared_ptr<Internals::DataSourceMemoryBudget>  budget_;
     MetricsConfiguration                                  metricsConfiguration_;
@@ -120,5 +121,10 @@ namespace Orthanc
     void GetStatistics(uint64_t& tasksMaximumMemory,
                        uint64_t& tasksCurrentMemory,
                        unsigned int& tasksReservations);
+
+    size_t GetCacheCapacity() const;
+
+    void StoreIntoCache(const std::string& key,
+                        IDynamicObject* value /* takes ownership */);
   };
 }
