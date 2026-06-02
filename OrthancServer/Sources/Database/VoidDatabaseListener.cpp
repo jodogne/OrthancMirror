@@ -31,17 +31,17 @@ namespace Orthanc
   void VoidDatabaseListener::SignalRemainingAncestor(ResourceType parentType,
                                                      const std::string& publicId)
   {
-    throw OrthancException(ErrorCode_InternalError);
+    THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
   }
       
   void VoidDatabaseListener::SignalAttachmentDeleted(const FileInfo& info)
   {
-    throw OrthancException(ErrorCode_InternalError);
+    THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
   }
 
   void VoidDatabaseListener::SignalResourceDeleted(ResourceType type,
                                                    const std::string& publicId)
   {
-    throw OrthancException(ErrorCode_InternalError);
+    THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
   }      
 }

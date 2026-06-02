@@ -134,7 +134,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       if (hasUid &&
@@ -334,7 +334,7 @@ namespace Orthanc
           count++;
         }
 
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -1034,7 +1034,7 @@ namespace Orthanc
     {
       if (path.size() != 7)  // Format: "YYYY-MM"
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
       else
       {
@@ -1288,7 +1288,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
   
@@ -1415,7 +1415,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       DicomIdentifiersVisitorV2 visitor(collection);

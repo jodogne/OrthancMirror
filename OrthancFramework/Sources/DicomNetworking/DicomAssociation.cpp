@@ -61,7 +61,7 @@ namespace Orthanc
       // Add an empty sequence
       if (!dataset.insertEmptyElement(tag).good())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
     else
@@ -75,7 +75,7 @@ namespace Orthanc
              !item->putAndInsertUint16(DCM_FailureReason, failureReasons[i]).good()) ||
             !dataset.insertSequenceItem(tag, item.release()).good())
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
     }
@@ -737,7 +737,7 @@ namespace Orthanc
       DcmDataset dataset;
       if (!dataset.putAndInsertString(DCM_TransactionUID, transactionUid.c_str()).good())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       {
@@ -916,7 +916,7 @@ namespace Orthanc
       DcmDataset dataset;
       if (!dataset.putAndInsertString(DCM_TransactionUID, transactionUid.c_str()).good())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       {

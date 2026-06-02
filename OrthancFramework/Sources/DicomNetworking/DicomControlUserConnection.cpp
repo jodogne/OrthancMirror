@@ -150,7 +150,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     switch (level)
@@ -569,7 +569,7 @@ namespace Orthanc
         sopClass = UID_GETStudyRootQueryRetrieveInformationModel;
         break;
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     // Figure out which of the accepted presentation contexts should be used
@@ -947,7 +947,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     MoveInternal(targetAet, level, move, messageId);
@@ -960,7 +960,7 @@ namespace Orthanc
   {
     if (!moveQuery.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     const std::string tmp = moveQuery.GetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL).GetContent();

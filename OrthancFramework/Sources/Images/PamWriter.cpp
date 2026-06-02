@@ -73,7 +73,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -100,7 +100,7 @@ namespace Orthanc
     if (bytesPerChannel != 1 &&
         bytesPerChannel != 2)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     size_t targetPitch = static_cast<size_t>(channelCount) * bytesPerChannel * width;

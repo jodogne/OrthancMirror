@@ -97,7 +97,7 @@ namespace Orthanc
 
     virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     virtual bool HasIntegratedFind() const ORTHANC_OVERRIDE

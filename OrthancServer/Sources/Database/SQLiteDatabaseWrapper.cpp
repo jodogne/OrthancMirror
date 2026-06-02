@@ -295,7 +295,7 @@ namespace Orthanc
         }
       
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       assert(statement.get() != NULL);
@@ -610,7 +610,7 @@ namespace Orthanc
           }
 
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
 
@@ -1293,7 +1293,7 @@ namespace Orthanc
           }; break;
 
           default:
-            throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
       }
     }
@@ -1854,7 +1854,7 @@ namespace Orthanc
         }
         else if (!s.ColumnBlobAsString(0, &customData))
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
     }
@@ -2325,7 +2325,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       // "reservedUntil <= ?" indicates that the reservation has expired
@@ -2347,7 +2347,7 @@ namespace Orthanc
         int64_t id = s.ColumnInt64(0);
         if (id < 0)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         valueId = static_cast<uint64_t>(id);
@@ -2425,7 +2425,7 @@ namespace Orthanc
         }
         else if (db_.GetLastChangeCount() > 1)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         return true;
@@ -2457,7 +2457,7 @@ namespace Orthanc
       }
       else if (db_.GetLastChangeCount() > 1)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
   };
@@ -2663,7 +2663,7 @@ namespace Orthanc
       if (that_.activeTransaction_ != NULL)
       {
         isNested_ = true;
-        // throw OrthancException(ErrorCode_InternalError);
+        // THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
       else
       {      
@@ -2688,7 +2688,7 @@ namespace Orthanc
     {
       if (fileSizeDelta != 0)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
   };
@@ -3002,7 +3002,7 @@ namespace Orthanc
       }
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 
@@ -3091,7 +3091,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 

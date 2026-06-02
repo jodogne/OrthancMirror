@@ -187,7 +187,7 @@ namespace Orthanc
 
       if (!target.putAndInsertString(key, s.c_str()).good())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
                             
@@ -442,7 +442,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       if (!found)
@@ -480,7 +480,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       CopyStringType1C(*record, dataset, encoding, hasCodeExtensions, DCM_SpecificCharacterSet);
@@ -498,7 +498,7 @@ namespace Orthanc
                                EET_UndefinedLength /*encodingType*/, 
                                EGL_withoutGL /*groupLength*/).good())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       file_.Read(s);

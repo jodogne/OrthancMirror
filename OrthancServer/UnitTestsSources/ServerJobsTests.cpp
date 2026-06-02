@@ -145,7 +145,7 @@ namespace
 
     virtual void SetUserData(const Json::Value& userData) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     virtual bool GetUserData(Json::Value& userData) const ORTHANC_OVERRIDE
@@ -175,7 +175,7 @@ namespace
       {
         if (trailingStepDone_)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
         else
         {
@@ -185,7 +185,7 @@ namespace
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -224,7 +224,7 @@ namespace
 
     virtual void SetUserData(const Json::Value& userData) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     virtual bool GetUserData(Json::Value& userData) const ORTHANC_OVERRIDE

@@ -173,7 +173,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_NotImplemented);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
       }
     }
 
@@ -277,7 +277,7 @@ namespace Orthanc
     if (setjmp(png_jmpbuf(context.GetObject())))
     {
       // Error during writing PNG
-      throw OrthancException(ErrorCode_InternalError);      
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);      
     }
 
     png_set_write_fn(context.GetObject(), &chunks, MemoryCallback, NULL);

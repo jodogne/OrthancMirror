@@ -137,7 +137,7 @@ public:
   {
     if (referencedSopClassUids.size() != referencedSopInstanceUids.size())
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     
     std::unique_ptr<StorageCommitmentScpJob> job(
@@ -165,7 +165,7 @@ public:
         failedSopClassUids.size() != failedSopInstanceUids.size() ||
         failedSopClassUids.size() != failureReasons.size())
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     
     std::unique_ptr<StorageCommitmentReports::Report> report(

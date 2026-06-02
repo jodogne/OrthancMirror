@@ -358,7 +358,7 @@ namespace Orthanc
                    << (info.IsPlanar() ? ", planar, " : ", non-planar, ")
                    << EnumerationToString(info.GetPhotometricInterpretation())
                    << " photometric interpretation";
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     return new Image(format, info.GetWidth(), info.GetHeight(), false);
@@ -424,7 +424,7 @@ namespace Orthanc
     if (pixelData == NULL &&
         !dataset.findAndGetUint8Array(DCM_PixelData, pixelData, &pixelLength).good())
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     if (info.IsPlanar() ||
@@ -486,13 +486,13 @@ namespace Orthanc
 
           if (!dataset.findAndGetUint16(DCM_BitsAllocated, bitsAllocated).good())
           {
-            throw OrthancException(ErrorCode_NotImplemented);  
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);  
           }
 
           if (!dataset.findAndGetElement(DCM_PixelData, elem).good() ||
               elem == NULL)
           {
-            throw OrthancException(ErrorCode_NotImplemented);  
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);  
           }
 
           // In implicit VR files, pixelLength is expressed in words (OW) although pixels can actually be 8 bits
@@ -570,7 +570,7 @@ namespace Orthanc
         break;
     }
 
-    throw OrthancException(ErrorCode_InternalError);
+    THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
   }                                          
 
 
@@ -589,7 +589,7 @@ namespace Orthanc
     if (source.GetWidth() != target->GetWidth() ||
         source.GetHeight() != target->GetHeight())
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     
@@ -664,7 +664,7 @@ namespace Orthanc
             }
 
             default:
-              throw OrthancException(ErrorCode_InternalError);
+              THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
             
           ImageProcessing::ShiftRight(*target, info.GetShift());
@@ -701,7 +701,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -726,7 +726,7 @@ namespace Orthanc
     if (source.GetFormat() != PixelFormat_RGB24 ||
         3 * width != source.GetPitch())
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     std::unique_ptr<ImageAccessor> target(new Image(PixelFormat_RGB24, width, height, false));
@@ -926,7 +926,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     
       std::unique_ptr<ImageAccessor> result(ApplyCodec(*decoder, parameters, representationParameter, dataset, frame));
@@ -990,7 +990,7 @@ namespace Orthanc
           break;
           
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       std::unique_ptr<ImageAccessor> result(ApplyCodec(*decoder, parameters, representationParameter, dataset, frame));
@@ -1150,7 +1150,7 @@ namespace Orthanc
       }
       
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1199,7 +1199,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 

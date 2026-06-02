@@ -491,7 +491,7 @@ namespace Orthanc
       else
       {
         // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
     
@@ -1045,7 +1045,7 @@ namespace Orthanc
       else
       {
         // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -1065,7 +1065,7 @@ namespace Orthanc
       else
       {
         // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -1304,7 +1304,7 @@ namespace Orthanc
       if (!database_.GetDatabaseCapabilities().HasLabelsSupport() &&
           !labels.empty())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       DatabasePluginMessages::TransactionRequest request;
@@ -1507,7 +1507,7 @@ namespace Orthanc
       else
       {
         // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -1526,7 +1526,7 @@ namespace Orthanc
       else
       {
         // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -1886,7 +1886,7 @@ namespace Orthanc
       else
       {
         // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -1904,7 +1904,7 @@ namespace Orthanc
       else
       {
         // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -1934,7 +1934,7 @@ namespace Orthanc
       else
       {
         // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -1965,7 +1965,7 @@ namespace Orthanc
       else
       {
         // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -1991,7 +1991,7 @@ namespace Orthanc
       else
       {
         // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -2015,7 +2015,7 @@ namespace Orthanc
             break;
 
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         DatabasePluginMessages::TransactionResponse response;
@@ -2034,7 +2034,7 @@ namespace Orthanc
       else
       {
         // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -2053,7 +2053,7 @@ namespace Orthanc
       else
       {
         // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -2080,7 +2080,7 @@ namespace Orthanc
             break;
 
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         DatabasePluginMessages::TransactionResponse response;
@@ -2100,7 +2100,7 @@ namespace Orthanc
       else
       {
         // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
       
@@ -2119,7 +2119,7 @@ namespace Orthanc
       else
       {
         // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 

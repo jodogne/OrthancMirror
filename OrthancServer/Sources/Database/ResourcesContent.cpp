@@ -93,7 +93,7 @@ namespace Orthanc
       // This would require to handle the incrementation of revision
       // numbers in the database backend => only allow setting
       // metadata on new resources
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -129,7 +129,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     StoreMainDicomTagsInternal(*this, resource, tags);  // saves only leaf tags, not sequences

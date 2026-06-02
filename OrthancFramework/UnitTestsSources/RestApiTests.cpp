@@ -1315,7 +1315,7 @@ namespace
       {
         if (b[i] != ('0' + i % 7))
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
       

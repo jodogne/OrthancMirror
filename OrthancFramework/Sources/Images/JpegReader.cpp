@@ -63,7 +63,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     uint64_t pitch = static_cast<uint64_t>(cinfo.output_width) * cinfo.output_components;

@@ -184,11 +184,11 @@ namespace Orthanc
     }
     catch (boost::bad_lexical_cast&)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
     catch (OrthancException&)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     
@@ -196,7 +196,7 @@ namespace Orthanc
     {
       if (!values.ParseUnsignedInteger32(numberOfFrames_, DICOM_TAG_NUMBER_OF_FRAMES))
       {
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
       }
     }
     else

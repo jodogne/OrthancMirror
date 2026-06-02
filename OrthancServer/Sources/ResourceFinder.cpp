@@ -124,7 +124,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 
@@ -200,7 +200,7 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
       }
     }
   }
@@ -223,7 +223,7 @@ namespace Orthanc
 
     if (resource.GetLevel() != request_.GetLevel())
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     target = Json::objectValue;
@@ -251,7 +251,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -281,7 +281,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -333,7 +333,7 @@ namespace Orthanc
           }
           else
           {
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
         }
 
@@ -357,7 +357,7 @@ namespace Orthanc
       }
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     std::string s;
@@ -703,7 +703,7 @@ namespace Orthanc
       if (IsComputedTag(constraint.GetTag()) && constraint.GetTag() != DICOM_TAG_MODALITIES_IN_STUDY)
       {
         // Sanity check
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
   }
@@ -1098,7 +1098,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     if (lookup_.get() != NULL)
@@ -1262,7 +1262,7 @@ namespace Orthanc
       case FindStorageAccessMode_DatabaseOnly:
         return false;
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 
@@ -1344,7 +1344,7 @@ namespace Orthanc
 
     if (answer.type() != Json::arrayValue)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     else if (answer.size() > 1)
     {

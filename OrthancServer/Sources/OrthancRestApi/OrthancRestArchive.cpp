@@ -314,7 +314,7 @@ namespace Orthanc
                                                    bool deflateAllowed) ORTHANC_OVERRIDE
       {
         // This function is not called by HttpOutput::AnswerWithoutBuffering()
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       virtual bool HasContentFilename(std::string& filename) ORTHANC_OVERRIDE
@@ -330,7 +330,7 @@ namespace Orthanc
 
       virtual uint64_t GetContentLength() ORTHANC_OVERRIDE
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       virtual bool ReadNextChunk() ORTHANC_OVERRIDE
@@ -378,7 +378,7 @@ namespace Orthanc
       {
         if (done_)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
         else
         {
@@ -390,7 +390,7 @@ namespace Orthanc
       {
         if (done_)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
         else
         {

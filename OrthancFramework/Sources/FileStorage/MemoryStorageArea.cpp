@@ -63,7 +63,7 @@ namespace Orthanc
     }
     else if (content_.find(uuid) != content_.end())
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     else
     {
@@ -107,7 +107,7 @@ namespace Orthanc
       }
       else if (found->second == NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
       else if (end > found->second->size())
       {
@@ -140,7 +140,7 @@ namespace Orthanc
     }
     else if (found->second == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     else
     {

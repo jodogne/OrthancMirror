@@ -392,7 +392,7 @@ namespace Orthanc
     }
     catch (std::bad_cast&)
     {
-      throw OrthancException(ErrorCode_InternalError); // This should never happen / but I don't know why this std::bad_cast has been introduced (probably a std::bad_cast from DCMTK)
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError); // This should never happen / but I don't know why this std::bad_cast has been introduced (probably a std::bad_cast from DCMTK)
     }
 
     return false;
@@ -556,7 +556,7 @@ namespace Orthanc
     {
       // This field already exists
       delete element;
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 
@@ -1306,7 +1306,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1321,7 +1321,7 @@ namespace Orthanc
         accessor.GetFormat() != PixelFormat_RGBA32 &&
         accessor.GetFormat() != PixelFormat_RGBA64)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     InvalidateCache();
@@ -1406,7 +1406,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     assert(bytesPerPixel != 0);
@@ -1477,7 +1477,7 @@ namespace Orthanc
           }
           
           default:
-            throw OrthancException(ErrorCode_NotImplemented);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
       }
     }
@@ -1494,7 +1494,7 @@ namespace Orthanc
 
     if (!GetDcmtkObject().getDataset()->insert(pixels.release(), false, false).good())
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }    
   }
 
@@ -1511,7 +1511,7 @@ namespace Orthanc
 
     if (!GetDcmtkObject().getDataset()->insert(pixels.release(), false, false).good())
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 
@@ -1697,7 +1697,7 @@ namespace Orthanc
 
     if (dcmDataset == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     if (!this->HasTag(DICOM_TAG_PIXEL_DATA) &&
@@ -1815,7 +1815,7 @@ namespace Orthanc
   {
     if (GetDcmtkObjectConst().getDataset() == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     else
     {
@@ -1847,7 +1847,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     if (!ok)
@@ -1877,7 +1877,7 @@ namespace Orthanc
                    << (info.IsPlanar() ? ", planar, " : ", non-planar, ")
                    << EnumerationToString(info.GetPhotometricInterpretation())
                    << " photometric interpretation";
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     std::unique_ptr<ImageAccessor> img(new ImageAccessor());
@@ -2264,14 +2264,14 @@ namespace Orthanc
         case ValueRepresentation_OtherByte:
           if (!dataset.putAndInsertUint8Array(DCM_PixelData, NULL, 0).good())
           {
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
           break;
 
         case ValueRepresentation_OtherWord:
           if (!dataset.putAndInsertUint16Array(DCM_PixelData, NULL, 0).good())
           {
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
           break;
 
@@ -2292,7 +2292,7 @@ namespace Orthanc
       DcmElement* element = dataset.getElement(i - 1);
       if (element == NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       if (element->getTag().getGroup() > DCM_PixelData.getGroup() ||
@@ -2363,7 +2363,7 @@ namespace Orthanc
           !pixelSequence->storeCompressedFrame(offsetList, raw, content.size(), 0 /* unlimited fragment size */).good() ||
           !offsetTable->createOffsetTable(offsetList).good())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       std::unique_ptr<DcmPixelData> pixelData(new DcmPixelData(DCM_PixelData));
@@ -2372,7 +2372,7 @@ namespace Orthanc
       if (!GetDcmtkObject().getDataset()->insert(pixelData.release(), true, false).good() ||
           !GetDcmtkObject().getDataset()->chooseRepresentation(EXS_JPEGProcess1, NULL).good())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 #else
       throw OrthancException(ErrorCode_InternalError, "Orthanc was compiled without support for JPEG");

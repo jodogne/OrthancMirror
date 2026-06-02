@@ -118,7 +118,7 @@ namespace Orthanc
 
     if (dicom.getDataset() == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     DicomTransferSyntax syntax;
@@ -410,7 +410,7 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }  
     }
     else

@@ -1103,7 +1103,7 @@ namespace Orthanc
       if (msg->CommandField != DIMSE_N_ACTION_RQ /* value == 304 == 0x0130 */ ||
           !server_.HasStorageCommitmentRequestHandlerFactory())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
 
@@ -1239,7 +1239,7 @@ namespace Orthanc
       if (msg->CommandField != DIMSE_N_EVENT_REPORT_RQ /* value == 256 == 0x0100 */ ||
           !server_.HasStorageCommitmentRequestHandlerFactory())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
 

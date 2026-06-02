@@ -111,7 +111,7 @@ namespace Orthanc
           case MetricsUpdatePolicy_MinOver1Minute:
             return 60;
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
 

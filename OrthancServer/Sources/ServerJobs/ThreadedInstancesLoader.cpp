@@ -87,7 +87,7 @@ namespace Orthanc
 
     if (threadCount < 1)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     for (size_t i = 0; i < threadCount; i++)

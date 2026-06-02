@@ -143,7 +143,7 @@ namespace Orthanc
 
     virtual void SetUserData(const Json::Value& userData) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     virtual bool GetUserData(Json::Value& userData) const ORTHANC_OVERRIDE

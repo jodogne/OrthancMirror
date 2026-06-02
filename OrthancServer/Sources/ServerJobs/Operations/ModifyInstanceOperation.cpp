@@ -67,7 +67,7 @@ namespace Orthanc
     if (origin_ != RequestOrigin_Lua)
     {
       // TODO If issued from HTTP, "remoteIp" and "username" must be provided
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 

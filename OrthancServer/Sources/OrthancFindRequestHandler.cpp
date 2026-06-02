@@ -338,7 +338,7 @@ namespace Orthanc
         level != ResourceType_Series &&
         level != ResourceType_Instance)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     DicomArray query(*filteredInput);

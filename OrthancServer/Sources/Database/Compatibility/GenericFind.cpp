@@ -71,7 +71,7 @@ namespace Orthanc
       if (!IsResourceLevelAboveOrEqual(topLevel, bottomLevel) ||
           topLevel == bottomLevel)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       std::list<int64_t> currentResources;

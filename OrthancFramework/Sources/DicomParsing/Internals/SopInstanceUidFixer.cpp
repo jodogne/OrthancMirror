@@ -64,7 +64,7 @@ namespace Orthanc
             !target.getDataset()->putAndInsertString(
               DCM_SOPInstanceUID, sopInstanceUid_.c_str(), OFTrue /* replace */).good())
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
     }

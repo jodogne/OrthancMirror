@@ -207,7 +207,7 @@ namespace Orthanc
       }
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -288,7 +288,7 @@ namespace Orthanc
 
       default:
       {
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
       }
     }
 

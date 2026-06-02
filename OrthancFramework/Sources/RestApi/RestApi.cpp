@@ -403,7 +403,7 @@ namespace Orthanc
                paths_[path].type() != Json::objectValue) ||
               paths_[path].isMember(method))
           {
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
 
           paths_[path][method] = v;
@@ -474,7 +474,7 @@ namespace Orthanc
             case HttpMethod_Get:
               if (hasGet_)
               {
-                throw OrthancException(ErrorCode_InternalError);
+                THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
               }
               
               hasGet_ = true;
@@ -485,7 +485,7 @@ namespace Orthanc
             case HttpMethod_Post:
               if (hasPost_)
               {
-                throw OrthancException(ErrorCode_InternalError);
+                THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
               }
               
               hasPost_ = true;
@@ -496,7 +496,7 @@ namespace Orthanc
             case HttpMethod_Delete:
               if (hasDelete_)
               {
-                throw OrthancException(ErrorCode_InternalError);
+                THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
               }
               
               hasDelete_ = true;
@@ -507,7 +507,7 @@ namespace Orthanc
             case HttpMethod_Put:
               if (hasPut_)
               {
-                throw OrthancException(ErrorCode_InternalError);
+                THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
               }
               
               hasPut_ = true;
@@ -654,7 +654,7 @@ namespace Orthanc
               break;              
 
             default:
-              throw OrthancException(ErrorCode_InternalError);
+              THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
 
           if (verb.empty())

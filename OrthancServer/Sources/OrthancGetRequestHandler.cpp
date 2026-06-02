@@ -86,7 +86,7 @@ namespace Orthanc
     if (parsed.get() == NULL ||
         parsed->getDataset() == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     
     DcmDataset& dataset = *parsed->getDataset();

@@ -984,7 +984,7 @@ namespace Orthanc
                     << query.GetHandler().GetRemoteModality().GetApplicationEntityTitle();
       }; break;
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     job->SetQueryFormat(OrthancRestApi::GetDicomFormat(body, DicomToJsonFormat_Short));
@@ -1346,7 +1346,7 @@ namespace Orthanc
             break;
 
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
     }
@@ -2498,7 +2498,7 @@ namespace Orthanc
 
       if (sopClassUids.size() != sopInstanceUids.size())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       const std::string transactionUid = Toolbox::GenerateDicomPrivateUniqueIdentifier();

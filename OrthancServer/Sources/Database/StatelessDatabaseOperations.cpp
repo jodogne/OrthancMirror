@@ -434,7 +434,7 @@ namespace Orthanc
     if ((readOperations == NULL && writeOperations == NULL) ||
         (readOperations != NULL && writeOperations != NULL))
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     if (factory_.get() == NULL)
@@ -1192,7 +1192,7 @@ namespace Orthanc
                 // don't count patients
                 break;
               default:
-                throw OrthancException(ErrorCode_InternalError);
+                THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
             }
           }
 
@@ -1341,7 +1341,7 @@ namespace Orthanc
             break;
 
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
       else
@@ -1638,7 +1638,7 @@ namespace Orthanc
               break;
 
             default:
-              throw OrthancException(ErrorCode_InternalError);
+              THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
 
           // If we have not reached the Patient level, find the parent of
@@ -2271,7 +2271,7 @@ namespace Orthanc
             series == -1 ||
             instance == -1)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         if (limitToThisLevelDicomTags_)
@@ -2415,7 +2415,7 @@ namespace Orthanc
         hasPatientToAvoid = transaction_.LookupResource(patientToAvoid, type, newPatientId);
         if (type != ResourceType_Patient)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
 
@@ -3782,7 +3782,7 @@ namespace Orthanc
       else if (currentKey_ != keys_.end() ||
                currentValue_ != values_.end())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -3851,7 +3851,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_InternalError);  // Should never happen
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Should never happen
     }
   }
 

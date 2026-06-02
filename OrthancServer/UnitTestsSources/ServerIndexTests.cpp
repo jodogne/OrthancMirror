@@ -231,18 +231,18 @@ namespace
         virtual void SignalRemainingAncestor(ResourceType parentType,
                                              const std::string& publicId) ORTHANC_OVERRIDE
         {
-          throw OrthancException(ErrorCode_NotImplemented);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
 
         virtual void SignalAttachmentDeleted(const FileInfo& info) ORTHANC_OVERRIDE
         {
-          throw OrthancException(ErrorCode_NotImplemented);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
 
         virtual void SignalResourceDeleted(ResourceType type,
                                            const std::string& publicId) ORTHANC_OVERRIDE
         {
-          throw OrthancException(ErrorCode_NotImplemented);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
 
         virtual void Commit() ORTHANC_OVERRIDE
@@ -257,30 +257,30 @@ namespace
         virtual bool IsUnstableResource(Orthanc::ResourceType type,
                                         int64_t id) ORTHANC_OVERRIDE
         {
-          throw OrthancException(ErrorCode_NotImplemented);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
 
         virtual bool LookupRemainingLevel(std::string& remainingPublicId /* out */,
                                           ResourceType& remainingLevel   /* out */) ORTHANC_OVERRIDE
         {
-          throw OrthancException(ErrorCode_NotImplemented);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
 
         virtual void MarkAsUnstable(Orthanc::ResourceType type,
                                     int64_t id,
                                     const std::string& publicId) ORTHANC_OVERRIDE
         {
-          throw OrthancException(ErrorCode_NotImplemented);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
 
         virtual void SignalAttachmentsAdded(uint64_t compressedSize)  ORTHANC_OVERRIDE
         {
-          throw OrthancException(ErrorCode_NotImplemented);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
 
         virtual void SignalChange(const ServerIndexChange& change)  ORTHANC_OVERRIDE
         {
-          throw OrthancException(ErrorCode_NotImplemented);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
       };
 

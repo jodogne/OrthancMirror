@@ -54,7 +54,7 @@ namespace Orthanc
         return "instances";
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }      
 
@@ -75,7 +75,7 @@ namespace Orthanc
         return std::string(prefix) + "instances";
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }      
 
@@ -112,7 +112,7 @@ namespace Orthanc
             break;
           
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         std::string parameter = formatter.GenerateParameter(constraint.GetSingleValue());
@@ -440,7 +440,7 @@ namespace Orthanc
             break;
           
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         std::string parameter = formatter.GenerateParameter(constraint.GetSingleValue());
@@ -760,7 +760,7 @@ namespace Orthanc
             FormatJoinForOrdering(orderingJoin, (*it)->GetMetadataType(), counter, request.GetLevel());
             break;
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
         orderingJoins += orderingJoin;
         
