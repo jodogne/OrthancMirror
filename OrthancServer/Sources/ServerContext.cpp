@@ -843,6 +843,14 @@ namespace Orthanc
                                  FileContentType type,
                                  const std::string& customData)
   {
+    /**
+     * Note that it is not necessary to explicitly invalidate the
+     * cache after the removal of an attachment, as each attachment
+     * receives a unique UUID in ServerContext::CreateFile(), even if
+     * the DICOM instance is overwritten. The key of the removed
+     * attachment will thus never be seen again as new files are added.
+     **/
+
     MetricsRegistry::Timer timer(*metricsRegistry_, METRICS_STORAGE_AREA_REMOVE_DURATION);
     area_.Remove(fileUuid, type, customData);
   }
