@@ -1108,7 +1108,7 @@ namespace Orthanc
       uint64_t&          dicomUncompressedSize_; 
       const std::string& publicId_;
       ResourceType       type_;
-      const IDatabaseWrapper::Capabilities& dbCapabilities_;
+      IDatabaseWrapper::Capabilities dbCapabilities_;
 
     public:
       explicit Operations(uint64_t& diskSize, 
