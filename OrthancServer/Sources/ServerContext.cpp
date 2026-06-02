@@ -35,7 +35,6 @@
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
-#include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
 #include "../../OrthancFramework/Sources/HttpServer/FilesystemHttpSender.h"
 #include "../../OrthancFramework/Sources/HttpServer/HttpStreamTranscoder.h"
 #include "../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h"
@@ -71,8 +70,10 @@
 
 
 // Those metrics correspond to those found in StorageAccessor in Orthanc <= 1.12.11
+static const char* const METRICS_STORAGE_AREA_CREATE_DURATION = "orthanc_storage_create_duration_ms";
 static const char* const METRICS_STORAGE_AREA_READ_BYTES = "orthanc_storage_read_bytes";
 static const char* const METRICS_STORAGE_AREA_READ_DURATION = "orthanc_storage_read_duration_ms";
+static const char* const METRICS_STORAGE_AREA_REMOVE_DURATION = "orthanc_storage_remove_duration_ms";
 static const char* const METRICS_STORAGE_AREA_WRITTEN_BYTES = "orthanc_storage_written_bytes";
 
 
@@ -130,6 +131,84 @@ namespace Orthanc
       // Do not try to transcode special transfer syntaxes
       transferSyntax != DicomTransferSyntax_RFC2557MimeEncapsulation &&
       transferSyntax != DicomTransferSyntax_XML);
+  }
+
+
+  void ServerContext::CreateFile(FileInfo& info,
+                                 const void* data,
+                                 size_t size,
+                                 FileContentType type,
+                                 CompressionType compression,
+                                 const std::string& precomputedMd5,
+                                 const DicomInstanceToStore* instance)
+  {
+    assert(metricsRegistry_.get() != NULL);
+    const std::string uuid = Toolbox::GenerateUuid();
+
+    std::string md5 = precomputedMd5;
+
+    if (storeMD5_ &&
+        md5.empty()) // if it has not been precomputed, compute it now
+    {
+      Toolbox::ComputeMD5(md5, data, size);
+    }
+
+    std::string customData;
+
+    switch (compression)
+    {
+      case CompressionType_None:
+      {
+        {
+          MetricsRegistry::Timer timer(*metricsRegistry_, METRICS_STORAGE_AREA_CREATE_DURATION);
+          area_.Create(customData, uuid, data, size, type, compression, instance);
+        }
+
+        metricsRegistry_->IncrementIntegerValue(METRICS_STORAGE_AREA_WRITTEN_BYTES, static_cast<int64_t>(size));
+
+        info = FileInfo(uuid, type, size, md5);
+        info.SetCustomData(customData);
+        return;
+      }
+
+      case CompressionType_ZlibWithSize:
+      {
+        ZlibCompressor zlib;
+
+        std::string compressed;
+        zlib.Compress(compressed, data, size);
+
+        std::string compressedMD5;
+
+        if (storeMD5_)
+        {
+          Toolbox::ComputeMD5(compressedMD5, compressed);
+        }
+
+        {
+          MetricsRegistry::Timer timer(*metricsRegistry_, METRICS_STORAGE_AREA_CREATE_DURATION);
+
+          if (compressed.size() > 0)
+          {
+            area_.Create(customData, uuid, &compressed[0], compressed.size(), type, compression, instance);
+          }
+          else
+          {
+            area_.Create(customData, uuid, NULL, 0, type, compression, instance);
+          }
+        }
+
+        metricsRegistry_->IncrementIntegerValue(METRICS_STORAGE_AREA_WRITTEN_BYTES, static_cast<int64_t>(compressed.size()));
+
+        info = FileInfo(uuid, type, size, md5,
+                        CompressionType_ZlibWithSize, compressed.size(), compressedMD5);
+        info.SetCustomData(customData);
+        return;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
   }
 
 
@@ -751,8 +830,8 @@ namespace Orthanc
                                  FileContentType type,
                                  const std::string& customData)
   {
-    StorageAccessor accessor(area_, *metricsRegistry_);
-    accessor.Remove(fileUuid, type, customData);
+    MetricsRegistry::Timer timer(*metricsRegistry_, METRICS_STORAGE_AREA_REMOVE_DURATION);
+    area_.Remove(fileUuid, type, customData);
   }
 
 
@@ -917,9 +996,8 @@ namespace Orthanc
 
       if (!isAdoption)
       {
-        StorageAccessor accessor(area_, *metricsRegistry_);
-        accessor.Write(dicomInfo, dicom.GetBufferData(), dicom.GetBufferSize(),
-                       FileContentType_Dicom, compression, dicomMd5, storeMD5_, &dicom);
+        CreateFile(dicomInfo, dicom.GetBufferData(), dicom.GetBufferSize(),
+                   FileContentType_Dicom, compression, dicomMd5, &dicom);
 
         attachments.push_back(dicomInfo);
       }
@@ -933,9 +1011,8 @@ namespace Orthanc
           (!area_.HasEfficientReadRange() ||
            compressionEnabled_))
       {
-        StorageAccessor accessor(area_, *metricsRegistry_);
-        accessor.Write(dicomUntilPixelData, dicom.GetBufferData(), pixelDataOffset,
-                       FileContentType_DicomUntilPixelData, compression, storeMD5_, NULL);
+        CreateFile(dicomUntilPixelData, dicom.GetBufferData(), pixelDataOffset, FileContentType_DicomUntilPixelData,
+                   compression, "" /* MD5 will be computed if needed */, NULL);
 
         attachments.push_back(dicomUntilPixelData);
       }
@@ -1269,8 +1346,8 @@ namespace Orthanc
     {
       std::unique_ptr<StorageAreaDataSource::Range> range(ReadAttachment(attachment, true /* uncompress */));
 
-      StorageAccessor accessor(area_, *metricsRegistry_);
-      accessor.Write(modified, range->GetData(), range->GetSize(), attachmentType, compression, storeMD5_, NULL);
+      CreateFile(modified, range->GetData(), range->GetSize(), attachmentType, compression,
+                 "" /* MD5 will be computed if needed */, NULL);
     }
 
     try
@@ -1660,11 +1737,7 @@ namespace Orthanc
     assert(attachmentType != FileContentType_Dicom && attachmentType != FileContentType_DicomUntilPixelData); // this method can not be used to store instances
 
     FileInfo attachment;
-
-    {
-      StorageAccessor accessor(area_, *metricsRegistry_);
-      accessor.Write(attachment, data, size, attachmentType, compression, storeMD5_, NULL);
-    }
+    CreateFile(attachment, data, size, attachmentType, compression, "" /* MD5 will be computed if needed */, NULL);
 
     try
     {

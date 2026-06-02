@@ -24,8 +24,8 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerToolbox.h"
 
+#include "../../OrthancFramework/Sources/Compression/ZlibCompressor.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
-#include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "Database/IDatabaseWrapper.h"
@@ -95,6 +95,36 @@ namespace Orthanc
     }
 
 
+    // This corresponds to StorageAccessor::Read() in Orthanc <= 1.12.11
+    static void ReadFile(std::string& content,
+                         IPluginStorageArea& storageArea,
+                         const FileInfo& info)
+    {
+      switch (info.GetCompressionType())
+      {
+        case CompressionType_None:
+        {
+          std::unique_ptr<IMemoryBuffer> buffer;
+          buffer.reset(storageArea.ReadRange(info.GetUuid(), info.GetContentType(), 0, info.GetCompressedSize(), info.GetCustomData()));
+          buffer->MoveToString(content);
+          break;
+        }
+
+        case CompressionType_ZlibWithSize:
+        {
+          ZlibCompressor zlib;
+          std::unique_ptr<IMemoryBuffer> compressed;
+          compressed.reset(storageArea.ReadRange(info.GetUuid(), info.GetContentType(), 0, info.GetCompressedSize(), info.GetCustomData()));
+          zlib.Uncompress(content, compressed->GetData(), compressed->GetSize());
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_NotImplemented);
+      }
+    }
+
+
     void ReconstructMainDicomTags(IDatabaseWrapper::ITransaction& transaction,
                                   IPluginStorageArea& storageArea,
                                   ResourceType level)
@@ -145,10 +175,8 @@ namespace Orthanc
         try
         {
           // Read and parse the content of the DICOM file
-          StorageAccessor accessor(storageArea);  // no cache
-
           std::string content;
-          accessor.Read(content, attachment);
+          ReadFile(content, storageArea, attachment);
 
           ParsedDicomFile dicom(content);
 

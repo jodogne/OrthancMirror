@@ -29,6 +29,10 @@
 
 #include <gtest/gtest.h>
 
+#if defined(__GNUC__) || defined(__clang__)
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include "../Sources/FileStorage/FilesystemStorage.h"
 #include "../Sources/FileStorage/PluginStorageAreaAdapter.h"
 #include "../Sources/FileStorage/StorageAccessor.h"
