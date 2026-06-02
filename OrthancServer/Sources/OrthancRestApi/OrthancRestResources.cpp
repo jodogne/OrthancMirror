@@ -39,7 +39,6 @@
 #include "../../../OrthancFramework/Sources/Images/ImageProcessing.h"
 #include "../../../OrthancFramework/Sources/Images/NumpyWriter.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
-#include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 
 #include "../OrthancConfiguration.h"
@@ -51,14 +50,6 @@
 
 // This "include" is mandatory for Release builds using Linux Standard Base
 #include <boost/shared_ptr.hpp>
-
-
-/**
- * This semaphore is used to limit the number of concurrent HTTP
- * requests on CPU-intensive routes of the REST API, in order to
- * prevent exhaustion of resources (new in Orthanc 1.7.0).
- **/
-static Orthanc::Semaphore throttlingSemaphore_(4);  // TODO => PARAMETER?
 
 
 static const char* const IGNORE_LENGTH = "ignore-length";
@@ -1248,8 +1239,6 @@ namespace Orthanc
   template <enum ImageExtractionMode mode>
   static void GetImage(RestApiGetCall& call)
   {
-    Semaphore::Locker locker(throttlingSemaphore_);
-        
     GetImageHandler handler(mode);
     IDecodedFrameHandler::Apply(call, handler, mode, false /* not rendered */);
   }
@@ -1257,8 +1246,6 @@ namespace Orthanc
 
   static void GetRenderedFrame(RestApiGetCall& call)
   {
-    Semaphore::Locker locker(throttlingSemaphore_);
-        
     RenderedFrameHandler handler;
     IDecodedFrameHandler::Apply(call, handler, ImageExtractionMode_Preview /* arbitrary value */, true);
   }
@@ -1534,8 +1521,6 @@ namespace Orthanc
       return;
     }
 
-    Semaphore::Locker locker(throttlingSemaphore_);
-        
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string frameId = call.GetUriComponent("frame", "0");
