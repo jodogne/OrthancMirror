@@ -6893,6 +6893,11 @@ namespace Orthanc
   {
     boost::shared_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
 
+    if (static_cast<uint64_t>(size) > static_cast<uint64_t>(std::numeric_limits<uint32_t>::max()))
+    {
+      throw OrthancException(ErrorCode_InternalError, "Cannot decode frame since DICOM size that is too large (size is limited to 32bits in this version of the plugin SDK)");
+    }
+
     for (PImpl::DecodeImageCallbacks::const_iterator
            decoder = pimpl_->decodeImageCallbacks_.begin();
          decoder != pimpl_->decodeImageCallbacks_.end(); ++decoder)

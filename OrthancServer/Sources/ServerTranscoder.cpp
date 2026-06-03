@@ -25,6 +25,7 @@
 #include "ServerTranscoder.h"
 
 #include "../../OrthancFramework/Sources/DicomParsing/DcmtkTranscoder.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomImageInformation.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
@@ -72,6 +73,14 @@ namespace Orthanc
                                                size_t size,
                                                unsigned int frameIndex)
   {
+    { // check that the target image has a valid/reasonable size before decoding to avoid possible crash or OOB during transcoding
+      DicomMap summary;
+      parsedDicom.ExtractDicomSummary(summary, 128);
+
+      DicomImageInformation imageInfo(summary);
+      imageInfo.ThrowIfInvalidFrameSize();
+    }
+
     std::unique_ptr<ImageAccessor> decoded;
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
