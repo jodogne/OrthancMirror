@@ -64,6 +64,10 @@ namespace Orthanc
     static int RestApiDelete(lua_State *state);
     static int GetOrthancConfiguration(lua_State *state);
     static int SetStableStatus(lua_State* state);
+    
+    static int StoreKeyValue(lua_State* state);
+    static int GetKeyValue(lua_State* state);
+    static int DeleteKeyValue(lua_State* state);
 
     void InitializeJob();
 

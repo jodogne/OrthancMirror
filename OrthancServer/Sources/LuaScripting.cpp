@@ -635,6 +635,170 @@ namespace Orthanc
   }
 
 
+  // Syntax in Lua: StoreKeyValue(storeId, key, value)
+  int LuaScripting::StoreKeyValue(lua_State* state)
+  {
+    ServerContext* serverContext = GetServerContext(state);
+    if (serverContext == NULL)
+    {
+      LOG(ERROR) << "Lua: The Orthanc API is unavailable";
+      lua_pushnil(state);
+      return 1;
+    }
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if (nArgs != 3 ||
+        !lua_isstring(state, 1) ||                 // storeId
+        !lua_isstring(state, 2) ||                 // key
+        !lua_isstring(state, 3))                   // value
+    {
+      LOG(ERROR) << "Lua: Bad parameters to StoreKeyValue()";
+      lua_pushnil(state);
+      return 1;
+    }
+
+    if (!serverContext->GetIndex().HasKeyValueStoresSupport())
+    {
+      LOG(ERROR) << "Lua: Unable to use StoreKeyValue() when the DB backend does not support Key-Value stores";
+      lua_pushnil(state);
+      return 1;
+    }
+
+
+    const char* storeId = lua_tostring(state, 1);
+    const char* key = lua_tostring(state, 2);
+    const char* value = lua_tostring(state, 3);
+    
+    try
+    {
+      serverContext->GetIndex().StoreKeyValue(storeId, key, value);
+
+      return 1;
+    }
+    catch (OrthancException& e)
+    {
+      LOG(ERROR) << "Lua: " << e.What();
+    }
+
+    LOG(ERROR) << "Lua: Error in StoreKeyValue() for storeId: " << storeId;
+    lua_pushnil(state);
+
+    return 1;
+  }
+
+
+  // Syntax in Lua: value = GetKeyValue(storeId, key)
+  int LuaScripting::GetKeyValue(lua_State* state)
+  {
+    ServerContext* serverContext = GetServerContext(state);
+    if (serverContext == NULL)
+    {
+      LOG(ERROR) << "Lua: The Orthanc API is unavailable";
+      lua_pushnil(state);
+      return 1;
+    }
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if (nArgs != 2 ||
+        !lua_isstring(state, 1) ||                 // storeId
+        !lua_isstring(state, 2))                   // key
+    {
+      LOG(ERROR) << "Lua: Bad parameters to GetKeyValue()";
+      lua_pushnil(state);
+      return 1;
+    }
+
+    if (!serverContext->GetIndex().HasKeyValueStoresSupport())
+    {
+      LOG(ERROR) << "Lua: Unable to use GetKeyValue() when the DB backend does not support Key-Value stores";
+      lua_pushnil(state);
+      return 1;
+    }
+
+
+    const char* storeId = lua_tostring(state, 1);
+    const char* key = lua_tostring(state, 2);
+    
+    try
+    {
+      std::string value;
+      if (serverContext->GetIndex().GetKeyValue(value, storeId, key))
+      {
+        lua_pushlstring(state, value.c_str(), value.size());
+      }
+      else
+      {
+        lua_pushnil(state);
+        return 1;
+      }
+
+      return 1;
+    }
+    catch (OrthancException& e)
+    {
+      LOG(ERROR) << "Lua: " << e.What();
+    }
+
+    LOG(ERROR) << "Lua: Error in GetKeyValue() for storeId: " << storeId;
+    lua_pushnil(state);
+
+    return 1;
+  }
+
+
+  // Syntax in Lua: DeleteKeyValue(storeId, key, value)
+  int LuaScripting::DeleteKeyValue(lua_State* state)
+  {
+    ServerContext* serverContext = GetServerContext(state);
+    if (serverContext == NULL)
+    {
+      LOG(ERROR) << "Lua: The Orthanc API is unavailable";
+      lua_pushnil(state);
+      return 1;
+    }
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if (nArgs != 2 ||
+        !lua_isstring(state, 1) ||                 // storeId
+        !lua_isstring(state, 2))                   // key
+    {
+      LOG(ERROR) << "Lua: Bad parameters to DeleteKeyValue()";
+      lua_pushnil(state);
+      return 1;
+    }
+
+    if (!serverContext->GetIndex().HasKeyValueStoresSupport())
+    {
+      LOG(ERROR) << "Lua: Unable to use DeleteKeyValue() when the DB backend does not support Key-Value stores";
+      lua_pushnil(state);
+      return 1;
+    }
+
+
+    const char* storeId = lua_tostring(state, 1);
+    const char* key = lua_tostring(state, 2);
+    
+    try
+    {
+      serverContext->GetIndex().DeleteKeyValue(storeId, key);
+
+      return 1;
+    }
+    catch (OrthancException& e)
+    {
+      LOG(ERROR) << "Lua: " << e.What();
+    }
+
+    LOG(ERROR) << "Lua: Error in DeleteKeyValue() for storeId: " << storeId;
+    lua_pushnil(state);
+
+    return 1;
+  }
+
+
   // Syntax in Lua: GetOrthancConfiguration()
   int LuaScripting::GetOrthancConfiguration(lua_State *state)
   {
@@ -827,6 +991,9 @@ namespace Orthanc
     lua_.RegisterFunction("RestApiDelete", RestApiDelete);
     lua_.RegisterFunction("GetOrthancConfiguration", GetOrthancConfiguration);
     lua_.RegisterFunction("SetStableStatus", SetStableStatus);
+    lua_.RegisterFunction("StoreKeyValue", StoreKeyValue);
+    lua_.RegisterFunction("GetKeyValue", GetKeyValue);
+    lua_.RegisterFunction("DeleteKeyValue", DeleteKeyValue);
 
     LOG(INFO) << "Initializing Lua for the event handler";
     LoadGlobalConfiguration();

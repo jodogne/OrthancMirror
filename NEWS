@@ -14,6 +14,12 @@ General
 * When the "IngestTranscoding" configuration is set to a compressed transfer syntax, Orthanc
   no longer transcodes DICOM files that do not have any pixel data (e.g. DICOM-SR, RTSTRUCT,
   Encapsulated PDF,...). Such files are sometimes poorly handled by other software.
+* In Lua, added new functions to manage key-value stores in the Orthanc DB (provided that
+  the DB backend supports it: currently, PostgreSQL and SQLite):
+  - StoreKeyValue(storeId, key, value)
+  - value = GetKeyValue(storeId, key)
+  - DeleteKeyValue(storeId, key)
+
 
 REST API
 --------
