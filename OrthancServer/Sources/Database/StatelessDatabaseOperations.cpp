@@ -1151,8 +1151,106 @@ namespace Orthanc
         }
       }
 
+      void ApplyWithoutFind(ReadOnlyTransaction& transaction)
+      {
+        int64_t top;
+        if (!transaction.LookupResource(top, type_, publicId_))
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          countInstances_ = 0;
+          countSeries_ = 0;
+          countStudies_ = 0;
+          diskSize_ = 0;
+          uncompressedSize_ = 0;
+          dicomDiskSize_ = 0;
+          dicomUncompressedSize_ = 0;
+
+          std::stack<int64_t> toExplore;
+          toExplore.push(top);
+
+          while (!toExplore.empty())
+          {
+            // Get the internal ID of the current resource
+            int64_t resource = toExplore.top();
+            toExplore.pop();
+
+            ResourceType thisType = transaction.GetResourceType(resource);
+
+            std::set<FileContentType> f;
+            transaction.ListAvailableAttachments(f, resource);
+
+            for (std::set<FileContentType>::const_iterator
+                   it = f.begin(); it != f.end(); ++it)
+            {
+              FileInfo attachment;
+              int64_t revision;  // ignored
+              if (transaction.LookupAttachment(attachment, revision, resource, *it))
+              {
+                if (attachment.GetContentType() == FileContentType_Dicom)
+                {
+                  dicomDiskSize_ += attachment.GetCompressedSize();
+                  dicomUncompressedSize_ += attachment.GetUncompressedSize();
+                }
+          
+                diskSize_ += attachment.GetCompressedSize();
+                uncompressedSize_ += attachment.GetUncompressedSize();
+              }
+            }
+
+            if (thisType == ResourceType_Instance)
+            {
+              countInstances_++;
+            }
+            else
+            {
+              switch (thisType)
+              {
+                case ResourceType_Study:
+                  countStudies_++;
+                  break;
+
+                case ResourceType_Series:
+                  countSeries_++;
+                  break;
+
+                default:
+                  break;
+              }
+
+              // Tag all the children of this resource as to be explored
+              std::list<int64_t> tmp;
+              transaction.GetChildrenInternalId(tmp, resource);
+              for (std::list<int64_t>::const_iterator 
+                     it = tmp.begin(); it != tmp.end(); ++it)
+              {
+                toExplore.push(*it);
+              }
+            }
+          }
+
+          if (countStudies_ == 0)
+          {
+            countStudies_ = 1;
+          }
+
+          if (countSeries_ == 0)
+          {
+            countSeries_ = 1;
+          }
+        }
+      }
+
       virtual void Apply(ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
       {
+        if (!dbCapabilities_.HasFindSupport())
+        {
+          ApplyWithoutFind(transaction);  // use legacy code
+          return;
+        }
+
         countInstances_ = 0;
         countSeries_ = 0;
         countStudies_ = 0;
