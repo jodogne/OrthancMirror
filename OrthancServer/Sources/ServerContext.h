@@ -603,6 +603,11 @@ namespace Orthanc
 
     int64_t GetServerUpTime() const;
 
+    /**
+     * The method "GetTranscoder()" should only be used when
+     * necessary. The use of "TranscoderDataSource::Execute()" is
+     * preferred to benefit from cache and from backpressure.
+     **/
     const boost::shared_ptr<ServerTranscoder>& GetTranscoder() const;
 
     DicomSequentialReader::Factory& GetDicomSequentialReaderFactory();
