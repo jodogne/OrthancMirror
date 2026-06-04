@@ -1105,7 +1105,7 @@
 
   // Maximum number of DCMTK transcoders that are simultaneously running
   // at any given time. A value of "0" indicates to use all the
-  // available CPU logical cores. Prior to Orthanc 1.12.6, there was not limit.
+  // available CPU logical cores. Prior to Orthanc 1.12.6, there was no limit.
   // (new in Orthanc 1.12.6)
   "MaximumConcurrentDcmtkTranscoders" : 0,
 
