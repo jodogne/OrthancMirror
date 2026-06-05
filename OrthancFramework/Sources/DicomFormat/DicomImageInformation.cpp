@@ -43,10 +43,6 @@
 #include <stdio.h>
 #include <memory>
 
-static const uint64_t MAX_FRAME_SIZE = (sizeof(void*) == 4
-                                        ? 1 * Orthanc::GIGABYTE   // 1 GB on 32 bits system
-                                        : 4 * Orthanc::GIGABYTE); // 4 GB on 64 bits system
-
 
 namespace Orthanc
 {
@@ -489,11 +485,11 @@ namespace Orthanc
                         static_cast<uint64_t>(GetChannelCount()));
     }
 
-    if (totalFrameSize > MAX_FRAME_SIZE ||
+    if (totalFrameSize > MAX_IMAGE_FRAME_SIZE ||
         static_cast<uint64_t>(static_cast<size_t>(totalFrameSize)) != totalFrameSize)
     {
       std::ostringstream errorMessage;
-      errorMessage << "DICOM Frame size overflow  (" << totalFrameSize << " vs " << MAX_FRAME_SIZE << ")";
+      errorMessage << "DICOM Frame size overflow  (" << totalFrameSize << " vs. " << MAX_IMAGE_FRAME_SIZE << ")";
       throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
     }
     else

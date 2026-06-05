@@ -124,10 +124,6 @@
 #  define EXS_JPEGProcess14SV1  EXS_JPEGProcess14SV1TransferSyntax
 #endif
 
-static const uint64_t MAX_DECODED_FRAME_SIZE = (sizeof(void*) == 4
-                                                ? 1 * Orthanc::GIGABYTE   // 1 GB on 32 bits system
-                                                : 4 * Orthanc::GIGABYTE); // 4 GB on 64 bits system
-
 
 namespace Orthanc
 {
@@ -620,11 +616,11 @@ namespace Orthanc
       {
         uint64_t frameSize = static_cast<uint64_t>(info.GetHeight()) * info.GetWidth() * GetBytesPerPixel(sourceFormat);
 
-        if (frameSize > MAX_DECODED_FRAME_SIZE ||
+        if (frameSize > MAX_IMAGE_FRAME_SIZE ||
             static_cast<uint64_t>(static_cast<size_t>(frameSize)) != frameSize)
         {
           std::ostringstream errorMessage;
-          errorMessage << "ImageDecoder: max decoded frame size overflow  (" << frameSize << " vs " << MAX_DECODED_FRAME_SIZE << ")";
+          errorMessage << "ImageDecoder: max decoded frame size overflow  (" << frameSize << " vs. " << MAX_IMAGE_FRAME_SIZE << ")";
           throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
         }
 
@@ -784,17 +780,17 @@ namespace Orthanc
       std::string uncompressed;
       uint64_t frameSize = static_cast<uint64_t>(info.GetWidth()) * info.GetHeight() * info.GetBytesPerValue();
 
-      if (frameSize > MAX_DECODED_FRAME_SIZE ||
+      if (frameSize > MAX_IMAGE_FRAME_SIZE ||
           static_cast<uint64_t>(static_cast<size_t>(frameSize)) != frameSize)
       {
         std::ostringstream errorMessage;
-        errorMessage << "ImageDecoder: max decoded frame size overflow  (" << frameSize << " vs " << MAX_DECODED_FRAME_SIZE << ")";
+        errorMessage << "ImageDecoder: max decoded frame size overflow  (" << frameSize << " vs. " << MAX_IMAGE_FRAME_SIZE << ")";
         throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
       }
 
       uncompressed.resize(frameSize);
 
-      if (static_cast<uint64_t>(static_cast<Uint32>(frameSize)) != frameSize) // in case, some day, MAX_DECODED_FRAME_SIZE gets larger than 4GB
+      if (static_cast<uint64_t>(static_cast<Uint32>(frameSize)) != frameSize) // in case, some day, MAX_IMAGE_FRAME_SIZE gets larger than 4GB
       {
         std::ostringstream errorMessage;
         errorMessage << "ImageDecoder: frameSize too large for DCMTK interface (" << frameSize << ")";
