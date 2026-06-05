@@ -79,7 +79,7 @@ namespace Orthanc
  #if DCMTK_VERSION_NUMBER >= 361
         return EVR_OD;
 #else
-        throw OrthancException(ErrorCode_NotSupported, "OD value representation is not supported, as using DCMTK <= 3.6.0");
+        throw OrthancException(ErrorCode_NotImplemented, "OD value representation is not supported, as using DCMTK <= 3.6.0");
 #endif
 
       case ValueRepresentation_OtherFloat:
@@ -90,7 +90,7 @@ namespace Orthanc
         return EVR_OL;
 #else
         // Even though EVR_OL was introduced in DCMTK 3.6.1, its implementation was broken
-        throw OrthancException(ErrorCode_NotSupported, "OL value representation is not supported, as using DCMTK <= 3.6.1");
+        throw OrthancException(ErrorCode_NotImplemented, "OL value representation is not supported, as using DCMTK <= 3.6.1");
 #endif
 
       case ValueRepresentation_OtherWord:
@@ -121,7 +121,7 @@ namespace Orthanc
 #if DCMTK_VERSION_NUMBER >= 361
         return EVR_UC;
 #else
-        throw OrthancException(ErrorCode_NotSupported, "UC value representation is not supported, as using DCMTK <= 3.6.0");
+        throw OrthancException(ErrorCode_NotImplemented, "UC value representation is not supported, as using DCMTK <= 3.6.0");
 #endif
 
       case ValueRepresentation_UniqueIdentifier:
@@ -137,7 +137,7 @@ namespace Orthanc
 #if DCMTK_VERSION_NUMBER >= 361
         return EVR_UR;
 #else
-        throw OrthancException(ErrorCode_NotSupported, "UR value representation is not supported, as using DCMTK <= 3.6.0");
+        throw OrthancException(ErrorCode_NotImplemented, "UR value representation is not supported, as using DCMTK <= 3.6.0");
 #endif
 
       case ValueRepresentation_UnsignedShort:
@@ -150,21 +150,21 @@ namespace Orthanc
 #if DCMTK_VERSION_NUMBER >= 365
         return EVR_OV;
 #else
-        throw OrthancException(ErrorCode_NotSupported, "OV value representation is not supported, as using DCMTK <= 3.6.4");
+        throw OrthancException(ErrorCode_NotImplemented, "OV value representation is not supported, as using DCMTK <= 3.6.4");
 #endif
 
       case ValueRepresentation_SignedVeryLong:
 #if DCMTK_VERSION_NUMBER >= 365
         return EVR_SV;
 #else
-        throw OrthancException(ErrorCode_NotSupported, "SV value representation is not supported, as using DCMTK <= 3.6.4");
+        throw OrthancException(ErrorCode_NotImplemented, "SV value representation is not supported, as using DCMTK <= 3.6.4");
 #endif
 
       case ValueRepresentation_UnsignedVeryLong:
 #if DCMTK_VERSION_NUMBER >= 365
         return EVR_UV;
 #else
-        throw OrthancException(ErrorCode_NotSupported, "UV value representation is not supported, as using DCMTK <= 3.6.4");
+        throw OrthancException(ErrorCode_NotImplemented, "UV value representation is not supported, as using DCMTK <= 3.6.4");
 #endif
 
       default:
