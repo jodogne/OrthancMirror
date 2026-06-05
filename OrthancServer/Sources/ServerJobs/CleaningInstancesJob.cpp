@@ -69,7 +69,7 @@ namespace Orthanc
     if (!HasTrailingStep())
     {
       // Should have been set by (*)
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     if (serialized.isMember(KEEP_SOURCE))

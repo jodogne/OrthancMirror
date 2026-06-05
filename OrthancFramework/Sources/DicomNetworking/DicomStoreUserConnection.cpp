@@ -234,7 +234,7 @@ namespace Orthanc
   {
     if (dicom.getDataset() == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     
     OFString a, b;
@@ -315,7 +315,7 @@ namespace Orthanc
           mandatory->second.find(transferSyntax) == mandatory->second.end())
       {
         // Should never fail because of (*)
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       if (!ProposeStorageClass(sopClassUid, mandatory->second, hasPreferred, preferred))
@@ -425,7 +425,7 @@ namespace Orthanc
 
     if (dicom.getDataset() == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     // Finally conduct transmission of data
@@ -483,7 +483,7 @@ namespace Orthanc
 
     if (dicom.get() == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     
     Store(sopClassUid, sopInstanceUid, *dicom, hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
@@ -641,7 +641,7 @@ namespace Orthanc
         if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transcodedSyntax, transcoded.GetParsed()) ||
             accepted.find(transcodedSyntax) == accepted.end())
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
         else
         {

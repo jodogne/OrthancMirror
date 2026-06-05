@@ -434,7 +434,7 @@ namespace Orthanc
     if ((readOperations == NULL && writeOperations == NULL) ||
         (readOperations != NULL && writeOperations != NULL))
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     if (factory_.get() == NULL)
@@ -1108,7 +1108,7 @@ namespace Orthanc
       uint64_t&          dicomUncompressedSize_; 
       const std::string& publicId_;
       ResourceType       type_;
-      const IDatabaseWrapper::Capabilities& dbCapabilities_;
+      IDatabaseWrapper::Capabilities dbCapabilities_;
 
     public:
       explicit Operations(uint64_t& diskSize, 
@@ -1151,8 +1151,106 @@ namespace Orthanc
         }
       }
 
+      void ApplyWithoutFind(ReadOnlyTransaction& transaction)
+      {
+        int64_t top;
+        if (!transaction.LookupResource(top, type_, publicId_))
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          countInstances_ = 0;
+          countSeries_ = 0;
+          countStudies_ = 0;
+          diskSize_ = 0;
+          uncompressedSize_ = 0;
+          dicomDiskSize_ = 0;
+          dicomUncompressedSize_ = 0;
+
+          std::stack<int64_t> toExplore;
+          toExplore.push(top);
+
+          while (!toExplore.empty())
+          {
+            // Get the internal ID of the current resource
+            int64_t resource = toExplore.top();
+            toExplore.pop();
+
+            ResourceType thisType = transaction.GetResourceType(resource);
+
+            std::set<FileContentType> f;
+            transaction.ListAvailableAttachments(f, resource);
+
+            for (std::set<FileContentType>::const_iterator
+                   it = f.begin(); it != f.end(); ++it)
+            {
+              FileInfo attachment;
+              int64_t revision;  // ignored
+              if (transaction.LookupAttachment(attachment, revision, resource, *it))
+              {
+                if (attachment.GetContentType() == FileContentType_Dicom)
+                {
+                  dicomDiskSize_ += attachment.GetCompressedSize();
+                  dicomUncompressedSize_ += attachment.GetUncompressedSize();
+                }
+          
+                diskSize_ += attachment.GetCompressedSize();
+                uncompressedSize_ += attachment.GetUncompressedSize();
+              }
+            }
+
+            if (thisType == ResourceType_Instance)
+            {
+              countInstances_++;
+            }
+            else
+            {
+              switch (thisType)
+              {
+                case ResourceType_Study:
+                  countStudies_++;
+                  break;
+
+                case ResourceType_Series:
+                  countSeries_++;
+                  break;
+
+                default:
+                  break;
+              }
+
+              // Tag all the children of this resource as to be explored
+              std::list<int64_t> tmp;
+              transaction.GetChildrenInternalId(tmp, resource);
+              for (std::list<int64_t>::const_iterator 
+                     it = tmp.begin(); it != tmp.end(); ++it)
+              {
+                toExplore.push(*it);
+              }
+            }
+          }
+
+          if (countStudies_ == 0)
+          {
+            countStudies_ = 1;
+          }
+
+          if (countSeries_ == 0)
+          {
+            countSeries_ = 1;
+          }
+        }
+      }
+
       virtual void Apply(ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
       {
+        if (!dbCapabilities_.HasFindSupport())
+        {
+          ApplyWithoutFind(transaction);  // use legacy code
+          return;
+        }
+
         countInstances_ = 0;
         countSeries_ = 0;
         countStudies_ = 0;
@@ -1192,7 +1290,7 @@ namespace Orthanc
                 // don't count patients
                 break;
               default:
-                throw OrthancException(ErrorCode_InternalError);
+                THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
             }
           }
 
@@ -1341,7 +1439,7 @@ namespace Orthanc
             break;
 
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
       else
@@ -1638,7 +1736,7 @@ namespace Orthanc
               break;
 
             default:
-              throw OrthancException(ErrorCode_InternalError);
+              THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
 
           // If we have not reached the Patient level, find the parent of
@@ -2271,7 +2369,7 @@ namespace Orthanc
             series == -1 ||
             instance == -1)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         if (limitToThisLevelDicomTags_)
@@ -2415,7 +2513,7 @@ namespace Orthanc
         hasPatientToAvoid = transaction_.LookupResource(patientToAvoid, type, newPatientId);
         if (type != ResourceType_Patient)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
 
@@ -3782,7 +3880,7 @@ namespace Orthanc
       else if (currentKey_ != keys_.end() ||
                currentValue_ != values_.end())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -3851,7 +3949,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_InternalError);  // Should never happen
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Should never happen
     }
   }
 

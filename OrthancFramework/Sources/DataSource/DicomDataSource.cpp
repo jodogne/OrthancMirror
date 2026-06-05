@@ -198,7 +198,7 @@ namespace Orthanc
       if (!obj.EstimateValueSize(estimatedSize) ||
           estimatedSize != size)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 

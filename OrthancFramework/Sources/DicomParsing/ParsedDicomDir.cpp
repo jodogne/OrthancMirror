@@ -57,7 +57,7 @@ namespace Orthanc
     if (found == offsetToIndex_.end())
     {
       // Error in the algorithm that computes the offsets
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     else
     {
@@ -96,7 +96,7 @@ namespace Orthanc
       if (item == NULL)
       {
         Clear();
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       Uint32 next, lower;

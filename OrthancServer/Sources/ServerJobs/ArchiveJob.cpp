@@ -226,7 +226,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -244,7 +244,7 @@ namespace Orthanc
 
       if (level > level_)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       switch (level)
@@ -262,7 +262,7 @@ namespace Orthanc
           return instance_;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
   };
@@ -756,7 +756,7 @@ namespace Orthanc
           }
 
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
 
@@ -1176,7 +1176,7 @@ namespace Orthanc
         if (asynchronousTarget_.get() != NULL)
         {
           // It is up to this method to create the asynchronous target
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
         else
         {

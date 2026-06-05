@@ -470,7 +470,7 @@ namespace Orthanc
             break;
 
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
       else
@@ -1031,7 +1031,7 @@ namespace Orthanc
               }
               else
               {
-                throw OrthancException(ErrorCode_InternalError);
+                THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
               }
             }
             else if (!path.empty() &&
@@ -1052,7 +1052,7 @@ namespace Orthanc
                 Toolbox::SplitUriComponents(p, uri);
                 if (p.empty())
                 {
-                  throw OrthancException(ErrorCode_InternalError);
+                  THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
                 }
 
                 p.resize(p.size() - 1);
@@ -1060,7 +1060,7 @@ namespace Orthanc
               }
               else
               {
-                throw OrthancException(ErrorCode_InternalError);
+                THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
               }
             }
             else
@@ -1220,7 +1220,7 @@ namespace Orthanc
           }
           else
           {
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
         }
       }
@@ -1550,7 +1550,7 @@ namespace Orthanc
         {
           if (stream.get() == NULL)
           {
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
 
           postStatus = ReadBodyToStream(*stream, connection, headers, server.HasMaxBodySize(), server.GetMaxBodySize());
@@ -1588,7 +1588,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -2333,7 +2333,7 @@ namespace Orthanc
   {
     if (handler_ == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     return *handler_;

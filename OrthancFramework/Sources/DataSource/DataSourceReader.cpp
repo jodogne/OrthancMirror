@@ -205,7 +205,7 @@ namespace Orthanc
       }
       catch (...)
       {
-        error.reset(new OrthancException(ErrorCode_InternalError));
+        error.reset(new OrthancException(ErrorCode_InternalError, "Unknown exception in Datasource::Run"));
       }
 
       // Phase 3: Acquire budget WITHOUT holding a strong reference to "DataSourceAnswer".

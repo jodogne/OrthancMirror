@@ -624,7 +624,7 @@ namespace Orthanc
             ApplyWindowingInternal<uint16_t, float>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
             break;
           default:
-            throw OrthancException(ErrorCode_NotImplemented);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
       };break;
       case PixelFormat_Grayscale8:
@@ -638,7 +638,7 @@ namespace Orthanc
             ApplyWindowingInternal<uint16_t, uint8_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
             break;
           default:
-            throw OrthancException(ErrorCode_NotImplemented);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
       };break;
       case PixelFormat_Grayscale16:
@@ -652,11 +652,11 @@ namespace Orthanc
             ApplyWindowingInternal<uint16_t, uint16_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
             break;
           default:
-            throw OrthancException(ErrorCode_NotImplemented);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
       };break;
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1054,7 +1054,7 @@ namespace Orthanc
       return;
     }
 
-    throw OrthancException(ErrorCode_NotImplemented);
+    THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
   }
 
 
@@ -1099,7 +1099,7 @@ namespace Orthanc
       }
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1149,7 +1149,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     const unsigned int width = image.GetWidth();
@@ -1186,7 +1186,7 @@ namespace Orthanc
 
     if (alpha.GetFormat() != PixelFormat_Grayscale8)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     switch (image.GetFormat())
@@ -1204,7 +1204,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     const unsigned int width = image.GetWidth();
@@ -1254,7 +1254,7 @@ namespace Orthanc
         break;
       }
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1283,7 +1283,7 @@ namespace Orthanc
         break;
       }
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1330,7 +1330,7 @@ namespace Orthanc
       }
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1359,7 +1359,7 @@ namespace Orthanc
       }
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1383,7 +1383,7 @@ namespace Orthanc
         return;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1428,7 +1428,7 @@ namespace Orthanc
         return;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1502,7 +1502,7 @@ namespace Orthanc
         return;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1575,11 +1575,11 @@ namespace Orthanc
             return;
 
           default:
-            throw OrthancException(ErrorCode_NotImplemented);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
         
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1653,7 +1653,7 @@ namespace Orthanc
       }
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
   }
@@ -1665,7 +1665,7 @@ namespace Orthanc
       case PixelFormat_Grayscale8:
         return Invert(image, 255);
       default:
-        throw OrthancException(ErrorCode_NotImplemented); // you should use the Invert(image, maxValue) overload
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented); // you should use the Invert(image, maxValue) overload
     }
   }
 
@@ -1840,7 +1840,7 @@ namespace Orthanc
       }
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1896,7 +1896,7 @@ namespace Orthanc
       }
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -2298,7 +2298,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -2423,7 +2423,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -2473,7 +2473,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -2513,7 +2513,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -2805,7 +2805,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -3036,7 +3036,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }          
   }
 
@@ -3110,7 +3110,7 @@ namespace Orthanc
         return;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -3139,7 +3139,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -3180,7 +3180,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 }

@@ -58,7 +58,7 @@ namespace Orthanc
     if (that_.connection_.get() == NULL)
     {
       // The allocation should have been done by "that_.Open()" in the constructor
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     else
     {

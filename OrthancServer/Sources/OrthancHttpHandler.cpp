@@ -42,7 +42,7 @@ namespace Orthanc
     if (method != HttpMethod_Post &&
         method != HttpMethod_Put)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     for (Handlers::const_iterator it = handlers_.begin(); it != handlers_.end(); ++it) 
@@ -52,7 +52,7 @@ namespace Orthanc
       {
         if (target.get() == NULL)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         return true;
@@ -106,7 +106,7 @@ namespace Orthanc
     {
       if (orthancRestApi_ == NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       return *orthancRestApi_;

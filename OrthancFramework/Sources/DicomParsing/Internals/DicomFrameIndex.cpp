@@ -75,7 +75,7 @@ namespace Orthanc
       if (!item->getUint8Array(content).good() ||
           content == NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       table.resize(length / 4);
@@ -115,7 +115,7 @@ namespace Orthanc
         DcmObject* fragment = pixelSequence_->nextInContainer(NULL);  // Skip the offset table
         if (fragment == NULL)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         for (unsigned int i = 0; i < countFrames; i++)
@@ -145,13 +145,13 @@ namespace Orthanc
       DcmObject* fragment = pixelSequence_->nextInContainer(NULL);
       if (fragment == NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       fragment = pixelSequence_->nextInContainer(fragment); // Skip the offset table
       if (fragment == NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       uint32_t offset = 0;
@@ -214,7 +214,7 @@ namespace Orthanc
         if (!fragment->getUint8Array(content).good() ||
             content == NULL)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         assert(offset + fragment->getLength() <= frame.size());
@@ -247,7 +247,7 @@ namespace Orthanc
       if (!fragment->getUint8Array(content).good() ||
           content == NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
       return content;
     }
@@ -341,7 +341,7 @@ namespace Orthanc
 
     virtual uint8_t* GetRawFrameBuffer(unsigned int index) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   };
 

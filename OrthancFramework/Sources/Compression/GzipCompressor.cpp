@@ -143,7 +143,7 @@ namespace Orthanc
     {
       // Cannot initialize zlib
       compressed.clear();
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     // Compress the input buffer
@@ -160,7 +160,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotEnoughMemory);
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }  
     }
 
@@ -168,7 +168,7 @@ namespace Orthanc
 
     if (deflateEnd(&stream) != Z_OK)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     // The compression was successful
@@ -293,7 +293,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError); // Unknown error
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError); // Unknown error
         }
 
         const size_t produced = chunk.size() - stream.avail_out;

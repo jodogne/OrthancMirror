@@ -72,7 +72,7 @@ namespace Orthanc
   {
     if (dicom.getDataset() == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     
     DcmDataset& dataset = *dicom.getDataset();
@@ -99,7 +99,7 @@ namespace Orthanc
     
     if (parsed.getDataset() == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     std::string targetSopInstanceUid = GetSopInstanceUid(parsed);
@@ -108,7 +108,7 @@ namespace Orthanc
     {
       if (!allowNewSopInstanceUid && (targetSopInstanceUid != sourceSopInstanceUid))
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
     else
@@ -131,7 +131,7 @@ namespace Orthanc
       // No transcoding should have happened
       if (targetSopInstanceUid != sourceSopInstanceUid)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
         
@@ -147,14 +147,14 @@ namespace Orthanc
         case TranscodingType_Lossy:
           if (targetSopInstanceUid == sourceSopInstanceUid)
           {
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
           break;
 
         case TranscodingType_Lossless:
           if (targetSopInstanceUid != sourceSopInstanceUid)
           {
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
           break;
 
@@ -176,7 +176,7 @@ namespace Orthanc
     {
       if (isExternalBuffer_)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
       else
       {
@@ -216,7 +216,7 @@ namespace Orthanc
     }
     else if (parsed_->getDataset() == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     else
     {
@@ -256,7 +256,7 @@ namespace Orthanc
     }
     else if (parsed->getDataset() == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     else if (parsed_.get() != NULL)
     {

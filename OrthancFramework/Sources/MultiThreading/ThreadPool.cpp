@@ -165,7 +165,7 @@ namespace Orthanc
         default:
           if (throws)
           {
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
           else
           {

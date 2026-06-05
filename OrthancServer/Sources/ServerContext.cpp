@@ -1831,7 +1831,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 
@@ -1843,7 +1843,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 
@@ -1896,7 +1896,7 @@ namespace Orthanc
             break;
 
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       
         Json::Value dicomAsJson;
@@ -1976,7 +1976,7 @@ namespace Orthanc
         }
       }; break;
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
   }

@@ -221,7 +221,7 @@ namespace Orthanc
 
     if (n <= 1)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     
     for (size_t i = 0; i < n; i++)
@@ -232,7 +232,7 @@ namespace Orthanc
           (i >= 1 && i < n - 1 && type != CommandType_Lookup) ||
           (i == n - 1 && type != CommandType_Answer))
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       if (type == CommandType_Lookup)
@@ -240,7 +240,7 @@ namespace Orthanc
         const LookupCommand& lookup = dynamic_cast<const LookupCommand&>(GetCommand(i));
         if (lookup.GetIndex() != i - 1)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
     }
@@ -264,7 +264,7 @@ namespace Orthanc
 
     if (index >= sopClassUids_.size())
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     else if (lookupHandler_.get() != NULL)
     {
@@ -339,7 +339,7 @@ namespace Orthanc
 
     if (failureReasons.size() != sopClassUids_.size())
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     DicomAssociationParameters parameters(connection_->GetCalledAet(), remoteModality_);

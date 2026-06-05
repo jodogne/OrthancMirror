@@ -86,7 +86,7 @@ namespace Orthanc
     if (instancesLoader_.get() == NULL ||
         !instancesLoader_->HasNext())
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     {

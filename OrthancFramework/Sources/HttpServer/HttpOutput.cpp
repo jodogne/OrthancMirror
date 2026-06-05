@@ -192,7 +192,7 @@ namespace Orthanc
 
     if (state_ == State_WritingMultipart)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     if (state_ == State_WritingHeader)
@@ -307,7 +307,7 @@ namespace Orthanc
         return;  // Ignore
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }      
   }
 
@@ -528,7 +528,7 @@ namespace Orthanc
       }
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     LOG(TRACE) << "Compressing a HTTP answer using " << encoding;
@@ -624,7 +624,7 @@ namespace Orthanc
      **/
     if (boundary.size() != 36 + 1 + 36)  // one UUID contains 36 characters
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     
     boundary.resize(70);

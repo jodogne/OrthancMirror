@@ -39,7 +39,7 @@ namespace Orthanc
   {
     if (source_.SetupHttpCompression(false, false) != HttpCompression_None)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     
     uint64_t size = source_.GetContentLength();
@@ -60,7 +60,7 @@ namespace Orthanc
 
     if (offset != size)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 
@@ -132,7 +132,7 @@ namespace Orthanc
         return SetupZlibCompression(deflateAllowed);
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -163,7 +163,7 @@ namespace Orthanc
       uint64_t length = source_.GetContentLength();
       if (length < bytesToSkip_)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       return length - bytesToSkip_;

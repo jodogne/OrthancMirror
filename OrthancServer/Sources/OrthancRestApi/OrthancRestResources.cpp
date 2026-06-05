@@ -579,7 +579,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 
@@ -1000,7 +1000,7 @@ namespace Orthanc
         {
           if (dicom == NULL)
           {
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
 
           DicomMap tags;
@@ -1114,7 +1114,7 @@ namespace Orthanc
       {
         if (dicom == NULL)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
         
         PhotometricInterpretation photometric;
@@ -2985,7 +2985,7 @@ namespace Orthanc
           (resourceType == ResourceType_Instance && module == DicomModule_Instance) ||
           (resourceType == ResourceType_Instance && module == DicomModule_Image)))
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
@@ -3183,7 +3183,7 @@ namespace Orthanc
           .AddAnswerType(MimeType_Json, "A JSON object with the `Count` of matching resources");
           break;
         default:
-          throw OrthancException(ErrorCode_NotImplemented);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
       }
         
       return;
@@ -3597,7 +3597,7 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
   }

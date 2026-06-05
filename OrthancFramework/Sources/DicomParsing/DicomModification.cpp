@@ -515,7 +515,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     std::string original;
@@ -938,7 +938,7 @@ namespace Orthanc
         if (vr != ValueRepresentation_LongString &&
             vr != ValueRepresentation_NotSupported /* if no dictionary loaded */)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
       else if (*it == DICOM_TAG_PATIENT_NAME)
@@ -946,13 +946,13 @@ namespace Orthanc
         if (vr != ValueRepresentation_PersonName &&
             vr != ValueRepresentation_NotSupported /* if no dictionary loaded */)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
       else if (vr != ValueRepresentation_UniqueIdentifier &&
                vr != ValueRepresentation_NotSupported /* for older versions of DCMTK */)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }        
   }
@@ -1231,7 +1231,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
   }
@@ -1562,7 +1562,7 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       assert(tmp2 != NULL);

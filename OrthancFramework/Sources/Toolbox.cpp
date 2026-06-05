@@ -1317,7 +1317,7 @@ namespace Orthanc
         return Endianness_Little;
         
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1530,7 +1530,7 @@ namespace Orthanc
       }
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -1991,7 +1991,7 @@ namespace Orthanc
       if (Toolbox::DetectEndianness() != Endianness_Little)
       {
         // TODO - The data table must be swapped (uint16_t)
-        throw OrthancException(ErrorCode_NotImplemented);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
       }
     }
 #endif
@@ -2315,7 +2315,7 @@ namespace Orthanc
           }
           else
           {
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
 
           Dictionary::const_iterator found = dictionary_.find(key);

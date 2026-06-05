@@ -232,7 +232,7 @@ namespace Orthanc
     {
       if (that_.activeTransaction_ != NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
       
       that_.activeTransaction_ = this;
@@ -574,7 +574,7 @@ namespace Orthanc
     {
       if (!labels.empty())
       {
-        throw OrthancException(ErrorCode_InternalError);  // "HasLabelsSupport()" has returned "false"
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // "HasLabelsSupport()" has returned "false"
       }
       
       if (that_.extensions_.lookupResources == NULL)
@@ -1428,27 +1428,27 @@ namespace Orthanc
     virtual void AddLabel(int64_t resource,
                           const std::string& label) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
 
 
     virtual void RemoveLabel(int64_t resource,
                              const std::string& label) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
 
 
     virtual void ListLabels(std::set<std::string>& target,
                             int64_t resource) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
     
 
     virtual void ListAllLabels(std::set<std::string>& target) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
 
     virtual void StoreKeyValue(const std::string& storeId,
@@ -1456,20 +1456,20 @@ namespace Orthanc
                                const void* value,
                                size_t valueSize) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
 
     virtual void DeleteKeyValue(const std::string& storeId,
                                 const std::string& key) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
 
     virtual bool GetKeyValue(std::string& value,
                              const std::string& storeId,
                              const std::string& key) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
 
     virtual void ListKeysValues(std::list<std::string>& keys,
@@ -1479,26 +1479,26 @@ namespace Orthanc
                                 const std::string& from,
                                 uint64_t limit) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
 
     virtual void EnqueueValue(const std::string& queueId,
                               const void* value,
                               size_t valueSize) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
 
     virtual bool DequeueValue(std::string& value,
                               const std::string& queueId,
                               QueueOrigin origin) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
 
     virtual uint64_t GetQueueSize(const std::string& queueId) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
 
     virtual bool ReserveQueueValue(std::string& value,
@@ -1507,26 +1507,26 @@ namespace Orthanc
                                    QueueOrigin origin,
                                    uint32_t releaseTimeout) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
       
     virtual void AcknowledgeQueueValue(const std::string& queueId,
                                        uint64_t valueId) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
 
     virtual void GetAttachmentCustomData(std::string& customData,
                                          const std::string& attachmentUuid) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);  // Not supported
     }
 
     virtual void SetAttachmentCustomData(const std::string& attachmentUuid,
                                          const void* customData,
                                          size_t customDataSize) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);  // Not supported
     }
   };
 
@@ -1753,6 +1753,6 @@ namespace Orthanc
 
   uint64_t OrthancPluginDatabase::MeasureLatency()
   {
-    throw OrthancException(ErrorCode_NotImplemented);
+    THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
   }
 }

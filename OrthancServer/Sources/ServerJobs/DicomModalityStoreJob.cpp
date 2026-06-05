@@ -77,7 +77,7 @@ namespace Orthanc
       if (sopClassUids_.size() != sopInstanceUids_.size() ||
           sopClassUids_.size() > GetInstancesCount())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
       
       if (sopClassUids_.size() == GetInstancesCount())
@@ -109,7 +109,7 @@ namespace Orthanc
 
   bool DicomModalityStoreJob::HandleTrailingStep()
   {
-    throw OrthancException(ErrorCode_InternalError);
+    THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
   }
 
 

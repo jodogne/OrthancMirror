@@ -125,7 +125,7 @@ namespace Orthanc
           break;
           
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       candidates.Intersect(matches);

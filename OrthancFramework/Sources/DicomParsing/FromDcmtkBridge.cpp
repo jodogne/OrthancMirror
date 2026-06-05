@@ -1303,7 +1303,7 @@ namespace Orthanc
       DcmElement* element = item.getElement(i);
       if (element == NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       DicomTag tag(FromDcmtkBridge::Convert(element->getTag()));
@@ -1936,7 +1936,7 @@ namespace Orthanc
     E_TransferSyntax xfer;
     if (!LookupDcmtkTransferSyntax(xfer, syntax))
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     else
     {
@@ -2185,7 +2185,7 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -2203,7 +2203,7 @@ namespace Orthanc
 
         case EVR_OB:  // other byte
         case EVR_OW:  // other word
-          throw OrthancException(ErrorCode_NotImplemented);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     
         case EVR_UN:  // unknown value representation
           throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -2562,7 +2562,7 @@ namespace Orthanc
   {
     if (!target.putAndInsertString(tag, value.c_str()).good())
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 
@@ -2617,7 +2617,7 @@ namespace Orthanc
         if (!result->insert(tmp, false, false).good())
         {
           delete tmp;
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
     }
@@ -2846,7 +2846,7 @@ namespace Orthanc
         DcmElement* element = dataset.getElement(i);
         if (element == NULL)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
         else
         {
@@ -3035,7 +3035,7 @@ namespace Orthanc
         }
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -3503,7 +3503,7 @@ namespace Orthanc
   {
     if (dicom.getDataset() == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     else
     {
@@ -3666,7 +3666,7 @@ namespace Orthanc
         {
           if (!item.insertEmptyElement(key, OFTrue /* replace old value */).good())
           {
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
         }
       }

@@ -86,7 +86,7 @@ namespace Orthanc
             break;
 
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         patientId_ = hasher.HashPatient();
@@ -280,7 +280,7 @@ namespace Orthanc
             !modified->GetDcmtkObject().getDataset()->putAndInsertString(
               DCM_SOPInstanceUID, modifiedUid.c_str(), OFTrue /* replace */).good())
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
       else

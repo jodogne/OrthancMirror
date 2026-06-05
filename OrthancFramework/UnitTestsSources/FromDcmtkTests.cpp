@@ -1375,7 +1375,7 @@ TEST(ParsedDicomFile, FloatPrecision)
       break;
 
     default:
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
   }
 
   ParsedDicomFile f(false);
@@ -1570,7 +1570,7 @@ static std::string DecodeFromSpecification(const std::string& s)
 
     if (components.size() != 2)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     int a = boost::lexical_cast<int>(components[0]);
@@ -1579,7 +1579,7 @@ static std::string DecodeFromSpecification(const std::string& s)
         b < 0 || b > 15 ||
         (a == 0 && b == 0))
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     result[i] = static_cast<char>(a * 16 + b);
@@ -1992,7 +1992,7 @@ static void SetTagKey(ParsedDicomFile& dicom,
   DcmTagKey v = ToDcmtkBridge::Convert(value);
   if (!element->putTagVal(v).good())
   {
-    throw OrthancException(ErrorCode_InternalError);
+    THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
   }
 
   dicom.GetDcmtkObject().getDataset()->insert(element.release());
@@ -2409,7 +2409,7 @@ static bool MyIsMatch(const DicomPath& a,
   }
   else
   {
-    throw OrthancException(ErrorCode_InternalError);
+    THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
   }
 }
 
@@ -2926,7 +2926,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }        
     }
 
@@ -2964,7 +2964,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }        
     }
 
@@ -2987,7 +2987,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -3013,7 +3013,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -3037,7 +3037,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -3070,7 +3070,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -3426,7 +3426,7 @@ TEST(ParsedDicomFile, GuessPixelDataValueRepresentation)
       case 1: bitsAllocated = 8;   break;
       case 2: bitsAllocated = 16;  break;
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
       
     for (Syntaxes::const_iterator it = compressedSyntaxes.begin(); it != compressedSyntaxes.end(); ++it)
@@ -3493,7 +3493,7 @@ TEST(ParsedDicomFile, GuessPixelDataValueRepresentation)
       case 0: bitsAllocated = 1;   break;
       case 1: bitsAllocated = 8;   break;
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     ASSERT_EQ(ValueRepresentation_OtherByte, DicomImageInformation::GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianExplicit, bitsAllocated));

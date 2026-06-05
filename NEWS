@@ -16,6 +16,12 @@ General
 * When the "IngestTranscoding" configuration is set to a compressed transfer syntax, Orthanc
   no longer transcodes DICOM files that do not have any pixel data (e.g. DICOM-SR, RTSTRUCT,
   Encapsulated PDF,...). Such files are sometimes poorly handled by other software.
+* In Lua, added new functions to manage key-value stores in the Orthanc DB (provided that
+  the DB backend supports it: currently, PostgreSQL and SQLite):
+  - StoreKeyValue(storeId, key, value)
+  - value = GetKeyValue(storeId, key)
+  - DeleteKeyValue(storeId, key)
+
 
 REST API
 --------
@@ -50,12 +56,16 @@ Maintenance
   https://github.com/orthanc-server/orthanc-builder/issues/36
 * Fix slow ingest of files containing huge arrays of float/double values in their DICOM tags:
   https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448)
-* Fix a Denial of Service via Deeply Nested DICOM Sequences:
+* Fix a Denial of Service via Deeply Nested DICOM Sequences (CVE-2026-10528):
   https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=258
   Security issue reported by Jose Lopez Martinez (aka elpe_pinillo) from Deloitte.
 * Fixed various OOB read/write (TODO: finalize release notes)
+* Lua: Fix the "ReceivedCStoreInstanceFilter" Lua callback whose return value was
+  not taken into account.
 * Upgraded dependencies for static builds:
-  - dcmtk 3.7.0 hot-fix: https://github.com/DCMTK/dcmtk/commit/847d50e83ae5bbfbc731c99c142ee1410303d222
+  - dcmtk 3.7.0 hot-fix for CVE-2026-10528:
+    https://github.com/DCMTK/dcmtk/commit/885ff0f10372bd589b5f44cea974f28a3964cb0f
+    https://github.com/DCMTK/dcmtk/commit/847d50e83ae5bbfbc731c99c142ee1410303d222
 
 
 Version 1.12.11 (2026-04-14)

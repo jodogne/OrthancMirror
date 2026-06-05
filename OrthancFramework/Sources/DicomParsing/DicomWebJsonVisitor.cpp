@@ -248,7 +248,7 @@ namespace Orthanc
     std::string t = FormatTag(tag);
     if (node.isMember(t))
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     else
     {
@@ -286,7 +286,7 @@ namespace Orthanc
                !(*node) [t].isMember(KEY_VALUE) ||
                (*node)  [t][KEY_VALUE].type() != Json::arrayValue)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
       else
       {
@@ -302,7 +302,7 @@ namespace Orthanc
         }
         else
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
           
         node = &(*node) [t][KEY_VALUE][Json::ArrayIndex(parentIndexes[i])];

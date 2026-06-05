@@ -29,6 +29,7 @@
 #include "../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
 #include "../../OrthancFramework/Sources/DataSource/TranscoderDataSource.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DcmtkTranscoder.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomImageInformation.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
@@ -292,6 +293,14 @@ namespace Orthanc
   ImageAccessor* ServerTranscoder::DecodeFrame(const DicomInstanceToStore& image,
                                                unsigned int frameIndex)
   {
+    { // check that the target image has a valid/reasonable size before decoding to avoid possible crash or OOB during transcoding
+      DicomMap summary;
+      image.GetSummary(summary);
+
+      DicomImageInformation imageInfo(summary);
+      imageInfo.ThrowIfInvalidFrameSize();
+    }
+
     std::unique_ptr<ImageAccessor> decoded;
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)

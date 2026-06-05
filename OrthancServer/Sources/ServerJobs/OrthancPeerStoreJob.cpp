@@ -133,7 +133,7 @@ namespace Orthanc
 
   bool OrthancPeerStoreJob::HandleTrailingStep()
   {
-    throw OrthancException(ErrorCode_InternalError);
+    THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
   }
 
 

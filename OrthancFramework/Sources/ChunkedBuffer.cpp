@@ -188,7 +188,7 @@ namespace Orthanc
     {
       if (numBytes_ != 0)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       result.clear();
@@ -199,7 +199,7 @@ namespace Orthanc
       assert(chunks_.front() != NULL);
       if (chunks_.front()->size() != numBytes_)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
       else
       {

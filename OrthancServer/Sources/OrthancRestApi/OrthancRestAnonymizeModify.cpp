@@ -843,7 +843,7 @@ namespace Orthanc
         if (siblingInstances.empty())
 	{
 	  // Error: No instance (should never happen)
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         siblingInstanceId = siblingInstances.front();
@@ -891,7 +891,7 @@ namespace Orthanc
         std::string tmp;
         if (!context.GetIndex().LookupParent(tmp, parent))
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         parent = tmp;
@@ -1023,7 +1023,7 @@ namespace Orthanc
         {
           if (encapsulate)
           {
-            throw OrthancException(ErrorCode_NotImplemented);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
           }
           else
           {

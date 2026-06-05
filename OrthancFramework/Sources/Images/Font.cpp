@@ -252,7 +252,7 @@ namespace Orthanc
         }
 
         default:
-          throw OrthancException(ErrorCode_NotImplemented);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
       }
     }
 
@@ -270,7 +270,7 @@ namespace Orthanc
         target.GetFormat() != PixelFormat_RGBA32 &&
         target.GetFormat() != PixelFormat_BGRA32)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     int a = x;

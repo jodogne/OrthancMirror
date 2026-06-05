@@ -1030,7 +1030,7 @@ namespace Orthanc
             return new PluginStorageAreaV3(callbacks3_, errorDictionary_);
 
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
     };
@@ -1454,7 +1454,7 @@ namespace Orthanc
               break;
 
             default:
-              throw OrthancException(ErrorCode_InternalError);
+              THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
         }
         else
@@ -1619,7 +1619,7 @@ namespace Orthanc
           }
           else
           {
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
 
           if (error == OrthancPluginErrorCode_Success)
@@ -1690,7 +1690,7 @@ namespace Orthanc
         }
         else
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         if (error != OrthancPluginErrorCode_Success)
@@ -1712,7 +1712,7 @@ namespace Orthanc
         }
         else
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
     };
@@ -1953,7 +1953,7 @@ namespace Orthanc
         }
         else
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         Reset();
@@ -2057,7 +2057,7 @@ namespace Orthanc
         }
         else
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         if (error != OrthancPluginErrorCode_Success)
@@ -2107,7 +2107,7 @@ namespace Orthanc
         }
 
         default:
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
   };
@@ -2235,7 +2235,7 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
@@ -2286,7 +2286,7 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       if (driver == NULL)
@@ -2309,7 +2309,7 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
   };
@@ -2652,7 +2652,7 @@ namespace Orthanc
             break;
 
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         converted_.groups = matcher.GetGroups();
@@ -3027,7 +3027,7 @@ namespace Orthanc
         SignalChangeInternal(OrthancPluginChangeType_JobFailure, OrthancPluginResourceType_None, event.GetJobId().c_str());
         break;
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 
@@ -3731,7 +3731,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     std::vector<std::string> result;
@@ -3899,7 +3899,7 @@ namespace Orthanc
         return;
         
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 
@@ -4092,7 +4092,7 @@ namespace Orthanc
       }
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 
@@ -4125,7 +4125,7 @@ namespace Orthanc
         return;
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
 
     }
   }
@@ -4666,7 +4666,7 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
   }
@@ -4845,7 +4845,7 @@ namespace Orthanc
       }
 
       default:
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     *(p.target) = ReturnImage(result);
@@ -5217,7 +5217,7 @@ namespace Orthanc
 
     if (target.get() == NULL)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
     else
     {
@@ -6419,7 +6419,7 @@ namespace Orthanc
           }
           else
           {
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
         }
         else
@@ -6559,7 +6559,7 @@ namespace Orthanc
       }
 
       case _OrthancPluginService_DatabaseAnswer:
-        throw OrthancException(ErrorCode_InternalError);   // Implemented before locking (*)
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);   // Implemented before locking (*)
 
       case _OrthancPluginService_RegisterErrorCode:
       {
@@ -6896,6 +6896,11 @@ namespace Orthanc
   {
     boost::shared_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
 
+    if (static_cast<uint64_t>(size) > static_cast<uint64_t>(std::numeric_limits<uint32_t>::max()))
+    {
+      throw OrthancException(ErrorCode_InternalError, "Cannot decode frame since DICOM size that is too large (size is limited to 32bits in this version of the plugin SDK)");
+    }
+
     for (PImpl::DecodeImageCallbacks::const_iterator
            decoder = pimpl_->decodeImageCallbacks_.begin();
          decoder != pimpl_->decodeImageCallbacks_.end(); ++decoder)
@@ -7092,7 +7097,7 @@ namespace Orthanc
     if (method != HttpMethod_Post &&
         method != HttpMethod_Put)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     RestCallbackMatcher matcher(uri);

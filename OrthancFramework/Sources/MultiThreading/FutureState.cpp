@@ -50,7 +50,7 @@ namespace Orthanc
                 if (state_ != State_Success &&
                     state_ != State_Failed)
                 {
-                  throw OrthancException(ErrorCode_InternalError);  // Should never happen
+                  THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Should never happen
                 }
               }
             }
@@ -85,7 +85,7 @@ namespace Orthanc
             }
 
           default:
-            throw OrthancException(ErrorCode_InternalError);  // Should never happen
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Should never happen
         }
       }
     }
@@ -134,7 +134,7 @@ namespace Orthanc
             throw OrthancException(ErrorCode_BadSequenceOfCalls);
 
           default:
-            throw OrthancException(ErrorCode_InternalError);  // Should never happen
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Should never happen
         }
       }
     }
@@ -163,7 +163,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_BadSequenceOfCalls);
 
         default:
-          throw OrthancException(ErrorCode_InternalError);  // Should never happen
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Should never happen
       }
     }
   }

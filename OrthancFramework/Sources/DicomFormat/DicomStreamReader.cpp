@@ -341,7 +341,7 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_InternalError);
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
     else
@@ -466,7 +466,7 @@ namespace Orthanc
   {
     if (sequenceDepth_ == 0)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     sequenceDepth_ --;
@@ -562,7 +562,7 @@ namespace Orthanc
             break;
 
           default:
-            throw OrthancException(ErrorCode_InternalError);
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
       else

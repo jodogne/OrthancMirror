@@ -69,7 +69,7 @@ namespace Orthanc
           return;
 
         default:
-          throw OrthancException(ErrorCode_NotImplemented);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
       }
     }
     else if (tupleType == "RGB" &&
@@ -88,12 +88,12 @@ namespace Orthanc
           return;
 
         default:
-          throw OrthancException(ErrorCode_NotImplemented);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
       }
     }
     else
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
   }
 
@@ -256,7 +256,7 @@ namespace Orthanc
     if (bytesPerChannel != 1 &&
         bytesPerChannel != 2)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
     if (Toolbox::DetectEndianness() == Endianness_Little &&

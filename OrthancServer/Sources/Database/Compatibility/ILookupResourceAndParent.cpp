@@ -50,7 +50,7 @@ namespace Orthanc
         int64_t parentId;
         if (!database.LookupParent(parentId, id))
         {
-          throw OrthancException(ErrorCode_InternalError);
+          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
 
         parentPublicId = database.GetPublicId(parentId);
