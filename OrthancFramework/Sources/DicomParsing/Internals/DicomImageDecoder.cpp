@@ -813,7 +813,7 @@ namespace Orthanc
     }
     else
     {
-      if (static_cast<uint64_t>(static_cast<Uint32>(target->GetSize())) != target->GetSize()) // in case, some day, MAX_DECODED_FRAME_SIZE gets larger than 4GB
+      if (static_cast<uint64_t>(static_cast<Uint32>(target->GetSize())) != target->GetSize()) // in case, some day, MAX_IMAGE_FRAME_SIZE gets larger than 4GB
       {
         std::ostringstream errorMessage;
         errorMessage << "ImageDecoder: target->GetSize() too large for DCMTK interface (" << target->GetSize() << ")";
