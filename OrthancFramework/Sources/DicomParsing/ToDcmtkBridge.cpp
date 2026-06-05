@@ -75,16 +75,22 @@ namespace Orthanc
       case ValueRepresentation_OtherByte:
         return EVR_OB;
 
-        // Not supported as of DCMTK 3.6.0
-        /*case ValueRepresentation_OtherDouble:
-          return EVR_OD;*/
+      case ValueRepresentation_OtherDouble:
+ #if DCMTK_VERSION_NUMBER >= 361
+        return EVR_OD;
+#else
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "OD value representation is not supported, as using DCMTK <= 3.6.0");
+#endif
 
       case ValueRepresentation_OtherFloat:
         return EVR_OF;
 
-        // Not supported as of DCMTK 3.6.0
-        /*case ValueRepresentation_OtherLong:
-          return EVR_OL;*/
+      case ValueRepresentation_OtherLong:
+#if DCMTK_VERSION_NUMBER >= 361
+        return EVR_OL;
+#else
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "OL value representation is not supported, as using DCMTK <= 3.6.0");
+#endif
 
       case ValueRepresentation_OtherWord:
         return EVR_OW;
@@ -110,9 +116,12 @@ namespace Orthanc
       case ValueRepresentation_Time:
         return EVR_TM;
 
-        // Not supported as of DCMTK 3.6.0
-        /*case ValueRepresentation_UnlimitedCharacters:
-          return EVR_UC;*/
+      case ValueRepresentation_UnlimitedCharacters:
+#if DCMTK_VERSION_NUMBER >= 361
+        return EVR_UC;
+#else
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "UC value representation is not supported, as using DCMTK <= 3.6.0");
+#endif
 
       case ValueRepresentation_UniqueIdentifier:
         return EVR_UI;
@@ -123,9 +132,12 @@ namespace Orthanc
       case ValueRepresentation_Unknown:
         return EVR_UN;
 
-        // Not supported as of DCMTK 3.6.0
-        /*case ValueRepresentation_UniversalResource:
-          return EVR_UR;*/
+      case ValueRepresentation_UniversalResource:
+#if DCMTK_VERSION_NUMBER >= 361
+        return EVR_UR;
+#else
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "UR value representation is not supported, as using DCMTK <= 3.6.0");
+#endif
 
       case ValueRepresentation_UnsignedShort:
         return EVR_US;

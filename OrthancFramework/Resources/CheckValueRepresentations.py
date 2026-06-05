@@ -110,7 +110,7 @@ with open(os.path.join(BASE, 'OrthancFramework', 'Sources', 'Enumerations.cpp'),
 
     print('\nChecking EnumerationToString()')
 
-    func = re.search(r'EnumerationToString\(ValueRepresentation.*?ErrorCode_ParameterOutOfRange', content, re.DOTALL).group(0)
+    func = re.search(r'EnumerationToString\(ValueRepresentation.*?default', content, re.DOTALL).group(0)
     for name in names:
         if not ('case %s' % name) in func:
             print('  - Value representation not handled:', name)
@@ -122,7 +122,7 @@ with open(os.path.join(BASE, 'OrthancFramework', 'Sources', 'Enumerations.cpp'),
 
     print('\nChecking StringToValueRepresentation()')
 
-    func = re.search(r'StringToValueRepresentation\(.*?ErrorCode_ParameterOutOfRange', content, re.DOTALL).group(0)
+    func = re.search(r'StringToValueRepresentation\(.*?throw OrthancException', content, re.DOTALL).group(0)
     for name in names:
         if not ('return %s' % name) in func:
             print('  - Value representation not handled:', name)
@@ -134,7 +134,7 @@ with open(os.path.join(BASE, 'OrthancFramework', 'Sources', 'Enumerations.cpp'),
 
     print('\nChecking IsBinaryValueRepresentation()')
 
-    func = re.search(r'IsBinaryValueRepresentation\(.*?ErrorCode_ParameterOutOfRange', content, re.DOTALL).group(0)
+    func = re.search(r'IsBinaryValueRepresentation\(.*?default', content, re.DOTALL).group(0)
     for name in names:
         if not ('case %s' % name) in func:
             print('  - Value representation not handled:', name)
@@ -146,10 +146,26 @@ with open(os.path.join(BASE, 'OrthancFramework', 'Sources', 'DicomFormat', 'Dico
 
     print('\nChecking DicomMap::ValidateTag()')
 
-    func = re.search(r'ValidateTag\(.*?RemoveTagPadding', content, re.DOTALL).group(0)
+    func = re.search(r'ValidateTag\(.*?default', content, re.DOTALL).group(0)
     for name in names:
         if not ('case %s' % name) in func:
             print('  - Value representation not handled:', name)
+
+
+
+with open(os.path.join(BASE, 'OrthancFramework', 'Sources', 'DicomParsing', 'FromDcmtkBridge.cpp'), 'r') as f:
+    content = f.read()
+
+    print('\nChecking FromDcmtkBridge::Convert()')
+
+    func = re.search(r'ValueRepresentation FromDcmtkBridge::Convert.*?default', content, re.DOTALL).group(0)
+    for name in names:
+        if not ('return %s' % name) in func:
+            print('  - Value representation not handled:', name)
+
+    for vr in vrs:
+        if not ('case EVR_%s' % vr) in func:
+            print('  - Value representation not handled:', vr)
 
 
 
@@ -158,7 +174,7 @@ with open(os.path.join(BASE, 'OrthancFramework', 'Sources', 'DicomParsing', 'ToD
 
     print('\nChecking ToDcmtkBridge::Convert()')
 
-    func = re.search(r'ToDcmtkBridge::Convert\(ValueRepresentation.*?ErrorCode_ParameterOutOfRange', content, re.DOTALL).group(0)
+    func = re.search(r'ToDcmtkBridge::Convert\(ValueRepresentation.*?default', content, re.DOTALL).group(0)
     for name in names:
         if not ('case %s' % name) in func:
             print('  - Value representation not handled:', name)
@@ -174,7 +190,7 @@ with open(os.path.join(BASE, 'OrthancServer', 'Plugins', 'Engine', 'PluginsEnume
 
     print('\nChecking ConvertToDcmtkBridge::Convert(ValueRepresentation)')
 
-    func = re.search(r'OrthancPluginValueRepresentation Convert\(ValueRepresentation.*?ErrorCode_ParameterOutOfRange', content, re.DOTALL).group(0)
+    func = re.search(r'OrthancPluginValueRepresentation Convert\(ValueRepresentation.*?default', content, re.DOTALL).group(0)
     for name in names:
         if not ('case %s' % name) in func:
             print('  - Value representation not handled:', name)
@@ -186,7 +202,7 @@ with open(os.path.join(BASE, 'OrthancServer', 'Plugins', 'Engine', 'PluginsEnume
 
     print('\nChecking ConvertToDcmtkBridge::Convert(OrthancPluginValueRepresentation)')
 
-    func = re.search(r'ValueRepresentation Convert\(OrthancPluginValueRepresentation.*?ErrorCode_ParameterOutOfRange', content, re.DOTALL).group(0)
+    func = re.search(r'ValueRepresentation Convert\(OrthancPluginValueRepresentation.*?default', content, re.DOTALL).group(0)
     for name in names:
         if not ('return %s' % name) in func:
             print('  - Value representation not handled:', name)

@@ -2028,7 +2028,7 @@ namespace Orthanc
       case EVR_OF:
         return ValueRepresentation_OtherFloat;
 
-#if DCMTK_VERSION_NUMBER >= 362
+#if DCMTK_VERSION_NUMBER >= 361
       case EVR_OL:
         return ValueRepresentation_OtherLong;
 #endif
