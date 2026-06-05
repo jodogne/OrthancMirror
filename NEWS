@@ -20,7 +20,6 @@ General
   - value = GetKeyValue(storeId, key)
   - DeleteKeyValue(storeId, key)
 
-
 REST API
 --------
 
@@ -38,8 +37,9 @@ REST API
 Plugin SDK
 ----------
 
-* Added OrthancPluginClearCurrentThreadName() to avoid storing thousands of thread
+* Added OrthancPluginClearCurrentThreadName() to avoid storing many thread
   names when dynamically creating/killing threads in a plugin.
+* Added OD, OL, UC, and UR values to the OrthancPluginValueRepresentation enumeration
 
 Maintenance
 -----------

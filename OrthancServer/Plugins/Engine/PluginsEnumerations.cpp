@@ -400,16 +400,20 @@ namespace Orthanc
         case OrthancPluginValueRepresentation_UT:
           return ValueRepresentation_UnlimitedText;
 
+        case OrthancPluginValueRepresentation_OD:
+          return ValueRepresentation_OtherDouble;
+
+        case OrthancPluginValueRepresentation_OL:
+          return ValueRepresentation_OtherLong;
+
+        case OrthancPluginValueRepresentation_UC:
+          return ValueRepresentation_UnlimitedCharacters;
+
+        case OrthancPluginValueRepresentation_UR:
+          return ValueRepresentation_UniversalResource;
+
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
-
-          /*
-          Not supported as of DCMTK 3.6.0:
-          return ValueRepresentation_OtherDouble
-          return ValueRepresentation_OtherLong
-          return ValueRepresentation_UniversalResource
-          return ValueRepresentation_UnlimitedCharacters
-          */
       }
     }
 
@@ -499,13 +503,17 @@ namespace Orthanc
         case ValueRepresentation_Unknown:
           return OrthancPluginValueRepresentation_UN;  // Unknown
 
-          // These VR are not supported as of DCMTK 3.6.0, so they are
-          // mapped to "UN" (unknown) VR in the plugins
         case ValueRepresentation_OtherDouble:          
+          return OrthancPluginValueRepresentation_OD;
+
         case ValueRepresentation_OtherLong:
-        case ValueRepresentation_UniversalResource:
+          return OrthancPluginValueRepresentation_OL;
+
         case ValueRepresentation_UnlimitedCharacters:
-          return OrthancPluginValueRepresentation_UN;
+          return OrthancPluginValueRepresentation_UC;
+
+        case ValueRepresentation_UniversalResource:
+          return OrthancPluginValueRepresentation_UR;
 
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
