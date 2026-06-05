@@ -984,6 +984,15 @@ namespace Orthanc
       case ValueRepresentation_UnlimitedText:         // UT
         return "UT";
 
+      case ValueRepresentation_OtherVeryLong:         // OV (new in Orthanc 1.12.12)
+        return "OV";
+
+      case ValueRepresentation_SignedVeryLong:        // SV (new in Orthanc 1.12.12)
+        return "SV";
+
+      case ValueRepresentation_UnsignedVeryLong:      // UV (new in Orthanc 1.12.12)
+        return "UV";
+
       case ValueRepresentation_NotSupported:
         return "Not supported";
 
@@ -1495,6 +1504,18 @@ namespace Orthanc
     else if (vr == "UT")
     {
       return ValueRepresentation_UnlimitedText;
+    }
+    else if (vr == "OV")
+    {
+      return ValueRepresentation_OtherVeryLong;
+    }
+    else if (vr == "SV")
+    {
+      return ValueRepresentation_SignedVeryLong;
+    }
+    else if (vr == "UV")
+    {
+      return ValueRepresentation_UnsignedVeryLong;
     }
     else
     {
@@ -2393,6 +2414,9 @@ namespace Orthanc
       case ValueRepresentation_UnsignedLong:          // UL (uint32_t)
       case ValueRepresentation_Unknown:               // UN
       case ValueRepresentation_UnsignedShort:         // US (uint16_t)
+      case ValueRepresentation_OtherVeryLong:         // OL (8 bytes)
+      case ValueRepresentation_SignedVeryLong:        // SL (int64_t)
+      case ValueRepresentation_UnsignedVeryLong:      // UL (uint64_t)
       {
         return true;
       }

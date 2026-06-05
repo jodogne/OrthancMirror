@@ -412,6 +412,15 @@ namespace Orthanc
         case OrthancPluginValueRepresentation_UR:
           return ValueRepresentation_UniversalResource;
 
+        case OrthancPluginValueRepresentation_OV:
+          return ValueRepresentation_OtherVeryLong;
+
+        case OrthancPluginValueRepresentation_SV:
+          return ValueRepresentation_SignedVeryLong;
+
+        case OrthancPluginValueRepresentation_UV:
+          return ValueRepresentation_UnsignedVeryLong;
+
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
@@ -514,6 +523,15 @@ namespace Orthanc
 
         case ValueRepresentation_UniversalResource:
           return OrthancPluginValueRepresentation_UR;
+
+        case ValueRepresentation_OtherVeryLong:
+          return OrthancPluginValueRepresentation_OV;
+
+        case ValueRepresentation_SignedVeryLong:
+          return OrthancPluginValueRepresentation_SV;
+
+        case ValueRepresentation_UnsignedVeryLong:
+          return OrthancPluginValueRepresentation_UV;
 
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
