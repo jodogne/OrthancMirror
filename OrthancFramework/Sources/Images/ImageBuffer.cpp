@@ -26,6 +26,7 @@
 #include "ImageBuffer.h"
 
 #include "../OrthancException.h"
+#include "../Constants.h"
 
 #include <boost/lexical_cast.hpp>
 #include <stdio.h>
@@ -48,6 +49,11 @@ namespace Orthanc
 
       const uint64_t tmpPitch = static_cast<uint64_t>(GetBytesPerPixel()) * static_cast<uint64_t>(width_);
       const uint64_t size = tmpPitch * static_cast<uint64_t>(height_);
+
+      if (size > MAX_IMAGE_FRAME_SIZE) {
+        throw OrthancException(ErrorCode_BadFileFormat, std::string("Trying to create an ImageBuffer whose size (") + boost::lexical_cast<std::string>(size) + " bytes) is larger than the limit (" + boost::lexical_cast<std::string>(MAX_IMAGE_FRAME_SIZE) + " bytes)");
+      }
+
 
       if (static_cast<uint64_t>(static_cast<unsigned int>(tmpPitch)) != tmpPitch ||
           static_cast<uint64_t>(static_cast<size_t>(size)) != size)
