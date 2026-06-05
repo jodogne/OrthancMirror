@@ -147,10 +147,6 @@
 #  define EXS_JPEGProcess1      EXS_JPEGProcess1TransferSyntax
 #endif
 
-static const uint64_t MAX_OVERLAY_SIZE = (sizeof(void*) == 4
-                                          ? 1 * Orthanc::GIGABYTE   // 1 GB on 32 bits system
-                                          : 4 * Orthanc::GIGABYTE); // 4 GB on 64 bits system
-
 
 namespace Orthanc
 {
@@ -2137,15 +2133,15 @@ namespace Orthanc
 
       uint64_t expectedOverlaySize = Ceiling(static_cast<uint64_t>(rows) * columns, 8);
 
-      if (expectedOverlaySize > MAX_OVERLAY_SIZE ||
+      if (expectedOverlaySize > MAX_IMAGE_FRAME_SIZE ||
           static_cast<uint64_t>(static_cast<size_t>(expectedOverlaySize)) != expectedOverlaySize)
       {
         std::ostringstream errorMessage;
-        errorMessage << "ParsedDicomFile: max overlay size overflow  (" << expectedOverlaySize << " vs " << MAX_OVERLAY_SIZE << ")";
+        errorMessage << "ParsedDicomFile: max overlay size overflow  (" << expectedOverlaySize << " vs. " << MAX_IMAGE_FRAME_SIZE << ")";
         throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
       }
 
-      if (static_cast<uint64_t>(static_cast<Uint32>(expectedOverlaySize)) != expectedOverlaySize) // in case, some day, MAX_OVERLAY_SIZE gets larger than 4GB
+      if (static_cast<uint64_t>(static_cast<Uint32>(expectedOverlaySize)) != expectedOverlaySize) // in case, some day, MAX_IMAGE_FRAME_SIZE gets larger than 4GB
       {
         std::ostringstream errorMessage;
         errorMessage << "ParsedDicomFile: expectedOverlaySize too large for DCMTK interface (" << expectedOverlaySize << ")";

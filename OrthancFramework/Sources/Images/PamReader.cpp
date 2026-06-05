@@ -40,10 +40,6 @@
 #include <boost/lexical_cast.hpp>
 #include <limits>
 
-static const uint64_t MAX_PAM_IMAGE_BUFFER_SIZE = (sizeof(void*) == 4
-                                                   ? 1 * Orthanc::GIGABYTE   // 1 GB on 32 bits system
-                                                   : 4 * Orthanc::GIGABYTE); // 4 GB on 64 bits system
-
 
 namespace Orthanc
 {
@@ -204,11 +200,11 @@ namespace Orthanc
     }
 
     uint64_t totalSize = pitch * height;
-    if (totalSize > MAX_PAM_IMAGE_BUFFER_SIZE ||
+    if (totalSize > MAX_IMAGE_FRAME_SIZE ||
         static_cast<uint64_t>(static_cast<size_t>(totalSize)) != totalSize)
     {
       std::ostringstream errorMessage;
-      errorMessage << "PAM image too large  (" << totalSize << " vs " << MAX_PAM_IMAGE_BUFFER_SIZE << ")";
+      errorMessage << "PAM image too large  (" << totalSize << " vs. " << MAX_IMAGE_FRAME_SIZE << ")";
       throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
     }
 
