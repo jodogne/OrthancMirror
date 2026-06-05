@@ -168,6 +168,30 @@ with open(os.path.join(BASE, 'OrthancFramework', 'Sources', 'DicomParsing', 'Fro
             print('  - Value representation not handled:', vr)
 
 
+    print('\nChecking FromDcmtkBridge::ConvertLeafElement()')
+
+    func = re.search(r'FromDcmtkBridge::ConvertLeafElement.*?default', content, re.DOTALL).group(0)
+    for vr in vrs:
+        if not ('case EVR_%s' % vr) in func:
+            print('  - Value representation not handled:', vr)
+
+
+    print('\nChecking FromDcmtkBridge::FillElementWithString()')
+
+    func = re.search(r'FromDcmtkBridge::FillElementWithString.*?boost::bad_lexical_cast', content, re.DOTALL).group(0)
+    for vr in vrs:
+        if not ('case EVR_%s' % vr) in func:
+            print('  - Value representation not handled:', vr)
+
+
+    print('\nChecking FromDcmtkBridge::ApplyVisitorToLeaf()')
+
+    func = re.search(r'ApplyVisitorToLeaf.*?boost::bad_lexical_cast', content, re.DOTALL).group(0)
+    for vr in vrs:
+        if not ('case EVR_%s' % vr) and not ('== EVR_%s' % vr) in func:
+            print('  - Value representation not handled:', vr)
+
+
 
 with open(os.path.join(BASE, 'OrthancFramework', 'Sources', 'DicomParsing', 'ToDcmtkBridge.cpp'), 'r') as f:
     content = f.read()

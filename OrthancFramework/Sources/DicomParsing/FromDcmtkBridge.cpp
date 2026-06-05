@@ -823,6 +823,8 @@ namespace Orthanc
         case EVR_UT:  // unlimited text
         case EVR_PN:  // person name
         case EVR_UI:  // unique identifier
+        case EVR_UR:  // URI / URL
+        case EVR_UC:  // Unlimited Characters
         case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
         case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
         {
@@ -3084,6 +3086,8 @@ namespace Orthanc
         case EVR_UT:  // unlimited text
         case EVR_PN:  // person name
         case EVR_UI:  // unique identifier
+        case EVR_UR:  // URI / URL
+        case EVR_UC:  // Unlimited Characters
         {
           Uint8* data = NULL;
           

@@ -164,10 +164,39 @@ TEST(FromDcmtkBridge, ValueRepresentationConversions)
     }
     else
     {
-      ASSERT_EQ(vr, FromDcmtkBridge::Convert(ToDcmtkBridge::Convert(vr)));
+      bool skip = false;
 
-      OrthancPluginValueRepresentation plugins = Plugins::Convert(vr);
-      ASSERT_EQ(vr, Plugins::Convert(plugins));
+#if DCMTK_VERSION_NUMBER < 361
+      if (i == ValueRepresentation_OtherDouble ||
+          i == ValueRepresentation_UnlimitedCharacters ||
+          i == ValueRepresentation_UniversalResource)
+      {
+        skip = true;
+      }
+#endif
+
+#if DCMTK_VERSION_NUMBER < 362
+      if (i == ValueRepresentation_OtherLong)
+      {
+        skip = true;
+      }
+#endif
+
+#if DCMTK_VERSION_NUMBER < 365
+      if (i == ValueRepresentation_OtherVeryLong ||
+          i == ValueRepresentation_SignedVeryLong ||
+          i == ValueRepresentation_UnsignedVeryLong)
+      {
+        skip = true;
+      }
+#endif
+
+      if (!skip)
+      {
+        ASSERT_EQ(vr, FromDcmtkBridge::Convert(ToDcmtkBridge::Convert(vr)));
+        OrthancPluginValueRepresentation plugins = Plugins::Convert(vr);
+        ASSERT_EQ(vr, Plugins::Convert(plugins));
+      }
     }
   }
 
