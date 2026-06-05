@@ -86,10 +86,11 @@ namespace Orthanc
         return EVR_OF;
 
       case ValueRepresentation_OtherLong:
-#if DCMTK_VERSION_NUMBER >= 361
+#if DCMTK_VERSION_NUMBER >= 362
         return EVR_OL;
 #else
-        throw OrthancException(ErrorCode_NotSupported, "OL value representation is not supported, as using DCMTK <= 3.6.0");
+        // Even though EVR_OL was introduced in DCMTK 3.6.1, its implementation was broken
+        throw OrthancException(ErrorCode_NotSupported, "OL value representation is not supported, as using DCMTK <= 3.6.1");
 #endif
 
       case ValueRepresentation_OtherWord:

@@ -151,8 +151,9 @@ TEST(FromDcmtkBridge, ValueRepresentationConversions)
   ASSERT_EQ(1, ValueRepresentation_ApplicationEntity);
   ASSERT_EQ(1, OrthancPluginValueRepresentation_AE);
 
-  for (int i = ValueRepresentation_ApplicationEntity;
-       i <= ValueRepresentation_NotSupported; i++)
+  ASSERT_EQ(35, ValueRepresentation_NotSupported);  // New enum values were added, update this test
+
+  for (int i = ValueRepresentation_ApplicationEntity; i <= ValueRepresentation_NotSupported; i++)
   {
     ValueRepresentation vr = static_cast<ValueRepresentation>(i);
 
@@ -160,15 +161,6 @@ TEST(FromDcmtkBridge, ValueRepresentationConversions)
     {
       ASSERT_THROW(ToDcmtkBridge::Convert(vr), OrthancException);
       ASSERT_THROW(Plugins::Convert(vr), OrthancException);
-    }
-    else if (vr == ValueRepresentation_OtherDouble || 
-             vr == ValueRepresentation_OtherLong ||
-             vr == ValueRepresentation_UniversalResource ||
-             vr == ValueRepresentation_UnlimitedCharacters)
-    {
-      // These VR are not supported as of DCMTK 3.6.0
-      ASSERT_THROW(ToDcmtkBridge::Convert(vr), OrthancException);
-      ASSERT_EQ(OrthancPluginValueRepresentation_UN, Plugins::Convert(vr));
     }
     else
     {
@@ -179,8 +171,7 @@ TEST(FromDcmtkBridge, ValueRepresentationConversions)
     }
   }
 
-  for (int i = OrthancPluginValueRepresentation_AE;
-       i <= OrthancPluginValueRepresentation_UT; i++)
+  for (int i = OrthancPluginValueRepresentation_AE; i <= OrthancPluginValueRepresentation_UV; i++)
   {
     OrthancPluginValueRepresentation plugins = static_cast<OrthancPluginValueRepresentation>(i);
     ValueRepresentation orthanc = Plugins::Convert(plugins);

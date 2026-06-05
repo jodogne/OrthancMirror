@@ -616,7 +616,8 @@ namespace Orthanc
     ValueRepresentation_OtherVeryLong = 32,        // OV (8 bytes, new in Orthanc 1.12.12)
     ValueRepresentation_SignedVeryLong = 33,       // SV (int64_t, new in Orthanc 1.12.12)
     ValueRepresentation_UnsignedVeryLong = 34,     // UV (uint64_t, new in Orthanc 1.12.12)
-    ValueRepresentation_NotSupported               // Not supported by Orthanc, or tag not in dictionary
+
+    ValueRepresentation_NotSupported               // Not supported by Orthanc, or tag not in dictionary (must be the last one)
   };
 
   enum DicomReplaceMode
