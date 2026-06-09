@@ -26,7 +26,7 @@ General
 REST API
 --------
 
-* API version upgraded to 31
+* API version upgraded to 32
 * New fields reported in the "/system" route:
   - "OverwriteInstancesMode" (Boolean field "OverwriteInstances" is kept for backward
     compatibility)
