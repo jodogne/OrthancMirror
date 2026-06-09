@@ -690,7 +690,7 @@ namespace Orthanc
       {
         boost::shared_ptr<ThreadPool> pool(new ThreadPool);
         pool->SetCountThreads(2);  // TODO-Streaming - Parameter
-        pool->SetLoggingThreadName("DICOM");
+        pool->SetLoggingThreadName("DICOM-SRC");
         pool->SetDequeueTimeout(100);
         pool->Start();
 
