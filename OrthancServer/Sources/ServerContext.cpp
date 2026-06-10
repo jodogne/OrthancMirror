@@ -82,16 +82,28 @@ static const char* const METRICS_STORAGE_AREA_CACHE_COUNT = "orthanc_storage_cac
 static const char* const METRICS_STORAGE_AREA_CACHE_HIT_COUNT = "orthanc_storage_cache_hit_count";
 static const char* const METRICS_STORAGE_AREA_CACHE_MISS_COUNT = "orthanc_storage_cache_miss_count";
 static const char* const METRICS_STORAGE_AREA_CACHE_SIZE_MB = "orthanc_storage_cache_size_mb";
+static const char* const METRICS_STORAGE_AREA_MEMORY_CAPACITY_MB = "orthanc_storage_memory_capacity_mb";
+static const char* const METRICS_STORAGE_AREA_MEMORY_USAGE_MB = "orthanc_storage_memory_usage_mb";
+static const char* const METRICS_STORAGE_AREA_MEMORY_MAX_USAGE_MB = "orthanc_storage_memory_max_usage_mb";
+static const char* const METRICS_STORAGE_AREA_MEMORY_COUNT = "orthanc_storage_memory_count";
 
 static const char* const METRICS_DICOM_CACHE_COUNT = "orthanc_dicom_cache_count";
 static const char* const METRICS_DICOM_CACHE_HIT_COUNT = "orthanc_dicom_cache_hit_count";
 static const char* const METRICS_DICOM_CACHE_MISS_COUNT = "orthanc_dicom_cache_miss_count";
 static const char* const METRICS_DICOM_CACHE_SIZE_MB = "orthanc_dicom_cache_size_mb";
+static const char* const METRICS_DICOM_MEMORY_CAPACITY_MB = "orthanc_dicom_memory_capacity_mb";
+static const char* const METRICS_DICOM_MEMORY_USAGE_MB = "orthanc_dicom_memory_usage_mb";
+static const char* const METRICS_DICOM_MEMORY_MAX_USAGE_MB = "orthanc_dicom_memory_max_usage_mb";
+static const char* const METRICS_DICOM_MEMORY_COUNT = "orthanc_dicom_memory_count";
 
 static const char* const METRICS_TRANSCODER_CACHE_COUNT = "orthanc_transcoder_cache_count";
 static const char* const METRICS_TRANSCODER_CACHE_HIT_COUNT = "orthanc_transcoder_cache_hit_count";
 static const char* const METRICS_TRANSCODER_CACHE_MISS_COUNT = "orthanc_transcoder_cache_miss_count";
 static const char* const METRICS_TRANSCODER_CACHE_SIZE_MB = "orthanc_transcoder_cache_size_mb";
+static const char* const METRICS_TRANSCODER_MEMORY_CAPACITY_MB = "orthanc_transcoder_memory_capacity_mb";
+static const char* const METRICS_TRANSCODER_MEMORY_USAGE_MB = "orthanc_transcoder_memory_usage_mb";
+static const char* const METRICS_TRANSCODER_MEMORY_MAX_USAGE_MB = "orthanc_transcoder_memory_max_usage_mb";
+static const char* const METRICS_TRANSCODER_MEMORY_COUNT = "orthanc_transcoder_memory_count";
 
 
 
@@ -678,7 +690,11 @@ namespace Orthanc
                                                  METRICS_STORAGE_AREA_CACHE_SIZE_MB,
                                                  METRICS_STORAGE_AREA_CACHE_COUNT,
                                                  METRICS_STORAGE_AREA_CACHE_HIT_COUNT,
-                                                 METRICS_STORAGE_AREA_CACHE_MISS_COUNT));
+                                                 METRICS_STORAGE_AREA_CACHE_MISS_COUNT,
+                                                 METRICS_STORAGE_AREA_MEMORY_CAPACITY_MB,
+                                                 METRICS_STORAGE_AREA_MEMORY_USAGE_MB,
+                                                 METRICS_STORAGE_AREA_MEMORY_COUNT,
+                                                 METRICS_STORAGE_AREA_MEMORY_MAX_USAGE_MB));
 
         //storageAreaReader_->SetCapacity(1);  // To test on highest pressure
         storageAreaReader_->SetCapacity(256 * MEGABYTE); // TODO-Streaming - Parameter
@@ -700,7 +716,11 @@ namespace Orthanc
                                                  METRICS_DICOM_CACHE_SIZE_MB,
                                                  METRICS_DICOM_CACHE_COUNT,
                                                  METRICS_DICOM_CACHE_HIT_COUNT,
-                                                 METRICS_DICOM_CACHE_MISS_COUNT));
+                                                 METRICS_DICOM_CACHE_MISS_COUNT,
+                                                 METRICS_DICOM_MEMORY_CAPACITY_MB,
+                                                 METRICS_DICOM_MEMORY_USAGE_MB,
+                                                 METRICS_DICOM_MEMORY_COUNT,
+                                                 METRICS_DICOM_MEMORY_MAX_USAGE_MB));
 
         //dicomReader_->SetCapacity(1);  // To test on highest pressure
         dicomReader_->SetCapacity(256 * MEGABYTE); // TODO-Streaming - Parameter
@@ -723,7 +743,11 @@ namespace Orthanc
                                                  METRICS_TRANSCODER_CACHE_SIZE_MB,
                                                  METRICS_TRANSCODER_CACHE_COUNT,
                                                  METRICS_TRANSCODER_CACHE_HIT_COUNT,
-                                                 METRICS_TRANSCODER_CACHE_MISS_COUNT));
+                                                 METRICS_TRANSCODER_CACHE_MISS_COUNT,
+                                                 METRICS_TRANSCODER_MEMORY_CAPACITY_MB,
+                                                 METRICS_TRANSCODER_MEMORY_USAGE_MB,
+                                                 METRICS_TRANSCODER_MEMORY_COUNT,
+                                                 METRICS_TRANSCODER_MEMORY_MAX_USAGE_MB));
 
         //transcoderReader_->SetCapacity(1);  // To test on highest pressure
         transcoderReader_->SetCapacity(256 * MEGABYTE); // TODO-Streaming - Parameter
@@ -740,7 +764,7 @@ namespace Orthanc
         }
 
         std::unique_ptr<ThreadPool> pool(new ThreadPool);
-        pool->SetCountThreads(loaderThreads);  // TODO-Streaming - Check
+        pool->SetCountThreads(loaderThreads);  // TODO-Streaming - Check - clarify the difference between SequentialLoader and DataSourceReader
         pool->SetLoggingThreadName("READER");
         pool->SetDequeueTimeout(100);
         pool->Start();

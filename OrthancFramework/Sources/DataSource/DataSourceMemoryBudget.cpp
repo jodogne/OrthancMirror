@@ -25,11 +25,65 @@
 #include "../PrecompiledHeaders.h"
 #include "DataSourceMemoryBudget.h"
 
+#include "../Constants.h"
+#include "../MetricsRegistry.h"
+#include "../OrthancException.h"
+
+#include <math.h>
 
 namespace Orthanc
 {
   namespace Internals
   {
+    DataSourceMemoryBudget::MetricsConfiguration::MetricsConfiguration(const boost::shared_ptr<MetricsRegistry>& metrics,
+                                                                       const std::string& capacityMaxSizeMegabytesName,
+                                                                       const std::string& capacityCurrentSizeMegabytesName,
+                                                                       const std::string& capacityCountName,
+                                                                       const std::string& capacityMaxUsageSinceStartMegabytesName) :
+      maxMemoryUsageSinceStart_(0)
+    {
+      if (metrics.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_NullPointer);
+      }
+      else if (capacityMaxSizeMegabytesName.empty() ||
+               capacityCurrentSizeMegabytesName.empty() ||
+               capacityCountName.empty() ||
+               capacityMaxUsageSinceStartMegabytesName.empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        metrics_ = metrics;
+        capacityMaxSizeMegabytesName_ = capacityMaxSizeMegabytesName;
+        capacityCurrentSizeMegabytesName_ = capacityCurrentSizeMegabytesName;
+        capacityCountName_ = capacityCountName;
+        capacityMaxUsageSinceStartMegabytesName_ = capacityMaxUsageSinceStartMegabytesName;
+
+        Update(0, 0, 0);
+      }
+    }
+
+    void DataSourceMemoryBudget::MetricsConfiguration::Update(uint64_t maximumMemorySize, uint64_t currentMemorySize, unsigned int currentReservationCount)
+    {
+      maxMemoryUsageSinceStart_ = std::max(currentMemorySize, maxMemoryUsageSinceStart_);
+
+      metrics_->SetFloatValue(capacityMaxSizeMegabytesName_, static_cast<float>(maximumMemorySize) / static_cast<float>(MEGABYTE)); // will be updated when we set the capacity
+      metrics_->SetFloatValue(capacityCurrentSizeMegabytesName_, static_cast<float>(currentMemorySize) / static_cast<float>(MEGABYTE));
+      metrics_->SetIntegerValue(capacityCountName_, currentReservationCount);
+      metrics_->SetFloatValue(capacityMaxUsageSinceStartMegabytesName_, static_cast<float>(maxMemoryUsageSinceStart_) / static_cast<float>(MEGABYTE));
+    }
+
+
+    void DataSourceMemoryBudget::SetMetricsConfiguration(const MetricsConfiguration& configuration)
+    {
+      metricsConfiguration_ = configuration;
+      
+      boost::mutex::scoped_lock lock(mutex_);
+      metricsConfiguration_.Update(maximumMemory_, currentMemory_, reservations_);
+    }
+
     DataSourceMemoryBudget::DataSourceMemoryBudget(uint64_t maximumMemory) :
       maximumMemory_(maximumMemory),
       currentMemory_(0),
@@ -50,6 +104,8 @@ namespace Orthanc
 
       currentMemory_ += memory;
       reservations_++;
+      
+      metricsConfiguration_.Update(maximumMemory_, currentMemory_, reservations_);
     }
 
 
@@ -62,7 +118,9 @@ namespace Orthanc
 
       assert(reservations_ > 0);
       reservations_--;
-
+      
+      metricsConfiguration_.Update(maximumMemory_, currentMemory_, reservations_);
+      
       cond_.notify_all();
     }
 

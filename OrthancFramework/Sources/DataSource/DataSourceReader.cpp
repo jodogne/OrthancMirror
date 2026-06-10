@@ -42,7 +42,11 @@ namespace Orthanc
                                                                const std::string& cacheSizeMegabytesName,
                                                                const std::string& cacheCountName,
                                                                const std::string& cacheHitCountName,
-                                                               const std::string& cacheMissCountName)
+                                                               const std::string& cacheMissCountName,
+                                                               const std::string& capacityMaxSizeMegabytesName,
+                                                               const std::string& capacityCurrentSizeMegabytesName,
+                                                               const std::string& capacityCountName,
+                                                               const std::string& capacityMaxUsageSinceStartMegabytesName)
   {
     if (metrics.get() == NULL)
     {
@@ -51,7 +55,11 @@ namespace Orthanc
     else if (cacheSizeMegabytesName.empty() ||
              cacheCountName.empty() ||
              cacheHitCountName.empty() ||
-             cacheMissCountName.empty())
+             cacheMissCountName.empty() || 
+             capacityMaxSizeMegabytesName.empty() ||
+             capacityCurrentSizeMegabytesName.empty() ||
+             capacityCountName.empty() ||
+             capacityMaxUsageSinceStartMegabytesName.empty())
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -62,11 +70,19 @@ namespace Orthanc
       cacheCountName_ = cacheCountName;
       cacheHitCountName_ = cacheHitCountName;
       cacheMissCountName_ = cacheMissCountName;
+      capacityMaxSizeMegabytesName_ = capacityMaxSizeMegabytesName;
+      capacityCurrentSizeMegabytesName_ = capacityCurrentSizeMegabytesName;
+      capacityCountName_ = capacityCountName;
+      capacityMaxUsageSinceStartMegabytesName_ = capacityMaxUsageSinceStartMegabytesName;
 
       metrics_->SetFloatValue(cacheSizeMegabytesName_, 0);
       metrics_->SetIntegerValue(cacheCountName_, 0);
       metrics_->SetIntegerValue(cacheHitCountName_, 0);
       metrics_->SetIntegerValue(cacheMissCountName_, 0);
+      metrics_->SetFloatValue(capacityMaxSizeMegabytesName_, 0); // will be updated when we set the capacity
+      metrics_->SetFloatValue(capacityCurrentSizeMegabytesName_, 0);
+      metrics_->SetIntegerValue(capacityCountName_, 0);
+      metrics_->SetFloatValue(capacityMaxUsageSinceStartMegabytesName_, 0);
     }
   }
 
@@ -273,10 +289,28 @@ namespace Orthanc
     cache_ = boost::make_shared<SharedObjectCache>(capacity);
   }
 
+  void DataSourceReader::SetMetricsConfiguration(const MetricsConfiguration& configuration)
+  {
+    metricsConfiguration_ = configuration;
+    if (budget_.get())
+    {
+      budget_->SetMetricsConfiguration(Internals::DataSourceMemoryBudget::MetricsConfiguration(configuration.metrics_,
+                                                                                               configuration.capacityMaxSizeMegabytesName_,
+                                                                                               configuration.capacityCurrentSizeMegabytesName_,
+                                                                                               configuration.capacityCountName_,
+                                                                                               configuration.capacityMaxUsageSinceStartMegabytesName_));
+    }
+  }
+
 
   void DataSourceReader::SetCapacity(uint64_t maximumMemory)
   {
     budget_ = boost::make_shared<Internals::DataSourceMemoryBudget>(maximumMemory);
+    budget_->SetMetricsConfiguration(Internals::DataSourceMemoryBudget::MetricsConfiguration(metricsConfiguration_.metrics_,
+                                                                                             metricsConfiguration_.capacityMaxSizeMegabytesName_,
+                                                                                             metricsConfiguration_.capacityCurrentSizeMegabytesName_,
+                                                                                             metricsConfiguration_.capacityCountName_,
+                                                                                             metricsConfiguration_.capacityMaxUsageSinceStartMegabytesName_));
   }
 
 

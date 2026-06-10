@@ -47,12 +47,16 @@ namespace Orthanc
   public:
     class MetricsConfiguration
     {
-    private:
+    protected:
       boost::shared_ptr<MetricsRegistry>  metrics_;
       std::string                         cacheSizeMegabytesName_;
       std::string                         cacheCountName_;
       std::string                         cacheHitCountName_;
       std::string                         cacheMissCountName_;
+      std::string                         capacityMaxSizeMegabytesName_;
+      std::string                         capacityCurrentSizeMegabytesName_;
+      std::string                         capacityCountName_;
+      std::string                         capacityMaxUsageSinceStartMegabytesName_;
 
     public:
       MetricsConfiguration()
@@ -63,13 +67,19 @@ namespace Orthanc
                            const std::string& cacheSizeMegabytesName,
                            const std::string& cacheCountName,
                            const std::string& cacheHitCountName,
-                           const std::string& cacheMissCountName);
+                           const std::string& cacheMissCountName,
+                           const std::string& capacityMaxSizeMegabytesName,
+                           const std::string& capacityCurrentSizeMegabytesName,
+                           const std::string& capacityCountName,
+                           const std::string& capacityMaxUsageSinceStartMegabytesName);
 
       void SetCacheStatistics(SharedObjectCache& cache);
 
       void IncrementCacheHitCount();
 
       void IncrementCacheMissCount();
+      
+      friend DataSourceReader;
     };
 
   private:
@@ -88,10 +98,7 @@ namespace Orthanc
 
     ~DataSourceReader();
 
-    void SetMetricsConfiguration(const MetricsConfiguration& configuration)
-    {
-      metricsConfiguration_ = configuration;
-    }
+    void SetMetricsConfiguration(const MetricsConfiguration& configuration);
 
     void CreateCache(size_t capacity);
 

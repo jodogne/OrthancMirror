@@ -39,24 +39,55 @@
 
 namespace Orthanc
 {
+  class MetricsRegistry;
+
   namespace Internals
   {
-    // This is basically a semaphore with the uint64_t data type
+    // This is basically a semaphore with the uint64_t data type (with metrics !)
     class ORTHANC_PUBLIC DataSourceMemoryBudget : public boost::noncopyable
     {
+    public:
+      class MetricsConfiguration
+      {
+      private:
+        boost::shared_ptr<MetricsRegistry>  metrics_;
+        std::string                         capacityMaxSizeMegabytesName_;
+        std::string                         capacityCurrentSizeMegabytesName_;
+        std::string                         capacityCountName_;
+        std::string                         capacityMaxUsageSinceStartMegabytesName_;
+        uint64_t                            maxMemoryUsageSinceStart_;
+
+      public:
+        MetricsConfiguration()
+        {
+        }
+
+        MetricsConfiguration(const boost::shared_ptr<MetricsRegistry>& metrics,
+                             const std::string& capacityMaxSizeMegabytesName,
+                             const std::string& capacityCurrentSizeMegabytesName,
+                             const std::string& capacityCountName,
+                             const std::string& capacityMaxUsageSinceStartMegabytesName);
+
+        void Update(uint64_t maximumMemorySize, uint64_t currentMemorySize, unsigned int currentReservationCount);
+      };
+
+
     private:
       boost::mutex               mutex_;
       boost::condition_variable  cond_;
       const uint64_t             maximumMemory_;
       uint64_t                   currentMemory_;
       unsigned int               reservations_;
+      MetricsConfiguration       metricsConfiguration_;
 
     public:
-      explicit DataSourceMemoryBudget(uint64_t maximumMemory);
+      explicit DataSourceMemoryBudget(uint64_t maximumMemory); //, const MetricsConfiguration& metricsConfiguration);
 
       void Acquire(size_t memory) ORTHANC_NOEXCEPT;
 
       void Release(size_t memory) ORTHANC_NOEXCEPT;
+
+      void SetMetricsConfiguration(const MetricsConfiguration& configuration);
 
       uint64_t GetCurrentMemory() ORTHANC_NOEXCEPT;
 
