@@ -221,7 +221,8 @@ namespace Orthanc
     virtual bool EstimateValueSize(size_t& target) const ORTHANC_OVERRIDE
     {
       assert(start_ <= end_);
-      return end_ - start_;
+      target = end_ - start_;
+      return target > 0;
     }
 
     void SetPostProcessing(IPostProcessing* postProcessing)
