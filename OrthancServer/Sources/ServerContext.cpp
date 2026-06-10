@@ -85,15 +85,17 @@ static const char* const METRICS_STORAGE_AREA_MEMORY_CAPACITY_MB = "orthanc_stor
 static const char* const METRICS_STORAGE_AREA_MEMORY_USAGE_MB = "orthanc_storage_memory_usage_mb";
 static const char* const METRICS_STORAGE_AREA_MEMORY_MAX_USAGE_MB = "orthanc_storage_memory_max_usage_mb";
 static const char* const METRICS_STORAGE_AREA_MEMORY_COUNT = "orthanc_storage_memory_count";
+static const char* const METRICS_STORAGE_THREAD_POOL_AVAILABLE_THREADS = "orthanc_storage_available_threads";
 
-static const char* const METRICS_DICOM_CACHE_COUNT = "orthanc_dicom_cache_count";
-static const char* const METRICS_DICOM_CACHE_HIT_COUNT = "orthanc_dicom_cache_hit_count";
-static const char* const METRICS_DICOM_CACHE_MISS_COUNT = "orthanc_dicom_cache_miss_count";
-static const char* const METRICS_DICOM_CACHE_SIZE_MB = "orthanc_dicom_cache_size_mb";
-static const char* const METRICS_DICOM_MEMORY_CAPACITY_MB = "orthanc_dicom_memory_capacity_mb";
-static const char* const METRICS_DICOM_MEMORY_USAGE_MB = "orthanc_dicom_memory_usage_mb";
-static const char* const METRICS_DICOM_MEMORY_MAX_USAGE_MB = "orthanc_dicom_memory_max_usage_mb";
-static const char* const METRICS_DICOM_MEMORY_COUNT = "orthanc_dicom_memory_count";
+static const char* const METRICS_DICOM_SOURCE_CACHE_COUNT = "orthanc_dicom_source_cache_count";
+static const char* const METRICS_DICOM_SOURCE_CACHE_HIT_COUNT = "orthanc_dicom_source_cache_hit_count";
+static const char* const METRICS_DICOM_SOURCE_CACHE_MISS_COUNT = "orthanc_dicom_source_cache_miss_count";
+static const char* const METRICS_DICOM_SOURCE_CACHE_SIZE_MB = "orthanc_dicom_source_cache_size_mb";
+static const char* const METRICS_DICOM_SOURCE_MEMORY_CAPACITY_MB = "orthanc_dicom_source_memory_capacity_mb";
+static const char* const METRICS_DICOM_SOURCE_MEMORY_USAGE_MB = "orthanc_dicom_source_memory_usage_mb";
+static const char* const METRICS_DICOM_SOURCE_MEMORY_MAX_USAGE_MB = "orthanc_dicom_source_memory_max_usage_mb";
+static const char* const METRICS_DICOM_SOURCE_MEMORY_COUNT = "orthanc_dicom_source_memory_count";
+static const char* const METRICS_DICOM_SOURCE_THREAD_POOL_AVAILABLE_THREADS = "orthanc_dicom_source_available_threads";
 
 static const char* const METRICS_TRANSCODER_CACHE_COUNT = "orthanc_transcoder_cache_count";
 static const char* const METRICS_TRANSCODER_CACHE_HIT_COUNT = "orthanc_transcoder_cache_hit_count";
@@ -103,6 +105,9 @@ static const char* const METRICS_TRANSCODER_MEMORY_CAPACITY_MB = "orthanc_transc
 static const char* const METRICS_TRANSCODER_MEMORY_USAGE_MB = "orthanc_transcoder_memory_usage_mb";
 static const char* const METRICS_TRANSCODER_MEMORY_MAX_USAGE_MB = "orthanc_transcoder_memory_max_usage_mb";
 static const char* const METRICS_TRANSCODER_MEMORY_COUNT = "orthanc_transcoder_memory_count";
+static const char* const METRICS_TRANSCODER_THREAD_POOL_AVAILABLE_THREADS = "orthanc_transcoder_available_threads";
+
+static const char* const METRICS_SEQ_READER_THREAD_POOL_AVAILABLE_THREADS = "orthanc_seq_reader_available_threads";
 
 static const char* const CONFIG_STORAGE_LOADER_THREADS = "StorageLoaderThreads";
 static const char* const CONFIG_STORAGE_MEMORY_CAPACITY = "StorageMemoryCapacity";
@@ -716,9 +721,10 @@ namespace Orthanc
       // For streaming
       {
         boost::shared_ptr<ThreadPool> pool(new ThreadPool);
-        pool->SetCountThreads(storageLoaderThreads);  // TODO-Streaming - Parameter
-        pool->SetLoggingThreadName("STORAGE");
+        pool->SetCountThreads(storageLoaderThreads);
+        pool->SetLoggingThreadName("STORAGE-SRC");
         pool->SetDequeueTimeout(100);
+        pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_STORAGE_THREAD_POOL_AVAILABLE_THREADS);
         pool->Start();
 
         std::unique_ptr<StorageAreaDataSource> source(new StorageAreaDataSource(area_, checkMD5));
@@ -747,19 +753,20 @@ namespace Orthanc
         pool->SetCountThreads(2);  // TODO-Streaming - Parameter
         pool->SetLoggingThreadName("DICOM-SRC");
         pool->SetDequeueTimeout(100);
+        pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_DICOM_SOURCE_THREAD_POOL_AVAILABLE_THREADS);
         pool->Start();
 
         dicomReader_.reset(new DataSourceReader(pool, new DicomDataSource(storageAreaReader_)));
         dicomReader_->SetMetricsConfiguration(
           DataSourceReader::MetricsConfiguration(metricsRegistry_,
-                                                 METRICS_DICOM_CACHE_SIZE_MB,
-                                                 METRICS_DICOM_CACHE_COUNT,
-                                                 METRICS_DICOM_CACHE_HIT_COUNT,
-                                                 METRICS_DICOM_CACHE_MISS_COUNT,
-                                                 METRICS_DICOM_MEMORY_CAPACITY_MB,
-                                                 METRICS_DICOM_MEMORY_USAGE_MB,
-                                                 METRICS_DICOM_MEMORY_COUNT,
-                                                 METRICS_DICOM_MEMORY_MAX_USAGE_MB));
+                                                 METRICS_DICOM_SOURCE_CACHE_SIZE_MB,
+                                                 METRICS_DICOM_SOURCE_CACHE_COUNT,
+                                                 METRICS_DICOM_SOURCE_CACHE_HIT_COUNT,
+                                                 METRICS_DICOM_SOURCE_CACHE_MISS_COUNT,
+                                                 METRICS_DICOM_SOURCE_MEMORY_CAPACITY_MB,
+                                                 METRICS_DICOM_SOURCE_MEMORY_USAGE_MB,
+                                                 METRICS_DICOM_SOURCE_MEMORY_COUNT,
+                                                 METRICS_DICOM_SOURCE_MEMORY_MAX_USAGE_MB));
 
         //dicomReader_->SetCapacity(1);  // To test on highest pressure
         dicomReader_->SetCapacity(256 * MEGABYTE); // TODO-Streaming - Parameter
@@ -770,10 +777,10 @@ namespace Orthanc
       if (transcoder_.get() != NULL)
       {
         boost::shared_ptr<ThreadPool> pool(new ThreadPool);
-        pool.reset(new ThreadPool);
         pool->SetCountThreads(2);  // TODO-Streaming - Parameter
         pool->SetLoggingThreadName("TRANSCODER");
         pool->SetDequeueTimeout(100);
+        pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_TRANSCODER_THREAD_POOL_AVAILABLE_THREADS);
         pool->Start();
 
         transcoderReader_.reset(new DataSourceReader(pool, new TranscoderDataSource(transcoder_, storageAreaReader_)));
@@ -804,8 +811,9 @@ namespace Orthanc
 
         std::unique_ptr<ThreadPool> pool(new ThreadPool);
         pool->SetCountThreads(loaderThreads);  // TODO-Streaming - Check - clarify the difference between SequentialLoader and DataSourceReader
-        pool->SetLoggingThreadName("READER");
+        pool->SetLoggingThreadName("SEQ-READER");
         pool->SetDequeueTimeout(100);
+        pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_SEQ_READER_THREAD_POOL_AVAILABLE_THREADS);
         pool->Start();
 
         boost::shared_ptr<IExecutorService> executor(pool.release());

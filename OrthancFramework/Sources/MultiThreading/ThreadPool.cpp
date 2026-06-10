@@ -27,6 +27,7 @@
 
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "../MetricsRegistry.h"
 #include "FutureState.h"
 
 #include <boost/lexical_cast.hpp>
@@ -38,6 +39,14 @@ static const unsigned int DEFAULT_DEQUEUE_TIMEOUT_MS = 100;
 
 namespace Orthanc
 {
+  void ThreadPool::SetMetricsConfiguration(MetricsRegistry& metrics, const std::string& availableThreadsMetricName)
+  {
+    availableThreadsMetrics_.reset(new MetricsRegistry::SharedMetrics(metrics,
+                                                                      availableThreadsMetricName,
+                                                                      MetricsUpdatePolicy_MinOver10Seconds));
+    availableThreadsMetrics_->SetInitialValue(countThreads_);
+  }
+
   class ThreadPool::ITask : public IDynamicObject
   {
   public:
@@ -233,6 +242,12 @@ namespace Orthanc
 
       if (task.get() != NULL)
       {
+        std::unique_ptr<MetricsRegistry::AvailableResourcesDecounter> decounter; // mark this thread as being used in the metrics
+        if (availableThreadsMetrics_.get())
+        {
+          decounter.reset(new MetricsRegistry::AvailableResourcesDecounter(*availableThreadsMetrics_));
+        }
+
         try
         {
           dynamic_cast<ITask&>(*task).Execute();
