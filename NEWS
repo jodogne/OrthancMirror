@@ -5,7 +5,12 @@ General
 -------
 
 * Full rewrite of access to storage area and of DICOM parsing/transcoding
-  to improve caching and to limit memory usage.
+  to improve caching and to limit memory usage.  
+  This change brings updated configurations (TODO: review):
+  - "StorageLoaderThreads"
+  - "StorageMemoryCapacity"
+  And new metrics:
+  - TODO list
 * New values for "OverwriteInstances" configuration. In previous versions, this configuration
   was a Boolean and it is now a string whose allowed values are "Never", "Always",
   and "IfChanged". For backward compatibility, you may still provide a Boolean value

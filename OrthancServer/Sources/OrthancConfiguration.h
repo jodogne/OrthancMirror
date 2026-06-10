@@ -269,6 +269,8 @@ namespace Orthanc
 
     unsigned int GetLoaderThreads() const;
 
+    unsigned int GetConcurrentJobs() const;
+
     void Format(std::string& result) const;
     
     void SetDefaultEncoding(Encoding encoding);

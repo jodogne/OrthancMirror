@@ -64,6 +64,16 @@
   // is disabled.  (new in Orthanc 1.10.0)
   "MaximumStorageCacheSize" : 128,
 
+  // Amount of RAM that are allocated to the storage loader threads.
+  // Note that this limit can be overpassed when a single file 
+  // exceeds this size.
+  // (new in Orthanc 1.12.11+)
+  "StorageMemoryCapacity": 256,
+
+  // Number of threads that are used to read files from the storage.
+  // (new in Orthanc 1.12.11+)
+  "StorageLoaderThreads": 4,
+
   // List of paths to the custom Lua scripts that are to be loaded
   // into this instance of Orthanc
   "LuaScripts" : [

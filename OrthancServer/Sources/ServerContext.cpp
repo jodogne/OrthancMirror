@@ -63,6 +63,7 @@
 #include <dcmtk/dcmdata/dcuid.h>        /* for variable dcmAllStorageSOPClassUIDs */
 
 #include <boost/regex.hpp>
+#include <math.h>
 
 #if HAVE_MALLOC_TRIM == 1
 #  include <malloc.h>
@@ -75,8 +76,6 @@ static const char* const METRICS_STORAGE_AREA_READ_BYTES = "orthanc_storage_read
 static const char* const METRICS_STORAGE_AREA_READ_DURATION = "orthanc_storage_read_duration_ms";
 static const char* const METRICS_STORAGE_AREA_REMOVE_DURATION = "orthanc_storage_remove_duration_ms";
 static const char* const METRICS_STORAGE_AREA_WRITTEN_BYTES = "orthanc_storage_written_bytes";
-
-
 
 static const char* const METRICS_STORAGE_AREA_CACHE_COUNT = "orthanc_storage_cache_count";
 static const char* const METRICS_STORAGE_AREA_CACHE_HIT_COUNT = "orthanc_storage_cache_hit_count";
@@ -105,6 +104,8 @@ static const char* const METRICS_TRANSCODER_MEMORY_USAGE_MB = "orthanc_transcode
 static const char* const METRICS_TRANSCODER_MEMORY_MAX_USAGE_MB = "orthanc_transcoder_memory_max_usage_mb";
 static const char* const METRICS_TRANSCODER_MEMORY_COUNT = "orthanc_transcoder_memory_count";
 
+static const char* const CONFIG_STORAGE_LOADER_THREADS = "StorageLoaderThreads";
+static const char* const CONFIG_STORAGE_MEMORY_CAPACITY = "StorageMemoryCapacity";
 
 
 /**
@@ -538,7 +539,7 @@ namespace Orthanc
         mediaArchive_.reset(
           new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("MediaArchiveSize", 1)));
         defaultLocalAet_ = lock.GetConfiguration().GetOrthancAET();
-        jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs", 2));
+        jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetConcurrentJobs());
 
         saveJobs_ = lock.GetConfiguration().GetBooleanParameter("SaveJobs", true);
         if (readOnly_ && saveJobs_)
@@ -672,10 +673,50 @@ namespace Orthanc
       LOG(INFO) << "Your platform does not support malloc_trim(), not starting the memory trimming thread";
 #endif
 
+      unsigned int storageLoaderThreads;
+      size_t storageCacheSizeMb;
+      unsigned int storageMemoryCapacityMb;
+
+      {
+        OrthancConfiguration::ReaderLock lock;
+        unsigned int loaderThreads = lock.GetConfiguration().GetLoaderThreads();
+        unsigned int concurrentJobs = lock.GetConfiguration().GetConcurrentJobs();
+        storageCacheSizeMb = lock.GetConfiguration().GetMaximumStorageCacheSize();
+
+        if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(storageLoaderThreads, CONFIG_STORAGE_LOADER_THREADS))
+        {
+          storageLoaderThreads = loaderThreads * concurrentJobs;
+          if (storageLoaderThreads < 4)
+          {
+            storageLoaderThreads = 4;
+            LOG(WARNING) << "'" << CONFIG_STORAGE_LOADER_THREADS << "' is not defined in your configuration, setting it to " << storageLoaderThreads;
+          }
+          else
+          {
+            storageLoaderThreads = std::min(50u, storageLoaderThreads);
+            LOG(WARNING) << "'" << CONFIG_STORAGE_LOADER_THREADS << "' is not defined in your configuration, setting it to " << storageLoaderThreads << ", based on 'ConcurrentJobs' and the old 'LoaderThreads' configurations.";
+          }
+        }
+        else
+        {
+          LOG(WARNING) << "'" << CONFIG_STORAGE_LOADER_THREADS << "' is set to " << storageLoaderThreads;
+        }
+
+        if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(storageMemoryCapacityMb, CONFIG_STORAGE_MEMORY_CAPACITY))
+        {
+          storageMemoryCapacityMb = 256;
+          LOG(WARNING) << "'" << CONFIG_STORAGE_MEMORY_CAPACITY << "' is not defined in your configuration, setting it to " << storageMemoryCapacityMb << ".  Depending on the available memory on the system, you might want to adapt this value.";
+        }
+        else
+        {
+          LOG(WARNING) << "'" << CONFIG_STORAGE_MEMORY_CAPACITY << "' is set to " << storageMemoryCapacityMb;
+        }
+      }
+
       // For streaming
       {
         boost::shared_ptr<ThreadPool> pool(new ThreadPool);
-        pool->SetCountThreads(4);  // TODO-Streaming - Parameter
+        pool->SetCountThreads(storageLoaderThreads);  // TODO-Streaming - Parameter
         pool->SetLoggingThreadName("STORAGE");
         pool->SetDequeueTimeout(100);
         pool->Start();
@@ -696,11 +737,9 @@ namespace Orthanc
                                                  METRICS_STORAGE_AREA_MEMORY_COUNT,
                                                  METRICS_STORAGE_AREA_MEMORY_MAX_USAGE_MB));
 
-        //storageAreaReader_->SetCapacity(1);  // To test on highest pressure
-        storageAreaReader_->SetCapacity(256 * MEGABYTE); // TODO-Streaming - Parameter
+        storageAreaReader_->SetCapacity(storageMemoryCapacityMb * MEGABYTE);
 
-        //storageAreaReader_->CreateCache(256 * MEGABYTE); // TODO-Streaming - Parameter
-        storageAreaReader_->CreateCache(1 * GIGABYTE); // TODO-Streaming - Parameter
+        storageAreaReader_->CreateCache(storageCacheSizeMb * GIGABYTE);
       }
 
       {
