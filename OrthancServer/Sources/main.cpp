@@ -2083,6 +2083,10 @@ int main(int argc, char* argv[])
     {
       Logging::EnableThreadNames(false);
     }
+    else if (argument == "--logs-no-context")
+    {
+      Logging::EnableContexts(false);
+    }
     else if (argument == "--trace")
     {
       SetGlobalVerbosity(Verbosity_Trace);

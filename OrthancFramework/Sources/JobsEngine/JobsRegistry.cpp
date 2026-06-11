@@ -114,6 +114,8 @@ namespace Orthanc
       pauseScheduled_(false),
       cancelScheduled_(false)
     {
+      Logging::ScopedContextSetter logContext(std::string("job ") + id_);
+      
       if (job == NULL)
       {
         throw OrthancException(ErrorCode_NullPointer);

@@ -28,6 +28,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../MetricsRegistry.h"
+#include "../Toolbox.h"
 #include "FutureState.h"
 
 #include <boost/lexical_cast.hpp>
@@ -57,6 +58,8 @@ namespace Orthanc
     virtual void Execute() = 0;
 
     virtual void Cancel() = 0;
+
+    virtual std::string GetTransmitContext() = 0;
   };
 
 
@@ -65,17 +68,25 @@ namespace Orthanc
   private:
     std::unique_ptr<ICallable>               callable_;
     boost::weak_ptr<Internals::FutureState>  state_;
+    std::string                              transmitContext_;
 
   public:
     CallableTask(ICallable* callable,
-                 boost::shared_ptr<Internals::FutureState>& state) :
+                 boost::shared_ptr<Internals::FutureState>& state,
+                 const std::string& transmitContext) :
       callable_(callable),
-      state_(state)
+      state_(state),
+      transmitContext_(transmitContext)
     {
       assert(callable != NULL);
     }
 
-    void Execute() ORTHANC_OVERRIDE
+    virtual std::string GetTransmitContext() ORTHANC_OVERRIDE
+    {
+      return transmitContext_;
+    }
+
+    virtual void Execute() ORTHANC_OVERRIDE
     {
       boost::shared_ptr<Internals::FutureState> locked = state_.lock();
 
@@ -100,7 +111,7 @@ namespace Orthanc
       }
     }
 
-    void Cancel() ORTHANC_OVERRIDE
+    virtual void Cancel() ORTHANC_OVERRIDE
     {
       boost::shared_ptr<Internals::FutureState> locked = state_.lock();
 
@@ -120,20 +131,28 @@ namespace Orthanc
   {
   private:
     std::unique_ptr<IRunnable>  runnable_;
+    std::string                 transmitContext_;
 
   public:
-    explicit RunnableTask(IRunnable* runnable) :
-      runnable_(runnable)
+    explicit RunnableTask(IRunnable* runnable,
+                          const std::string& transmitContext) :
+      runnable_(runnable),
+      transmitContext_(transmitContext)
     {
       assert(runnable != NULL);
     }
 
-    void Execute() ORTHANC_OVERRIDE
+    virtual std::string GetTransmitContext() ORTHANC_OVERRIDE
+    {
+      return transmitContext_;
+    }
+
+    virtual void Execute() ORTHANC_OVERRIDE
     {
       runnable_->Run();
     }
 
-    void Cancel() ORTHANC_OVERRIDE
+    virtual void Cancel() ORTHANC_OVERRIDE
     {
     }
   };
@@ -250,7 +269,10 @@ namespace Orthanc
 
         try
         {
-          dynamic_cast<ITask&>(*task).Execute();
+          ITask& iTask = dynamic_cast<ITask&>(*task);
+          
+          Logging::ScopedContextSetter logContext(iTask.GetTransmitContext());
+          iTask.Execute();
         }
         catch (const OrthancException& e)
         {
@@ -378,6 +400,33 @@ namespace Orthanc
     }
   }
 
+  static std::string GetContextToTransmit()
+  {
+    std::string transmitContext;
+
+    if (Logging::IsContextsEnabled())
+    {
+      std::vector<std::string> contexts;
+
+      if (false) // additional debug information: add the caller thread name
+      {
+        if (Logging::IsThreadNamesEnabled())
+        {
+          contexts.push_back(std::string("from " +  Logging::GetCurrentThreadName()));
+        }
+      }
+
+      std::string currentContext;
+      if (Logging::LookupCurrentContext(currentContext))
+      {
+        contexts.push_back(currentContext);
+      }
+      Toolbox::JoinStrings(transmitContext, contexts, " | ");
+    }
+
+    return transmitContext;
+  }
+
 
   Future* ThreadPool::Submit(ICallable* callable)
   {
@@ -399,7 +448,7 @@ namespace Orthanc
 
     boost::shared_ptr<Internals::FutureState> state(boost::make_shared<Internals::FutureState>());
 
-    queue_.Enqueue(new CallableTask(protection.release(), state));
+    queue_.Enqueue(new CallableTask(protection.release(), state, GetContextToTransmit()));
 
     return new Future(state);
   }
@@ -423,7 +472,7 @@ namespace Orthanc
       }
     }
 
-    queue_.Enqueue(new RunnableTask(protection.release()));
+    queue_.Enqueue(new RunnableTask(protection.release(), GetContextToTransmit()));
   }
 
 

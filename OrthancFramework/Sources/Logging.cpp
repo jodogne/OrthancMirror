@@ -30,6 +30,7 @@
 #include <cassert>
 #include <stdint.h>
 #include <string.h>
+#include <stack>
 
 #if defined(__linux__) && !defined(NDEBUG)
 #  include <pthread.h>
@@ -620,6 +621,8 @@ namespace
 }
 
 
+typedef std::map<boost::thread::id, std::string> ThreadNamesMap;
+typedef std::map<boost::thread::id, std::vector<std::string> > ThreadContextsMap;
 
 static std::unique_ptr<LoggingStreamsContext>   loggingStreamsContext_;
 static boost::mutex                             loggingStreamsMutex_;
@@ -629,8 +632,11 @@ static std::string                              pluginName_;              // thi
 static bool                                     hasOrthancAdvancedLogging_ = false;  // Whether the Orthanc runtime is >= 1.12.4
 static bool                                     hasClearThreadName_ = false;  // Whether the Orthanc runtime is >= 1.12.12
 static boost::recursive_mutex                   threadNamesMutex_;
-static std::map<boost::thread::id, std::string> threadNames_;
+static ThreadNamesMap                           threadNames_;
 static bool                                     enableThreadNames_ = true;
+static boost::recursive_mutex                   threadContextsMutex_;
+static ThreadContextsMap                        threadContexts_;
+static bool                                     enableContexts_ = true;
 static std::list<Orthanc::Logging::ILoggingListener*> loggingListeners_;
 static boost::mutex                                   loggingListenersMutex_;
 
@@ -642,6 +648,21 @@ namespace Orthanc
     void EnableThreadNames(bool enabled)
     {
       enableThreadNames_ = enabled;
+    }
+
+    bool IsThreadNamesEnabled()
+    {
+      return enableThreadNames_;
+    }
+
+    void EnableContexts(bool enabled)
+    {
+      enableContexts_ = enabled;
+    }
+
+    bool IsContextsEnabled()
+    {
+      return enableContexts_;
     }
 
     static void GetLogPath(boost::filesystem::path& log,
@@ -756,7 +777,7 @@ namespace Orthanc
 
     }
 
-    static std::string GetCurrentThreadName()
+    std::string GetCurrentThreadName()
     {
       boost::thread::id threadId = boost::this_thread::get_id();
 
@@ -771,6 +792,21 @@ namespace Orthanc
       return threadNames_[threadId];
     }    
 
+    bool LookupCurrentContext(std::string& result)
+    {
+      boost::thread::id threadId = boost::this_thread::get_id();
+
+      boost::recursive_mutex::scoped_lock lock(threadContextsMutex_);
+
+      if (threadContexts_.find(threadId) != threadContexts_.end() && threadContexts_[threadId].size() > 0)
+      {
+        Toolbox::JoinStrings(result, threadContexts_[threadId], " | ");
+        return true;
+      }
+
+      return false;
+    }    
+
     ScopedThreadNameSetter::ScopedThreadNameSetter(const std::string& threadName)
     {
       SetCurrentThreadName(threadName);
@@ -781,6 +817,61 @@ namespace Orthanc
       ClearCurrentThreadName();
     }
 
+    ScopedContextSetter::ScopedContextSetter(const std::string& context) :
+      hasPushedContext_(false)
+    {
+      if (!context.empty())
+      {
+        PushContext(context);
+        hasPushedContext_ = true;
+      }
+    }
+
+    ScopedContextSetter::~ScopedContextSetter()
+    {
+      if (hasPushedContext_)
+      {
+        PopContext();
+      }
+    }
+
+    void PushContext(const std::string& context)
+    {
+      if (context.size() == 0)
+      {
+        return;
+      }
+      boost::thread::id threadId = boost::this_thread::get_id();
+
+      // std::cout << "++ PUSH " << threadId << " - " << context << "\n";
+
+      boost::recursive_mutex::scoped_lock lock(threadContextsMutex_);
+
+      if (threadContexts_.find(threadId) == threadContexts_.end())
+      {
+        // create a new context
+        threadContexts_[threadId] = std::vector<std::string>();
+      }
+      threadContexts_[threadId].push_back(context);
+    }
+
+    void PopContext()
+    {
+      boost::thread::id threadId = boost::this_thread::get_id();
+
+      boost::recursive_mutex::scoped_lock lock(threadContextsMutex_);
+      // std::cout << "++ POP " << threadId << "\n";
+
+      ThreadContextsMap::iterator it = threadContexts_.find(threadId);
+      if (it != threadContexts_.end())
+      {
+        it->second.pop_back();
+        if (it->second.size() == 0) // erase as soon as it is empty so there is no need to clear it when the thread exits
+        {
+          threadContexts_.erase(threadId);
+        }
+      }
+    }
 
     void AddLoggingListener(ILoggingListener* listener)
     {
@@ -870,6 +961,12 @@ namespace Orthanc
         threadName[0] = '\0';
       }
 
+      std::string context;
+      if (enableContexts_ && LookupCurrentContext(context))
+      {
+        context = std::string("| ") + context + " | ";
+      }
+
       std::string internalPluginName = "";
       if (pluginName != NULL)
       {
@@ -877,7 +974,7 @@ namespace Orthanc
       }
 
       prefix = (std::string(date) + threadName + internalPluginName + path.filename().string() + ":" +
-                boost::lexical_cast<std::string>(line) + "] ");
+                boost::lexical_cast<std::string>(line) + "] " + context);
 
       if (level != LogLevel_ERROR &&
           level != LogLevel_WARNING &&

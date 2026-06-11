@@ -140,6 +140,8 @@ namespace Orthanc
         CLOG(INFO, JOBS) << "Executing " << jobType << " job with priority " << running.GetPriority()
                          << " in worker thread " << workerIndex << ": " << running.GetId();
 
+        Logging::ScopedContextSetter logContext(std::string("job ") + running.GetId());
+
         while (engine->IsRunning())
         {
           if (!engine->ExecuteStep(running, workerIndex))

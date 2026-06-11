@@ -83,6 +83,15 @@ namespace Orthanc
       ~ScopedThreadNameSetter();
     };
 
+    class ScopedContextSetter
+    {
+      bool hasPushedContext_;
+    public:
+      explicit ScopedContextSetter(const std::string& context);
+
+      ~ScopedContextSetter();
+    };
+
     class ILoggingListener
     {
     public:
@@ -120,11 +129,25 @@ namespace Orthanc
 
     ORTHANC_PUBLIC void ClearCurrentThreadName();
 
+    ORTHANC_PUBLIC std::string GetCurrentThreadName();
+
+    ORTHANC_PUBLIC void PushContext(const std::string& context);
+
+    ORTHANC_PUBLIC void PopContext();
+
+    ORTHANC_PUBLIC bool LookupCurrentContext(std::string& result);
+
     ORTHANC_PUBLIC void AddLoggingListener(ILoggingListener* listener);
 
     ORTHANC_PUBLIC void ClearLoggingListeners();
 
     ORTHANC_PUBLIC void EnableThreadNames(bool enabled);
+
+    ORTHANC_PUBLIC bool IsThreadNamesEnabled();
+
+    ORTHANC_PUBLIC void EnableContexts(bool enabled);
+
+    ORTHANC_PUBLIC bool IsContextsEnabled();
 
     ORTHANC_PUBLIC void EnableInfoLevel(bool enabled);
 
