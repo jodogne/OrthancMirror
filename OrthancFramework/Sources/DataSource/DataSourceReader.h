@@ -108,6 +108,9 @@ namespace Orthanc
      **/
     void SetCapacity(uint64_t maximumMemory);
 
+    uint64_t GetCapacity() const;
+
+    unsigned int GetThreadsCount() const;
     /**
      * Request the data source to load a set of items. The values will
      * be read in parallel by a thread pool (cf. "executor_") and will
@@ -127,7 +130,7 @@ namespace Orthanc
 
     void GetStatistics(uint64_t& tasksMaximumMemory,
                        uint64_t& tasksCurrentMemory,
-                       unsigned int& tasksReservations);
+                       unsigned int& tasksReservations) const;
 
     size_t GetCacheCapacity() const;
 

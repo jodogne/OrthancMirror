@@ -87,15 +87,15 @@ static const char* const METRICS_STORAGE_AREA_MEMORY_MAX_USAGE_MB = "orthanc_sto
 static const char* const METRICS_STORAGE_AREA_MEMORY_COUNT = "orthanc_storage_memory_count";
 static const char* const METRICS_STORAGE_THREAD_POOL_AVAILABLE_THREADS = "orthanc_storage_available_threads";
 
-static const char* const METRICS_DICOM_SOURCE_CACHE_COUNT = "orthanc_dicom_source_cache_count";
-static const char* const METRICS_DICOM_SOURCE_CACHE_HIT_COUNT = "orthanc_dicom_source_cache_hit_count";
-static const char* const METRICS_DICOM_SOURCE_CACHE_MISS_COUNT = "orthanc_dicom_source_cache_miss_count";
-static const char* const METRICS_DICOM_SOURCE_CACHE_SIZE_MB = "orthanc_dicom_source_cache_size_mb";
-static const char* const METRICS_DICOM_SOURCE_MEMORY_CAPACITY_MB = "orthanc_dicom_source_memory_capacity_mb";
-static const char* const METRICS_DICOM_SOURCE_MEMORY_USAGE_MB = "orthanc_dicom_source_memory_usage_mb";
-static const char* const METRICS_DICOM_SOURCE_MEMORY_MAX_USAGE_MB = "orthanc_dicom_source_memory_max_usage_mb";
-static const char* const METRICS_DICOM_SOURCE_MEMORY_COUNT = "orthanc_dicom_source_memory_count";
-static const char* const METRICS_DICOM_SOURCE_THREAD_POOL_AVAILABLE_THREADS = "orthanc_dicom_source_available_threads";
+static const char* const METRICS_DICOM_PARSER_CACHE_COUNT = "orthanc_dicom_parser_cache_count";
+static const char* const METRICS_DICOM_PARSER_CACHE_HIT_COUNT = "orthanc_dicom_parser_cache_hit_count";
+static const char* const METRICS_DICOM_PARSER_CACHE_MISS_COUNT = "orthanc_dicom_parser_cache_miss_count";
+static const char* const METRICS_DICOM_PARSER_CACHE_SIZE_MB = "orthanc_dicom_parser_cache_size_mb";
+static const char* const METRICS_DICOM_PARSER_MEMORY_CAPACITY_MB = "orthanc_dicom_parser_memory_capacity_mb";
+static const char* const METRICS_DICOM_PARSER_MEMORY_USAGE_MB = "orthanc_dicom_parser_memory_usage_mb";
+static const char* const METRICS_DICOM_PARSER_MEMORY_MAX_USAGE_MB = "orthanc_dicom_parser_memory_max_usage_mb";
+static const char* const METRICS_DICOM_PARSER_MEMORY_COUNT = "orthanc_dicom_parser_memory_count";
+static const char* const METRICS_DICOM_PARSER_THREAD_POOL_AVAILABLE_THREADS = "orthanc_dicom_parser_available_threads";
 
 static const char* const METRICS_TRANSCODER_CACHE_COUNT = "orthanc_transcoder_cache_count";
 static const char* const METRICS_TRANSCODER_CACHE_HIT_COUNT = "orthanc_transcoder_cache_hit_count";
@@ -109,8 +109,7 @@ static const char* const METRICS_TRANSCODER_THREAD_POOL_AVAILABLE_THREADS = "ort
 
 static const char* const METRICS_SEQ_READER_THREAD_POOL_AVAILABLE_THREADS = "orthanc_seq_reader_available_threads";
 
-static const char* const CONFIG_STORAGE_LOADER_THREADS = "StorageLoaderThreads";
-static const char* const CONFIG_STORAGE_MEMORY_CAPACITY = "StorageMemoryCapacity";
+
 
 
 /**
@@ -495,6 +494,23 @@ namespace Orthanc
   }
 
 
+  static void GetMemoryConfiguration(unsigned int& resultMb, 
+                                     OrthancConfiguration::ReaderLock& lock,
+                                     const char* configurationName,
+                                     unsigned int defaultValueMb)
+  {
+    if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(resultMb, configurationName))
+    {
+      resultMb = defaultValueMb;
+      LOG(WARNING) << "====> '" << configurationName << "' is not defined in your configuration, setting it to " << resultMb << ".  Depending on the available memory on the system, you might want to adapt this value.";
+    }
+    else
+    {
+      LOG(WARNING) << "'" << configurationName << "' is set to " << resultMb;
+    }
+  }
+
+
   ServerContext::ServerContext(IDatabaseWrapper& database,
                                IPluginStorageArea& area,
                                ServerTranscoder* transcoder /* takes ownership */,
@@ -678,44 +694,54 @@ namespace Orthanc
       LOG(INFO) << "Your platform does not support malloc_trim(), not starting the memory trimming thread";
 #endif
 
-      unsigned int storageLoaderThreads;
-      size_t storageCacheSizeMb;
-      unsigned int storageMemoryCapacityMb;
-
+      unsigned int storageLoaderThreads, transcoderThreads, dicomParserThreads;
+      unsigned int storageCacheSizeMb, transcoderCacheSizeMb, dicomParserCacheSizeMb;
+      unsigned int storageMemoryCapacityMb, transcoderMemoryCapacityMb, dicomParserMemoryCapacityMb;
+      unsigned int sequentialReaderThreads, sequentialReaderWindowSize, sequentialReaderWindowCapacityMb;
+      
       {
         OrthancConfiguration::ReaderLock lock;
         unsigned int loaderThreads = lock.GetConfiguration().GetLoaderThreads();
         unsigned int concurrentJobs = lock.GetConfiguration().GetConcurrentJobs();
         storageCacheSizeMb = lock.GetConfiguration().GetMaximumStorageCacheSize();
 
-        if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(storageLoaderThreads, CONFIG_STORAGE_LOADER_THREADS))
+        if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(storageLoaderThreads, ORTHANC_CONFIG_STORAGE_LOADER_THREADS))
         {
           storageLoaderThreads = loaderThreads * concurrentJobs;
           if (storageLoaderThreads < 4)
           {
             storageLoaderThreads = 4;
-            LOG(WARNING) << "'" << CONFIG_STORAGE_LOADER_THREADS << "' is not defined in your configuration, setting it to " << storageLoaderThreads;
+            LOG(WARNING) << "'" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS << "' is not defined in your configuration, setting it to " << storageLoaderThreads;
           }
           else
           {
             storageLoaderThreads = std::min(50u, storageLoaderThreads);
-            LOG(WARNING) << "'" << CONFIG_STORAGE_LOADER_THREADS << "' is not defined in your configuration, setting it to " << storageLoaderThreads << ", based on 'ConcurrentJobs' and the old 'LoaderThreads' configurations.";
+            LOG(WARNING) << "'" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS << "' is not defined in your configuration, setting it to " << storageLoaderThreads << ", based on 'ConcurrentJobs' and the old 'LoaderThreads' configurations.";
           }
         }
         else
         {
-          LOG(WARNING) << "'" << CONFIG_STORAGE_LOADER_THREADS << "' is set to " << storageLoaderThreads;
+          LOG(WARNING) << "'" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS << "' is set to " << storageLoaderThreads;
         }
 
-        if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(storageMemoryCapacityMb, CONFIG_STORAGE_MEMORY_CAPACITY))
-        {
-          storageMemoryCapacityMb = 256;
-          LOG(WARNING) << "'" << CONFIG_STORAGE_MEMORY_CAPACITY << "' is not defined in your configuration, setting it to " << storageMemoryCapacityMb << ".  Depending on the available memory on the system, you might want to adapt this value.";
-        }
-        else
-        {
-          LOG(WARNING) << "'" << CONFIG_STORAGE_MEMORY_CAPACITY << "' is set to " << storageMemoryCapacityMb;
-        }
+        transcoderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_TRANSCODER_THREADS, 4);
+        LOG(WARNING) << "'" << ORTHANC_CONFIG_TRANSCODER_THREADS << "' is set to " << transcoderThreads;
+
+        dicomParserThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS, 2);
+        LOG(WARNING) << "'" << ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS << "' is set to " << dicomParserThreads;
+
+        sequentialReaderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS, 2);
+        LOG(WARNING) << "'" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS << "' is set to " << sequentialReaderThreads;
+
+        GetMemoryConfiguration(storageMemoryCapacityMb, lock, ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY, 512);
+        GetMemoryConfiguration(dicomParserMemoryCapacityMb, lock, ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY, 256);
+        GetMemoryConfiguration(dicomParserCacheSizeMb, lock, ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE, 256);
+        GetMemoryConfiguration(transcoderMemoryCapacityMb, lock, ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY, 256);
+        GetMemoryConfiguration(transcoderCacheSizeMb, lock, ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE, 256);
+        GetMemoryConfiguration(sequentialReaderWindowCapacityMb, lock, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_CAPACITY, 64);
+
+        sequentialReaderWindowSize = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE, 4);
+        LOG(WARNING) << "'" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE << "' is set to " << sequentialReaderWindowSize;
       }
 
       // For streaming
@@ -744,40 +770,37 @@ namespace Orthanc
                                                  METRICS_STORAGE_AREA_MEMORY_MAX_USAGE_MB));
 
         storageAreaReader_->SetCapacity(storageMemoryCapacityMb * MEGABYTE);
-
-        storageAreaReader_->CreateCache(storageCacheSizeMb * GIGABYTE);
+        storageAreaReader_->CreateCache(storageCacheSizeMb * MEGABYTE);
       }
 
       {
         boost::shared_ptr<ThreadPool> pool(new ThreadPool);
-        pool->SetCountThreads(2);  // TODO-Streaming - Parameter
+        pool->SetCountThreads(dicomParserThreads);
         pool->SetLoggingThreadName("DICOM-SRC");
         pool->SetDequeueTimeout(100);
-        pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_DICOM_SOURCE_THREAD_POOL_AVAILABLE_THREADS);
+        pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_DICOM_PARSER_THREAD_POOL_AVAILABLE_THREADS);
         pool->Start();
 
         dicomReader_.reset(new DataSourceReader(pool, new DicomDataSource(storageAreaReader_)));
         dicomReader_->SetMetricsConfiguration(
           DataSourceReader::MetricsConfiguration(metricsRegistry_,
-                                                 METRICS_DICOM_SOURCE_CACHE_SIZE_MB,
-                                                 METRICS_DICOM_SOURCE_CACHE_COUNT,
-                                                 METRICS_DICOM_SOURCE_CACHE_HIT_COUNT,
-                                                 METRICS_DICOM_SOURCE_CACHE_MISS_COUNT,
-                                                 METRICS_DICOM_SOURCE_MEMORY_CAPACITY_MB,
-                                                 METRICS_DICOM_SOURCE_MEMORY_USAGE_MB,
-                                                 METRICS_DICOM_SOURCE_MEMORY_COUNT,
-                                                 METRICS_DICOM_SOURCE_MEMORY_MAX_USAGE_MB));
+                                                 METRICS_DICOM_PARSER_CACHE_SIZE_MB,
+                                                 METRICS_DICOM_PARSER_CACHE_COUNT,
+                                                 METRICS_DICOM_PARSER_CACHE_HIT_COUNT,
+                                                 METRICS_DICOM_PARSER_CACHE_MISS_COUNT,
+                                                 METRICS_DICOM_PARSER_MEMORY_CAPACITY_MB,
+                                                 METRICS_DICOM_PARSER_MEMORY_USAGE_MB,
+                                                 METRICS_DICOM_PARSER_MEMORY_COUNT,
+                                                 METRICS_DICOM_PARSER_MEMORY_MAX_USAGE_MB));
 
-        //dicomReader_->SetCapacity(1);  // To test on highest pressure
-        dicomReader_->SetCapacity(256 * MEGABYTE); // TODO-Streaming - Parameter
-
-        dicomReader_->CreateCache(256 * MEGABYTE); // TODO-Streaming - Parameter
+        dicomReader_->SetCapacity(dicomParserMemoryCapacityMb * MEGABYTE);
+        dicomReader_->CreateCache(dicomParserCacheSizeMb * MEGABYTE);
       }
 
       if (transcoder_.get() != NULL)
       {
         boost::shared_ptr<ThreadPool> pool(new ThreadPool);
-        pool->SetCountThreads(2);  // TODO-Streaming - Parameter
+        pool->SetCountThreads(transcoderThreads);
         pool->SetLoggingThreadName("TRANSCODER");
         pool->SetDequeueTimeout(100);
         pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_TRANSCODER_THREAD_POOL_AVAILABLE_THREADS);
@@ -795,22 +818,20 @@ namespace Orthanc
                                                  METRICS_TRANSCODER_MEMORY_COUNT,
                                                  METRICS_TRANSCODER_MEMORY_MAX_USAGE_MB));
 
-        //transcoderReader_->SetCapacity(1);  // To test on highest pressure
-        transcoderReader_->SetCapacity(256 * MEGABYTE); // TODO-Streaming - Parameter
-
-        transcoderReader_->CreateCache(256 * MEGABYTE); // TODO-Streaming - Parameter
+        transcoderReader_->SetCapacity(transcoderMemoryCapacityMb * MEGABYTE);
+        transcoderReader_->CreateCache(transcoderCacheSizeMb * MEGABYTE);
       }
 
       {
-        unsigned int loaderThreads;
+        // unsigned int loaderThreads;
 
-        {
-          OrthancConfiguration::ReaderLock lock;
-          loaderThreads = lock.GetConfiguration().GetLoaderThreads();
-        }
+        // {
+        //   OrthancConfiguration::ReaderLock lock;
+        //   loaderThreads = lock.GetConfiguration().GetLoaderThreads();
+        // }
 
         std::unique_ptr<ThreadPool> pool(new ThreadPool);
-        pool->SetCountThreads(loaderThreads);  // TODO-Streaming - Check - clarify the difference between SequentialLoader and DataSourceReader
+        pool->SetCountThreads(sequentialReaderThreads);  // TODO-Streaming - Check - clarify the difference between SequentialLoader and DataSourceReader
         pool->SetLoggingThreadName("SEQ-READER");
         pool->SetDequeueTimeout(100);
         pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_SEQ_READER_THREAD_POOL_AVAILABLE_THREADS);
@@ -819,8 +840,8 @@ namespace Orthanc
         boost::shared_ptr<IExecutorService> executor(pool.release());
         dicomSequentialReaderFactory_.reset(new DicomSequentialReader::Factory(
                                               executor, storageAreaReader_, dicomReader_, transcoderReader_,
-                                              4 /* TODO-Streaming: Parameter */,
-                                              0  /* TODO-Streaming: Parameter */));
+                                              sequentialReaderWindowSize,
+                                              sequentialReaderWindowCapacityMb * MEGABYTE));
       }
     }
     catch (OrthancException&)
@@ -2387,5 +2408,26 @@ namespace Orthanc
   DicomSequentialReader::Factory& ServerContext::GetDicomSequentialReaderFactory()
   {
     return *dicomSequentialReaderFactory_;
+  }
+
+  void ServerContext::GetDataSourcesConfigurations(uint64_t& storageMemoryCapacityMb,
+                                                   size_t& storageMemoryCacheMb,
+                                                   unsigned int& storageReaderThreadsCount,
+                                                   uint64_t& transcoderMemoryCapacityMb,
+                                                   size_t& transcoderMemoryCacheMb,
+                                                   unsigned int& transcoderReaderThreadsCount,
+                                                   uint64_t& dicomParserMemoryCapacityMb,
+                                                   size_t& dicomParserMemoryCacheMb,
+                                                   unsigned int& dicomParserThreadsCount)
+  {
+    storageMemoryCapacityMb = storageAreaReader_->GetCapacity();
+    storageMemoryCacheMb = storageAreaReader_->GetCacheCapacity();
+    storageReaderThreadsCount = storageAreaReader_->GetThreadsCount();
+    transcoderMemoryCapacityMb = transcoderReader_->GetCapacity();
+    transcoderMemoryCacheMb = transcoderReader_->GetCacheCapacity();
+    transcoderReaderThreadsCount = transcoderReader_->GetThreadsCount();
+    dicomParserMemoryCapacityMb = dicomReader_->GetCapacity();
+    dicomParserMemoryCacheMb = dicomReader_->GetCacheCapacity();
+    dicomParserThreadsCount = dicomReader_->GetThreadsCount();
   }
 }

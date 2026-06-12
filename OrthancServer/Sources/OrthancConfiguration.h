@@ -41,7 +41,6 @@ class DcmDataset;
 #define ORTHANC_CONFIG_DICOM_AET "DicomAet"
 #define ORTHANC_CONFIG_DICOM_PORT "DicomPort"
 #define ORTHANC_CONFIG_HTTP_PORT "HttpPort"
-#define ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE "MaximumStorageCacheSize"
 #define ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE "MaximumStorageSize"
 #define ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE "MaximumStorageMode"
 #define ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT "MaximumPatientCount"
@@ -54,6 +53,19 @@ class DcmDataset;
 #define ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD "DicomDefaultRetrieveMethod"
 #define ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED "PatientLevelEnabled"
 #define ORTHANC_CONFIG_READ_ONLY "ReadOnly"
+
+#define ORTHANC_CONFIG_STORAGE_LOADER_THREADS "StorageLoaderThreads"
+#define ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY "StorageMemoryCapacity"
+#define ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE "MaximumStorageCacheSize"  // TODO-Streaming: we keep the old naming for historical reasons ?
+#define ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS "DicomParserThreads"
+#define ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY "DicomParserMemoryCapacity"
+#define ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE "DicomParserCacheSize"
+#define ORTHANC_CONFIG_TRANSCODER_THREADS "TranscoderThreads"
+#define ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY "TranscoderMemoryCapacity"
+#define ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE "TranscoderCacheSize"
+#define ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS "SequentialDicomReaderThreads"
+#define ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE "SequentialDicomReaderWindowSize"
+#define ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_CAPACITY "SequentialDicomReaderWindowCapacity"
 
 
 namespace Orthanc

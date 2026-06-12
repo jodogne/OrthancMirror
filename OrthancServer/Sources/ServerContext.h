@@ -611,5 +611,15 @@ namespace Orthanc
     const boost::shared_ptr<ServerTranscoder>& GetTranscoder() const;
 
     DicomSequentialReader::Factory& GetDicomSequentialReaderFactory();
+
+    void GetDataSourcesConfigurations(uint64_t& storageMemoryCapacityMb,
+                                      size_t& storageMemoryCacheMb,
+                                      unsigned int& storageReaderThreadsCount,
+                                      uint64_t& transcoderMemoryCapacityMb,
+                                      size_t& transcoderMemoryCacheMb,
+                                      unsigned int& transcoderReaderThreadsCount,
+                                      uint64_t& dicomParserMemoryCapacityMb,
+                                      size_t& dicomParserMemoryCacheMb,
+                                      unsigned int& dicomParserThreadsCount);
   };
 }

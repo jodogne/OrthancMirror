@@ -94,7 +94,7 @@ namespace Orthanc
       size_t count, size;
       cache.GetStatistics(count, size);
 
-      metrics_->SetFloatValue(cacheSizeMegabytesName_, static_cast<float>(size) / static_cast<float>(MEGABYTE));
+      metrics_->SetFloatValue(cacheSizeMegabytesName_, BytesToFloatMegabytes(size));
       metrics_->SetIntegerValue(cacheCountName_, count);
     }
   }
@@ -313,6 +313,20 @@ namespace Orthanc
                                                                                              metricsConfiguration_.capacityMaxUsageSinceStartMegabytesName_));
   }
 
+  uint64_t DataSourceReader::GetCapacity() const
+  {
+    uint64_t maximumMemory, currentMemory;
+    unsigned int currentReservations;
+
+    GetStatistics(maximumMemory, currentMemory, currentReservations);
+    
+    return maximumMemory;
+  }
+
+  unsigned int DataSourceReader::GetThreadsCount() const
+  {
+    return executor_->GetCountThreads();
+  }
 
   boost::shared_ptr<DataSourceAnswer> DataSourceReader::Submit(DataSourceRequest* request /* takes ownership */)
   {
@@ -349,9 +363,9 @@ namespace Orthanc
 
   void DataSourceReader::GetStatistics(uint64_t& tasksMaximumMemory,
                                        uint64_t& tasksCurrentMemory,
-                                       unsigned int& tasksReservations)
+                                       unsigned int& tasksReservations) const
   {
-    {
+    { // TODO-Streaming - Question AM: why this copy ?
       boost::shared_ptr<Internals::DataSourceMemoryBudget> budgetCopy(budget_);
       budgetCopy->GetStatistics(tasksMaximumMemory, tasksCurrentMemory, tasksReservations);
     }

@@ -69,10 +69,10 @@ namespace Orthanc
     {
       maxMemoryUsageSinceStart_ = std::max(currentMemorySize, maxMemoryUsageSinceStart_);
 
-      metrics_->SetFloatValue(capacityMaxSizeMegabytesName_, static_cast<float>(maximumMemorySize) / static_cast<float>(MEGABYTE)); // will be updated when we set the capacity
-      metrics_->SetFloatValue(capacityCurrentSizeMegabytesName_, static_cast<float>(currentMemorySize) / static_cast<float>(MEGABYTE));
+      metrics_->SetFloatValue(capacityMaxSizeMegabytesName_, BytesToFloatMegabytes(maximumMemorySize)); // will be updated when we set the capacity
+      metrics_->SetFloatValue(capacityCurrentSizeMegabytesName_, BytesToFloatMegabytes(currentMemorySize));
       metrics_->SetIntegerValue(capacityCountName_, currentReservationCount);
-      metrics_->SetFloatValue(capacityMaxUsageSinceStartMegabytesName_, static_cast<float>(maxMemoryUsageSinceStart_) / static_cast<float>(MEGABYTE));
+      metrics_->SetFloatValue(capacityMaxUsageSinceStartMegabytesName_, BytesToFloatMegabytes(maxMemoryUsageSinceStart_));
     }
 
 

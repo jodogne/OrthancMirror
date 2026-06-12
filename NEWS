@@ -9,6 +9,15 @@ General
   This change brings updated configurations (TODO: review):
   - "StorageLoaderThreads"
   - "StorageMemoryCapacity"
+  - "DicomParserThreads"
+  - "DicomParserMemoryCapacity"
+  - "DicomParserCacheSize"
+  - "TranscoderThreads"
+  - "TranscoderMemoryCapacity"
+  - "TranscoderCacheSize"
+  - "SequentialDicomReaderThreads"
+  - "SequentialDicomReaderWindowSize"
+  - "SequentialDicomReaderWindowCapacity"
   And new metrics:
   - TODO list
 * New values for "OverwriteInstances" configuration. In previous versions, this configuration

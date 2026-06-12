@@ -43,5 +43,7 @@ namespace Orthanc
     virtual void Submit(IRunnable* runnable /* takes ownership */) = 0;
 
     virtual void Stop() = 0;
+
+    virtual unsigned int GetCountThreads() const = 0;
   };
 }

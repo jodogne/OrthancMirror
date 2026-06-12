@@ -169,7 +169,6 @@ namespace Orthanc
       result[ORTHANC_CONFIG_DICOM_PORT] = lock.GetConfiguration().GetDicomPort();
       result[ORTHANC_CONFIG_HTTP_PORT] = lock.GetConfiguration().GetHttpPort();
       result[ORTHANC_CONFIG_CHECK_REVISIONS] = lock.GetConfiguration().HasCheckRevisions();  // New in Orthanc 1.9.2
-      result[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = lock.GetConfiguration().GetMaximumStorageCacheSize(); // New in Orthanc 1.12.12
       result[ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS] = lock.GetConfiguration().HasStoreMD5ForAttachments(); // New in Orthanc 1.12.12
       result[ORTHANC_CONFIG_STORAGE_COMPRESSION] = lock.GetConfiguration().HasStorageCompression(); // New in Orthanc 1.11.0
       result[ORTHANC_CONFIG_INGEST_TRANSCODING] = lock.GetConfiguration().GetIngestTranscoding(); // New in Orthanc 1.11.0
@@ -178,6 +177,26 @@ namespace Orthanc
       result[ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT] = lock.GetConfiguration().GetMaximumPatientCount(); // New in Orthanc 1.12.4
       result[ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE] = lock.GetConfiguration().GetMaximumStorageMode(); // New in Orthanc 1.11.3
       result[ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD] = lock.GetConfiguration().GetDicomDefaultRetrieveMethod();
+    }
+
+    {
+      uint64_t storageMemoryCapacityMb, transcoderMemoryCapacityMb, dicomParserMemoryCapacityMb;
+      size_t storageMemoryCacheMb, transcoderMemoryCacheMb, dicomParserMemoryCacheMb;
+      unsigned int storageReaderThreadsCount, transcoderReaderThreadsCount, dicomParserThreadsCount;
+
+      context.GetDataSourcesConfigurations(storageMemoryCapacityMb, storageMemoryCacheMb, storageReaderThreadsCount,
+                                          transcoderMemoryCapacityMb, transcoderMemoryCacheMb, transcoderReaderThreadsCount,
+                                          dicomParserMemoryCapacityMb, dicomParserMemoryCacheMb, dicomParserThreadsCount);
+
+      result[ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY] = BytesToMegabytes(storageMemoryCapacityMb);
+      result[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = BytesToMegabytes(storageMemoryCacheMb);
+      result[ORTHANC_CONFIG_STORAGE_LOADER_THREADS] = storageReaderThreadsCount;
+      result[ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY] = BytesToMegabytes(transcoderMemoryCapacityMb);
+      result[ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE] = BytesToMegabytes(transcoderMemoryCacheMb);
+      result[ORTHANC_CONFIG_TRANSCODER_THREADS] = transcoderReaderThreadsCount;
+      result[ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY] = BytesToMegabytes(dicomParserMemoryCapacityMb);
+      result[ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE] = BytesToMegabytes(dicomParserMemoryCacheMb);
+      result[ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS] = dicomParserThreadsCount;
     }
 
     result[ORTHANC_CONFIG_OVERWRITE_INSTANCES] = context.IsOverwriteInstances(); // New in Orthanc 1.11.0
