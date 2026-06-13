@@ -222,7 +222,7 @@ namespace Orthanc
     {
       assert(start_ <= end_);
       target = end_ - start_;
-      return target > 0;
+      return true;
     }
 
     void SetPostProcessing(IPostProcessing* postProcessing)
