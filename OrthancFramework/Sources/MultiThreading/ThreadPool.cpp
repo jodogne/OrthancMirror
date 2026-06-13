@@ -339,7 +339,7 @@ namespace Orthanc
   }
 
 
-  unsigned int ThreadPool::GetCountThreads() const
+  unsigned int ThreadPool::GetCountThreads()
   {
     boost::mutex::scoped_lock lock(mutex_);
     return countThreads_;

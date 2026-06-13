@@ -44,6 +44,6 @@ namespace Orthanc
 
     virtual void Stop() = 0;
 
-    virtual unsigned int GetCountThreads() const = 0;
+    virtual unsigned int GetCountThreads() = 0;
   };
 }

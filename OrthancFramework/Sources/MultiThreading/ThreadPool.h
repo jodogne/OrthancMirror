@@ -49,7 +49,7 @@ namespace Orthanc
 
     SharedMessageQueue                    queue_;
     std::unique_ptr<boost::thread_group>  workers_;
-    mutable boost::mutex                  mutex_;
+    boost::mutex                          mutex_;
     std::string                           loggingThreadName_;
     unsigned int                          countThreads_;
     State                                 state_;
@@ -70,7 +70,7 @@ namespace Orthanc
 
     void SetCountThreads(unsigned int count);
 
-    virtual unsigned int GetCountThreads() const ORTHANC_OVERRIDE;
+    virtual unsigned int GetCountThreads() ORTHANC_OVERRIDE;
 
     void SetDequeueTimeout(unsigned int milliseconds);
 
