@@ -524,6 +524,7 @@ int main(int argc, char **argv)
 #endif
 
   Logging::Initialize();
+  Logging::SetCurrentThreadName("MAIN");
   SetGlobalVerbosity(Verbosity_Verbose);
   Toolbox::DetectEndianness();
   SystemToolbox::MakeDirectory(SystemToolbox::PathFromUtf8("UnitTestsResults"));
