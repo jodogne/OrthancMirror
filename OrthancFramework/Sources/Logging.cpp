@@ -732,6 +732,21 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError, std::string("Thread name can not exceed 16 characters: ") + name);
       }
 
+#if !defined(NDEBUG)
+      if (threadNames_.find(id) != threadNames_.end())
+      {
+        throw OrthancException(ErrorCode_InternalError, std::string("This thread already has a name or another thread is re-using the same threadId and you have not called 'ClearCurrentThreadName()': ") + name);
+      }
+      
+      for (ThreadNamesMap::const_iterator it = threadNames_.begin(); it != threadNames_.end(); ++it)
+      {
+        if (it->second == name)
+        {
+          throw OrthancException(ErrorCode_InternalError, std::string("Another thread already uses this thread name: ") + name);
+        }
+      }
+#endif
+
       threadNames_[id] = name;
 
 #if defined(__linux__) && !defined(NDEBUG) && !defined(__LSB_VERSION__)
