@@ -59,6 +59,8 @@ Maintenance
   https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=258
   Security issue reported by Jose Lopez Martinez (aka elpe_pinillo) from Deloitte.
 * Fixed various OOB read/write (TODO: finalize release notes)
+* Improved preview and rendering of multiframe instances a with a Color Lookup Table; 
+  notably, some cardiac US instances.
 * Lua: Fix the "ReceivedCStoreInstanceFilter" Lua callback whose return value was
   not taken into account.
 * Upgraded dependencies for static builds:

@@ -101,6 +101,12 @@ namespace Orthanc
                     uint8_t blue,
                     uint8_t alpha);
 
+    static void SetUint16(ImageAccessor& image,
+                          uint16_t red,
+                          uint16_t green,
+                          uint16_t blue,
+                          uint16_t alpha);
+
     static void Set(ImageAccessor& image,
                     uint8_t red,
                     uint8_t green,
