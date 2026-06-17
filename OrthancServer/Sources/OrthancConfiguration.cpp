@@ -49,7 +49,6 @@ static const char* const JOBS_ENGINE_THREADS_COUNT = "JobsEngineThreadsCount";
 static const char* const DICOM_LOSSY_TRANSCODING_QUALITY = "DicomLossyTranscodingQuality";
 static const char* const CONFIG_LOADER_THREADS = "LoaderThreads";
 static const char* const CONFIG_ZIP_LOADER_THREADS = "ZipLoaderThreads"; // for backward compatibility only
-static const char* const CONFIG_CONCURRENT_JOBS = "ConcurrentJobs";
 
 
 namespace Orthanc
@@ -1369,6 +1368,16 @@ namespace Orthanc
 
   unsigned int OrthancConfiguration::GetConcurrentJobs() const
   {
-    return GetUnsignedIntegerParameter(CONFIG_CONCURRENT_JOBS, 2);
+    return GetUnsignedIntegerParameter(ORTHANC_CONFIG_CONCURRENT_JOBS, 2);
+  }
+
+  unsigned int OrthancConfiguration::GetHttpThreadsCount() const
+  {
+    return GetUnsignedIntegerParameter(ORTHANC_CONFIG_HTTP_THREADS_COUNT, 50);
+  }
+
+  unsigned int OrthancConfiguration::GetDicomThreadsCount() const
+  {
+    return GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_THREADS_COUNT, 4);
   }
 }

@@ -177,6 +177,9 @@ namespace Orthanc
       result[ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT] = lock.GetConfiguration().GetMaximumPatientCount(); // New in Orthanc 1.12.4
       result[ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE] = lock.GetConfiguration().GetMaximumStorageMode(); // New in Orthanc 1.11.3
       result[ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD] = lock.GetConfiguration().GetDicomDefaultRetrieveMethod();
+      result[ORTHANC_CONFIG_CONCURRENT_JOBS] = lock.GetConfiguration().GetConcurrentJobs();
+      result[ORTHANC_CONFIG_HTTP_THREADS_COUNT] = lock.GetConfiguration().GetHttpThreadsCount();
+      result[ORTHANC_CONFIG_DICOM_THREADS_COUNT] = lock.GetConfiguration().GetDicomThreadsCount();
     }
 
     {

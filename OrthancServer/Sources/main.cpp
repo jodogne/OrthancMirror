@@ -1118,7 +1118,7 @@ static bool StartHttpServer(ServerContext& context,
       httpDescribeErrors = lock.GetConfiguration().GetBooleanParameter("HttpDescribeErrors", true);
   
       // HTTP server
-      httpServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpThreadsCount", 50));
+      httpServer.SetThreadsCount(lock.GetConfiguration().GetHttpThreadsCount());
       httpServer.SetPortNumber(lock.GetConfiguration().GetHttpPort());
       std::set<std::string> httpBindAddresses;
       lock.GetConfiguration().GetSetOfStringsParameter(httpBindAddresses, "HttpBindAddresses");
@@ -1396,7 +1396,7 @@ static bool StartDicomServer(ServerContext& context,
       dicomServer.SetCalledApplicationEntityTitleCheck(lock.GetConfiguration().GetBooleanParameter("DicomCheckCalledAet", false));
       dicomServer.SetAssociationTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScpTimeout", 30));
       dicomServer.SetPortNumber(lock.GetConfiguration().GetDicomPort());
-      dicomServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomThreadsCount", 4));
+      dicomServer.SetThreadsCount(lock.GetConfiguration().GetDicomThreadsCount());
       dicomServer.SetApplicationEntityTitle(lock.GetConfiguration().GetOrthancAET());
 
       // Configuration of DICOM TLS for Orthanc SCP (since Orthanc 1.9.0)

@@ -53,6 +53,9 @@ class DcmDataset;
 #define ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD "DicomDefaultRetrieveMethod"
 #define ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED "PatientLevelEnabled"
 #define ORTHANC_CONFIG_READ_ONLY "ReadOnly"
+#define ORTHANC_CONFIG_CONCURRENT_JOBS "ConcurrentJobs"
+#define ORTHANC_CONFIG_HTTP_THREADS_COUNT "HttpThreadsCount"
+#define ORTHANC_CONFIG_DICOM_THREADS_COUNT "DicomThreadsCount"
 
 #define ORTHANC_CONFIG_STORAGE_LOADER_THREADS "StorageLoaderThreads"
 #define ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY "StorageMemoryCapacity"
@@ -282,6 +285,10 @@ namespace Orthanc
     unsigned int GetLoaderThreads() const;
 
     unsigned int GetConcurrentJobs() const;
+
+    unsigned int GetHttpThreadsCount() const;
+
+    unsigned int GetDicomThreadsCount() const;
 
     void Format(std::string& result) const;
     
