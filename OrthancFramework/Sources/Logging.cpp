@@ -732,6 +732,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError, std::string("Thread name can not exceed 16 characters: ") + name);
       }
 
+      // std::cout << "+++++ SetCurrentThreadNameInternal " << id << " " << name << std::endl;
 #if !defined(NDEBUG)
       if (threadNames_.find(id) != threadNames_.end())
       {
@@ -783,6 +784,8 @@ namespace Orthanc
         boost::thread::id threadId = boost::this_thread::get_id();
 
         boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
+
+        // std::cout << "+++++ ClearCurrentThreadName " << threadId << std::endl;
         threadNames_.erase(threadId);
       }
       else if (hasClearThreadName_) // only recent runtimes support it (from 1.12.12)
