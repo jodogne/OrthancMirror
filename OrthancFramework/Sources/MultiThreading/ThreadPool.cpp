@@ -237,7 +237,7 @@ namespace Orthanc
 
   void ThreadPool::WorkerLoop(const std::string& threadName)
   {
-    Logging::SetCurrentThreadName(threadName);
+    Logging::ScopedThreadNameSetter setter(threadName);
 
     while (true)
     {
