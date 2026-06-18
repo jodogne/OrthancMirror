@@ -404,9 +404,11 @@ namespace Orthanc
                                           const DicomImageInformation& info,
                                           DcmDataset& dataset,
                                           const uint8_t* pixelData,
-                                          unsigned long pixelLength)
+                                          unsigned long pixelDataLength,
+                                          unsigned int numberOfFramesInPixelData,
+                                          unsigned int frameToDecode)
   {
-    LOG(INFO) << "Decoding a lookup table";
+    // LOG(INFO) << "Decoding a lookup table";
 
     OFString r, g, b;
     PixelFormat format;
@@ -417,14 +419,19 @@ namespace Orthanc
     unsigned long gc = 0;
     unsigned long bc = 0;
 
-    if (pixelData == NULL &&
-        !dataset.findAndGetUint8Array(DCM_PixelData, pixelData, &pixelLength).good())
+    // note: info.GetNumberOfFrames() is not reliable when a single frame has been uncompressed but, in this case, we provide a pixelData and we must use numberOfFramesInPixelData
+    // If there are no pixelData, numberOfFramesInPixelData is set to 0 and we must use info.GetNumberOfFrames()
+    if (pixelData == NULL)
     {
-      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
+      numberOfFramesInPixelData = info.GetNumberOfFrames();
+      if (!dataset.findAndGetUint8Array(DCM_PixelData, pixelData, &pixelDataLength).good())
+      {
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
+      }
     }
 
     if (info.IsPlanar() ||
-        info.GetNumberOfFrames() != 1 ||
+        // info.GetNumberOfFrames() != 1 ||
         !info.ExtractPixelFormat(format, false) ||
         !dataset.findAndGetOFStringArray(DCM_BluePaletteColorLookupTableDescriptor, b).good() ||
         !dataset.findAndGetOFStringArray(DCM_GreenPaletteColorLookupTableDescriptor, g).good() ||
@@ -442,6 +449,29 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NotImplemented, "Inconsistent Palette Color Lookup Table");
     }
+
+    const uint64_t width = target->GetWidth();
+    const uint64_t height = target->GetHeight();
+
+    uint64_t frameSize = width * height * GetBytesPerPixel(target->GetFormat());
+
+    if (frameSize > MAX_IMAGE_FRAME_SIZE ||
+        static_cast<uint64_t>(static_cast<size_t>(frameSize)) != frameSize)
+    {
+      std::ostringstream errorMessage;
+      errorMessage << "DecodeLookupTable: max decoded frame size overflow  (" << frameSize << " vs. " << MAX_IMAGE_FRAME_SIZE << ")";
+      throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
+    }
+
+    uint64_t frameEnd = frameSize * (frameToDecode + 1);
+
+    if (static_cast<uint64_t>(static_cast<size_t>(frameEnd)) != frameEnd)
+    {
+      std::ostringstream errorMessage;
+      errorMessage << "DecodeLookupTable: frameEnd larger than 4GB, which is too large for Orthanc running in 32bits (" << frameEnd << ")"; // can only happen on 32 bits
+      throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
+    }
+
 
     switch (format)
     {
@@ -472,10 +502,10 @@ namespace Orthanc
           throw OrthancException(ErrorCode_NotImplemented, std::string("Palette Color Lookup Table Descriptor invalid palette size: '") + r.c_str() + "'");
         }
 
-        const uint64_t expectedSize = (static_cast<uint64_t>(target->GetWidth()) *
-                                       static_cast<uint64_t>(target->GetHeight()));
+        const uint64_t expectedFrameSourceSize = (static_cast<uint64_t>(target->GetWidth()) *
+                                                  static_cast<uint64_t>(target->GetHeight()));
         
-        if (pixelLength != expectedSize)
+        if (pixelDataLength != (expectedFrameSourceSize * numberOfFramesInPixelData))
         {
           DcmElement *elem = NULL;
           Uint16 bitsAllocated = 0;
@@ -496,15 +526,13 @@ namespace Orthanc
           // seen in some Philips ClearVue 650 images (using 8 bits LUT)
           if (elem->getVR() != EVR_OW ||
               bitsAllocated != 8 ||
-              2 * pixelLength != expectedSize)
+              2 * pixelDataLength != (expectedFrameSourceSize * numberOfFramesInPixelData))
           {
             throw OrthancException(ErrorCode_BadFileFormat, "Invalid size");
           }
         }
 
-        const uint8_t* source = reinterpret_cast<const uint8_t*>(pixelData);
-        const unsigned int width = target->GetWidth();
-        const unsigned int height = target->GetHeight();
+        const uint8_t* source = reinterpret_cast<const uint8_t*>(pixelData + expectedFrameSourceSize * frameToDecode);
         
         for (unsigned int y = 0; y < height; y++)
         {
@@ -530,20 +558,24 @@ namespace Orthanc
 
       case PixelFormat_RGB48:
       {
-        const uint64_t expectedSize = static_cast<uint64_t>(target->GetWidth()) * target->GetHeight() * 2;
+        const uint64_t expectedFrameSourceSize = static_cast<uint64_t>(target->GetWidth()) * target->GetHeight() * 2;
+
+        if ((expectedFrameSourceSize * numberOfFramesInPixelData) != pixelDataLength)
+        {
+          throw OrthancException(ErrorCode_InternalError, std::string("Palette Color Lookup Table Descriptor: invalid image size"));
+        }
 
         if (r != "0\\0\\16" ||
             rc != 65536 ||
             gc != 65536 ||
-            bc != 65536 ||
-            pixelLength != expectedSize)
+            bc != 65536)
         {
           throw OrthancException(ErrorCode_NotImplemented, std::string("Palette Color Lookup Table Descriptor not supported: '") + r.c_str() + "'");
         }
 
-        const uint16_t* source = reinterpret_cast<const uint16_t*>(pixelData);
         const unsigned int width = target->GetWidth();
         const unsigned int height = target->GetHeight();
+        const uint16_t* source = reinterpret_cast<const uint16_t*>(pixelData + expectedFrameSourceSize * frameToDecode);
         
         for (unsigned int y = 0; y < height; y++)
         {
@@ -597,7 +629,7 @@ namespace Orthanc
 
     if (info.GetPhotometricInterpretation() == PhotometricInterpretation_Palette)
     {
-      return DecodeLookupTable(target, info, dataset, NULL, 0);
+      return DecodeLookupTable(target, info, dataset, NULL, 0, 0 /* we don't know the number of frames in the buffer */, frame);
     }       
 
 
@@ -809,7 +841,7 @@ namespace Orthanc
 
       return DecodeLookupTable(target, info, dataset,
                                reinterpret_cast<const uint8_t*>(uncompressed.c_str()),
-                               uncompressed.size());
+                               uncompressed.size(), 1 /* a single frame has been decoded */, 0 /* decode the first frame of this buffer*/);
     }
     else
     {

@@ -823,6 +823,8 @@ namespace Orthanc
         case EVR_UT:  // unlimited text
         case EVR_PN:  // person name
         case EVR_UI:  // unique identifier
+        case EVR_UR:  // URI / URL
+        case EVR_UC:  // Unlimited Characters
         case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
         case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
         {
@@ -2030,6 +2032,7 @@ namespace Orthanc
 
 #if DCMTK_VERSION_NUMBER >= 362
       case EVR_OL:
+        // Even though EVR_OL was introduced in DCMTK 3.6.1, its implementation was broken
         return ValueRepresentation_OtherLong;
 #endif
 
@@ -2082,7 +2085,23 @@ namespace Orthanc
       case EVR_UT:
         return ValueRepresentation_UnlimitedText;
 
+#if DCMTK_VERSION_NUMBER >= 365
+      case EVR_OV:
+        return ValueRepresentation_OtherVeryLong;
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 365
+      case EVR_SV:
+        return ValueRepresentation_SignedVeryLong;
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 365
+      case EVR_UV:
+        return ValueRepresentation_UnsignedVeryLong;
+#endif
+
       default:
+        // This notably happens if the version of DCMTK is too old
         return ValueRepresentation_NotSupported;
     }
   }
@@ -3067,6 +3086,8 @@ namespace Orthanc
         case EVR_UT:  // unlimited text
         case EVR_PN:  // person name
         case EVR_UI:  // unique identifier
+        case EVR_UR:  // URI / URL
+        case EVR_UC:  // Unlimited Characters
         {
           Uint8* data = NULL;
           

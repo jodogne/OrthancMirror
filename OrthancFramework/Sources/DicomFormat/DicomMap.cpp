@@ -988,6 +988,15 @@ namespace Orthanc
       case ValueRepresentation_UnlimitedText:
         return value.size() <= (static_cast<uint64_t>(1) << 32) - 2;
 
+      case ValueRepresentation_OtherVeryLong:
+        return true;
+
+      case ValueRepresentation_SignedVeryLong:
+        return value.size() == 8;
+
+      case ValueRepresentation_UnsignedVeryLong:
+        return value.size() == 8;
+
       default:
         // Assume unsupported tags are OK
         return true;

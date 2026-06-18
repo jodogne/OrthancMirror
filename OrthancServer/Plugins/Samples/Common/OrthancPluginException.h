@@ -40,14 +40,30 @@
 #  define ORTHANC_PLUGINS_GET_ERROR_CODE(code)  ::OrthancPluginErrorCode_ ## code
 #endif
 
+#if HAS_ORTHANC_EXCEPTION == 1 && defined(__ORTHANC_FILE__)   // the OrthancException accepts a detail argument -> add the file and line number
+#  define PLUGIN_ORTHANC_EXCEPTION_STRINGIFY_LINE_HELPER(line) #line
+#  define PLUGIN_ORTHANC_EXCEPTION_STRINGIFY_LINE(line) PLUGIN_ORTHANC_EXCEPTION_STRINGIFY_LINE_HELPER(line)
+#  define PLUGIN_THROW_WITH_FILE_AND_LINE_INFO(errorCode)                    \
+    throw ::Orthanc::OrthancException(                                               \
+      errorCode, #errorCode " triggered from " __ORTHANC_FILE__ ":"       \
+      PLUGIN_ORTHANC_EXCEPTION_STRINGIFY_LINE(__LINE__))
 
-#define ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code)                   \
-  throw ORTHANC_PLUGINS_EXCEPTION_CLASS(static_cast<ORTHANC_PLUGINS_ERROR_ENUMERATION>(code));
+#  define ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code)                   \
+  PLUGIN_THROW_WITH_FILE_AND_LINE_INFO(static_cast<ORTHANC_PLUGINS_ERROR_ENUMERATION>(code))    
 
+#  define ORTHANC_PLUGINS_THROW_EXCEPTION(code)                           \
+  PLUGIN_THROW_WITH_FILE_AND_LINE_INFO(ORTHANC_PLUGINS_GET_ERROR_CODE(code))    
 
-#define ORTHANC_PLUGINS_THROW_EXCEPTION(code)                           \
-  throw ORTHANC_PLUGINS_EXCEPTION_CLASS(ORTHANC_PLUGINS_GET_ERROR_CODE(code));
-                                                  
+#else // the PluginException does not accept a detail argument
+#  define ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code)                   \
+    throw ORTHANC_PLUGINS_EXCEPTION_CLASS(static_cast<ORTHANC_PLUGINS_ERROR_ENUMERATION>(code));
+
+#  define PLUGIN_THROW_WITH_FILE_AND_LINE_INFO(errorCode)                 \
+     ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(errorCode) 
+
+#  define ORTHANC_PLUGINS_THROW_EXCEPTION(code)                           \
+    throw ORTHANC_PLUGINS_EXCEPTION_CLASS(ORTHANC_PLUGINS_GET_ERROR_CODE(code));
+#endif                                                  
 
 #define ORTHANC_PLUGINS_CHECK_ERROR(code)                           \
   if (code != ORTHANC_PLUGINS_GET_ERROR_CODE(Success))              \

@@ -457,6 +457,7 @@ namespace Orthanc
            vr == ValueRepresentation_OtherFloat ||
            vr == ValueRepresentation_OtherLong ||
            vr == ValueRepresentation_OtherWord ||
+           vr == ValueRepresentation_OtherVeryLong ||
            vr == ValueRepresentation_Unknown);
 
     if (tag.GetElement() != 0x0000)

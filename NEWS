@@ -40,7 +40,6 @@ General
     A new "--logs-no-context" command line option can be used to get back to the previous behavior to
     keep backward compatibility and reduce the lines length.
 
-
 REST API
 --------
 
@@ -58,12 +57,14 @@ REST API
 Plugin SDK
 ----------
 
-* Added OrthancPluginClearCurrentThreadName() to avoid storing thousands of thread
+* Added OrthancPluginClearCurrentThreadName() to avoid storing many thread
   names when dynamically creating/killing threads in a plugin.
+* Added OD, OL, UC, UR, OV, SV, and UV values to the OrthancPluginValueRepresentation enumeration
 
 Maintenance
 -----------
 
+* Added internal support for OV, SV, and UV value representations
 * Fix resubmit/pause/cancel and reloading of OrthancPeerStore and DicomModalityStore jobs 
   (bug introduced in 1.12.10)
 * Fix OrthancPeerStore jobs that was using the loader threads only if transcoding
@@ -78,6 +79,8 @@ Maintenance
   https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=258
   Security issue reported by Jose Lopez Martinez (aka elpe_pinillo) from Deloitte.
 * Fixed various OOB read/write (TODO: finalize release notes)
+* Improved preview and rendering of multiframe instances a with a Color Lookup Table; 
+  notably, some cardiac US instances.
 * Lua: Fix the "ReceivedCStoreInstanceFilter" Lua callback whose return value was
   not taken into account.
 * Upgraded dependencies for static builds:

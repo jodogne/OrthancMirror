@@ -883,7 +883,7 @@ extern "C"
 
 
   /**
-   * The value representations present in the DICOM standard (version 2013).
+   * The value representations present in the DICOM standard.
    * @ingroup Toolbox
    **/
   typedef enum
@@ -915,6 +915,13 @@ extern "C"
     OrthancPluginValueRepresentation_UN = 25,  /*!< Unknown */
     OrthancPluginValueRepresentation_US = 26,  /*!< Unsigned Short */
     OrthancPluginValueRepresentation_UT = 27,  /*!< Unlimited Text */
+    OrthancPluginValueRepresentation_OD = 28,  /*!< Other Double           (new in Orthanc 1.12.12) */
+    OrthancPluginValueRepresentation_OL = 29,  /*!< Other Long             (new in Orthanc 1.12.12) */
+    OrthancPluginValueRepresentation_UC = 30,  /*!< Unlimited Characters   (new in Orthanc 1.12.12) */
+    OrthancPluginValueRepresentation_UR = 31,  /*!< URI / URL              (new in Orthanc 1.12.12) */
+    OrthancPluginValueRepresentation_OV = 32,  /*!< Other Very Long        (new in Orthanc 1.12.12) */
+    OrthancPluginValueRepresentation_SV = 33,  /*!< Signed Very Long       (new in Orthanc 1.12.12) */
+    OrthancPluginValueRepresentation_UV = 34,  /*!< Unsigned Very Long     (new in Orthanc 1.12.12) */
 
     _OrthancPluginValueRepresentation_INTERNAL = 0x7fffffff
   } OrthancPluginValueRepresentation;
