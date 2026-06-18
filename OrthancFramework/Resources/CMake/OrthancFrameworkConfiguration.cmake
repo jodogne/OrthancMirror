@@ -601,7 +601,6 @@ if (ENABLE_DCMTK)
     add_definitions(-DORTHANC_ENABLE_DCMTK_TRANSCODING=1)
     list(APPEND ORTHANC_DICOM_SOURCES_INTERNAL
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DcmtkTranscoder.cpp
-      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/IDicomTranscoder.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/Internals/SopInstanceUidFixer.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/MemoryBufferTranscoder.cpp
       )
@@ -684,6 +683,7 @@ else()
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DicomDataSource.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DicomSequentialReader.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/TranscoderDataSource.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/IDicomTranscoder.cpp
       )
   endif()
 
