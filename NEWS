@@ -53,6 +53,9 @@ REST API
   "/modalities/../get", "queries/../answers/../retrieve" now always overwrites the "DicomAet"
   and the "DicomModalities.LocalAet" configurations.
 * Optimized the "/patients|studies|series|instances/../statistics" routes.
+* Updated the naming structure of the zip downloaded from "/../../archive" routes.  Notably added
+  SeriesNumber at the series level and now using " - " instead of " " to separate DICOM tags used
+  in folder names.
 
 Plugin SDK
 ----------

@@ -712,6 +712,7 @@ namespace Orthanc
                       const std::string& publicId) ORTHANC_OVERRIDE
     {
       std::string path;
+      std::vector<std::string> pathParts;
 
       DicomMap tags;
       ResourceType resourceIdLevel = GetResourceIdType(level);
@@ -723,18 +724,48 @@ namespace Orthanc
         {
           case ArchiveResourceType_Patient:
           case ArchiveResourceType_PatientInfoFromStudy:
-            path = GetTag(tags, DICOM_TAG_PATIENT_ID) + " " + GetTag(tags, DICOM_TAG_PATIENT_NAME);
-            break;
-
+          {
+            pathParts.push_back(GetTag(tags, DICOM_TAG_PATIENT_ID));
+            std::string patientName = GetTag(tags, DICOM_TAG_PATIENT_NAME);
+            if (!patientName.empty())
+            {
+              pathParts.push_back(patientName);
+            }
+          }; break;
           case ArchiveResourceType_Study:
-            path = GetTag(tags, DICOM_TAG_ACCESSION_NUMBER) + " " + GetTag(tags, DICOM_TAG_STUDY_DESCRIPTION);
-            break;
-
+          {
+            std::string accessionNumber = GetTag(tags, DICOM_TAG_ACCESSION_NUMBER);
+            std::string studyDescription = GetTag(tags, DICOM_TAG_STUDY_DESCRIPTION);
+            if (!accessionNumber.empty())
+            {
+              pathParts.push_back(accessionNumber);
+            }
+            if (!studyDescription.empty())
+            {
+              pathParts.push_back(studyDescription);
+            }
+          }; break;
           case ArchiveResourceType_Series:
           {
+            std::string seriesNumber = GetTag(tags, DICOM_TAG_SERIES_NUMBER);
             std::string modality = GetTag(tags, DICOM_TAG_MODALITY);
-            path = modality + " " + GetTag(tags, DICOM_TAG_SERIES_DESCRIPTION);
-
+            std::string seriesDescription = GetTag(tags, DICOM_TAG_SERIES_DESCRIPTION);
+            
+            if (!seriesNumber.empty())
+            {
+              pathParts.push_back(seriesNumber);
+            }
+            
+            if (!modality.empty())
+            {
+              pathParts.push_back(modality);
+            }
+            
+            if (!seriesDescription.empty())
+            {
+              pathParts.push_back(seriesDescription);
+            }
+            
             if (modality.size() == 0)
             {
               snprintf(instanceFormat_, sizeof(instanceFormat_) - 1, "%%08d.dcm");
@@ -751,16 +782,14 @@ namespace Orthanc
             }
 
             counter_ = 0;
-
-            break;
-          }
-
+          }; break;
           default:
             THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
 
-      path = Toolbox::StripSpaces(path);
+      Toolbox::JoinStrings(path, pathParts, " - ");
+      path =  Toolbox::StripSpaces(path);
 
       if (path.empty() 
           || (static_cast<size_t>(boost::count(path, '^')) == path.size()))  // this happens with non ASCII patient names: only the '^' remains and this is not a valid zip folder name

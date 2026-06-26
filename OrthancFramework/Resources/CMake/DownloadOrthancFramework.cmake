@@ -238,6 +238,11 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
         # for HttpClient that returns the answer body in case of HTTP error
         set(ORTHANC_FRAMEWORK_PRE_RELEASE ON)
         set(ORTHANC_FRAMEWORK_MD5 "665f8aa70d7c5091bc20da37cf664910")
+      elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "004b351797fe")
+        # PixelsMasker 0.1.2 (framework post-1.12.11)
+        # for ScopedThreadNameSetter
+        set(ORTHANC_FRAMEWORK_PRE_RELEASE ON)
+        set(ORTHANC_FRAMEWORK_MD5 "f078ca997217b831ab3f6741f08a8c07")
       endif()
     endif()
   endif()
