@@ -628,7 +628,7 @@ static OrthancPluginContext*                    pluginContext_ = NULL;    // thi
 static std::string                              pluginName_;              // this string can only be non-empty if running from a plugin
 static bool                                     hasOrthancAdvancedLogging_ = false;  // Whether the Orthanc runtime is >= 1.12.4
 static bool                                     hasClearThreadName_ = false;  // Whether the Orthanc runtime is >= 1.12.12
-static boost::recursive_mutex                   threadNamesMutex_;
+static boost::shared_mutex                      threadNamesMutex_;
 static std::map<boost::thread::id, std::string> threadNames_;
 static bool                                     enableThreadNames_ = true;
 static std::list<Orthanc::Logging::ILoggingListener*> loggingListeners_;
@@ -702,29 +702,26 @@ namespace Orthanc
     }
 
 
-    void SetCurrentThreadNameInternal(const boost::thread::id& id, const std::string& name)
+    void SetCurrentThreadName(const std::string& name)
     {
-      boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
-
       if (name.size() > 16)
       {
         throw OrthancException(ErrorCode_InternalError, std::string("Thread name can not exceed 16 characters: ") + name);
       }
 
-      threadNames_[id] = name;
-
-#if defined(__linux__) && !defined(NDEBUG) && !defined(__LSB_VERSION__)
-      // set the thread name at "system" level too -> required to have the thread names visible in GDB !
-      pthread_setname_np(pthread_self(), name.substr(0, 15).c_str());  // thread names are limited to 15 in Linux
-#endif              
-    }
-
-    void SetCurrentThreadName(const std::string& name)
-    {
       if (pluginContext_ == NULL)
       {
-        boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
-        SetCurrentThreadNameInternal(boost::this_thread::get_id(), name);
+        const boost::thread::id threadId = boost::this_thread::get_id();
+
+        {
+          boost::unique_lock<boost::shared_mutex> lock(threadNamesMutex_);
+          threadNames_[threadId] = name;
+        }
+
+#if defined(__linux__) && !defined(NDEBUG) && !defined(__LSB_VERSION__)
+        // set the thread name at "system" level too -> required to have the thread names visible in GDB !
+        pthread_setname_np(pthread_self(), name.substr(0, 15).c_str());  // thread names are limited to 15 in Linux
+#endif              
       }
       else
       {
@@ -732,49 +729,60 @@ namespace Orthanc
       }
     }
 
+
     bool HasCurrentThreadName()
     {
-      boost::thread::id threadId = boost::this_thread::get_id();
+      const boost::thread::id threadId = boost::this_thread::get_id();
 
-      boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
-      return threadNames_.find(threadId) != threadNames_.end();
+      {
+        boost::shared_lock<boost::shared_mutex> lock(threadNamesMutex_);
+        return threadNames_.find(threadId) != threadNames_.end();
+      }
     }
+
 
     void ClearCurrentThreadName()
     {
       if (pluginContext_ == NULL)
       {
-        boost::thread::id threadId = boost::this_thread::get_id();
+        const boost::thread::id threadId = boost::this_thread::get_id();
 
-        boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
-        threadNames_.erase(threadId);
+        {
+          boost::unique_lock<boost::shared_mutex> lock(threadNamesMutex_);
+          threadNames_.erase(threadId);
+        }
       }
       else if (hasClearThreadName_) // only recent runtimes support it (from 1.12.12)
       {
         pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_ClearCurrentThreadName, NULL);
       }
-
     }
+
 
     static std::string GetCurrentThreadName()
     {
-      boost::thread::id threadId = boost::this_thread::get_id();
+      const boost::thread::id threadId = boost::this_thread::get_id();
 
-      boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
-
-      if (threadNames_.find(threadId) == threadNames_.end())
       {
-        // set the threadId as the thread name
-        SetCurrentThreadNameInternal(threadId, boost::lexical_cast<std::string>(threadId));
+        boost::shared_lock<boost::shared_mutex> lock(threadNamesMutex_);
+
+        std::map<boost::thread::id, std::string>::const_iterator found = threadNames_.find(threadId);
+        if (found != threadNames_.end())
+        {
+          return found->second;
+        }
       }
 
-      return threadNames_[threadId];
+      // "SetCurrentThreadName()" has not been invoked for this thread
+      return boost::lexical_cast<std::string>(threadId);
     }    
+
 
     ScopedThreadNameSetter::ScopedThreadNameSetter(const std::string& threadName)
     {
       SetCurrentThreadName(threadName);
     }
+
 
     ScopedThreadNameSetter::~ScopedThreadNameSetter()
     {
@@ -788,11 +796,13 @@ namespace Orthanc
       loggingListeners_.push_back(listener);
     }
 
+
     void ClearLoggingListeners()
     {
       boost::unique_lock<boost::shared_mutex> lock(loggingListenersMutex_);
       loggingListeners_.clear();
     }
+
 
     static void GetLinePrefix(std::string& prefix,
                               LogLevel level,
@@ -926,11 +936,13 @@ namespace Orthanc
       }
     }
 
+
     void Finalize()
     {
       boost::mutex::scoped_lock lock(loggingStreamsMutex_);
       loggingStreamsContext_.reset(NULL);
     }
+
 
     void Reset()
     {
