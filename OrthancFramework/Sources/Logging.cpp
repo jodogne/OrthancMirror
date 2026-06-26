@@ -537,10 +537,10 @@ namespace
 #include "SystemToolbox.h"
 #include "Toolbox.h"
 
-#include <fstream>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <fstream>
 
 
 namespace
@@ -632,7 +632,7 @@ static boost::recursive_mutex                   threadNamesMutex_;
 static std::map<boost::thread::id, std::string> threadNames_;
 static bool                                     enableThreadNames_ = true;
 static std::list<Orthanc::Logging::ILoggingListener*> loggingListeners_;
-static boost::mutex                                   loggingListenersMutex_;
+static boost::shared_mutex                            loggingListenersMutex_;
 
 
 namespace Orthanc
@@ -784,13 +784,13 @@ namespace Orthanc
 
     void AddLoggingListener(ILoggingListener* listener)
     {
-      boost::mutex::scoped_lock lock(loggingListenersMutex_);
+      boost::unique_lock<boost::shared_mutex> lock(loggingListenersMutex_);
       loggingListeners_.push_back(listener);
     }
 
     void ClearLoggingListeners()
     {
-      boost::mutex::scoped_lock lock(loggingListenersMutex_);
+      boost::unique_lock<boost::shared_mutex> lock(loggingListenersMutex_);
       loggingListeners_.clear();
     }
 
@@ -1134,10 +1134,20 @@ namespace Orthanc
         *stream_ << messageStream_.str() << "\n";
         stream_->flush();
 
-        boost::mutex::scoped_lock lock(loggingListenersMutex_);
-        for (std::list<Orthanc::Logging::ILoggingListener*>::iterator it = loggingListeners_.begin(); it != loggingListeners_.end(); ++it)
         {
-          (*it)->HandleLog(level_, category_, pluginName_, file_, line_, messageStream_.str());
+          boost::shared_lock<boost::shared_mutex> lock(loggingListenersMutex_);
+
+          for (std::list<Orthanc::Logging::ILoggingListener*>::iterator it = loggingListeners_.begin(); it != loggingListeners_.end(); ++it)
+          {
+            try
+            {
+              (*it)->HandleLog(level_, category_, pluginName_, file_, line_, messageStream_.str());
+            }
+            catch (...)
+            {
+              // Don't throw in destructors
+            }
+          }
         }
       }
 
