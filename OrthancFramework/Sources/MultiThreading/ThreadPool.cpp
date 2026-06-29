@@ -304,7 +304,7 @@ namespace Orthanc
   }
 
 
-  void ThreadPool::SetCountThreads(unsigned int count)
+  void ThreadPool::SetThreadsCount(unsigned int count)
   {
     if (count < 1)
     {
@@ -326,7 +326,7 @@ namespace Orthanc
   }
 
 
-  unsigned int ThreadPool::GetCountThreads()
+  unsigned int ThreadPool::GetThreadsCount()
   {
     boost::mutex::scoped_lock lock(mutex_);
     return countThreads_;

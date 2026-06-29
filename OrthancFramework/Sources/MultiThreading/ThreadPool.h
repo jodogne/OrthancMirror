@@ -68,9 +68,9 @@ namespace Orthanc
 
     void SetLoggingThreadName(const std::string& name);
 
-    void SetCountThreads(unsigned int count);
+    void SetThreadsCount(unsigned int count);
 
-    virtual unsigned int GetCountThreads() ORTHANC_OVERRIDE;
+    unsigned int GetThreadsCount();
 
     void SetDequeueTimeout(unsigned int milliseconds);
 

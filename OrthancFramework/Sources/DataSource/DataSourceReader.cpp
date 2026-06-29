@@ -323,10 +323,6 @@ namespace Orthanc
     return maximumMemory;
   }
 
-  unsigned int DataSourceReader::GetThreadsCount() const
-  {
-    return executor_->GetCountThreads();
-  }
 
   boost::shared_ptr<DataSourceAnswer> DataSourceReader::Submit(DataSourceRequest* request /* takes ownership */)
   {

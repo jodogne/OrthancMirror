@@ -98,6 +98,11 @@ namespace Orthanc
 
     ~DataSourceReader();
 
+    const boost::shared_ptr<IExecutorService>& GetExecutorService() const
+    {
+      return executor_;
+    }
+
     void SetMetricsConfiguration(const MetricsConfiguration& configuration);
 
     void CreateCache(size_t capacity);
@@ -110,7 +115,6 @@ namespace Orthanc
 
     uint64_t GetCapacity() const;
 
-    unsigned int GetThreadsCount() const;
     /**
      * Request the data source to load a set of items. The values will
      * be read in parallel by a thread pool (cf. "executor_") and will

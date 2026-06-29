@@ -747,7 +747,7 @@ namespace Orthanc
       // For streaming
       {
         boost::shared_ptr<ThreadPool> pool(new ThreadPool);
-        pool->SetCountThreads(storageLoaderThreads);
+        pool->SetThreadsCount(storageLoaderThreads);
         pool->SetLoggingThreadName("STORAGE-SRC");
         pool->SetDequeueTimeout(100);
         pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_STORAGE_THREAD_POOL_AVAILABLE_THREADS);
@@ -775,7 +775,7 @@ namespace Orthanc
 
       {
         boost::shared_ptr<ThreadPool> pool(new ThreadPool);
-        pool->SetCountThreads(dicomParserThreads);
+        pool->SetThreadsCount(dicomParserThreads);
         pool->SetLoggingThreadName("DICOM-SRC");
         pool->SetDequeueTimeout(100);
         pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_DICOM_PARSER_THREAD_POOL_AVAILABLE_THREADS);
@@ -800,7 +800,7 @@ namespace Orthanc
       if (transcoder_.get() != NULL)
       {
         boost::shared_ptr<ThreadPool> pool(new ThreadPool);
-        pool->SetCountThreads(transcoderThreads);
+        pool->SetThreadsCount(transcoderThreads);
         pool->SetLoggingThreadName("TRANSCODER");
         pool->SetDequeueTimeout(100);
         pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_TRANSCODER_THREAD_POOL_AVAILABLE_THREADS);
@@ -831,7 +831,7 @@ namespace Orthanc
         // }
 
         std::unique_ptr<ThreadPool> pool(new ThreadPool);
-        pool->SetCountThreads(sequentialReaderThreads);  // TODO-Streaming - Check - clarify the difference between SequentialLoader and DataSourceReader
+        pool->SetThreadsCount(sequentialReaderThreads);  // TODO-Streaming - Check - clarify the difference between SequentialLoader and DataSourceReader
         pool->SetLoggingThreadName("SEQ-READER");
         pool->SetDequeueTimeout(100);
         pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_SEQ_READER_THREAD_POOL_AVAILABLE_THREADS);
@@ -2422,12 +2422,24 @@ namespace Orthanc
   {
     storageMemoryCapacityMb = storageAreaReader_->GetCapacity();
     storageMemoryCacheMb = storageAreaReader_->GetCacheCapacity();
-    storageReaderThreadsCount = storageAreaReader_->GetThreadsCount();
     transcoderMemoryCapacityMb = transcoderReader_->GetCapacity();
     transcoderMemoryCacheMb = transcoderReader_->GetCacheCapacity();
-    transcoderReaderThreadsCount = transcoderReader_->GetThreadsCount();
     dicomParserMemoryCapacityMb = dicomReader_->GetCapacity();
     dicomParserMemoryCacheMb = dicomReader_->GetCacheCapacity();
-    dicomParserThreadsCount = dicomReader_->GetThreadsCount();
+
+    {
+      boost::shared_ptr<IExecutorService> service = storageAreaReader_->GetExecutorService();
+      storageReaderThreadsCount = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
+    }
+
+    {
+      boost::shared_ptr<IExecutorService> service = transcoderReader_->GetExecutorService();
+      transcoderReaderThreadsCount = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
+    }
+
+    {
+      boost::shared_ptr<IExecutorService> service = dicomReader_->GetExecutorService();
+      dicomParserThreadsCount = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
+    }
   }
 }
