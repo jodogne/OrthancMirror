@@ -36,6 +36,13 @@ REST API
 * Updated the naming structure of the zip downloaded from "/../../archive" routes.  Notably added
   SeriesNumber at the series level and now using " - " instead of " " to separate DICOM tags used
   in folder names.
+* In "/tools/metrics-prometheus":
+  - Removed "orthanc_jobs_completed", "orthanc_jobs_success" and "orthanc_jobs_failed" that were 
+    only considering the jobs currently stored in the JobsHistory and that were not suitable for
+    monitoring.  These metrics have been replaced by "orthanc_jobs_total_completed", 
+    "orthanc_jobs_total_success" and "orthanc_jobs_total_failed" that are now considering all the 
+    jobs that have run since Orthanc started.
+
 
 Plugin SDK
 ----------

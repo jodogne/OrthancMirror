@@ -1639,17 +1639,13 @@ namespace Orthanc
 
 
   void JobsRegistry::GetStatistics(unsigned int& pending,
-                                   unsigned int& running,
-                                   unsigned int& success,
-                                   unsigned int& failed)
+                                   unsigned int& running)
   {
     boost::mutex::scoped_lock lock(mutex_);
     CheckInvariants();
 
     pending = 0;
     running = 0;
-    success = 0;
-    failed = 0;
 
     for (JobsIndex::const_iterator it = jobsIndex_.begin();
          it != jobsIndex_.end(); ++it)
@@ -1669,11 +1665,8 @@ namespace Orthanc
           break;
 
         case JobState_Success:
-          success ++;
-          break;
-
         case JobState_Failure:
-          failed ++;
+          // not counted since 1.12.11+
           break;
 
         default:

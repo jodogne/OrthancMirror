@@ -983,8 +983,8 @@ namespace Orthanc
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
                                            countStudies, countSeries, countInstances);
 
-    unsigned int jobsPending, jobsRunning, jobsSuccess, jobsFailed;
-    context.GetJobsEngine().GetRegistry().GetStatistics(jobsPending, jobsRunning, jobsSuccess, jobsFailed);
+    unsigned int jobsPending, jobsRunning;
+    context.GetJobsEngine().GetRegistry().GetStatistics(jobsPending, jobsRunning);
 
     int64_t serverUpTime = context.GetServerUpTime();
     Json::Value lastChange;
@@ -999,9 +999,6 @@ namespace Orthanc
     registry.SetIntegerValue("orthanc_count_instances", static_cast<int64_t>(countInstances));
     registry.SetIntegerValue("orthanc_jobs_pending", jobsPending);
     registry.SetIntegerValue("orthanc_jobs_running", jobsRunning);
-    registry.SetIntegerValue("orthanc_jobs_completed", jobsSuccess + jobsFailed);
-    registry.SetIntegerValue("orthanc_jobs_success", jobsSuccess);
-    registry.SetIntegerValue("orthanc_jobs_failed", jobsFailed);
     registry.SetIntegerValue("orthanc_up_time_s", serverUpTime);
     registry.SetIntegerValue("orthanc_last_change", lastChange["Last"].asInt64());
 
