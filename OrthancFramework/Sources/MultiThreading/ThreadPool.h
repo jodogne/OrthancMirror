@@ -54,6 +54,7 @@ namespace Orthanc
     unsigned int                          countThreads_;
     State                                 state_;
     unsigned int                          dequeueTimeoutMilliseconds_;
+
     std::unique_ptr<MetricsRegistry::SharedMetrics> availableThreadsMetrics_;
 
     template <bool throws>
@@ -76,7 +77,8 @@ namespace Orthanc
 
     unsigned int GetDequeueTimeout();
 
-    void SetMetricsConfiguration(MetricsRegistry& metrics, const std::string& availableThreadsMetricName);
+    void SetMetricsConfiguration(MetricsRegistry& metrics,
+                                 const std::string& availableThreadsMetricName);
 
     void Start();
 

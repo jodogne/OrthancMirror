@@ -752,7 +752,7 @@ namespace
     }
 
 
-    class Reader : public boost::noncopyable
+    class CurrentThreadReader : public boost::noncopyable
     {
     private:
       boost::shared_lock<boost::shared_mutex>  lock_;
@@ -761,7 +761,7 @@ namespace
       const ThreadInformation*                 information_;
 
     public:
-      explicit Reader(ThreadsInformations& informations) :
+      explicit CurrentThreadReader(ThreadsInformations& informations) :
         lock_(informations.mutex_),
         threadId_(boost::this_thread::get_id()),
         exists_(false),
@@ -825,7 +825,7 @@ namespace
     };
 
 
-    class Writer : public boost::noncopyable
+    class CurrentThreadWriter : public boost::noncopyable
     {
     private:
       ThreadsInformations&                     informations_;
@@ -834,7 +834,7 @@ namespace
       ThreadInformation*                       information_;
 
     public:
-      explicit Writer(ThreadsInformations& informations) :
+      explicit CurrentThreadWriter(ThreadsInformations& informations) :
         informations_(informations),
         lock_(informations.mutex_),
         threadId_(boost::this_thread::get_id())
@@ -995,7 +995,7 @@ namespace Orthanc
       if (pluginContext_ == NULL)
       {
         {
-          ThreadsInformations::Writer writer(threadsInformations_);
+          ThreadsInformations::CurrentThreadWriter writer(threadsInformations_);
           writer.SetThreadName(name);
         }
 
@@ -1015,7 +1015,7 @@ namespace Orthanc
     {
       if (pluginContext_ == NULL)
       {
-        ThreadsInformations::Reader reader(threadsInformations_);
+        ThreadsInformations::CurrentThreadReader reader(threadsInformations_);
         return reader.HasThreadName();
       }
       else
@@ -1029,7 +1029,7 @@ namespace Orthanc
     {
       if (pluginContext_ == NULL)
       {
-        ThreadsInformations::Writer writer(threadsInformations_);
+        ThreadsInformations::CurrentThreadWriter writer(threadsInformations_);
         writer.ClearThreadName();
       }
       else if (hasClearThreadName_) // only recent runtimes support it (from 1.12.12)
@@ -1043,7 +1043,7 @@ namespace Orthanc
     {
       if (pluginContext_ == NULL)
       {
-        ThreadsInformations::Reader reader(threadsInformations_);
+        ThreadsInformations::CurrentThreadReader reader(threadsInformations_);
         return reader.GetThreadName();
       }
       else
@@ -1061,7 +1061,7 @@ namespace Orthanc
       }
       else
       {
-        ThreadsInformations::Writer writer(threadsInformations_);
+        ThreadsInformations::CurrentThreadWriter writer(threadsInformations_);
         writer.PushContext(context);
       }
     }
@@ -1069,7 +1069,7 @@ namespace Orthanc
 
     void PopCurrentThreadContext()
     {
-      ThreadsInformations::Writer writer(threadsInformations_);
+      ThreadsInformations::CurrentThreadWriter writer(threadsInformations_);
       writer.PopContext();
     }
 
@@ -1110,7 +1110,7 @@ namespace Orthanc
     ThreadContextMemento::ThreadContextMemento() :
       pimpl_(new PImpl)
     {
-      ThreadsInformations::Reader reader(threadsInformations_);
+      ThreadsInformations::CurrentThreadReader reader(threadsInformations_);
       reader.CopyContext(pimpl_->context_);
     }
 
@@ -1214,7 +1214,7 @@ namespace Orthanc
       if (enableThreadNames_ ||
           enableThreadContexts_)
       {
-        ThreadsInformations::Reader reader(threadsInformations_);
+        ThreadsInformations::CurrentThreadReader reader(threadsInformations_);
 
         if (enableThreadNames_)
         {

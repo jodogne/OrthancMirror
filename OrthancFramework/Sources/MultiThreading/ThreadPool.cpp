@@ -40,7 +40,8 @@ static const unsigned int DEFAULT_DEQUEUE_TIMEOUT_MS = 100;
 
 namespace Orthanc
 {
-  void ThreadPool::SetMetricsConfiguration(MetricsRegistry& metrics, const std::string& availableThreadsMetricName)
+  void ThreadPool::SetMetricsConfiguration(MetricsRegistry& metrics,
+                                           const std::string& availableThreadsMetricName)
   {
     availableThreadsMetrics_.reset(new MetricsRegistry::SharedMetrics(metrics,
                                                                       availableThreadsMetricName,
