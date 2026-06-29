@@ -63,7 +63,7 @@ namespace Orthanc
                                  unsigned int maximumPduLength,
                                  bool useDicomTls)
   {
-    Logging::ScopedThreadNameSetter setter("DICOM-SERVER");
+    Logging::ScopedCurrentThreadNameSetter setter("DICOM-SERVER");
     CLOG(INFO, DICOM) << "DICOM server started";
 
     while (server->continue_)

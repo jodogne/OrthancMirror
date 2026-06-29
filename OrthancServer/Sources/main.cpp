@@ -2081,11 +2081,11 @@ int main(int argc, char* argv[])
     }
     else if (argument == "--logs-no-thread")
     {
-      Logging::EnableThreadNames(false);
+      Logging::SetThreadNamesEnabled(false);
     }
     else if (argument == "--logs-no-context")
     {
-      Logging::EnableContexts(false);
+      Logging::SetThreadContextsEnabled(false);
     }
     else if (argument == "--trace")
     {

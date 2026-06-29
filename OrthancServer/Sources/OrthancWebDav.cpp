@@ -1172,7 +1172,7 @@ namespace Orthanc
 
   void OrthancWebDav::UploadWorker(OrthancWebDav* that)
   {
-    Logging::ScopedThreadNameSetter setter("WEBDAV-UPLOAD");
+    Logging::ScopedCurrentThreadNameSetter setter("WEBDAV-UPLOAD");
 
     assert(that != NULL);
 

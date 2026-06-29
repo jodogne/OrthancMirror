@@ -28,6 +28,7 @@
 #include "OrthancFramework.h"
 #include "Compatibility.h"
 
+#include <boost/noncopyable.hpp>
 #include <iostream>
 #include <stdint.h>
 
@@ -75,27 +76,37 @@ namespace Orthanc
       LogCategory_LUA     = (1 << 6)
     };
 
-    class ScopedThreadNameSetter
-    {
-    public:
-      explicit ScopedThreadNameSetter(const std::string& threadName);
 
-      ~ScopedThreadNameSetter();
+    class ThreadContextMemento : public boost::noncopyable
+    {
+    private:
+      struct PImpl;
+      PImpl* pimpl_;
+
+    public:
+      ThreadContextMemento();
+
+      ~ThreadContextMemento();
+
+      class ScopedSetter : public boost::noncopyable
+      {
+      private:
+        size_t  count_;
+
+      public:
+        ScopedSetter(const ThreadContextMemento& memento);
+
+        ~ScopedSetter();
+      };
     };
 
-    class ScopedContextSetter
-    {
-      bool hasPushedContext_;
-    public:
-      explicit ScopedContextSetter(const std::string& context);
 
-      ~ScopedContextSetter();
-    };
-
-    class ILoggingListener
+    class ILoggingListener : public boost::noncopyable
     {
     public:
-      virtual ~ILoggingListener() {}
+      virtual ~ILoggingListener()
+      {
+      }
 
       virtual void HandleLog(LogLevel level,
                              LogCategory category,
@@ -104,6 +115,7 @@ namespace Orthanc
                              uint32_t line,
                              const std::string& message) = 0;
     };
+
 
     ORTHANC_PUBLIC const char* EnumerationToString(LogLevel level);
 
@@ -123,6 +135,10 @@ namespace Orthanc
 
     ORTHANC_PUBLIC void Flush();
 
+    ORTHANC_PUBLIC void SetThreadNamesEnabled(bool enabled);
+
+    ORTHANC_PUBLIC void SetThreadContextsEnabled(bool enabled);
+
     ORTHANC_PUBLIC void SetCurrentThreadName(const std::string& name);
 
     ORTHANC_PUBLIC bool HasCurrentThreadName();
@@ -131,23 +147,15 @@ namespace Orthanc
 
     ORTHANC_PUBLIC std::string GetCurrentThreadName();
 
-    ORTHANC_PUBLIC void PushContext(const std::string& context);
+    ORTHANC_PUBLIC void PushCurrentThreadContext(const std::string& context);
 
-    ORTHANC_PUBLIC void PopContext();
+    ORTHANC_PUBLIC void PopCurrentThreadContext();
 
-    ORTHANC_PUBLIC bool LookupCurrentContext(std::string& result);
+    ORTHANC_PUBLIC ThreadContextMemento* CreateCurrentThreadContextMemento();
 
     ORTHANC_PUBLIC void AddLoggingListener(ILoggingListener* listener);
 
     ORTHANC_PUBLIC void ClearLoggingListeners();
-
-    ORTHANC_PUBLIC void EnableThreadNames(bool enabled);
-
-    ORTHANC_PUBLIC bool IsThreadNamesEnabled();
-
-    ORTHANC_PUBLIC void EnableContexts(bool enabled);
-
-    ORTHANC_PUBLIC bool IsContextsEnabled();
 
     ORTHANC_PUBLIC void EnableInfoLevel(bool enabled);
 
@@ -177,7 +185,37 @@ namespace Orthanc
 
     ORTHANC_PUBLIC void SetTargetFolder(const std::string& path);
 
-    struct ORTHANC_LOCAL NullStream : public std::ostream 
+
+    class ScopedCurrentThreadNameSetter : public boost::noncopyable
+    {
+    public:
+      explicit ScopedCurrentThreadNameSetter(const std::string& threadName)
+      {
+        SetCurrentThreadName(threadName);
+      }
+
+      ~ScopedCurrentThreadNameSetter()
+      {
+        ClearCurrentThreadName();
+      }
+    };
+
+
+    class ScopedCurrentThreadContextSetter : public boost::noncopyable
+    {
+    public:
+      explicit ScopedCurrentThreadContextSetter(const std::string& context)
+      {
+        PushCurrentThreadContext(context);
+      }
+
+      ~ScopedCurrentThreadContextSetter()
+      {
+        PopCurrentThreadContext();
+      }
+    };
+
+    struct ORTHANC_LOCAL NullStream : public std::ostream
     {
       NullStream() : 
         std::ios(0), 
@@ -257,7 +295,6 @@ namespace Orthanc
      ORTHANC_ENABLE_LOGGING_STDIO == 1)
 // This is notably for WebAssembly
 
-#include <boost/noncopyable.hpp>
 #include <sstream>
 
 namespace Orthanc
@@ -299,7 +336,6 @@ namespace Orthanc
 #if (ORTHANC_ENABLE_LOGGING == 1 &&             \
      ORTHANC_ENABLE_LOGGING_STDIO == 0)
 
-#include <boost/noncopyable.hpp>
 #include <sstream>
 
 namespace Orthanc

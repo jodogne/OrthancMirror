@@ -1023,7 +1023,7 @@ namespace Orthanc
 
   void LuaScripting::HeartBeatThread(LuaScripting* that)
   {
-    Logging::ScopedThreadNameSetter setter("LUA-HEARTBEAT");
+    Logging::ScopedCurrentThreadNameSetter setter("LUA-HEARTBEAT");
 
     static const unsigned int GRANULARITY = 100;  // In milliseconds
     
@@ -1061,7 +1061,7 @@ namespace Orthanc
 
   void LuaScripting::EventThread(LuaScripting* that)
   {
-    Logging::ScopedThreadNameSetter setter("LUA-EVENTS");
+    Logging::ScopedCurrentThreadNameSetter setter("LUA-EVENTS");
 
     for (;;)
     {

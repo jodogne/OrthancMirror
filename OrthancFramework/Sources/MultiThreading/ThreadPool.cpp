@@ -58,32 +58,24 @@ namespace Orthanc
     virtual void Execute() = 0;
 
     virtual void Cancel() = 0;
-
-    virtual std::string GetTransmitContext() = 0;
   };
 
 
   class ThreadPool::CallableTask : public ITask
   {
   private:
-    std::unique_ptr<ICallable>               callable_;
-    boost::weak_ptr<Internals::FutureState>  state_;
-    std::string                              transmitContext_;
+    std::unique_ptr<ICallable>                      callable_;
+    boost::weak_ptr<Internals::FutureState>         state_;
+    std::unique_ptr<Logging::ThreadContextMemento>  callerMemento_;
 
   public:
     CallableTask(ICallable* callable,
-                 boost::shared_ptr<Internals::FutureState>& state,
-                 const std::string& transmitContext) :
+                 boost::shared_ptr<Internals::FutureState>& state) :
       callable_(callable),
       state_(state),
-      transmitContext_(transmitContext)
+      callerMemento_(Logging::CreateCurrentThreadContextMemento())
     {
       assert(callable != NULL);
-    }
-
-    virtual std::string GetTransmitContext() ORTHANC_OVERRIDE
-    {
-      return transmitContext_;
     }
 
     virtual void Execute() ORTHANC_OVERRIDE
@@ -92,6 +84,8 @@ namespace Orthanc
 
       if (locked)
       {
+        Logging::ThreadContextMemento::ScopedSetter setter(*callerMemento_);
+
         try
         {
           locked->AcquireResult(callable_->Call());
@@ -130,25 +124,20 @@ namespace Orthanc
   class ThreadPool::RunnableTask : public ITask
   {
   private:
-    std::unique_ptr<IRunnable>  runnable_;
-    std::string                 transmitContext_;
+    std::unique_ptr<IRunnable>                      runnable_;
+    std::unique_ptr<Logging::ThreadContextMemento>  callerMemento_;
 
   public:
-    explicit RunnableTask(IRunnable* runnable,
-                          const std::string& transmitContext) :
+    explicit RunnableTask(IRunnable* runnable) :
       runnable_(runnable),
-      transmitContext_(transmitContext)
+      callerMemento_(Logging::CreateCurrentThreadContextMemento())
     {
       assert(runnable != NULL);
     }
 
-    virtual std::string GetTransmitContext() ORTHANC_OVERRIDE
-    {
-      return transmitContext_;
-    }
-
     virtual void Execute() ORTHANC_OVERRIDE
     {
+      Logging::ThreadContextMemento::ScopedSetter setter(*callerMemento_);
       runnable_->Run();
     }
 
@@ -237,7 +226,7 @@ namespace Orthanc
 
   void ThreadPool::WorkerLoop(const std::string& threadName)
   {
-    Logging::ScopedThreadNameSetter setter(threadName);
+    Logging::ScopedCurrentThreadNameSetter setter(threadName);
 
     while (true)
     {
@@ -270,8 +259,6 @@ namespace Orthanc
         try
         {
           ITask& iTask = dynamic_cast<ITask&>(*task);
-          
-          Logging::ScopedContextSetter logContext(iTask.GetTransmitContext());
           iTask.Execute();
         }
         catch (const OrthancException& e)
@@ -400,33 +387,6 @@ namespace Orthanc
     }
   }
 
-  static std::string GetContextToTransmit()
-  {
-    std::string transmitContext;
-
-    if (Logging::IsContextsEnabled())
-    {
-      std::vector<std::string> contexts;
-
-      if (false) // additional debug information: add the caller thread name
-      {
-        if (Logging::IsThreadNamesEnabled())
-        {
-          contexts.push_back(std::string("from " +  Logging::GetCurrentThreadName()));
-        }
-      }
-
-      std::string currentContext;
-      if (Logging::LookupCurrentContext(currentContext))
-      {
-        contexts.push_back(currentContext);
-      }
-      Toolbox::JoinStrings(transmitContext, contexts, " | ");
-    }
-
-    return transmitContext;
-  }
-
 
   Future* ThreadPool::Submit(ICallable* callable)
   {
@@ -448,7 +408,7 @@ namespace Orthanc
 
     boost::shared_ptr<Internals::FutureState> state(boost::make_shared<Internals::FutureState>());
 
-    queue_.Enqueue(new CallableTask(protection.release(), state, GetContextToTransmit()));
+    queue_.Enqueue(new CallableTask(protection.release(), state));
 
     return new Future(state);
   }
@@ -472,7 +432,7 @@ namespace Orthanc
       }
     }
 
-    queue_.Enqueue(new RunnableTask(protection.release(), GetContextToTransmit()));
+    queue_.Enqueue(new RunnableTask(protection.release()));
   }
 
 
