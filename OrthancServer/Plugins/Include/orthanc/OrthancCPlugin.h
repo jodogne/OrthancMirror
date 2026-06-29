@@ -9995,10 +9995,15 @@ extern "C"
    * must only be called from threads that the plugin has created
    * itself.
    *
+   * At the end of the lifetime of the thread,
+   * OrthancPluginClearCurrentThreadName() must be called to release
+   * the allocated resources.
+   *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param threadName The name of the current thread. A thread name cannot be longer than 16 characters.
    * @return 0 if success, other value if error.
    * @ingroup Toolbox
+   * @see OrthancPluginClearCurrentThreadName()
    **/
   ORTHANC_PLUGIN_SINCE_SDK("1.12.2")
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSetCurrentThreadName(
@@ -11199,13 +11204,16 @@ extern "C"
   /**
    * @brief Clear the name of the current thread.
    *
-   * This function releases the resources allocated to store the threa
-   * name.  This function must only be called from threads that the plugin 
-   * has created itself when the thread is reaching its end of life.
+   * This function releases the resources allocated to store the name
+   * of the current thread, after a call to
+   * "OrthancPluginSetCurrentThreadName()". This function must only be
+   * called from threads that the plugin has created itself when the
+   * thread is reaching its end of life.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @return 0 if success, other value if error.
    * @ingroup Toolbox
+   * @see OrthancPluginSetCurrentThreadName()
    **/
   ORTHANC_PLUGIN_SINCE_SDK("1.12.12")
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginClearCurrentThreadName(
