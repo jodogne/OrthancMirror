@@ -716,11 +716,6 @@ namespace
     {
       return context_;
     }
-
-    void CopyContext(std::list<std::string>& target) const
-    {
-      target = context_;
-    }
   };
 
 
@@ -815,7 +810,7 @@ namespace
         if (exists_)
         {
           assert(information_ != NULL);
-          information_->CopyContext(target);
+          target = information_->GetContext();
         }
         else
         {
@@ -832,12 +827,30 @@ namespace
       boost::unique_lock<boost::shared_mutex>  lock_;
       boost::thread::id                        threadId_;
       ThreadInformation*                       information_;
+      bool                                     valid_;
+
+      void Recycle()
+      {
+        if (!information_->HasThreadName() &&
+            information_->GetContext().empty())
+        {
+          Content::iterator found = informations_.content_.find(threadId_);
+          assert(found != informations_.content_.end());
+          assert(found->second != NULL);
+
+          delete found->second;
+          informations_.content_.erase(found);
+
+          valid_ = false;
+        }
+      }
 
     public:
       explicit CurrentThreadWriter(ThreadsInformations& informations) :
         informations_(informations),
         lock_(informations.mutex_),
-        threadId_(boost::this_thread::get_id())
+        threadId_(boost::this_thread::get_id()),
+        valid_(true)
       {
         Content::iterator found = informations.content_.find(threadId_);
 
@@ -855,6 +868,11 @@ namespace
 
       void SetThreadName(const std::string& name)
       {
+        if (!valid_)
+        {
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadSequenceOfCalls);
+        }
+
         assert(information_ != NULL);
         information_->SetThreadName(name);
 
@@ -876,22 +894,41 @@ namespace
 #endif
       }
 
-      void ClearThreadName()
-      {
-        assert(information_ != NULL);
-        information_->ClearThreadName();
-      }
-
       void PushContext(const std::string& context)
       {
+        if (!valid_)
+        {
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadSequenceOfCalls);
+        }
+
         assert(information_ != NULL);
         information_->PushContext(context);
       }
 
+      void ClearThreadName()
+      {
+        if (!valid_)
+        {
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadSequenceOfCalls);
+        }
+
+        assert(information_ != NULL);
+        information_->ClearThreadName();
+
+        Recycle();
+      }
+
       void PopContext()
       {
+        if (!valid_)
+        {
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadSequenceOfCalls);
+        }
+
         assert(information_ != NULL);
         information_->PopContext();
+
+        Recycle();
       }
     };
   };
