@@ -724,6 +724,7 @@ namespace Orthanc
           LOG(WARNING) << "'" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS << "' is set to " << storageLoaderThreads;
         }
 
+        // ----> IF you update values here, you must also update them in Configuration.json <-----
         transcoderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_TRANSCODER_THREADS, 4);
         LOG(WARNING) << "'" << ORTHANC_CONFIG_TRANSCODER_THREADS << "' is set to " << transcoderThreads;
 
@@ -733,11 +734,12 @@ namespace Orthanc
         sequentialReaderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS, 2);
         LOG(WARNING) << "'" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS << "' is set to " << sequentialReaderThreads;
 
+        // ----> IF you update values here, you must also update them in Configuration.json <-----
         GetMemoryConfiguration(storageMemoryCapacityMb, lock, ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY, 512);
         GetMemoryConfiguration(dicomParserMemoryCapacityMb, lock, ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY, 256);
-        GetMemoryConfiguration(dicomParserCacheSizeMb, lock, ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE, 256);
+        GetMemoryConfiguration(dicomParserCacheSizeMb, lock, ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE, 128);
         GetMemoryConfiguration(transcoderMemoryCapacityMb, lock, ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY, 256);
-        GetMemoryConfiguration(transcoderCacheSizeMb, lock, ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE, 256);
+        GetMemoryConfiguration(transcoderCacheSizeMb, lock, ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE, 128);
         GetMemoryConfiguration(sequentialReaderWindowCapacityMb, lock, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_CAPACITY, 64);
 
         sequentialReaderWindowSize = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE, 4);

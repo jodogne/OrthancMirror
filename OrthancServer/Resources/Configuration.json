@@ -64,14 +64,22 @@
   // is disabled.  (new in Orthanc 1.10.0)
   "MaximumStorageCacheSize" : 128,
 
-  // Amount of RAM that are allocated to the storage loader threads.
+  // Amount of RAM (in MB) that are allocated to the storage loader threads.
   // Note that this limit can be overpassed when a single file 
   // exceeds this size.
-  // (new in Orthanc 1.12.11+)
-  "StorageMemoryCapacity": 256,
+  // (new in Orthanc 1.12.11+).
+  // You should monitor the "orthanc_storage_memory_usage_mb" and
+  // "orthanc_storage_memory_max_usage_mb" metrics to determine the 
+  // optimal value for your setup. 
+  "StorageMemoryCapacity": 512,
 
   // Number of threads that are used to read files from the storage.
   // (new in Orthanc 1.12.11+)
+  // A value > 4 is meaningful only if the storage is a distributed 
+  // network storage (e.g., object storage plugin).  In this case,
+  // you can typically increase it to 20 and you should then monitor 
+  // the "orthanc_storage_available_threads" metrics to determine 
+  // the optimal value for your setup.
   "StorageLoaderThreads": 4,
 
   // List of paths to the custom Lua scripts that are to be loaded
@@ -1145,5 +1153,74 @@
   // might be assigned to different patients because there is no
   // centralized patient ID management. (new in Orthanc 1.12.11)
   // Warning: As of 1.12.11, this is an experimental configuration.
-  "PatientLevelEnabled": true
+  "PatientLevelEnabled": true,
+
+
+
+  // Number of threads that are used to parse DICOM files (when you need
+  // to access the value of DICOM tags that are not store in DB).
+  // (new in Orthanc 1.12.11+)
+  // You should monitor the "orthanc_dicom_parser_available_threads" 
+  // metrics to determine the optimal value for your setup and usage.
+  "DicomParserThreads": 2,
+
+  // Amount of RAM (in MB) that are allocated to the DICOM parser threads.
+  // Note that this limit can be overpassed when a single file 
+  // exceeds this size.
+  // (new in Orthanc 1.12.11+).
+  // You should monitor the "orthanc_dicom_parser_memory_usage_mb" and
+  // "orthanc_dicom_parser_memory_max_usage_mb" metrics to determine the 
+  // optimal value for your setup and usage. 
+  "DicomParserMemoryCapacity": 256,
+
+  // Maximum size of the DICOM parser cache in MB.  This cache
+  // is stored in RAM and contains a parsed version of recently read
+  // DIOCM files.  A value of "0" indicates the cache
+  // is disabled.  (new in Orthanc 1.12.11+)
+  "DicomParserCacheSize" : 128,
+
+  // Number of threads that are used to parse transcode DICOM files.
+  // (new in Orthanc 1.12.11+)
+  // You should monitor the "orthanc_transcoder_available_threads" 
+  // metrics to determine the optimal value for your setup and usage.
+  "TranscoderThreads": 4,
+
+  // Amount of RAM (in MB) that are allocated to the transcoder threads.
+  // Note that this limit can be overpassed when a single file 
+  // exceeds this size.
+  // (new in Orthanc 1.12.11+).
+  // You should monitor the "orthanc_transcoder_memory_usage_mb" and
+  // "orthanc_transcoder_memory_max_usage_mb" metrics to determine the 
+  // optimal value for your setup and usage. 
+  "TranscoderMemoryCapacity": 256,
+
+  // Maximum size of the transcoder cache in MB.  This cache
+  // is stored in RAM and contains transcoded versions of recently read
+  // DIOCM files.  A value of "0" indicates the cache
+  // is disabled.  (new in Orthanc 1.12.11+)
+  "TranscoderCacheSize" : 128,
+
+  // Number of threads that are used to provide DICOM files sequentially
+  // (currently used in Archive jobs, C-Store and C-Get).  This limits
+  // the number of concurrent such jobs.
+  // TODO-Streaming: clarify the meaning with Seb.  If the above definition
+  // is correct; shouldn't we simply set it to the same value as "ConcurrentJobs" if not defined ?
+  // (new in Orthanc 1.12.11+)
+  // You should monitor the "orthanc_seq_reader_available_threads" 
+  // metrics to determine the optimal value for your setup and usage.
+  "SequentialDicomReaderThreads": 2,
+
+  // TODO-Streaming: clarify the meaning with Seb.
+  // Number of files each sequential DICOM reader is allowed to buffer
+  // in advance before it is consumed by the related job.
+  "SequentialDicomReaderWindowSize": 4,
+  
+  // TODO-Streaming: clarify the meaning with Seb.
+  // Amount of RAM (in MB) that are allocated to each sequential DICOM
+  // Reader.
+  // Note that this limit can be overpassed when a single file 
+  // exceeds this size.
+  // (new in Orthanc 1.12.11+).
+  "SequentialDicomReaderWindowCapacity": 64
+
 }
