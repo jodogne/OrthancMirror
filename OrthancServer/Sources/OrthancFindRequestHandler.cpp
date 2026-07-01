@@ -41,25 +41,22 @@
 
 namespace Orthanc
 {
+
   static void CopySequence(ParsedDicomFile& dicom,
                            const DicomTag& tag,
-                           const Json::Value& source,
+                           const Json::Value& sequenceContent,
                            const std::string& defaultPrivateCreator,
                            const std::map<uint16_t, std::string>& privateCreators)
   {
-    if (source.type() == Json::objectValue &&
-        source.isMember("Type") &&
-        source.isMember("Value") &&
-        source["Type"].asString() == "Sequence" &&
-        source["Value"].type() == Json::arrayValue)
+    if (sequenceContent.isArray())
     {
-      Json::Value content = Json::arrayValue;
+      Json::Value simplifiedContent = Json::arrayValue;
 
-      for (Json::Value::ArrayIndex i = 0; i < source["Value"].size(); i++)
+      for (Json::Value::ArrayIndex i = 0; i < sequenceContent.size(); i++)
       {
         Json::Value item;
-        Toolbox::SimplifyDicomAsJson(item, source["Value"][i], DicomToJsonFormat_Short);
-        content.append(item);
+        Toolbox::SimplifyDicomAsJson(item, sequenceContent[i], DicomToJsonFormat_Short);
+        simplifiedContent.append(item);
       }
 
       if (tag.IsPrivate())
@@ -68,16 +65,16 @@ namespace Orthanc
 
         if (found != privateCreators.end())
         {
-          dicom.Replace(tag, content, false, DicomReplaceMode_InsertIfAbsent, found->second.c_str());
+          dicom.Replace(tag, simplifiedContent, false, DicomReplaceMode_InsertIfAbsent, found->second.c_str());
         }
         else
         {
-          dicom.Replace(tag, content, false, DicomReplaceMode_InsertIfAbsent, defaultPrivateCreator);
+          dicom.Replace(tag, simplifiedContent, false, DicomReplaceMode_InsertIfAbsent, defaultPrivateCreator);
         }
       }
       else
       {
-        dicom.Replace(tag, content, false, DicomReplaceMode_InsertIfAbsent, "" /* no private creator */);
+        dicom.Replace(tag, simplifiedContent, false, DicomReplaceMode_InsertIfAbsent, "" /* no private creator */);
       }
     }
   }

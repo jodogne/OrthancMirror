@@ -19,6 +19,11 @@ General
   - StoreKeyValue(storeId, key, value)
   - value = GetKeyValue(storeId, key)
   - DeleteKeyValue(storeId, key)
+* C-Find SCP: When Orthanc was requested a sequence in a C-Find, Orthanc was actually not returning 
+  any sequences in the C-Find answer if the matched resource did contain the requested sequence and
+  was returning an empty sequence if the matched resource did not contain the requestes sequence.
+  Orthanc now returns the full sequence content when the matched resource contains the requested sequence.
+
 
 REST API
 --------
