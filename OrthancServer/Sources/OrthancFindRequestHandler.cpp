@@ -408,6 +408,11 @@ namespace Orthanc
         continue;
       }
 
+      if (tag.IsPrivateCreator())  // new in 1.12.11+: don't try to match PrivateCreators themselves (they are not mandatory); match only the private tags
+      {
+        continue;
+      }
+
       if (FilterQueryTag(level, tag, connection.GetModalityManufacturer()))
       {
         ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
