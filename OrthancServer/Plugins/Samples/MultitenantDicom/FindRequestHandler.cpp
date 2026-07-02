@@ -27,6 +27,7 @@
 
 #include "../../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../../OrthancFramework/Sources/Logging.h"
 
 #include "../Common/OrthancPluginCppWrapper.h"
 
@@ -50,6 +51,11 @@ void FindRequestHandler::Handle(Orthanc::DicomFindAnswers& answers,
   {
     std::string s;
 
+    if (*it == Orthanc::DICOM_TAG_SPECIFIC_CHARACTER_SET)
+    {
+      continue;  // skip it since we don't want it to be a filter criteria
+    }
+
     if (input.LookupStringValue(s, *it, false) &&
         !s.empty())
     {
@@ -72,12 +78,16 @@ void FindRequestHandler::Handle(Orthanc::DicomFindAnswers& answers,
   request["Level"] = EnumerationToString(PluginToolbox::ParseQueryRetrieveLevel(level));
   request["Query"] = query;
 
+  // LOG(INFO) << request.toStyledString();
+
   Json::Value response;
   if (!OrthancPlugins::RestApiPost(response, "/tools/find", request, false) ||
       response.type() != Json::arrayValue)
   {
     throw Orthanc::OrthancException(Orthanc::ErrorCode_NetworkProtocol, "Invalid DICOM C-FIND request");
   }
+
+  // LOG(INFO) << response.toStyledString();
 
   for (Json::Value::ArrayIndex i = 0; i < response.size(); i++)
   {
