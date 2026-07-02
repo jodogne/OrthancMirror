@@ -63,7 +63,7 @@ namespace Orthanc
                                  unsigned int maximumPduLength,
                                  bool useDicomTls)
   {
-    Logging::ScopedThreadNameSetter setter("DICOM-SERVER");
+    Logging::ScopedThreadNameSetter setter(server->name_);
     CLOG(INFO, DICOM) << "DICOM server started";
 
     while (server->continue_)
@@ -90,12 +90,15 @@ namespace Orthanc
   }
 
 
-  DicomServer::DicomServer() :
+  DicomServer::DicomServer(const std::string& name,
+                           const std::string& dicomThreadNamesPrefix) :
     pimpl_(new PImpl),
     checkCalledAet_(true),
     aet_("ANY-SCP"),
     port_(104),
     continue_(false),
+    name_(name),
+    dicomThreadNamesPrefix_(dicomThreadNamesPrefix),
     associationTimeout_(30),
     threadsCount_(4),
     modalities_(NULL),
@@ -436,11 +439,11 @@ namespace Orthanc
 
     if (metricsRegistry_ == NULL)
     {
-      pimpl_->workers_.reset(new RunnableWorkersPool(threadsCount_, "DICOM-"));
+      pimpl_->workers_.reset(new RunnableWorkersPool(threadsCount_, dicomThreadNamesPrefix_ + "-"));
     }
     else
     {
-      pimpl_->workers_.reset(new RunnableWorkersPool(threadsCount_, "DICOM-", *metricsRegistry_, "orthanc_available_dicom_threads"));
+      pimpl_->workers_.reset(new RunnableWorkersPool(threadsCount_, dicomThreadNamesPrefix_ + "-", *metricsRegistry_, "orthanc_available_dicom_threads"));
     }
 
     pimpl_->thread_ = boost::thread(ServerThread, this, maximumPduLength_, useDicomTls_);
