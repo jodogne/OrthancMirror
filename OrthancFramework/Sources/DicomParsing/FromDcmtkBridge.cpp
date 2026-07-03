@@ -447,15 +447,38 @@ namespace Orthanc
       virtual void ReadValue(std::string& value,
                              uint64_t index) const = 0;
 
-      static DicomValue* Apply(const ILeafElementArrayReader& reader)
+      static DicomValue* Apply(const ILeafElementArrayReader& reader,
+                               const DcmTagKey& tag,
+                               size_t maxStringLength,
+                               uint64_t maxBinaryArrayLength)
       {
         if (reader.IsValid())
         {
-          const uint64_t size = reader.GetSize();
+          uint64_t size = reader.GetSize();
+
+          if (maxBinaryArrayLength != 0 &&
+              size > maxBinaryArrayLength)
+          {
+            /**
+             * We have seen files with 100M floats (value representation OF):
+             * https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448
+             **/
+
+            DicomTag t(tag.getGroup(), tag.getElement());
+            LOG(WARNING) << "Truncating the DICOM tag " << t.Format() << " containing "
+                         << size << " values to " << maxBinaryArrayLength << " values";
+            size = maxBinaryArrayLength;
+          }
 
           ChunkedBuffer buffer;
           for (uint64_t i = 0; i < size; i++)
           {
+            if (maxStringLength != 0 &&
+                buffer.GetNumBytes() > maxStringLength)
+            {
+              return new DicomValue;
+            }
+
             if (i > 0)
             {
               buffer.AddChunk("\\", 1);
@@ -466,9 +489,17 @@ namespace Orthanc
             buffer.AddChunk(s);
           }
 
-          std::string s;
-          buffer.Flatten(s);
-          return DicomValue::CreateFromSwap(s, false);
+          if (maxStringLength != 0 &&
+              buffer.GetNumBytes() > maxStringLength)
+          {
+            return new DicomValue;
+          }
+          else
+          {
+            std::string s;
+            buffer.Flatten(s);
+            return DicomValue::CreateFromSwap(s, false);
+          }
         }
         else
         {
@@ -478,7 +509,7 @@ namespace Orthanc
     };
 
 
-    class AttributeTagReader : public ILeafElementArrayReader
+    class ValueRepresentationReader_AT : public ILeafElementArrayReader
     {
     private:
       bool     valid_;
@@ -486,7 +517,7 @@ namespace Orthanc
       Uint16*  content_;
 
     public:
-      AttributeTagReader(DcmElement& element) :
+      ValueRepresentationReader_AT(DcmElement& element) :
         valid_(false)
       {
         DcmAttributeTag& e = dynamic_cast<DcmAttributeTag&>(element);
@@ -533,6 +564,167 @@ namespace Orthanc
         value = tag.Format();
       }
     };
+
+
+    class ValueRepresentationReader_OF : public ILeafElementArrayReader
+    {
+    private:
+      bool      valid_;
+      uint64_t  size_;
+      Float32*  content_;
+
+    public:
+      ValueRepresentationReader_OF(DcmElement& element) :
+        valid_(false)
+      {
+        /**
+         * OF stores a binary array of 32-bit IEEE floats. Unlike FL where getVM()
+         * returns the count of values, for OF getVM() returns 1 (the entire binary
+         * blob is considered one "value"). We must use getFloat32Array() to access
+         * the raw float buffer, then build a string of all values.
+         * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
+         **/
+        DcmFloatingPointSingle& e = dynamic_cast<DcmFloatingPointSingle&>(element);
+
+        if (e.getFloat32Array(content_).good() &&
+            content_ != NULL)
+        {
+          if (element.getLength() % sizeof(Float32) != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
+          size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Float32);
+          valid_ = true;
+        }
+      }
+
+      virtual bool IsValid() const ORTHANC_OVERRIDE
+      {
+        return valid_;
+      }
+
+      virtual uint64_t GetSize() const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        return size_;
+      }
+
+      virtual void ReadValue(std::string& value,
+                             uint64_t index) const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        value = boost::lexical_cast<std::string>(content_[index]);
+      }
+    };
+
+
+#if DCMTK_VERSION_NUMBER >= 361
+    class ValueRepresentationReader_OD : public ILeafElementArrayReader
+    {
+    private:
+      bool      valid_;
+      uint64_t  size_;
+      Float64*  content_;
+
+    public:
+      ValueRepresentationReader_OD(DcmElement& element) :
+        valid_(false)
+      {
+        /**
+         * OD stores a binary array of 64-bit IEEE doubles. Similar to OF,
+         * getVM() returns 1 for OD. We must use getFloat64Array() to access
+         * the raw double buffer.
+         * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
+         **/
+        DcmFloatingPointDouble& e = dynamic_cast<DcmFloatingPointDouble&>(element);
+
+        if (e.getFloat64Array(content_).good() &&
+            content_ != NULL)
+        {
+          if (element.getLength() % sizeof(Float64) != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
+          size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Float64);
+          valid_ = true;
+        }
+      }
+
+      virtual bool IsValid() const ORTHANC_OVERRIDE
+      {
+        return valid_;
+      }
+
+      virtual uint64_t GetSize() const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        return size_;
+      }
+
+      virtual void ReadValue(std::string& value,
+                             uint64_t index) const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        value = boost::lexical_cast<std::string>(content_[index]);
+      }
+    };
+#endif
+
+
+#if DCMTK_VERSION_NUMBER >= 362
+    class ValueRepresentationReader_OL : public ILeafElementArrayReader
+    {
+    private:
+      bool      valid_;
+      uint64_t  size_;
+      Uint32*   content_;
+
+    public:
+      ValueRepresentationReader_OL(DcmElement& element) :
+        valid_(false)
+      {
+        /**
+         * OL stores a binary array of 32-bit unsigned integers. Like OF/OD,
+         * getVM() returns 1 for OL (the entire binary blob is one "value").
+         * We must use getUint32Array() to access the raw buffer.
+         * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
+         **/
+        DcmUnsignedLong& e = dynamic_cast<DcmUnsignedLong&>(element);
+
+        if (e.getUint32Array(content_).good() &&
+            content_ != NULL)
+        {
+          if (element.getLength() % sizeof(Uint32) != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
+          size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint32);
+          valid_ = true;
+        }
+      }
+
+      virtual bool IsValid() const ORTHANC_OVERRIDE
+      {
+        return valid_;
+      }
+
+      virtual uint64_t GetSize() const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        return size_;
+      }
+
+      virtual void ReadValue(std::string& value,
+                             uint64_t index) const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        value = boost::lexical_cast<std::string>(content_[index]);
+      }
+    };
+#endif
   }
 
 
@@ -1071,140 +1263,23 @@ namespace Orthanc
 
         case EVR_OF:  // other float - binary array of 32-bit floats (new in Orthanc 1.12.11)
         {
-          /**
-           * OF stores a binary array of 32-bit IEEE floats. Unlike FL where getVM()
-           * returns the count of values, for OF getVM() returns 1 (the entire binary
-           * blob is considered one "value"). We must use getFloat32Array() to access
-           * the raw float buffer, then build a string of all values.
-           * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
-           **/
-          DcmFloatingPointSingle& content = dynamic_cast<DcmFloatingPointSingle&>(element);
-          Float32* floatArray = NULL;
-          if (content.getFloat32Array(floatArray).good() && floatArray != NULL)
-          {
-            if (element.getLength() % sizeof(Float32) != 0)
-            {
-              throw OrthancException(ErrorCode_BadFileFormat);
-            }
-
-            uint64_t numFloats = static_cast<uint64_t>(element.getLength()) / sizeof(Float32);
-            numFloats = std::min(numFloats, static_cast<uint64_t>(maxBinaryArrayLength));
-
-            uint64_t preAllocateStringSize = static_cast<uint64_t>(maxStringLength); // We have seen files with 100M floats: https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448
-            if (maxStringLength == 0) // no limit, use an heuristic to reserve the string: 12 chars per float
-            {
-              preAllocateStringSize = 12ull * numFloats;
-              if (preAllocateStringSize > static_cast<uint64_t>(std::numeric_limits<size_t>::max()))
-              {
-                throw OrthancException(ErrorCode_BadFileFormat, "Too many values in binary array");
-              }
-            }
-
-            std::string result;
-            result.reserve(static_cast<size_t>(preAllocateStringSize));
-            for (unsigned long i = 0; i < numFloats; i++)
-            {
-              if (i > 0)
-              {
-                result += "\\";
-              }
-              result += boost::lexical_cast<std::string>(floatArray[i]);
-            }
-            return new DicomValue(result, false);
-          }
-          return new DicomValue;
+          ValueRepresentationReader_OF reader(element);
+          return ILeafElementArrayReader::Apply(reader, element.getTag(), maxStringLength, maxBinaryArrayLength);
         }
 
 #if DCMTK_VERSION_NUMBER >= 361
         case EVR_OD:  // other double - binary array of 64-bit floats (new in Orthanc 1.12.11)
         {
-          /**
-           * OD stores a binary array of 64-bit IEEE doubles. Similar to OF,
-           * getVM() returns 1 for OD. We must use getFloat64Array() to access
-           * the raw double buffer.
-           * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
-           **/
-          DcmFloatingPointDouble& content = dynamic_cast<DcmFloatingPointDouble&>(element);
-          Float64* doubleArray = NULL;
-          if (content.getFloat64Array(doubleArray).good() && doubleArray != NULL)
-          {
-            if (element.getLength() % sizeof(Float64) != 0)
-            {
-              throw OrthancException(ErrorCode_BadFileFormat);
-            }
-
-            uint64_t numDoubles = static_cast<uint64_t>(element.getLength()) / sizeof(Float64);
-            numDoubles = std::min(numDoubles, static_cast<uint64_t>(maxBinaryArrayLength));
-
-            uint64_t preAllocateStringSize = static_cast<uint64_t>(maxStringLength); // We have seen files with 100M floats: https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448
-            if (maxStringLength == 0) // no limit, use an heuristic to reserve the string: 20 chars per float
-            {
-              preAllocateStringSize = 20ull * numDoubles;
-              if (preAllocateStringSize > static_cast<uint64_t>(std::numeric_limits<size_t>::max()))
-              {
-                throw OrthancException(ErrorCode_BadFileFormat, "Too many values in binary array");
-              }
-            }
-
-            std::string result;
-            result.reserve(static_cast<size_t>(preAllocateStringSize));
-            for (unsigned long i = 0; i < numDoubles; i++)
-            {
-              if (i > 0)
-              {
-                result += "\\";
-              }
-              result += boost::lexical_cast<std::string>(doubleArray[i]);
-            }
-            return new DicomValue(result, false);
-          }
-          return new DicomValue;
+          ValueRepresentationReader_OD reader(element);
+          return ILeafElementArrayReader::Apply(reader, element.getTag(), maxStringLength, maxBinaryArrayLength);
         }
 #endif
 
 #if DCMTK_VERSION_NUMBER >= 362
         case EVR_OL:  // other long - binary array of 32-bit unsigned integers (new in Orthanc 1.12.11)
         {
-          /**
-           * OL stores a binary array of 32-bit unsigned integers. Like OF/OD,
-           * getVM() returns 1 for OL (the entire binary blob is one "value").
-           * We must use getUint32Array() to access the raw buffer.
-           * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
-           **/
-          DcmUnsignedLong& content = dynamic_cast<DcmUnsignedLong&>(element);
-          Uint32* uint32Array = NULL;
-          if (content.getUint32Array(uint32Array).good() && uint32Array != NULL)
-          {
-            if (element.getLength() % sizeof(Uint32) != 0)
-            {
-              throw OrthancException(ErrorCode_BadFileFormat);
-            }
-
-            uint64_t numValues = static_cast<uint64_t>(element.getLength()) / sizeof(Uint32);
-            numValues = std::min(numValues, static_cast<uint64_t>(maxBinaryArrayLength));
-
-            uint64_t preAllocateStringSize = static_cast<uint64_t>(maxStringLength); // We have seen files with 100M floats: https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448
-            if (maxStringLength == 0) // no limit, use an heuristic to reserve the string: 10 chars per float
-            {
-              preAllocateStringSize = 10ull * numValues;
-              if (preAllocateStringSize > static_cast<uint64_t>(std::numeric_limits<size_t>::max()))
-              {
-                throw OrthancException(ErrorCode_BadFileFormat, "Too many values in binary array");
-              }
-            }
-
-            std::string result;
-            for (unsigned long i = 0; i < numValues; i++)
-            {
-              if (i > 0)
-              {
-                result += "\\";
-              }
-              result += boost::lexical_cast<std::string>(uint32Array[i]);
-            }
-            return new DicomValue(result, false);
-          }
-          return new DicomValue;
+          ValueRepresentationReader_OL reader(element);
+          return ILeafElementArrayReader::Apply(reader, element.getTag(), maxStringLength, maxBinaryArrayLength);
         }
 #endif
 
@@ -1216,8 +1291,8 @@ namespace Orthanc
         case EVR_AT:
         {
           // Support for multiple values was added in Orthanc 1.12.12
-          AttributeTagReader reader(element);
-          return ILeafElementArrayReader::Apply(reader);
+          ValueRepresentationReader_AT reader(element);
+          return ILeafElementArrayReader::Apply(reader, element.getTag(), maxStringLength, maxBinaryArrayLength);
         }
 
 
