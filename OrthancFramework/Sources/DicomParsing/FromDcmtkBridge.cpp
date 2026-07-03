@@ -1117,28 +1117,38 @@ namespace Orthanc
           // Support for multiple values was added in Orthanc 1.12.12
           DcmAttributeTag& content = dynamic_cast<DcmAttributeTag&>(element);
 
-          ChunkedBuffer buffer;
-          for (unsigned long i = 0; i < content.getNumberOfValues(); i++)
+          Uint16* uint16Array = NULL;
+          if (content.getUint16Array(uint16Array).good() && uint16Array != NULL)
           {
-            if (i > 0)
+            if (element.getLength() % sizeof(Uint16) != 0)
             {
-              buffer.AddChunk("\\", 1);
+              throw OrthancException(ErrorCode_BadFileFormat);
             }
 
-            DcmTagKey tag;
-            if (content.getTagVal(tag, i).good())
+            const uint64_t numValues = static_cast<uint64_t>(element.getLength()) / sizeof(Uint16);
+            if (numValues % 2 != 0)
             {
-              buffer.AddChunk(DicomTag(tag.getGroup(), tag.getElement()).Format());
+              throw OrthancException(ErrorCode_BadFileFormat);
             }
-            else
+
+            ChunkedBuffer buffer;
+            for (uint64_t i = 0; i < numValues; i += 2)
             {
-              return new DicomValue;
+              if (i > 0)
+              {
+                buffer.AddChunk("\\", 1);
+              }
+
+              const DicomTag tag(uint16Array[i], uint16Array[i + 1]);
+              buffer.AddChunk(tag.Format());
             }
+
+            std::string s;
+            buffer.Flatten(s);
+            return DicomValue::CreateFromSwap(s, false);
           }
 
-          std::string s;
-          buffer.Flatten(s);
-          return DicomValue::CreateFromSwap(s, false);
+          return new DicomValue;
         }
 
 
