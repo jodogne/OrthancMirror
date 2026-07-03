@@ -60,14 +60,20 @@
 #  include "../Sources/SystemToolbox.h"
 #endif
 
-#include <dcmtk/dcmdata/dcvrat.h>
 #include <dcmtk/dcmdata/dcbytstr.h>
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcelem.h>
-#include <dcmtk/dcmdata/dcvrat.h>
 #include <dcmtk/dcmdata/dcpxitem.h>
-#include <dcmtk/dcmdata/dcvrss.h>
+#include <dcmtk/dcmdata/dcvrat.h>
+#include <dcmtk/dcmdata/dcvrat.h>
+#include <dcmtk/dcmdata/dcvrfd.h>
 #include <dcmtk/dcmdata/dcvrfl.h>
+#include <dcmtk/dcmdata/dcvrobow.h>
+#include <dcmtk/dcmdata/dcvrss.h>
+
+#if DCMTK_VERSION_NUMBER >= 365
+#  include <dcmtk/dcmdata/dcvrsv.h>
+#endif
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
@@ -3559,8 +3565,12 @@ TEST(ParsedDicomFile, GuessPixelDataValueRepresentation)
 
 TEST(ParsedDicomFile, FillElementWithString)
 {
- #if DCMTK_VERSION_NUMBER >= 365
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7051, 0x1000), ValueRepresentation_UnsignedVeryLong, "MyPrivateTag2", 1, 1, "Creator");
+  // This test follows the inheritance diagram of DcmElement:
+  // https://support.dcmtk.org/docs/classDcmElement.html
+
+#if DCMTK_VERSION_NUMBER >= 365
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), ValueRepresentation_SignedVeryLong, "Tag1", 1, 1, "");
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1001), ValueRepresentation_SignedVeryLong, "Tag2", 3, 3, "");
 #endif
 
   ParsedDicomFile f(true);
@@ -3572,6 +3582,8 @@ TEST(ParsedDicomFile, FillElementWithString)
   {
     e.reset(new DcmAttributeTag(DcmTag(0x0072, 0x0026)));  // SelectorAttribute tag, which has AT as value representation
     FromDcmtkBridge::FillElementWithString(*e, "HangingProtocolCreator" /* some random tag */, false, Encoding_Utf8);
+    ASSERT_EQ(1u, e->getVM());
+    ASSERT_EQ(EVR_AT, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
                                                 false, ignoreLength, ValueRepresentation_PersonName));
@@ -3584,6 +3596,8 @@ TEST(ParsedDicomFile, FillElementWithString)
   {
     e.reset(new DcmAttributeTag(DcmTag(0x0072, 0x0052)));  // SelectorSequencePointer tag, which has AT as value representation (multiple)
     FromDcmtkBridge::FillElementWithString(*e, "0072,0008\\PatientName\\HangingProtocolCreator" /* some random tags */, false, Encoding_Utf8);
+    ASSERT_EQ(3u, e->getVM());
+    ASSERT_EQ(EVR_AT, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
                                                 false, ignoreLength, ValueRepresentation_PersonName));
@@ -3596,6 +3610,8 @@ TEST(ParsedDicomFile, FillElementWithString)
   {
     e.reset(new DcmByteString(DcmTag(0x0010, 0x0010)));
     FromDcmtkBridge::FillElementWithString(*e, "HELLO", false, Encoding_Utf8);
+    ASSERT_EQ(1u, e->getVM());
+    ASSERT_EQ(EVR_PN, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
                                                 false, ignoreLength, ValueRepresentation_PersonName));
@@ -3605,13 +3621,173 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
   }
 
+  {
+    e.reset(new DcmByteString(DcmTag(0x0010, 0x1001)));  // Other patient names
+    FromDcmtkBridge::FillElementWithString(*e, "HELLO\\WORLD\\NOPE", false, Encoding_Utf8);
+    ASSERT_EQ(3u, e->getVM());
+    ASSERT_EQ(EVR_PN, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("HELLO\\WORLD\\NOPE", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  {
+    e.reset(new DcmFloatingPointDouble(DcmTag(0x0008, 0x2134)));  // EventTimeOffset
+    FromDcmtkBridge::FillElementWithString(*e, "10.75", false, Encoding_Utf8);
+    ASSERT_EQ(1u, e->getVM());
+    ASSERT_EQ(EVR_FD, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("10.75", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  {
+    e.reset(new DcmFloatingPointDouble(DcmTag(0x0008, 0x1163)));  // TimeRange
+    FromDcmtkBridge::FillElementWithString(*e, "5.5\\20.25", false, Encoding_Utf8);
+    ASSERT_EQ(2u, e->getVM());
+    ASSERT_EQ(EVR_FD, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("5.5\\20.25", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  {
+    e.reset(new DcmFloatingPointSingle(DcmTag(0x0018, 0x9402)));  // DistanceSourceToIsocenter
+    FromDcmtkBridge::FillElementWithString(*e, "9.75", false, Encoding_Utf8);
+    ASSERT_EQ(1u, e->getVM());
+    ASSERT_EQ(EVR_FL, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("9.75", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  {
+    e.reset(new DcmFloatingPointSingle(DcmTag(0x0018, 0x9404)));  // ObjectPixelSpacingInCenterOfBeam
+    FromDcmtkBridge::FillElementWithString(*e, "2.5\\3.25", false, Encoding_Utf8);
+    ASSERT_EQ(2u, e->getVM());
+    ASSERT_EQ(EVR_FL, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("2.5\\3.25", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  {
+    e.reset(new DcmOtherByteOtherWord(DcmTag(0x0002, 0x0102)));  // PrivateInformation
+    FromDcmtkBridge::FillElementWithString(*e, "HELLO", false, Encoding_Utf8);
+    ASSERT_EQ(1u, e->getVM());
+    ASSERT_EQ(EVR_OB, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsBinary());
+    ASSERT_EQ(6u, v->GetContent().size());  // The value is padded to 2 bytes
+    ASSERT_EQ('H', v->GetContent() [0]);
+    ASSERT_EQ('E', v->GetContent() [1]);
+    ASSERT_EQ('L', v->GetContent() [2]);
+    ASSERT_EQ('L', v->GetContent() [3]);
+    ASSERT_EQ('O', v->GetContent() [4]);
+    ASSERT_EQ('\0', v->GetContent() [5]);
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  {
+    e.reset(new DcmOtherByteOtherWord(DcmTag(0x0002, 0x0102)));  // PrivateInformation
+    FromDcmtkBridge::FillElementWithString(*e, "A\\B\\C", false, Encoding_Utf8);  // No multiplicity exists for OB
+    ASSERT_EQ(1u, e->getVM());
+    ASSERT_EQ(EVR_OB, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsBinary());
+    ASSERT_EQ(6u, v->GetContent().size());  // The value is padded to 2 bytes
+  }
+
+#if DCMTK_VERSION_NUMBER >= 365
+  {
+    e.reset(new DcmSigned64bitVeryLong(DcmTag(0x7050, 0x1000)));
+    FromDcmtkBridge::FillElementWithString(*e, "-43", false, Encoding_Utf8);
+    ASSERT_EQ(1u, e->getVM());
+    ASSERT_EQ(EVR_SV, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("-43", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 365
+  {
+    e.reset(new DcmSigned64bitVeryLong(DcmTag(0x7050, 0x1001)));
+    FromDcmtkBridge::FillElementWithString(*e, "10\\-41\\-34", false, Encoding_Utf8);
+    ASSERT_EQ(3u, e->getVM());
+    ASSERT_EQ(EVR_SV, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("10\\-41\\-34", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+#endif
+
   std::string s;
-  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_PATIENT_NAME));
-  ASSERT_EQ("HELLO", s);
   ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0072, 0x0026)));
   ASSERT_EQ("0072,0008", s);
   ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0072, 0x0052)));
   ASSERT_EQ("0072,0008\\0010,0010\\0072,0008", s);
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_PATIENT_NAME));
+  ASSERT_EQ("HELLO", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0010, 0x1001)));
+  ASSERT_EQ("HELLO\\WORLD\\NOPE", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0008, 0x2134)));
+  ASSERT_EQ("10.75", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0008, 0x1163)));
+  ASSERT_EQ("5.5\\20.25", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0018, 0x9402)));
+  ASSERT_EQ("9.75", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0018, 0x9404)));
+  ASSERT_EQ("2.5\\3.25", s);
+
+  const Uint8 *a = NULL;
+  ASSERT_TRUE(f.GetDcmtkObject().getDataset()->findAndGetUint8Array(DcmTagKey(0x0002, 0x0102), a).good());
+  ASSERT_EQ('H', a[0]);
+  ASSERT_EQ('E', a[1]);
+  ASSERT_EQ('L', a[2]);
+  ASSERT_EQ('L', a[3]);
+  ASSERT_EQ('O', a[4]);
+  ASSERT_EQ('\0', a[5]);
+
+#if DCMTK_VERSION_NUMBER >= 365
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x7050, 0x1000)));
+  ASSERT_EQ("-43", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x7050, 0x1001)));
+  ASSERT_EQ("10\\-41\\-34", s);
+#endif
 }
 
 

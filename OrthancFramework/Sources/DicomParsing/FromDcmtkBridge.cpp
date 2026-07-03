@@ -95,6 +95,7 @@
 #endif
 
 #if DCMTK_VERSION_NUMBER >= 365
+#  include <dcmtk/dcmdata/dcvrov.h>
 #  include <dcmtk/dcmdata/dcvrsv.h>
 #  include <dcmtk/dcmdata/dcvruv.h>
 #endif
@@ -725,6 +726,54 @@ namespace Orthanc
       }
     };
 #endif
+
+
+#if DCMTK_VERSION_NUMBER >= 365
+    class ValueRepresentationReader_OV : public ILeafElementArrayReader
+    {
+    private:
+      bool      valid_;
+      uint64_t  size_;
+      Uint64*   content_;
+
+    public:
+      ValueRepresentationReader_OV(DcmElement& element) :
+        valid_(false)
+      {
+        DcmUnsigned64bitVeryLong& e = dynamic_cast<DcmOther64bitVeryLong&>(element);
+
+        if (e.getUint64Array(content_).good() &&
+            content_ != NULL)
+        {
+          if (element.getLength() % sizeof(Uint64) != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
+          size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint64);
+          valid_ = true;
+        }
+      }
+
+      virtual bool IsValid() const ORTHANC_OVERRIDE
+      {
+        return valid_;
+      }
+
+      virtual uint64_t GetSize() const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        return size_;
+      }
+
+      virtual void ReadValue(std::string& value,
+                             uint64_t index) const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        value = boost::lexical_cast<std::string>(content_[index]);
+      }
+    };
+#endif
   }
 
 
@@ -1279,6 +1328,14 @@ namespace Orthanc
         case EVR_OL:  // other long - binary array of 32-bit unsigned integers (new in Orthanc 1.12.11)
         {
           ValueRepresentationReader_OL reader(element);
+          return ILeafElementArrayReader::Apply(reader, element.getTag(), maxStringLength, maxBinaryArrayLength);
+        }
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_OV:  // other very long - binary array of 32-bit unsigned integers (new in Orthanc 1.12.11)
+        {
+          ValueRepresentationReader_OV reader(element);
           return ILeafElementArrayReader::Apply(reader, element.getTag(), maxStringLength, maxBinaryArrayLength);
         }
 #endif
@@ -2554,11 +2611,10 @@ namespace Orthanc
           }
           else
           {
-#if DCMTK_VERSION_NUMBER >= 370
-            ok = element.putSint64(boost::lexical_cast<Sint64>(*decoded)).good();
-#else
-            throw OrthancException(ErrorCode_NotImplemented, "Your version of DCMTK does not provide DcmElement::putSint64()");
-#endif
+            // The method "DcmElement::putSint64()" was only added in DCMTK 3.7.0,
+            // so we have to cast to support earlier versions of DCMTK
+            DcmSigned64bitVeryLong& e = dynamic_cast<DcmSigned64bitVeryLong&>(element);
+            ok = e.putSint64(boost::lexical_cast<Sint64>(*decoded)).good();
           }
           break;
         }
@@ -2612,6 +2668,7 @@ namespace Orthanc
 
 #if DCMTK_VERSION_NUMBER >= 365
         case EVR_UV:  // unsigned very long (64-bit, new in Orthanc 1.12.12)
+        case EVR_OV:  // other very long (64-bit, new in Orthanc 1.12.12)
         {
           if (decoded->find('\\') != std::string::npos)
           {
