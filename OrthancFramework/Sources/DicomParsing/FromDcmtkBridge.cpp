@@ -372,6 +372,66 @@ namespace Orthanc
         return new DicomValue;
       }
     }
+
+
+    class IElementFiller : public boost::noncopyable
+    {
+    public:
+      virtual ~IElementFiller()
+      {
+      }
+
+      virtual bool FillSingleValue(DcmElement& element,
+                                   const std::string& value) const = 0;
+
+      virtual bool FillMultipleValues(DcmElement& element,
+                                      const std::vector<std::string>& values) const = 0;
+    };
+
+
+    class AttributeElementFiller : public IElementFiller
+    {
+    public:
+      bool FillSingleValue(DcmElement& element,
+                           const std::string& value) const ORTHANC_OVERRIDE
+      {
+        DicomTag tag = FromDcmtkBridge::ParseTag(value);
+        return element.putTagVal(DcmTagKey(tag.GetGroup(), tag.GetElement())).good();
+      }
+
+      bool FillMultipleValues(DcmElement& element,
+                              const std::vector<std::string>& values) const ORTHANC_OVERRIDE
+      {
+        std::vector<Uint16> tags;
+        tags.resize(2 * values.size());
+
+        for (size_t i = 0; i < values.size(); i++)
+        {
+          DicomTag tag = FromDcmtkBridge::ParseTag(values[i]);
+          tags[2 * i] = tag.GetGroup();
+          tags[2 * i + 1] = tag.GetElement();
+        }
+
+        return element.putUint16Array(tags.empty() ? NULL : &tags[0], values.size()).good();
+      }
+    };
+
+
+    bool ApplyElementFiller(DcmElement& element,
+                            const IElementFiller& filler,
+                            const std::string& value)
+    {
+      if (value.find('\\') != std::string::npos)
+      {
+        std::vector<std::string> tokens;
+        Toolbox::TokenizeString(tokens, value, '\\');
+        return filler.FillMultipleValues(element, tokens);
+      }
+      else
+      {
+        return filler.FillSingleValue(element, value);
+      }
+    };
   }
 
 
@@ -1054,16 +1114,31 @@ namespace Orthanc
 
         case EVR_AT:
         {
-          DcmTagKey tag;
-          if (dynamic_cast<DcmAttributeTag&>(element).getTagVal(tag, 0).good())
+          // Support for multiple values was added in Orthanc 1.12.12
+          DcmAttributeTag& content = dynamic_cast<DcmAttributeTag&>(element);
+
+          ChunkedBuffer buffer;
+          for (unsigned long i = 0; i < content.getNumberOfValues(); i++)
           {
-            DicomTag t(tag.getGroup(), tag.getElement());
-            return new DicomValue(t.Format(), false);
+            if (i > 0)
+            {
+              buffer.AddChunk("\\", 1);
+            }
+
+            DcmTagKey tag;
+            if (content.getTagVal(tag, i).good())
+            {
+              buffer.AddChunk(DicomTag(tag.getGroup(), tag.getElement()).Format());
+            }
+            else
+            {
+              return new DicomValue;
+            }
           }
-          else
-          {
-            return new DicomValue;
-          }
+
+          std::string s;
+          buffer.Flatten(s);
+          return DicomValue::CreateFromSwap(s, false);
         }
 
 
@@ -2437,8 +2512,8 @@ namespace Orthanc
         
         case EVR_AT:  // attribute tag, new in Orthanc 1.9.4
         {
-          DicomTag value = ParseTag(utf8Value);
-          ok = element.putTagVal(DcmTagKey(value.GetGroup(), value.GetElement())).good();
+          // Multiple values are supported since Orthanc 1.12.12
+          ok = ApplyElementFiller(element, AttributeElementFiller(), *decoded);
           break;
         }
 

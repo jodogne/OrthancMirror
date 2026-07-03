@@ -3568,6 +3568,30 @@ TEST(ParsedDicomFile, FillElementWithString)
   const std::set<DicomTag> ignoreLength;
 
   {
+    e.reset(new DcmAttributeTag(DcmTag(0x0072, 0x0026)));  // SelectorAttribute tag, which has AT as value representation
+    FromDcmtkBridge::FillElementWithString(*e, "HangingProtocolCreator" /* some random tag */, false, Encoding_Utf8);
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("0072,0008", v->GetContent());  // This is the "HangingProtocolCreator" tag
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  {
+    e.reset(new DcmAttributeTag(DcmTag(0x0072, 0x0052)));  // SelectorSequencePointer tag, which has AT as value representation (multiple)
+    FromDcmtkBridge::FillElementWithString(*e, "0072,0008\\PatientName\\HangingProtocolCreator" /* some random tags */, false, Encoding_Utf8);
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("0072,0008\\0010,0010\\0072,0008", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  {
     e.reset(new DcmByteString(DcmTag(0x0010, 0x0010)));
     FromDcmtkBridge::FillElementWithString(*e, "HELLO", false, Encoding_Utf8);
 
@@ -3582,6 +3606,10 @@ TEST(ParsedDicomFile, FillElementWithString)
   std::string s;
   ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_PATIENT_NAME));
   ASSERT_EQ("HELLO", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0072, 0x0026)));
+  ASSERT_EQ("0072,0008", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0072, 0x0052)));
+  ASSERT_EQ("0072,0008\\0010,0010\\0072,0008", s);
 }
 
 

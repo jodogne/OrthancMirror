@@ -63,6 +63,7 @@ Maintenance
 -----------
 
 * Added internal support for OV, SV, and UV value representations
+* Added support for multiple values in AT value representation
 * Fix resubmit/pause/cancel and reloading of OrthancPeerStore and DicomModalityStore jobs 
   (bug introduced in 1.12.10)
 * Fix OrthancPeerStore jobs that was using the loader threads only if transcoding
