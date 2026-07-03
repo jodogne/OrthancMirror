@@ -69,6 +69,7 @@
 #include <dcmtk/dcmdata/dcvrfd.h>
 #include <dcmtk/dcmdata/dcvrfl.h>
 #include <dcmtk/dcmdata/dcvrobow.h>
+#include <dcmtk/dcmdata/dcvrsl.h>
 #include <dcmtk/dcmdata/dcvrss.h>
 
 #if DCMTK_VERSION_NUMBER >= 365
@@ -3569,8 +3570,8 @@ TEST(ParsedDicomFile, FillElementWithString)
   // https://support.dcmtk.org/docs/classDcmElement.html
 
 #if DCMTK_VERSION_NUMBER >= 365
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), ValueRepresentation_SignedVeryLong, "Tag1", 1, 1, "");
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1001), ValueRepresentation_SignedVeryLong, "Tag2", 3, 3, "");
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7054, 0x1000), ValueRepresentation_SignedVeryLong, "Tag1", 1, 1, "");
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7054, 0x1001), ValueRepresentation_SignedVeryLong, "Tag2", 3, 3, "");
 #endif
 
   ParsedDicomFile f(true);
@@ -3725,7 +3726,7 @@ TEST(ParsedDicomFile, FillElementWithString)
 
 #if DCMTK_VERSION_NUMBER >= 365
   {
-    e.reset(new DcmSigned64bitVeryLong(DcmTag(0x7050, 0x1000)));
+    e.reset(new DcmSigned64bitVeryLong(DcmTag(0x7054, 0x1000)));
     FromDcmtkBridge::FillElementWithString(*e, "-43", false, Encoding_Utf8);
     ASSERT_EQ(1u, e->getVM());
     ASSERT_EQ(EVR_SV, e->getTag().getEVR());
@@ -3741,7 +3742,7 @@ TEST(ParsedDicomFile, FillElementWithString)
 
 #if DCMTK_VERSION_NUMBER >= 365
   {
-    e.reset(new DcmSigned64bitVeryLong(DcmTag(0x7050, 0x1001)));
+    e.reset(new DcmSigned64bitVeryLong(DcmTag(0x7054, 0x1001)));
     FromDcmtkBridge::FillElementWithString(*e, "10\\-41\\-34", false, Encoding_Utf8);
     ASSERT_EQ(3u, e->getVM());
     ASSERT_EQ(EVR_SV, e->getTag().getEVR());
@@ -3754,6 +3755,62 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
   }
 #endif
+
+  {
+    e.reset(new DcmSignedLong(DcmTag(0x0018, 0x6020)));  // ReferencePixelX0
+    FromDcmtkBridge::FillElementWithString(*e, "-3", false, Encoding_Utf8);
+    ASSERT_EQ(1u, e->getVM());
+    ASSERT_EQ(EVR_SL, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("-3", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  {
+    e.reset(new DcmSignedLong(DcmTag(0x0070, 0x0052)));  // DisplayedAreaTopLeftHandCorner
+    FromDcmtkBridge::FillElementWithString(*e, "14\\-13", false, Encoding_Utf8);
+    ASSERT_EQ(2u, e->getVM());
+    ASSERT_EQ(EVR_SL, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("14\\-13", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  {
+    e.reset(new DcmSignedShort(DcmTag(0x0028, 0x6120)));  // TIDOffset
+    FromDcmtkBridge::FillElementWithString(*e, "-9", false, Encoding_Utf8);
+    ASSERT_EQ(1u, e->getVM());
+    ASSERT_EQ(EVR_SS, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("-9", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  {
+    e.reset(new DcmSignedShort(DcmTag(0x0028, 0x9503)));  // VerticesOfTheRegion
+    FromDcmtkBridge::FillElementWithString(*e, "1\\-8\\2", false, Encoding_Utf8);
+    ASSERT_EQ(3u, e->getVM());
+    ASSERT_EQ(EVR_SS, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("1\\-8\\2", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
 
   std::string s;
   ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0072, 0x0026)));
@@ -3783,11 +3840,20 @@ TEST(ParsedDicomFile, FillElementWithString)
   ASSERT_EQ('\0', a[5]);
 
 #if DCMTK_VERSION_NUMBER >= 365
-  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x7050, 0x1000)));
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x7054, 0x1000)));
   ASSERT_EQ("-43", s);
-  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x7050, 0x1001)));
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x7054, 0x1001)));
   ASSERT_EQ("10\\-41\\-34", s);
 #endif
+
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0018, 0x6020)));
+  ASSERT_EQ("-3", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0070, 0x0052)));
+  ASSERT_EQ("14\\-13", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0028, 0x6120)));
+  ASSERT_EQ("-9", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0028, 0x9503)));
+  ASSERT_EQ("1\\-8\\2", s);
 }
 
 
