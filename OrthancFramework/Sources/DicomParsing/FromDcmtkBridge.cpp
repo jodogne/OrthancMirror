@@ -431,6 +431,108 @@ namespace Orthanc
         return element.putUint16Array(tags.empty() ? NULL : &tags[0], values.size()).good();
       }
     };
+
+
+    class ILeafElementArrayReader : public boost::noncopyable
+    {
+    public:
+      virtual ~ILeafElementArrayReader()
+      {
+      }
+
+      virtual bool IsValid() const = 0;
+
+      virtual uint64_t GetSize() const = 0;
+
+      virtual void ReadValue(std::string& value,
+                             uint64_t index) const = 0;
+
+      static DicomValue* Apply(const ILeafElementArrayReader& reader)
+      {
+        if (reader.IsValid())
+        {
+          const uint64_t size = reader.GetSize();
+
+          ChunkedBuffer buffer;
+          for (uint64_t i = 0; i < size; i++)
+          {
+            if (i > 0)
+            {
+              buffer.AddChunk("\\", 1);
+            }
+
+            std::string s;
+            reader.ReadValue(s, i);
+            buffer.AddChunk(s);
+          }
+
+          std::string s;
+          buffer.Flatten(s);
+          return DicomValue::CreateFromSwap(s, false);
+        }
+        else
+        {
+          return new DicomValue;
+        }
+      }
+    };
+
+
+    class AttributeTagReader : public ILeafElementArrayReader
+    {
+    private:
+      bool     valid_;
+      uint64_t size_;
+      Uint16*  content_;
+
+    public:
+      AttributeTagReader(DcmElement& element) :
+        valid_(false)
+      {
+        DcmAttributeTag& e = dynamic_cast<DcmAttributeTag&>(element);
+
+        if (e.getUint16Array(content_).good() &&
+            content_ != NULL)
+        {
+          if (element.getLength() % sizeof(Uint16) != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
+          size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint16);
+          if (size_ % 2 != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+          else
+          {
+            // Each DICOM tag is stored as two successive Uint16
+            size_ /= 2;
+          }
+
+          valid_ = true;
+        }
+      }
+
+      virtual bool IsValid() const ORTHANC_OVERRIDE
+      {
+        return valid_;
+      }
+
+      virtual uint64_t GetSize() const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        return size_;
+      }
+
+      virtual void ReadValue(std::string& value,
+                             uint64_t index) const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        DicomTag tag(content_[2 * index], content_[2 * index + 1]);
+        value = tag.Format();
+      }
+    };
   }
 
 
@@ -1114,40 +1216,8 @@ namespace Orthanc
         case EVR_AT:
         {
           // Support for multiple values was added in Orthanc 1.12.12
-          DcmAttributeTag& content = dynamic_cast<DcmAttributeTag&>(element);
-
-          Uint16* uint16Array = NULL;
-          if (content.getUint16Array(uint16Array).good() && uint16Array != NULL)
-          {
-            if (element.getLength() % sizeof(Uint16) != 0)
-            {
-              throw OrthancException(ErrorCode_BadFileFormat);
-            }
-
-            const uint64_t numValues = static_cast<uint64_t>(element.getLength()) / sizeof(Uint16);
-            if (numValues % 2 != 0)
-            {
-              throw OrthancException(ErrorCode_BadFileFormat);
-            }
-
-            ChunkedBuffer buffer;
-            for (uint64_t i = 0; i < numValues; i += 2)
-            {
-              if (i > 0)
-              {
-                buffer.AddChunk("\\", 1);
-              }
-
-              const DicomTag tag(uint16Array[i], uint16Array[i + 1]);
-              buffer.AddChunk(tag.Format());
-            }
-
-            std::string s;
-            buffer.Flatten(s);
-            return DicomValue::CreateFromSwap(s, false);
-          }
-
-          return new DicomValue;
+          AttributeTagReader reader(element);
+          return ILeafElementArrayReader::Apply(reader);
         }
 
 
