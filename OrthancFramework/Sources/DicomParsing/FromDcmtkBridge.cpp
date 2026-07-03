@@ -386,6 +386,22 @@ namespace Orthanc
 
       virtual bool FillMultipleValues(DcmElement& element,
                                       const std::vector<std::string>& values) const = 0;
+
+      static bool Apply(DcmElement& element,
+                        const IElementFiller& filler,
+                        const std::string& value)
+      {
+        if (value.find('\\') != std::string::npos)
+        {
+          std::vector<std::string> tokens;
+          Toolbox::TokenizeString(tokens, value, '\\');
+          return filler.FillMultipleValues(element, tokens);
+        }
+        else
+        {
+          return filler.FillSingleValue(element, value);
+        }
+      }
     };
 
 
@@ -413,23 +429,6 @@ namespace Orthanc
         }
 
         return element.putUint16Array(tags.empty() ? NULL : &tags[0], values.size()).good();
-      }
-    };
-
-
-    bool ApplyElementFiller(DcmElement& element,
-                            const IElementFiller& filler,
-                            const std::string& value)
-    {
-      if (value.find('\\') != std::string::npos)
-      {
-        std::vector<std::string> tokens;
-        Toolbox::TokenizeString(tokens, value, '\\');
-        return filler.FillMultipleValues(element, tokens);
-      }
-      else
-      {
-        return filler.FillSingleValue(element, value);
       }
     };
   }
@@ -2523,7 +2522,7 @@ namespace Orthanc
         case EVR_AT:  // attribute tag, new in Orthanc 1.9.4
         {
           // Multiple values are supported since Orthanc 1.12.12
-          ok = ApplyElementFiller(element, AttributeElementFiller(), *decoded);
+          ok = IElementFiller::Apply(element, AttributeElementFiller(), *decoded);
           break;
         }
 

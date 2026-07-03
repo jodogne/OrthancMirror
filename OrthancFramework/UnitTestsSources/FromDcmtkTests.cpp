@@ -3559,7 +3559,9 @@ TEST(ParsedDicomFile, GuessPixelDataValueRepresentation)
 
 TEST(ParsedDicomFile, FillElementWithString)
 {
+ #if DCMTK_VERSION_NUMBER >= 365
   FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7051, 0x1000), ValueRepresentation_UnsignedVeryLong, "MyPrivateTag2", 1, 1, "Creator");
+#endif
 
   ParsedDicomFile f(true);
 
