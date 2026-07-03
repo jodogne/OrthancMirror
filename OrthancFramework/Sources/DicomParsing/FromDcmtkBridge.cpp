@@ -94,6 +94,11 @@
 #  include <dcmtk/dcmdata/dcvrur.h>
 #endif
 
+#if DCMTK_VERSION_NUMBER >= 365
+#  include <dcmtk/dcmdata/dcvrsv.h>
+#  include <dcmtk/dcmdata/dcvruv.h>
+#endif
+
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
 #  if !defined(ORTHANC_FRAMEWORK_INCLUDE_RESOURCES) || (ORTHANC_FRAMEWORK_INCLUDE_RESOURCES == 1)
 #    include <OrthancFrameworkResources.h>
@@ -324,10 +329,20 @@ namespace Orthanc
     };
     // NOLINTEND(bugprone-macro-parentheses)
 
-    DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint32Converter, Sint32, DcmSignedLong, getSint32, boost::lexical_cast<std::string>)
     DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint16Converter, Sint16, DcmSignedShort, getSint16, boost::lexical_cast<std::string>)
-    DCMTK_TO_CTYPE_CONVERTER(DcmtkToUint32Converter, Uint32, DcmUnsignedLong, getUint32, boost::lexical_cast<std::string>)
+    DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint32Converter, Sint32, DcmSignedLong, getSint32, boost::lexical_cast<std::string>)
+
+#if DCMTK_VERSION_NUMBER >= 365
+    DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint64Converter, Sint64, DcmSigned64bitVeryLong, getSint64, boost::lexical_cast<std::string>)
+#endif
+
     DCMTK_TO_CTYPE_CONVERTER(DcmtkToUint16Converter, Uint16, DcmUnsignedShort, getUint16, boost::lexical_cast<std::string>)
+    DCMTK_TO_CTYPE_CONVERTER(DcmtkToUint32Converter, Uint32, DcmUnsignedLong, getUint32, boost::lexical_cast<std::string>)
+
+#if DCMTK_VERSION_NUMBER >= 365
+    DCMTK_TO_CTYPE_CONVERTER(DcmtkToUint64Converter, Uint64, DcmUnsigned64bitVeryLong, getUint64, boost::lexical_cast<std::string>)
+#endif
+
     DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat32Converter, Float32, DcmFloatingPointSingle, getFloat32, FloatToString)
     DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDouble, getFloat64, DoubleToString)
 
@@ -878,6 +893,20 @@ namespace Orthanc
         {
           return ApplyDcmtkToCTypeConverter<DcmtkToFloat64Converter>(element);
         }
+
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_SV:  // signed very long (64-bit, new in Orthanc 1.12.12)
+        {
+          return ApplyDcmtkToCTypeConverter<DcmtkToSint64Converter>(element);
+        }
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_UV:  // unsigned very long (64-bit, new in Orthanc 1.12.12)
+        {
+          return ApplyDcmtkToCTypeConverter<DcmtkToUint64Converter>(element);
+        }
+#endif
 
         case EVR_OF:  // other float - binary array of 32-bit floats (new in Orthanc 1.12.11)
         {
@@ -2287,6 +2316,25 @@ namespace Orthanc
           break;
         }
 
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_SV:  // signed very long (64-bit, new in Orthanc 1.12.12)
+        {
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+#if DCMTK_VERSION_NUMBER >= 370
+            ok = element.putSint64(boost::lexical_cast<Sint64>(*decoded)).good();
+#else
+            throw OrthancException(ErrorCode_NotImplemented, "Your version of DCMTK does not provide DcmElement::putSint64()");
+#endif
+          }
+          break;
+        }
+#endif
+
         case EVR_UL:  // unsigned long
 #if DCMTK_VERSION_NUMBER >= 362
         case EVR_OL:  // other long (requires byte-swapping)
@@ -2332,6 +2380,25 @@ namespace Orthanc
           }
           break;
         }
+
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_UV:  // unsigned very long (64-bit, new in Orthanc 1.12.12)
+        {
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+#if DCMTK_VERSION_NUMBER >= 370
+            ok = element.putUint64(boost::lexical_cast<Sint64>(*decoded)).good();
+#else
+            throw OrthancException(ErrorCode_NotImplemented, "Your version of DCMTK does not provide DcmElement::putUint64()");
+#endif
+          }
+          break;
+        }
+#endif
 
         case EVR_FL:  // float single-precision
         case EVR_OF:  // other float (requires byte swapping)

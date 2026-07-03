@@ -60,6 +60,8 @@
 #  include "../Sources/SystemToolbox.h"
 #endif
 
+#include <dcmtk/dcmdata/dcvrat.h>
+#include <dcmtk/dcmdata/dcbytstr.h>
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcelem.h>
 #include <dcmtk/dcmdata/dcvrat.h>
@@ -3552,6 +3554,34 @@ TEST(ParsedDicomFile, GuessPixelDataValueRepresentation)
     dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
     ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation());
   }
+}
+
+
+TEST(ParsedDicomFile, FillElementWithString)
+{
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7051, 0x1000), ValueRepresentation_UnsignedVeryLong, "MyPrivateTag2", 1, 1, "Creator");
+
+  ParsedDicomFile f(true);
+
+  std::unique_ptr<DcmElement> e;
+  std::unique_ptr<DicomValue> v;
+  const std::set<DicomTag> ignoreLength;
+
+  {
+    e.reset(new DcmByteString(DcmTag(0x0010, 0x0010)));
+    FromDcmtkBridge::FillElementWithString(*e, "HELLO", false, Encoding_Utf8);
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_PersonName));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("HELLO", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  std::string s;
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_PATIENT_NAME));
+  ASSERT_EQ("HELLO", s);
 }
 
 
