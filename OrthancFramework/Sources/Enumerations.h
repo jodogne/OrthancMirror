@@ -576,8 +576,7 @@ namespace Orthanc
   };
 
   /**
-   * The value representations Orthanc knows about. They correspond to
-   * the DICOM 2016b version of the standard.
+   * The value representations Orthanc knows about.
    * http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html
    **/
   enum ValueRepresentation
