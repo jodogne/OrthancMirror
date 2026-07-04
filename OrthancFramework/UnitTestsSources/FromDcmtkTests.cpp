@@ -71,9 +71,12 @@
 #include <dcmtk/dcmdata/dcvrobow.h>
 #include <dcmtk/dcmdata/dcvrsl.h>
 #include <dcmtk/dcmdata/dcvrss.h>
+#include <dcmtk/dcmdata/dcvrul.h>
+#include <dcmtk/dcmdata/dcvrus.h>
 
 #if DCMTK_VERSION_NUMBER >= 365
 #  include <dcmtk/dcmdata/dcvrsv.h>
+#  include <dcmtk/dcmdata/dcvruv.h>
 #endif
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -3572,6 +3575,8 @@ TEST(ParsedDicomFile, FillElementWithString)
 #if DCMTK_VERSION_NUMBER >= 365
   FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7054, 0x1000), ValueRepresentation_SignedVeryLong, "Tag1", 1, 1, "");
   FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7054, 0x1001), ValueRepresentation_SignedVeryLong, "Tag2", 3, 3, "");
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7054, 0x1002), ValueRepresentation_UnsignedVeryLong, "Tag3", 1, 1, "");
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7054, 0x1003), ValueRepresentation_UnsignedVeryLong, "Tag4", 3, 3, "");
 #endif
 
   ParsedDicomFile f(true);
@@ -3587,7 +3592,7 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_EQ(EVR_AT, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
-                                                false, ignoreLength, ValueRepresentation_PersonName));
+                                                false, ignoreLength, ValueRepresentation_AttributeTag));
     ASSERT_TRUE(v->IsString());
     ASSERT_EQ("0072,0008", v->GetContent());  // This is the "HangingProtocolCreator" tag
 
@@ -3601,7 +3606,7 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_EQ(EVR_AT, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
-                                                false, ignoreLength, ValueRepresentation_PersonName));
+                                                false, ignoreLength, ValueRepresentation_AttributeTag));
     ASSERT_TRUE(v->IsString());
     ASSERT_EQ("0072,0008\\0010,0010\\0072,0008", v->GetContent());
 
@@ -3643,7 +3648,7 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_EQ(EVR_FD, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
-                                                false, ignoreLength, ValueRepresentation_PersonName));
+                                                false, ignoreLength, ValueRepresentation_FloatingPointDouble));
     ASSERT_TRUE(v->IsString());
     ASSERT_EQ("10.75", v->GetContent());
 
@@ -3657,7 +3662,7 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_EQ(EVR_FD, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
-                                                false, ignoreLength, ValueRepresentation_PersonName));
+                                                false, ignoreLength, ValueRepresentation_FloatingPointDouble));
     ASSERT_TRUE(v->IsString());
     ASSERT_EQ("5.5\\20.25", v->GetContent());
 
@@ -3671,7 +3676,7 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_EQ(EVR_FL, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
-                                                false, ignoreLength, ValueRepresentation_PersonName));
+                                                false, ignoreLength, ValueRepresentation_FloatingPointSingle));
     ASSERT_TRUE(v->IsString());
     ASSERT_EQ("9.75", v->GetContent());
 
@@ -3685,7 +3690,7 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_EQ(EVR_FL, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
-                                                false, ignoreLength, ValueRepresentation_PersonName));
+                                                false, ignoreLength, ValueRepresentation_FloatingPointSingle));
     ASSERT_TRUE(v->IsString());
     ASSERT_EQ("2.5\\3.25", v->GetContent());
 
@@ -3699,7 +3704,7 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_EQ(EVR_OB, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
-                                                false, ignoreLength, ValueRepresentation_PersonName));
+                                                false, ignoreLength, ValueRepresentation_OtherByte));
     ASSERT_TRUE(v->IsBinary());
     ASSERT_EQ(6u, v->GetContent().size());  // The value is padded to 2 bytes
     ASSERT_EQ('H', v->GetContent() [0]);
@@ -3719,7 +3724,7 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_EQ(EVR_OB, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
-                                                false, ignoreLength, ValueRepresentation_PersonName));
+                                                false, ignoreLength, ValueRepresentation_OtherByte));
     ASSERT_TRUE(v->IsBinary());
     ASSERT_EQ(6u, v->GetContent().size());  // The value is padded to 2 bytes
   }
@@ -3732,7 +3737,7 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_EQ(EVR_SV, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
-                                                false, ignoreLength, ValueRepresentation_PersonName));
+                                                false, ignoreLength, ValueRepresentation_SignedVeryLong));
     ASSERT_TRUE(v->IsString());
     ASSERT_EQ("-43", v->GetContent());
 
@@ -3748,7 +3753,7 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_EQ(EVR_SV, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
-                                                false, ignoreLength, ValueRepresentation_PersonName));
+                                                false, ignoreLength, ValueRepresentation_SignedVeryLong));
     ASSERT_TRUE(v->IsString());
     ASSERT_EQ("10\\-41\\-34", v->GetContent());
 
@@ -3763,7 +3768,7 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_EQ(EVR_SL, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
-                                                false, ignoreLength, ValueRepresentation_PersonName));
+                                                false, ignoreLength, ValueRepresentation_SignedLong));
     ASSERT_TRUE(v->IsString());
     ASSERT_EQ("-3", v->GetContent());
 
@@ -3777,7 +3782,7 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_EQ(EVR_SL, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
-                                                false, ignoreLength, ValueRepresentation_PersonName));
+                                                false, ignoreLength, ValueRepresentation_SignedLong));
     ASSERT_TRUE(v->IsString());
     ASSERT_EQ("14\\-13", v->GetContent());
 
@@ -3791,7 +3796,7 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_EQ(EVR_SS, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
-                                                false, ignoreLength, ValueRepresentation_PersonName));
+                                                false, ignoreLength, ValueRepresentation_SignedShort));
     ASSERT_TRUE(v->IsString());
     ASSERT_EQ("-9", v->GetContent());
 
@@ -3805,12 +3810,102 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_EQ(EVR_SS, e->getTag().getEVR());
 
     v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
-                                                false, ignoreLength, ValueRepresentation_PersonName));
+                                                false, ignoreLength, ValueRepresentation_SignedShort));
     ASSERT_TRUE(v->IsString());
     ASSERT_EQ("1\\-8\\2", v->GetContent());
 
     ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
   }
+
+#if DCMTK_VERSION_NUMBER >= 365
+  {
+    e.reset(new DcmUnsigned64bitVeryLong(DcmTag(0x7054, 0x1002)));
+    FromDcmtkBridge::FillElementWithString(*e, "43", false, Encoding_Utf8);
+    ASSERT_EQ(1u, e->getVM());
+    ASSERT_EQ(EVR_UV, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_UnsignedVeryLong));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("43", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 365
+  {
+    e.reset(new DcmUnsigned64bitVeryLong(DcmTag(0x7054, 0x1003)));
+    FromDcmtkBridge::FillElementWithString(*e, "10\\41\\34", false, Encoding_Utf8);
+    ASSERT_EQ(3u, e->getVM());
+    ASSERT_EQ(EVR_UV, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_UnsignedVeryLong));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("10\\41\\34", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+#endif
+
+  {
+    e.reset(new DcmUnsignedLong(DcmTag(0x0018, 0x6050)));  // NumberOfTableBreakPoints
+    FromDcmtkBridge::FillElementWithString(*e, "3", false, Encoding_Utf8);
+    ASSERT_EQ(1u, e->getVM());
+    ASSERT_EQ(EVR_UL, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_UnsignedLong));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("3", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  {
+    e.reset(new DcmUnsignedLong(DcmTag(0x0018, 0x6052)));  // TableOfXBreakPoints
+    FromDcmtkBridge::FillElementWithString(*e, "14\\13", false, Encoding_Utf8);
+    ASSERT_EQ(2u, e->getVM());
+    ASSERT_EQ(EVR_UL, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_UnsignedLong));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("14\\13", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  {
+    e.reset(new DcmUnsignedShort(DcmTag(0x0028, 0x6010)));  // RepresentativeFrameNumber
+    FromDcmtkBridge::FillElementWithString(*e, "9", false, Encoding_Utf8);
+    ASSERT_EQ(1u, e->getVM());
+    ASSERT_EQ(EVR_US, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_UnsignedShort));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("9", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  {
+    e.reset(new DcmUnsignedShort(DcmTag(0x0028, 0x6020)));  // FrameNumbersOfInterest
+    FromDcmtkBridge::FillElementWithString(*e, "1\\8\\2", false, Encoding_Utf8);
+    ASSERT_EQ(3u, e->getVM());
+    ASSERT_EQ(EVR_US, e->getTag().getEVR());
+
+    v.reset(FromDcmtkBridge::ConvertLeafElement(*e, DicomToJsonFlags_None, 0, 0, Encoding_Utf8,
+                                                false, ignoreLength, ValueRepresentation_UnsignedShort));
+    ASSERT_TRUE(v->IsString());
+    ASSERT_EQ("1\\8\\2", v->GetContent());
+
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
+  }
+
+  f.GetDcmtkObject().writeXML(std::cout);
 
   std::string s;
   ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0072, 0x0026)));
@@ -3854,6 +3949,22 @@ TEST(ParsedDicomFile, FillElementWithString)
   ASSERT_EQ("-9", s);
   ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0028, 0x9503)));
   ASSERT_EQ("1\\-8\\2", s);
+
+#if DCMTK_VERSION_NUMBER >= 365
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x7054, 0x1002)));
+  ASSERT_EQ("43", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x7054, 0x1003)));
+  ASSERT_EQ("10\\41\\34", s);
+#endif
+
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0018, 0x6050)));
+  ASSERT_EQ("3", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0018, 0x6052)));
+  ASSERT_EQ("14\\13", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0028, 0x6010)));
+  ASSERT_EQ("9", s);
+  ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0028, 0x6020)));
+  ASSERT_EQ("1\\8\\2", s);
 }
 
 

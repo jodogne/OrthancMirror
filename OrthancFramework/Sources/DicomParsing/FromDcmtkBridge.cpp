@@ -2676,11 +2676,10 @@ namespace Orthanc
           }
           else
           {
-#if DCMTK_VERSION_NUMBER >= 370
-            ok = element.putUint64(boost::lexical_cast<Sint64>(*decoded)).good();
-#else
-            throw OrthancException(ErrorCode_NotImplemented, "Your version of DCMTK does not provide DcmElement::putUint64()");
-#endif
+            // The method "DcmElement::putUint64()" was only added in DCMTK 3.7.0,
+            // so we have to cast to support earlier versions of DCMTK
+            DcmUnsigned64bitVeryLong& e = dynamic_cast<DcmUnsigned64bitVeryLong&>(element);
+            ok = e.putUint64(boost::lexical_cast<Uint64>(*decoded)).good();
           }
           break;
         }
