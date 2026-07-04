@@ -3905,8 +3905,6 @@ TEST(ParsedDicomFile, FillElementWithString)
     ASSERT_TRUE(f.GetDcmtkObject().getDataset()->insert(e.release()).good());
   }
 
-  f.GetDcmtkObject().writeXML(std::cout);
-
   std::string s;
   ASSERT_TRUE(f.GetTagValue(s, DicomTag(0x0072, 0x0026)));
   ASSERT_EQ("0072,0008", s);

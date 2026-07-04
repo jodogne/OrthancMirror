@@ -406,7 +406,7 @@ namespace Orthanc
     };
 
 
-    class AttributeElementFiller : public IElementFiller
+    class ValueRepresentationFiller_AT : public IElementFiller
     {
     public:
       bool FillSingleValue(DcmElement& element,
@@ -430,6 +430,187 @@ namespace Orthanc
         }
 
         return element.putUint16Array(tags.empty() ? NULL : &tags[0], values.size()).good();
+      }
+    };
+
+
+    template <typename DcmtkType>
+    class ValueRepresentationFillerGeneric : public IElementFiller
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const DcmtkType& value) const = 0;
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<DcmtkType>& values) const = 0;
+
+    public:
+      bool FillSingleValue(DcmElement& element,
+                           const std::string& value) const ORTHANC_OVERRIDE
+      {
+        return PutSingleValue(element, boost::lexical_cast<DcmtkType>(value));
+      }
+
+      bool FillMultipleValues(DcmElement& element,
+                              const std::vector<std::string>& values) const ORTHANC_OVERRIDE
+      {
+        std::vector<DcmtkType> numeric;
+        numeric.resize(values.size());
+
+        for (size_t i = 0; i < values.size(); i++)
+        {
+          numeric[i] = boost::lexical_cast<DcmtkType>(values[i]);
+        }
+
+        return PutMultipleValues(element, numeric);
+      }
+    };
+
+
+    class ValueRepresentationFiller_SL : public ValueRepresentationFillerGeneric<Sint32>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Sint32& value) const ORTHANC_OVERRIDE
+      {
+        return element.putSint32(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Sint32>& values) const ORTHANC_OVERRIDE
+      {
+        return element.putSint32Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+
+
+    class ValueRepresentationFiller_SS : public ValueRepresentationFillerGeneric<Sint16>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Sint16& value) const ORTHANC_OVERRIDE
+      {
+        return element.putSint16(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Sint16>& values) const ORTHANC_OVERRIDE
+      {
+        return element.putSint16Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+
+
+#if DCMTK_VERSION_NUMBER >= 365
+    class ValueRepresentationFiller_SV : public ValueRepresentationFillerGeneric<Sint64>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Sint64& value) const ORTHANC_OVERRIDE
+      {
+        // The method "DcmElement::putSint64()" was only added in DCMTK 3.7.0,
+        // so we have to cast to support earlier versions of DCMTK
+        DcmSigned64bitVeryLong& e = dynamic_cast<DcmSigned64bitVeryLong&>(element);
+        return e.putSint64(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Sint64>& values) const ORTHANC_OVERRIDE
+      {
+        DcmSigned64bitVeryLong& e = dynamic_cast<DcmSigned64bitVeryLong&>(element);
+        return e.putSint64Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+#endif
+
+
+    class ValueRepresentationFiller_UL : public ValueRepresentationFillerGeneric<Uint32>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Uint32& value) const ORTHANC_OVERRIDE
+      {
+        return element.putUint32(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Uint32>& values) const ORTHANC_OVERRIDE
+      {
+        return element.putUint32Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+
+
+    class ValueRepresentationFiller_US : public ValueRepresentationFillerGeneric<Uint16>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Uint16& value) const ORTHANC_OVERRIDE
+      {
+        return element.putUint16(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Uint16>& values) const ORTHANC_OVERRIDE
+      {
+        return element.putUint16Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+
+
+#if DCMTK_VERSION_NUMBER >= 365
+    class ValueRepresentationFiller_UV : public ValueRepresentationFillerGeneric<Uint64>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Uint64& value) const ORTHANC_OVERRIDE
+      {
+        // The method "DcmElement::putUint64()" was only added in DCMTK 3.7.0,
+        // so we have to cast to support earlier versions of DCMTK
+        DcmUnsigned64bitVeryLong& e = dynamic_cast<DcmUnsigned64bitVeryLong&>(element);
+        return e.putUint64(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Uint64>& values) const ORTHANC_OVERRIDE
+      {
+        DcmUnsigned64bitVeryLong& e = dynamic_cast<DcmUnsigned64bitVeryLong&>(element);
+        return e.putUint64Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+#endif
+
+
+    class ValueRepresentationFiller_FL : public ValueRepresentationFillerGeneric<Float32>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Float32& value) const ORTHANC_OVERRIDE
+      {
+        return element.putFloat32(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Float32>& values) const ORTHANC_OVERRIDE
+      {
+        return element.putFloat32Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+
+
+    class ValueRepresentationFiller_FD : public ValueRepresentationFillerGeneric<Float64>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Float64& value) const ORTHANC_OVERRIDE
+      {
+        return element.putFloat64(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Float64>& values) const ORTHANC_OVERRIDE
+      {
+        return element.putFloat64Array(values.empty() ? NULL : &values[0], values.size()).good();
       }
     };
 
@@ -2577,64 +2758,25 @@ namespace Orthanc
          **/ 
       
         case EVR_SL:  // signed long
-        {
-          if (decoded->find('\\') != std::string::npos)
-          {
-            ok = element.putString(decoded->c_str()).good();
-          }
-          else
-          {
-            ok = element.putSint32(boost::lexical_cast<Sint32>(*decoded)).good();
-          }
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_SL(), *decoded);
           break;
-        }
 
         case EVR_SS:  // signed short
-        {
-          if (decoded->find('\\') != std::string::npos)
-          {
-            ok = element.putString(decoded->c_str()).good();
-          }
-          else
-          {
-            ok = element.putSint16(boost::lexical_cast<Sint16>(*decoded)).good();
-          }
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_SS(), *decoded);
           break;
-        }
 
 #if DCMTK_VERSION_NUMBER >= 365
         case EVR_SV:  // signed very long (64-bit, new in Orthanc 1.12.12)
-        {
-          if (decoded->find('\\') != std::string::npos)
-          {
-            ok = element.putString(decoded->c_str()).good();
-          }
-          else
-          {
-            // The method "DcmElement::putSint64()" was only added in DCMTK 3.7.0,
-            // so we have to cast to support earlier versions of DCMTK
-            DcmSigned64bitVeryLong& e = dynamic_cast<DcmSigned64bitVeryLong&>(element);
-            ok = e.putSint64(boost::lexical_cast<Sint64>(*decoded)).good();
-          }
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_SV(), *decoded);
           break;
-        }
 #endif
 
         case EVR_UL:  // unsigned long
 #if DCMTK_VERSION_NUMBER >= 362
         case EVR_OL:  // other long (requires byte-swapping)
 #endif
-        {
-          if (decoded->find('\\') != std::string::npos)
-          {
-            ok = element.putString(decoded->c_str()).good();
-          }
-          else
-          {
-            ok = element.putUint32(boost::lexical_cast<Uint32>(*decoded)).good();
-          }
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_UL(), *decoded);
           break;
-        }
 
         case EVR_xs: // unsigned short, signed short or multiple values
         {
@@ -2654,66 +2796,27 @@ namespace Orthanc
         }
 
         case EVR_US:  // unsigned short
-        {
-          if (decoded->find('\\') != std::string::npos)
-          {
-            ok = element.putString(decoded->c_str()).good();
-          }
-          else
-          {
-            ok = element.putUint16(boost::lexical_cast<Uint16>(*decoded)).good();
-          }
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_US(), *decoded);
           break;
-        }
 
 #if DCMTK_VERSION_NUMBER >= 365
         case EVR_UV:  // unsigned very long (64-bit, new in Orthanc 1.12.12)
         case EVR_OV:  // other very long (64-bit, new in Orthanc 1.12.12)
-        {
-          if (decoded->find('\\') != std::string::npos)
-          {
-            ok = element.putString(decoded->c_str()).good();
-          }
-          else
-          {
-            // The method "DcmElement::putUint64()" was only added in DCMTK 3.7.0,
-            // so we have to cast to support earlier versions of DCMTK
-            DcmUnsigned64bitVeryLong& e = dynamic_cast<DcmUnsigned64bitVeryLong&>(element);
-            ok = e.putUint64(boost::lexical_cast<Uint64>(*decoded)).good();
-          }
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_UV(), *decoded);
           break;
-        }
 #endif
 
         case EVR_FL:  // float single-precision
         case EVR_OF:  // other float (requires byte swapping)
-        {
-          if (decoded->find('\\') != std::string::npos)
-          {
-            ok = element.putString(decoded->c_str()).good();
-          }
-          else
-          {
-            ok = element.putFloat32(boost::lexical_cast<float>(*decoded)).good();
-          }
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_FL(), *decoded);
           break;
-        }
 
         case EVR_FD:  // float double-precision
 #if DCMTK_VERSION_NUMBER >= 361
         case EVR_OD:  // other double (requires byte-swapping)
 #endif
-        {
-          if (decoded->find('\\') != std::string::npos)
-          {
-            ok = element.putString(decoded->c_str()).good();
-          }
-          else
-          {
-            ok = element.putFloat64(boost::lexical_cast<double>(*decoded)).good();
-          }
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_FD(), *decoded);
           break;
-        }
 
 
         /**
@@ -2721,11 +2824,9 @@ namespace Orthanc
          **/
         
         case EVR_AT:  // attribute tag, new in Orthanc 1.9.4
-        {
           // Multiple values are supported since Orthanc 1.12.12
-          ok = IElementFiller::Apply(element, AttributeElementFiller(), *decoded);
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_AT(), *decoded);
           break;
-        }
 
           
         /**
