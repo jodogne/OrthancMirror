@@ -196,9 +196,7 @@ namespace Orthanc
     void ResetObserver();
 
     void GetStatistics(unsigned int& pending,
-                       unsigned int& running,
-                       unsigned int& success,
-                       unsigned int& errors);
+                       unsigned int& running);
 
     void GetLastModificationTime(boost::posix_time::ptime& modificationTime) const;
     

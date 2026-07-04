@@ -77,6 +77,10 @@ namespace Orthanc
     return group_ % 2 == 1;
   }
 
+  bool DicomTag::IsPrivateCreator() const
+  {
+    return IsPrivate() && (element_ >= 0x0010 && element_ <= 0x00FF);
+  }
 
   bool DicomTag::operator< (const DicomTag& other) const
   {

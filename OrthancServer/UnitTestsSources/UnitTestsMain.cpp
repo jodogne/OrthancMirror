@@ -164,21 +164,19 @@ TEST(FromDcmtkBridge, ValueRepresentationConversions)
     }
     else
     {
-      bool skip = false;
-
 #if DCMTK_VERSION_NUMBER < 361
       if (i == ValueRepresentation_OtherDouble ||
           i == ValueRepresentation_UnlimitedCharacters ||
           i == ValueRepresentation_UniversalResource)
       {
-        skip = true;
+        continue;  // Not supported in DCMTK < 3.6.1
       }
 #endif
 
 #if DCMTK_VERSION_NUMBER < 362
       if (i == ValueRepresentation_OtherLong)
       {
-        skip = true;
+        continue;  // Not supported in DCMTK < 3.6.2
       }
 #endif
 
@@ -187,15 +185,17 @@ TEST(FromDcmtkBridge, ValueRepresentationConversions)
           i == ValueRepresentation_SignedVeryLong ||
           i == ValueRepresentation_UnsignedVeryLong)
       {
-        skip = true;
+        continue;  // Not supported in DCMTK < 3.6.5
       }
 #endif
 
-      if (!skip)
+      ASSERT_EQ(vr, FromDcmtkBridge::Convert(ToDcmtkBridge::Convert(vr)));
+      OrthancPluginValueRepresentation plugins = Plugins::Convert(vr);
+      ASSERT_EQ(vr, Plugins::Convert(plugins));
+
+      if (vr != ValueRepresentation_Unknown)
       {
-        ASSERT_EQ(vr, FromDcmtkBridge::Convert(ToDcmtkBridge::Convert(vr)));
-        OrthancPluginValueRepresentation plugins = Plugins::Convert(vr);
-        ASSERT_EQ(vr, Plugins::Convert(plugins));
+        ASSERT_NE(OrthancPluginValueRepresentation_UN, plugins);
       }
     }
   }

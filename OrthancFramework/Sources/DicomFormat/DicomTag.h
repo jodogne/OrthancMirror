@@ -51,6 +51,8 @@ namespace Orthanc
 
     bool IsPrivate() const;
 
+    bool IsPrivateCreator() const;
+
     bool operator< (const DicomTag& other) const;
 
     bool operator<= (const DicomTag& other) const;

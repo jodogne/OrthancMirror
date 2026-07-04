@@ -980,8 +980,6 @@ namespace Orthanc
     }
     else
     {
-      // TODO-FIND: This fallback shouldn't be necessary
-
       FindRequest requestDicomAttachment(request.GetLevel());
       requestDicomAttachment.SetOrthancId(request.GetLevel(), resource.GetIdentifier());
 

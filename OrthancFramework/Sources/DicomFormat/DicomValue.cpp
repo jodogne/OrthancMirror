@@ -330,4 +330,14 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
   }
+
+
+  DicomValue* DicomValue::CreateFromSwap(std::string& content,
+                                         bool isBinary)
+  {
+    std::unique_ptr<DicomValue> value(new DicomValue);
+    value->type_ = isBinary ? Type_Binary : Type_String;
+    value->content_.swap(content);
+    return value.release();
+  }
 }
