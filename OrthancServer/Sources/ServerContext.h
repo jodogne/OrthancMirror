@@ -322,11 +322,6 @@ namespace Orthanc
       return index_;
     }
 
-    void SetMaximumStorageCacheSize(size_t size)
-    {
-      // TODO-Streaming
-    }
-
     void SetPatientLevelEnabled(bool enabled);
 
     bool IsPatientLevelEnabled() const
@@ -369,7 +364,7 @@ namespace Orthanc
 
     StoreResult TranscodeAndStore(std::string& resultPublicId,
                                   DicomInstanceToStore* dicom,
-                                  bool isReconstruct = false);  // TODO-Streaming: To check
+                                  bool isReconstruct = false);
 
     void AnswerAttachment(RestApiOutput& output,
                           const FileInfo& fileInfo,

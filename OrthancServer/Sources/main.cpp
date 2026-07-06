@@ -1789,26 +1789,6 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
         context.GetIndex().SetMaximumStorageMode(MaxStorageMode_Recycle);
       }
     }
-
-    // note: this config is valid in ReadOnlyMode
-    try
-    {
-      uint64_t size = lock.GetConfiguration().GetMaximumStorageCacheSize();
-      if (size == 0)
-      {
-        LOG(WARNING) << "Storage cache is disabled";
-      }
-      else
-      {
-        LOG(WARNING) << "Storage cache size is " << size << " MB";
-      }
-      
-      context.SetMaximumStorageCacheSize(size * 1024 * 1024);
-    }
-    catch (...)
-    {
-      context.SetMaximumStorageCacheSize(128);
-    }
   }
 
   {

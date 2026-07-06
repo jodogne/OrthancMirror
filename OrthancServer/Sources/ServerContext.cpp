@@ -550,8 +550,6 @@ namespace Orthanc
   {
     try
     {
-      bool checkMD5 = true;
-
       {
         OrthancConfiguration::ReaderLock lock;
 
@@ -677,8 +675,6 @@ namespace Orthanc
         SetAcceptedSopClasses(acceptedSopClasses, rejectedSopClasses);
 
         defaultDicomRetrieveMethod_ = StringToRetrieveMethod(lock.GetConfiguration().GetDicomDefaultRetrieveMethod());
-
-        checkMD5 = lock.GetConfiguration().GetBooleanParameter("CheckMD5", true);  // TODO-Streaming - Parameter
       }
 
       jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -755,7 +751,7 @@ namespace Orthanc
         pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_STORAGE_THREAD_POOL_AVAILABLE_THREADS);
         pool->Start();
 
-        std::unique_ptr<StorageAreaDataSource> source(new StorageAreaDataSource(area_, checkMD5));
+        std::unique_ptr<StorageAreaDataSource> source(new StorageAreaDataSource(area_, IsStoreMD5ForAttachments()));
         source->SetMetricsRegistry(metricsRegistry_,
                                    METRICS_STORAGE_AREA_READ_BYTES, METRICS_STORAGE_AREA_READ_DURATION);
 
@@ -773,6 +769,15 @@ namespace Orthanc
 
         storageAreaReader_->SetCapacity(storageMemoryCapacityMb * MEGABYTE);
         storageAreaReader_->CreateCache(storageCacheSizeMb * MEGABYTE);
+        
+        if (storageCacheSizeMb == 0)
+        {
+          LOG(WARNING) << "Storage cache is disabled";
+        }
+        else
+        {
+          LOG(WARNING) << "Storage cache size is " << storageCacheSizeMb << " MB";
+        }
       }
 
       {
