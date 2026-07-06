@@ -46,7 +46,7 @@ namespace Orthanc
 {
   namespace Logging
   {
-    static bool logCallerThreadNameInContext = false; // add a "from THREADNAME" in the context everytime the context is copied from a thread to the other to help track the runnable/callable journey
+    static bool logCallerThreadNameInContext = true; // add a "from THREADNAME" in the context everytime the context is copied from a thread to the other to help track the runnable/callable journey
 
     static const uint32_t ALL_CATEGORIES_MASK = 0xffffffff;
     
@@ -1116,16 +1116,17 @@ namespace Orthanc
     struct ThreadContextMemento::PImpl : public boost::noncopyable
     {
       std::list<std::string>  context_;
+      std::string             threadName_;
     };
 
 
     ThreadContextMemento::ScopedSetter::ScopedSetter(const ThreadContextMemento& memento) :
       count_(memento.pimpl_->context_.size())
     {
-      if (logCallerThreadNameInContext && enableThreadNames_)
+      if (logCallerThreadNameInContext && enableThreadNames_ && !memento.pimpl_->threadName_.empty())
       {
         count_++;
-        PushCurrentThreadContext("from " + GetCurrentThreadName());
+        PushCurrentThreadContext("from " + memento.pimpl_->threadName_);
       }
 
       for (std::list<std::string>::const_iterator it = memento.pimpl_->context_.begin(); it != memento.pimpl_->context_.end(); ++it)
@@ -1149,6 +1150,10 @@ namespace Orthanc
     {
       ThreadsInformations::CurrentThreadReader reader(threadsInformations_);
       reader.CopyContext(pimpl_->context_);
+      if (reader.HasThreadName())
+      {
+        pimpl_->threadName_ = reader.GetThreadName();
+      }
     }
 
 
