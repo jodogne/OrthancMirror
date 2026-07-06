@@ -317,7 +317,7 @@ namespace Orthanc
                                                                                             bool hasLossyQuality,
                                                                                             unsigned int lossyQuality) const
   {
-    // TODO-Streaming : No optimization seems possible, we need to go through the transcoder anyway
+    // No optimization seems possible, we need to go through the transcoder anyway
     return CreateForTranscodedParsedDicomFile(targetSyntax, mode, hasLossyQuality, lossyQuality);
   }
 

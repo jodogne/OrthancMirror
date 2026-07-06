@@ -361,10 +361,8 @@ namespace Orthanc
                                        uint64_t& tasksCurrentMemory,
                                        unsigned int& tasksReservations) const
   {
-    { // TODO-Streaming - Question AM: why this copy ?
-      boost::shared_ptr<Internals::DataSourceMemoryBudget> budgetCopy(budget_);
-      budgetCopy->GetStatistics(tasksMaximumMemory, tasksCurrentMemory, tasksReservations);
-    }
+    boost::shared_ptr<Internals::DataSourceMemoryBudget> budgetCopy(budget_);  // increment shared_ptr ref count to make sure the budget is not deleted while we use it.
+    budgetCopy->GetStatistics(tasksMaximumMemory, tasksCurrentMemory, tasksReservations);
   }
 
 

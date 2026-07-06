@@ -354,7 +354,7 @@ namespace Orthanc
       source.AcquireParsed(dicom);  // This invalidates the "dicom" object, cf. (*)
 
       /**
-       * TODO-Streaming : It doesn't seem possible to uniformly trancode upfront
+       * It doesn't seem possible to uniformly trancode upfront
        * using "DicomSequentialReader::CreateForTranscoded()", as the
        * selected transfer syntax is not constant, but varies upon
        * each individual instance given the presentation context.
