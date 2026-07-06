@@ -94,6 +94,12 @@
 #  include <dcmtk/dcmdata/dcvrur.h>
 #endif
 
+#if DCMTK_VERSION_NUMBER >= 365
+#  include <dcmtk/dcmdata/dcvrov.h>
+#  include <dcmtk/dcmdata/dcvrsv.h>
+#  include <dcmtk/dcmdata/dcvruv.h>
+#endif
+
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
 #  if !defined(ORTHANC_FRAMEWORK_INCLUDE_RESOURCES) || (ORTHANC_FRAMEWORK_INCLUDE_RESOURCES == 1)
 #    include <OrthancFrameworkResources.h>
@@ -324,10 +330,20 @@ namespace Orthanc
     };
     // NOLINTEND(bugprone-macro-parentheses)
 
-    DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint32Converter, Sint32, DcmSignedLong, getSint32, boost::lexical_cast<std::string>)
     DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint16Converter, Sint16, DcmSignedShort, getSint16, boost::lexical_cast<std::string>)
-    DCMTK_TO_CTYPE_CONVERTER(DcmtkToUint32Converter, Uint32, DcmUnsignedLong, getUint32, boost::lexical_cast<std::string>)
+    DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint32Converter, Sint32, DcmSignedLong, getSint32, boost::lexical_cast<std::string>)
+
+#if DCMTK_VERSION_NUMBER >= 365
+    DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint64Converter, Sint64, DcmSigned64bitVeryLong, getSint64, boost::lexical_cast<std::string>)
+#endif
+
     DCMTK_TO_CTYPE_CONVERTER(DcmtkToUint16Converter, Uint16, DcmUnsignedShort, getUint16, boost::lexical_cast<std::string>)
+    DCMTK_TO_CTYPE_CONVERTER(DcmtkToUint32Converter, Uint32, DcmUnsignedLong, getUint32, boost::lexical_cast<std::string>)
+
+#if DCMTK_VERSION_NUMBER >= 365
+    DCMTK_TO_CTYPE_CONVERTER(DcmtkToUint64Converter, Uint64, DcmUnsigned64bitVeryLong, getUint64, boost::lexical_cast<std::string>)
+#endif
+
     DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat32Converter, Float32, DcmFloatingPointSingle, getFloat32, FloatToString)
     DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDouble, getFloat64, DoubleToString)
 
@@ -357,6 +373,588 @@ namespace Orthanc
         return new DicomValue;
       }
     }
+
+
+    class IElementFiller : public boost::noncopyable
+    {
+    public:
+      virtual ~IElementFiller()
+      {
+      }
+
+      virtual bool FillSingleValue(DcmElement& element,
+                                   const std::string& value) const = 0;
+
+      virtual bool FillMultipleValues(DcmElement& element,
+                                      const std::vector<std::string>& values) const = 0;
+
+      static bool Apply(DcmElement& element,
+                        const IElementFiller& filler,
+                        const std::string& value)
+      {
+        if (value.find('\\') != std::string::npos)
+        {
+          std::vector<std::string> tokens;
+          Toolbox::TokenizeString(tokens, value, '\\');
+          return filler.FillMultipleValues(element, tokens);
+        }
+        else
+        {
+          return filler.FillSingleValue(element, value);
+        }
+      }
+    };
+
+
+    class ValueRepresentationFiller_AT : public IElementFiller
+    {
+    public:
+      bool FillSingleValue(DcmElement& element,
+                           const std::string& value) const ORTHANC_OVERRIDE
+      {
+        DicomTag tag = FromDcmtkBridge::ParseTag(value);
+        return element.putTagVal(DcmTagKey(tag.GetGroup(), tag.GetElement())).good();
+      }
+
+      bool FillMultipleValues(DcmElement& element,
+                              const std::vector<std::string>& values) const ORTHANC_OVERRIDE
+      {
+        std::vector<Uint16> tags;
+        tags.resize(2 * values.size());
+
+        for (size_t i = 0; i < values.size(); i++)
+        {
+          DicomTag tag = FromDcmtkBridge::ParseTag(values[i]);
+          tags[2 * i] = tag.GetGroup();
+          tags[2 * i + 1] = tag.GetElement();
+        }
+
+        return element.putUint16Array(tags.empty() ? NULL : &tags[0], values.size()).good();
+      }
+    };
+
+
+    template <typename DcmtkType>
+    class ValueRepresentationFillerGeneric : public IElementFiller
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const DcmtkType& value) const = 0;
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<DcmtkType>& values) const = 0;
+
+    public:
+      bool FillSingleValue(DcmElement& element,
+                           const std::string& value) const ORTHANC_OVERRIDE
+      {
+        return PutSingleValue(element, boost::lexical_cast<DcmtkType>(value));
+      }
+
+      bool FillMultipleValues(DcmElement& element,
+                              const std::vector<std::string>& values) const ORTHANC_OVERRIDE
+      {
+        std::vector<DcmtkType> numeric;
+        numeric.resize(values.size());
+
+        for (size_t i = 0; i < values.size(); i++)
+        {
+          numeric[i] = boost::lexical_cast<DcmtkType>(values[i]);
+        }
+
+        return PutMultipleValues(element, numeric);
+      }
+    };
+
+
+    class ValueRepresentationFiller_SL : public ValueRepresentationFillerGeneric<Sint32>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Sint32& value) const ORTHANC_OVERRIDE
+      {
+        return element.putSint32(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Sint32>& values) const ORTHANC_OVERRIDE
+      {
+        return element.putSint32Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+
+
+    class ValueRepresentationFiller_SS : public ValueRepresentationFillerGeneric<Sint16>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Sint16& value) const ORTHANC_OVERRIDE
+      {
+        return element.putSint16(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Sint16>& values) const ORTHANC_OVERRIDE
+      {
+        return element.putSint16Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+
+
+#if DCMTK_VERSION_NUMBER >= 365
+    class ValueRepresentationFiller_SV : public ValueRepresentationFillerGeneric<Sint64>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Sint64& value) const ORTHANC_OVERRIDE
+      {
+        // The method "DcmElement::putSint64()" was only added in DCMTK 3.7.0,
+        // so we have to cast to support earlier versions of DCMTK
+        DcmSigned64bitVeryLong& e = dynamic_cast<DcmSigned64bitVeryLong&>(element);
+        return e.putSint64(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Sint64>& values) const ORTHANC_OVERRIDE
+      {
+        DcmSigned64bitVeryLong& e = dynamic_cast<DcmSigned64bitVeryLong&>(element);
+        return e.putSint64Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+#endif
+
+
+    class ValueRepresentationFiller_UL : public ValueRepresentationFillerGeneric<Uint32>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Uint32& value) const ORTHANC_OVERRIDE
+      {
+        return element.putUint32(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Uint32>& values) const ORTHANC_OVERRIDE
+      {
+        return element.putUint32Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+
+
+    class ValueRepresentationFiller_US : public ValueRepresentationFillerGeneric<Uint16>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Uint16& value) const ORTHANC_OVERRIDE
+      {
+        return element.putUint16(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Uint16>& values) const ORTHANC_OVERRIDE
+      {
+        return element.putUint16Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+
+
+#if DCMTK_VERSION_NUMBER >= 365
+    class ValueRepresentationFiller_UV : public ValueRepresentationFillerGeneric<Uint64>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Uint64& value) const ORTHANC_OVERRIDE
+      {
+        // The method "DcmElement::putUint64()" was only added in DCMTK 3.7.0,
+        // so we have to cast to support earlier versions of DCMTK
+        DcmUnsigned64bitVeryLong& e = dynamic_cast<DcmUnsigned64bitVeryLong&>(element);
+        return e.putUint64(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Uint64>& values) const ORTHANC_OVERRIDE
+      {
+        DcmUnsigned64bitVeryLong& e = dynamic_cast<DcmUnsigned64bitVeryLong&>(element);
+        return e.putUint64Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+#endif
+
+
+    class ValueRepresentationFiller_FL : public ValueRepresentationFillerGeneric<Float32>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Float32& value) const ORTHANC_OVERRIDE
+      {
+        return element.putFloat32(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Float32>& values) const ORTHANC_OVERRIDE
+      {
+        return element.putFloat32Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+
+
+    class ValueRepresentationFiller_FD : public ValueRepresentationFillerGeneric<Float64>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Float64& value) const ORTHANC_OVERRIDE
+      {
+        return element.putFloat64(value).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Float64>& values) const ORTHANC_OVERRIDE
+      {
+        return element.putFloat64Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+
+
+    class ILeafElementArrayReader : public boost::noncopyable
+    {
+    public:
+      virtual ~ILeafElementArrayReader()
+      {
+      }
+
+      virtual bool IsValid() const = 0;
+
+      virtual uint64_t GetSize() const = 0;
+
+      virtual void ReadValue(std::string& value,
+                             uint64_t index) const = 0;
+
+      static DicomValue* Apply(const ILeafElementArrayReader& reader,
+                               const DcmTagKey& tag,
+                               size_t maxStringLength,
+                               uint64_t maxBinaryArrayLength)
+      {
+        if (reader.IsValid())
+        {
+          uint64_t size = reader.GetSize();
+
+          if (maxBinaryArrayLength != 0 &&
+              size > maxBinaryArrayLength)
+          {
+            /**
+             * We have seen files with 100M floats (value representation OF):
+             * https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448
+             **/
+
+            DicomTag t(tag.getGroup(), tag.getElement());
+            LOG(WARNING) << "Truncating the DICOM tag " << t.Format() << " containing "
+                         << size << " values to " << maxBinaryArrayLength << " values";
+            size = maxBinaryArrayLength;
+          }
+
+          ChunkedBuffer buffer;
+          for (uint64_t i = 0; i < size; i++)
+          {
+            if (maxStringLength != 0 &&
+                buffer.GetNumBytes() > maxStringLength)
+            {
+              return new DicomValue;
+            }
+
+            if (i > 0)
+            {
+              buffer.AddChunk("\\", 1);
+            }
+
+            std::string s;
+            reader.ReadValue(s, i);
+            buffer.AddChunk(s);
+          }
+
+          if (maxStringLength != 0 &&
+              buffer.GetNumBytes() > maxStringLength)
+          {
+            return new DicomValue;
+          }
+          else
+          {
+            std::string s;
+            buffer.Flatten(s);
+            return DicomValue::CreateFromSwap(s, false);
+          }
+        }
+        else
+        {
+          return new DicomValue;
+        }
+      }
+    };
+
+
+    class ValueRepresentationReader_AT : public ILeafElementArrayReader
+    {
+    private:
+      bool     valid_;
+      uint64_t size_;
+      Uint16*  content_;
+
+    public:
+      ValueRepresentationReader_AT(DcmElement& element) :
+        valid_(false)
+      {
+        DcmAttributeTag& e = dynamic_cast<DcmAttributeTag&>(element);
+
+        if (e.getUint16Array(content_).good() &&
+            content_ != NULL)
+        {
+          if (element.getLength() % sizeof(Uint16) != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
+          size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint16);
+          if (size_ % 2 != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+          else
+          {
+            // Each DICOM tag is stored as two successive Uint16
+            size_ /= 2;
+          }
+
+          valid_ = true;
+        }
+      }
+
+      virtual bool IsValid() const ORTHANC_OVERRIDE
+      {
+        return valid_;
+      }
+
+      virtual uint64_t GetSize() const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        return size_;
+      }
+
+      virtual void ReadValue(std::string& value,
+                             uint64_t index) const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        DicomTag tag(content_[2 * index], content_[2 * index + 1]);
+        value = tag.Format();
+      }
+    };
+
+
+    class ValueRepresentationReader_OF : public ILeafElementArrayReader
+    {
+    private:
+      bool      valid_;
+      uint64_t  size_;
+      Float32*  content_;
+
+    public:
+      ValueRepresentationReader_OF(DcmElement& element) :
+        valid_(false)
+      {
+        /**
+         * OF stores a binary array of 32-bit IEEE floats. Unlike FL where getVM()
+         * returns the count of values, for OF getVM() returns 1 (the entire binary
+         * blob is considered one "value"). We must use getFloat32Array() to access
+         * the raw float buffer, then build a string of all values.
+         * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
+         **/
+        DcmFloatingPointSingle& e = dynamic_cast<DcmFloatingPointSingle&>(element);
+
+        if (e.getFloat32Array(content_).good() &&
+            content_ != NULL)
+        {
+          if (element.getLength() % sizeof(Float32) != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
+          size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Float32);
+          valid_ = true;
+        }
+      }
+
+      virtual bool IsValid() const ORTHANC_OVERRIDE
+      {
+        return valid_;
+      }
+
+      virtual uint64_t GetSize() const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        return size_;
+      }
+
+      virtual void ReadValue(std::string& value,
+                             uint64_t index) const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        value = boost::lexical_cast<std::string>(content_[index]);
+      }
+    };
+
+
+#if DCMTK_VERSION_NUMBER >= 361
+    class ValueRepresentationReader_OD : public ILeafElementArrayReader
+    {
+    private:
+      bool      valid_;
+      uint64_t  size_;
+      Float64*  content_;
+
+    public:
+      ValueRepresentationReader_OD(DcmElement& element) :
+        valid_(false)
+      {
+        /**
+         * OD stores a binary array of 64-bit IEEE doubles. Similar to OF,
+         * getVM() returns 1 for OD. We must use getFloat64Array() to access
+         * the raw double buffer.
+         * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
+         **/
+        DcmFloatingPointDouble& e = dynamic_cast<DcmFloatingPointDouble&>(element);
+
+        if (e.getFloat64Array(content_).good() &&
+            content_ != NULL)
+        {
+          if (element.getLength() % sizeof(Float64) != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
+          size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Float64);
+          valid_ = true;
+        }
+      }
+
+      virtual bool IsValid() const ORTHANC_OVERRIDE
+      {
+        return valid_;
+      }
+
+      virtual uint64_t GetSize() const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        return size_;
+      }
+
+      virtual void ReadValue(std::string& value,
+                             uint64_t index) const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        value = boost::lexical_cast<std::string>(content_[index]);
+      }
+    };
+#endif
+
+
+#if DCMTK_VERSION_NUMBER >= 362
+    class ValueRepresentationReader_OL : public ILeafElementArrayReader
+    {
+    private:
+      bool      valid_;
+      uint64_t  size_;
+      Uint32*   content_;
+
+    public:
+      ValueRepresentationReader_OL(DcmElement& element) :
+        valid_(false)
+      {
+        /**
+         * OL stores a binary array of 32-bit unsigned integers. Like OF/OD,
+         * getVM() returns 1 for OL (the entire binary blob is one "value").
+         * We must use getUint32Array() to access the raw buffer.
+         * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
+         **/
+        DcmUnsignedLong& e = dynamic_cast<DcmUnsignedLong&>(element);
+
+        if (e.getUint32Array(content_).good() &&
+            content_ != NULL)
+        {
+          if (element.getLength() % sizeof(Uint32) != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
+          size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint32);
+          valid_ = true;
+        }
+      }
+
+      virtual bool IsValid() const ORTHANC_OVERRIDE
+      {
+        return valid_;
+      }
+
+      virtual uint64_t GetSize() const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        return size_;
+      }
+
+      virtual void ReadValue(std::string& value,
+                             uint64_t index) const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        value = boost::lexical_cast<std::string>(content_[index]);
+      }
+    };
+#endif
+
+
+#if DCMTK_VERSION_NUMBER >= 365
+    class ValueRepresentationReader_OV : public ILeafElementArrayReader
+    {
+    private:
+      bool      valid_;
+      uint64_t  size_;
+      Uint64*   content_;
+
+    public:
+      ValueRepresentationReader_OV(DcmElement& element) :
+        valid_(false)
+      {
+        DcmUnsigned64bitVeryLong& e = dynamic_cast<DcmOther64bitVeryLong&>(element);
+
+        if (e.getUint64Array(content_).good() &&
+            content_ != NULL)
+        {
+          if (element.getLength() % sizeof(Uint64) != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
+          size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint64);
+          valid_ = true;
+        }
+      }
+
+      virtual bool IsValid() const ORTHANC_OVERRIDE
+      {
+        return valid_;
+      }
+
+      virtual uint64_t GetSize() const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        return size_;
+      }
+
+      virtual void ReadValue(std::string& value,
+                             uint64_t index) const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        value = boost::lexical_cast<std::string>(content_[index]);
+      }
+    };
+#endif
   }
 
 
@@ -879,142 +1477,47 @@ namespace Orthanc
           return ApplyDcmtkToCTypeConverter<DcmtkToFloat64Converter>(element);
         }
 
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_SV:  // signed very long (64-bit, new in Orthanc 1.12.12)
+        {
+          return ApplyDcmtkToCTypeConverter<DcmtkToSint64Converter>(element);
+        }
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_UV:  // unsigned very long (64-bit, new in Orthanc 1.12.12)
+        {
+          return ApplyDcmtkToCTypeConverter<DcmtkToUint64Converter>(element);
+        }
+#endif
+
         case EVR_OF:  // other float - binary array of 32-bit floats (new in Orthanc 1.12.11)
         {
-          /**
-           * OF stores a binary array of 32-bit IEEE floats. Unlike FL where getVM()
-           * returns the count of values, for OF getVM() returns 1 (the entire binary
-           * blob is considered one "value"). We must use getFloat32Array() to access
-           * the raw float buffer, then build a string of all values.
-           * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
-           **/
-          DcmFloatingPointSingle& content = dynamic_cast<DcmFloatingPointSingle&>(element);
-          Float32* floatArray = NULL;
-          if (content.getFloat32Array(floatArray).good() && floatArray != NULL)
-          {
-            if (element.getLength() % sizeof(Float32) != 0)
-            {
-              throw OrthancException(ErrorCode_BadFileFormat);
-            }
-
-            uint64_t numFloats = static_cast<uint64_t>(element.getLength()) / sizeof(Float32);
-            numFloats = std::min(numFloats, static_cast<uint64_t>(maxBinaryArrayLength));
-
-            uint64_t preAllocateStringSize = static_cast<uint64_t>(maxStringLength); // We have seen files with 100M floats: https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448
-            if (maxStringLength == 0) // no limit, use an heuristic to reserve the string: 12 chars per float
-            {
-              preAllocateStringSize = 12ull * numFloats;
-              if (preAllocateStringSize > static_cast<uint64_t>(std::numeric_limits<size_t>::max()))
-              {
-                throw OrthancException(ErrorCode_BadFileFormat, "Too many values in binary array");
-              }
-            }
-
-            std::string result;
-            result.reserve(static_cast<size_t>(preAllocateStringSize));
-            for (unsigned long i = 0; i < numFloats; i++)
-            {
-              if (i > 0)
-              {
-                result += "\\";
-              }
-              result += boost::lexical_cast<std::string>(floatArray[i]);
-            }
-            return new DicomValue(result, false);
-          }
-          return new DicomValue;
+          ValueRepresentationReader_OF reader(element);
+          return ILeafElementArrayReader::Apply(reader, element.getTag(), maxStringLength, maxBinaryArrayLength);
         }
 
 #if DCMTK_VERSION_NUMBER >= 361
         case EVR_OD:  // other double - binary array of 64-bit floats (new in Orthanc 1.12.11)
         {
-          /**
-           * OD stores a binary array of 64-bit IEEE doubles. Similar to OF,
-           * getVM() returns 1 for OD. We must use getFloat64Array() to access
-           * the raw double buffer.
-           * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
-           **/
-          DcmFloatingPointDouble& content = dynamic_cast<DcmFloatingPointDouble&>(element);
-          Float64* doubleArray = NULL;
-          if (content.getFloat64Array(doubleArray).good() && doubleArray != NULL)
-          {
-            if (element.getLength() % sizeof(Float64) != 0)
-            {
-              throw OrthancException(ErrorCode_BadFileFormat);
-            }
-
-            uint64_t numDoubles = static_cast<uint64_t>(element.getLength()) / sizeof(Float64);
-            numDoubles = std::min(numDoubles, static_cast<uint64_t>(maxBinaryArrayLength));
-
-            uint64_t preAllocateStringSize = static_cast<uint64_t>(maxStringLength); // We have seen files with 100M floats: https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448
-            if (maxStringLength == 0) // no limit, use an heuristic to reserve the string: 20 chars per float
-            {
-              preAllocateStringSize = 20ull * numDoubles;
-              if (preAllocateStringSize > static_cast<uint64_t>(std::numeric_limits<size_t>::max()))
-              {
-                throw OrthancException(ErrorCode_BadFileFormat, "Too many values in binary array");
-              }
-            }
-
-            std::string result;
-            result.reserve(static_cast<size_t>(preAllocateStringSize));
-            for (unsigned long i = 0; i < numDoubles; i++)
-            {
-              if (i > 0)
-              {
-                result += "\\";
-              }
-              result += boost::lexical_cast<std::string>(doubleArray[i]);
-            }
-            return new DicomValue(result, false);
-          }
-          return new DicomValue;
+          ValueRepresentationReader_OD reader(element);
+          return ILeafElementArrayReader::Apply(reader, element.getTag(), maxStringLength, maxBinaryArrayLength);
         }
 #endif
 
 #if DCMTK_VERSION_NUMBER >= 362
         case EVR_OL:  // other long - binary array of 32-bit unsigned integers (new in Orthanc 1.12.11)
         {
-          /**
-           * OL stores a binary array of 32-bit unsigned integers. Like OF/OD,
-           * getVM() returns 1 for OL (the entire binary blob is one "value").
-           * We must use getUint32Array() to access the raw buffer.
-           * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
-           **/
-          DcmUnsignedLong& content = dynamic_cast<DcmUnsignedLong&>(element);
-          Uint32* uint32Array = NULL;
-          if (content.getUint32Array(uint32Array).good() && uint32Array != NULL)
-          {
-            if (element.getLength() % sizeof(Uint32) != 0)
-            {
-              throw OrthancException(ErrorCode_BadFileFormat);
-            }
+          ValueRepresentationReader_OL reader(element);
+          return ILeafElementArrayReader::Apply(reader, element.getTag(), maxStringLength, maxBinaryArrayLength);
+        }
+#endif
 
-            uint64_t numValues = static_cast<uint64_t>(element.getLength()) / sizeof(Uint32);
-            numValues = std::min(numValues, static_cast<uint64_t>(maxBinaryArrayLength));
-
-            uint64_t preAllocateStringSize = static_cast<uint64_t>(maxStringLength); // We have seen files with 100M floats: https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448
-            if (maxStringLength == 0) // no limit, use an heuristic to reserve the string: 10 chars per float
-            {
-              preAllocateStringSize = 10ull * numValues;
-              if (preAllocateStringSize > static_cast<uint64_t>(std::numeric_limits<size_t>::max()))
-              {
-                throw OrthancException(ErrorCode_BadFileFormat, "Too many values in binary array");
-              }
-            }
-
-            std::string result;
-            for (unsigned long i = 0; i < numValues; i++)
-            {
-              if (i > 0)
-              {
-                result += "\\";
-              }
-              result += boost::lexical_cast<std::string>(uint32Array[i]);
-            }
-            return new DicomValue(result, false);
-          }
-          return new DicomValue;
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_OV:  // other very long - binary array of 32-bit unsigned integers (new in Orthanc 1.12.11)
+        {
+          ValueRepresentationReader_OV reader(element);
+          return ILeafElementArrayReader::Apply(reader, element.getTag(), maxStringLength, maxBinaryArrayLength);
         }
 #endif
 
@@ -1025,16 +1528,9 @@ namespace Orthanc
 
         case EVR_AT:
         {
-          DcmTagKey tag;
-          if (dynamic_cast<DcmAttributeTag&>(element).getTagVal(tag, 0).good())
-          {
-            DicomTag t(tag.getGroup(), tag.getElement());
-            return new DicomValue(t.Format(), false);
-          }
-          else
-          {
-            return new DicomValue;
-          }
+          // Support for multiple values was added in Orthanc 1.12.12
+          ValueRepresentationReader_AT reader(element);
+          return ILeafElementArrayReader::Apply(reader, element.getTag(), maxStringLength, maxBinaryArrayLength);
         }
 
 
@@ -2262,46 +2758,25 @@ namespace Orthanc
          **/ 
       
         case EVR_SL:  // signed long
-        {
-          if (decoded->find('\\') != std::string::npos)
-          {
-            ok = element.putString(decoded->c_str()).good();
-          }
-          else
-          {
-            ok = element.putSint32(boost::lexical_cast<Sint32>(*decoded)).good();
-          }
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_SL(), *decoded);
           break;
-        }
 
         case EVR_SS:  // signed short
-        {
-          if (decoded->find('\\') != std::string::npos)
-          {
-            ok = element.putString(decoded->c_str()).good();
-          }
-          else
-          {
-            ok = element.putSint16(boost::lexical_cast<Sint16>(*decoded)).good();
-          }
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_SS(), *decoded);
           break;
-        }
+
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_SV:  // signed very long (64-bit, new in Orthanc 1.12.12)
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_SV(), *decoded);
+          break;
+#endif
 
         case EVR_UL:  // unsigned long
 #if DCMTK_VERSION_NUMBER >= 362
         case EVR_OL:  // other long (requires byte-swapping)
 #endif
-        {
-          if (decoded->find('\\') != std::string::npos)
-          {
-            ok = element.putString(decoded->c_str()).good();
-          }
-          else
-          {
-            ok = element.putUint32(boost::lexical_cast<Uint32>(*decoded)).good();
-          }
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_UL(), *decoded);
           break;
-        }
 
         case EVR_xs: // unsigned short, signed short or multiple values
         {
@@ -2321,47 +2796,27 @@ namespace Orthanc
         }
 
         case EVR_US:  // unsigned short
-        {
-          if (decoded->find('\\') != std::string::npos)
-          {
-            ok = element.putString(decoded->c_str()).good();
-          }
-          else
-          {
-            ok = element.putUint16(boost::lexical_cast<Uint16>(*decoded)).good();
-          }
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_US(), *decoded);
           break;
-        }
+
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_UV:  // unsigned very long (64-bit, new in Orthanc 1.12.12)
+        case EVR_OV:  // other very long (64-bit, new in Orthanc 1.12.12)
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_UV(), *decoded);
+          break;
+#endif
 
         case EVR_FL:  // float single-precision
         case EVR_OF:  // other float (requires byte swapping)
-        {
-          if (decoded->find('\\') != std::string::npos)
-          {
-            ok = element.putString(decoded->c_str()).good();
-          }
-          else
-          {
-            ok = element.putFloat32(boost::lexical_cast<float>(*decoded)).good();
-          }
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_FL(), *decoded);
           break;
-        }
 
         case EVR_FD:  // float double-precision
 #if DCMTK_VERSION_NUMBER >= 361
         case EVR_OD:  // other double (requires byte-swapping)
 #endif
-        {
-          if (decoded->find('\\') != std::string::npos)
-          {
-            ok = element.putString(decoded->c_str()).good();
-          }
-          else
-          {
-            ok = element.putFloat64(boost::lexical_cast<double>(*decoded)).good();
-          }
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_FD(), *decoded);
           break;
-        }
 
 
         /**
@@ -2369,11 +2824,9 @@ namespace Orthanc
          **/
         
         case EVR_AT:  // attribute tag, new in Orthanc 1.9.4
-        {
-          DicomTag value = ParseTag(utf8Value);
-          ok = element.putTagVal(DcmTagKey(value.GetGroup(), value.GetElement())).good();
+          // Multiple values are supported since Orthanc 1.12.12
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_AT(), *decoded);
           break;
-        }
 
           
         /**

@@ -109,5 +109,9 @@ namespace Orthanc
     void Serialize(Json::Value& target) const;
 
     void Unserialize(const Json::Value& source);
+
+    // This constructor is most efficient
+    static DicomValue* CreateFromSwap(std::string& content,
+                                      bool isBinary);
   };
 }

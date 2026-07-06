@@ -403,6 +403,8 @@ namespace Orthanc
 
   void ServerContext::SignalJobSuccess(const std::string& jobId)
   {
+    metricsRegistry_->IncrementIntegerValue("orthanc_jobs_total_completed", 1);
+    metricsRegistry_->IncrementIntegerValue("orthanc_jobs_total_success", 1);
     haveJobsChanged_ = true;
     pendingJobEvents_.Enqueue(new JobEvent(JobEventType_Success, jobId));
   }
@@ -410,6 +412,8 @@ namespace Orthanc
   
   void ServerContext::SignalJobFailure(const std::string& jobId)
   {
+    metricsRegistry_->IncrementIntegerValue("orthanc_jobs_total_completed", 1);
+    metricsRegistry_->IncrementIntegerValue("orthanc_jobs_total_failed", 1);
     haveJobsChanged_ = true;
     pendingJobEvents_.Enqueue(new JobEvent(JobEventType_Failure, jobId));
   }

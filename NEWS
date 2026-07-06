@@ -39,6 +39,13 @@ General
   - Some line of log now contain additional contextual informations like the job id they relate to.
     A new "--logs-no-context" command line option can be used to get back to the previous behavior to
     keep backward compatibility and reduce the lines length.
+* C-Find SCP:
+  - When Orthanc was requested a sequence in a C-Find query, Orthanc was actually not returning
+    any sequences in the C-Find answer if the matched resource did contain the requested sequence and
+    was returning an empty sequence if the matched resource did not contain the requested sequence.
+    Orthanc now returns the full sequence content when the matched resource contains the requested sequence.
+  - When Orthanc was requested to return a private tag in a C-Find query, Orthanc was actually not returning
+    the resources that did not contain the private tag although it was not used as a filter in the query.
 
 REST API
 --------
@@ -56,6 +63,12 @@ REST API
 * Updated the naming structure of the zip downloaded from "/../../archive" routes.  Notably added
   SeriesNumber at the series level and now using " - " instead of " " to separate DICOM tags used
   in folder names.
+* In "/tools/metrics-prometheus":
+  - Removed "orthanc_jobs_completed", "orthanc_jobs_success" and "orthanc_jobs_failed" that were
+    only considering the jobs currently stored in the JobsHistory and that were not suitable for
+    monitoring.  These metrics have been replaced by "orthanc_jobs_total_completed",
+    "orthanc_jobs_total_success" and "orthanc_jobs_total_failed" that are now considering all the
+    jobs that have run since Orthanc started.
 
 Plugin SDK
 ----------
@@ -68,6 +81,7 @@ Maintenance
 -----------
 
 * Added internal support for OV, SV, and UV value representations
+* Added support for multiple values in AT value representation
 * Fix resubmit/pause/cancel and reloading of OrthancPeerStore and DicomModalityStore jobs 
   (bug introduced in 1.12.10)
 * Fix OrthancPeerStore jobs that was using the loader threads only if transcoding

@@ -75,6 +75,8 @@ namespace Orthanc
     std::string aet_;
     uint16_t port_;
     bool continue_;
+    std::string name_;
+    std::string dicomThreadNamesPrefix_;
     uint32_t associationTimeout_;
     unsigned int threadsCount_;
     IRemoteModalities* modalities_;
@@ -102,7 +104,8 @@ namespace Orthanc
                              bool useDicomTls);
 
   public:
-    DicomServer();
+    DicomServer(const std::string& name,
+                const std::string& dicomThreadNamesPrefix);
 
     ~DicomServer();
 
