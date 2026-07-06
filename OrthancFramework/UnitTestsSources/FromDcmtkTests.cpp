@@ -2035,7 +2035,7 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x0064, 0x0009), "2.71828");  // OF (other float)
   dicom.ReplacePlainString(DicomTag(0x0066, 0x0040), "46");  // OL (other long)
   ASSERT_THROW(dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "O"), OrthancException);
-  dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "OWOW");
+  dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "57");  // OW
   dicom.ReplacePlainString(DicomTag(0x0010, 0x0010), "PN");
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0050), "SH");
   dicom.ReplacePlainString(DicomTag(0x0018, 0x6020), "-15");  // SL
@@ -2121,8 +2121,7 @@ TEST(DicomWebJson, ValueRepresentation)
 #endif
 
   ASSERT_EQ("OW", visitor.GetResult() ["00281201"]["vr"].asString());
-  Toolbox::DecodeBase64(s, visitor.GetResult() ["00281201"]["InlineBinary"].asString());
-  ASSERT_EQ("OWOW", s);
+  ASSERT_EQ(57, visitor.GetResult() ["00281201"]["Value"][0].asInt());
 
   ASSERT_EQ("PN", visitor.GetResult() ["00100010"]["vr"].asString());
   ASSERT_EQ("PN", visitor.GetResult() ["00100010"]["Value"][0]["Alphabetic"].asString());
@@ -2230,7 +2229,7 @@ TEST(DicomWebJson, ValueRepresentation)
 
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0064, 0x0009), true));
     ASSERT_FLOAT_EQ(2.71828f, boost::lexical_cast<float>(s));
-    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0028, 0x1201), true));   ASSERT_EQ("OWOW", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0028, 0x1201), false));  ASSERT_EQ("57", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x0010), false));  ASSERT_EQ("PN", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0050), false));  ASSERT_EQ("SH", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0018, 0x6020), false));  ASSERT_EQ("-15", s);

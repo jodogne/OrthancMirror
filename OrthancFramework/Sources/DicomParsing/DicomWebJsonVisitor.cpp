@@ -452,12 +452,8 @@ namespace Orthanc
                                    const void* data,
                                    size_t size)
   {
-    assert(vr == ValueRepresentation_OtherByte ||
-           vr == ValueRepresentation_OtherDouble ||
-           vr == ValueRepresentation_OtherFloat ||
-           vr == ValueRepresentation_OtherLong ||
-           vr == ValueRepresentation_OtherWord ||
-           vr == ValueRepresentation_OtherVeryLong ||
+    assert((vr == ValueRepresentation_OtherWord && tag == DICOM_TAG_PIXEL_DATA) ||
+           vr == ValueRepresentation_OtherByte ||
            vr == ValueRepresentation_Unknown);
 
     if (tag.GetElement() != 0x0000)
@@ -523,6 +519,16 @@ namespace Orthanc
                                      ValueRepresentation vr,
                                      const std::vector<int64_t>& values)
   {
+    assert((vr == ValueRepresentation_OtherWord && tag != DICOM_TAG_PIXEL_DATA) ||
+           vr == ValueRepresentation_OtherLong ||
+           vr == ValueRepresentation_OtherVeryLong ||
+           vr == ValueRepresentation_SignedLong ||
+           vr == ValueRepresentation_SignedShort ||
+           vr == ValueRepresentation_SignedVeryLong ||
+           vr == ValueRepresentation_UnsignedLong ||
+           vr == ValueRepresentation_UnsignedShort ||
+           vr == ValueRepresentation_UnsignedVeryLong);
+
     if (tag.GetElement() != 0x0000 &&
         vr != ValueRepresentation_NotSupported)
     {
@@ -551,6 +557,11 @@ namespace Orthanc
                                     ValueRepresentation vr,
                                     const std::vector<double>& values)
   {
+    assert(vr == ValueRepresentation_FloatingPointDouble ||
+           vr == ValueRepresentation_FloatingPointSingle ||
+           vr == ValueRepresentation_OtherDouble ||
+           vr == ValueRepresentation_OtherFloat);
+
     if (tag.GetElement() != 0x0000 &&
         vr != ValueRepresentation_NotSupported)
     {

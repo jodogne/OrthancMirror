@@ -58,7 +58,7 @@ namespace Orthanc
                                  const DicomTag& tag,
                                  size_t countItems) = 0;
 
-    // SL, SS, UL, US - can return "Remove" or "None"
+    // SL, SS, UL, US, OW (if not pixel data), OL, OV, SV, UV - can return "Remove" or "None"
     virtual Action VisitIntegers(const std::vector<DicomTag>& parentTags,
                                  const std::vector<size_t>& parentIndexes,
                                  const DicomTag& tag,
@@ -78,7 +78,28 @@ namespace Orthanc
                                    const DicomTag& tag,
                                    const std::vector<DicomTag>& values) = 0;
 
-    // OB, OL, OW, UN - can return "Remove" or "None"
+    /**
+     * "Binary" tags are represented as a raw byte buffer. This
+     * representation is used for:
+     *
+     * OB (Other Byte): always treated as an opaque byte stream, since
+     * its content may be non-numeric, compressed, or otherwise not
+     * meaningfully interpretable as a fixed-size element type.
+     *
+     * OW (Other Word): normally represents an array of 16-bit words
+     * and would map to a typed integer container (uint16_t), but it
+     * is treated as a raw memory buffer only in the specific case of
+     * PixelData, where the true bit depth/interpretation depends on
+     * other attributes (Bits Allocated, Bits Stored, Pixel
+     * Representation) rather than being fixed by the VR itself. Other
+     * OW elements should NOT use this representation.
+     *
+     * WARNING: In Orthanc <= 1.12.11, all OW values were considered
+     * forwarded to "VisitBinary()". Now, OW values that are not pixel
+     * data are forwarded to "VisitIntegers()".
+     **/
+
+    // OW (only if pixel data), OB, and UN - can return "Remove" or "None"
     virtual Action VisitBinary(const std::vector<DicomTag>& parentTags,
                                const std::vector<size_t>& parentIndexes,
                                const DicomTag& tag,
@@ -97,5 +118,5 @@ namespace Orthanc
     // empty sequence element - can return "Remove" or "None"
     virtual Action VisitEmptyElement(const std::vector<DicomTag>& parentTags,
                                      const std::vector<size_t>& parentIndexes) = 0;
-    };
+  };
 }

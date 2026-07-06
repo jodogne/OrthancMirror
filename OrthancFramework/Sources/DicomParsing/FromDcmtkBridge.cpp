@@ -165,13 +165,24 @@ namespace Orthanc
   }
 
 
+  static bool IsBinaryTag(DcmEVR evr,
+                          Uint16 group,
+                          Uint16 element)
+  {
+    return (evr == EVR_OB ||
+            (evr == EVR_OW &&
+             group == DCM_PixelData.getGroup() &&
+             element == DCM_PixelData.getElement()) ||
+            evr == EVR_UN ||
+            evr == EVR_ox);
+  }
+
+
   static bool IsBinaryTag(const DcmTag& key)
   {
+    // TODO - WARNING: This function doesn't inspect the registry of tags, don't use if possible
     return (key.isUnknownVR() ||
-            key.getEVR() == EVR_OB ||
-            key.getEVR() == EVR_OW ||
-            key.getEVR() == EVR_UN ||
-            key.getEVR() == EVR_ox);
+            IsBinaryTag(key.getEVR(), key.getGTag(), key.getETag()));
   }
 
 
@@ -537,6 +548,25 @@ namespace Orthanc
                                      const std::vector<Uint32>& values) const ORTHANC_OVERRIDE
       {
         return element.putUint32Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+
+
+    class ValueRepresentationFiller_OW : public ValueRepresentationFillerGeneric<Uint16>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Uint16& value) const ORTHANC_OVERRIDE
+      {
+        // Contrary to US, the underlying type "DcmOtherByteOtherWord"
+        // doesn't implement "putUint16()" for a single value
+        return element.putUint16Array(&value, 1).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Uint16>& values) const ORTHANC_OVERRIDE
+      {
+        return element.putUint16Array(values.empty() ? NULL : &values[0], values.size()).good();
       }
     };
 
@@ -908,6 +938,68 @@ namespace Orthanc
       }
     };
 #endif
+
+
+    class ValueRepresentationReader_OW : public ILeafElementArrayReader
+    {
+    private:
+      bool      valid_;
+      uint64_t  size_;
+      Uint16*   content_;
+
+    public:
+      ValueRepresentationReader_OW(DcmElement& element) :
+        valid_(false)
+      {
+        DcmOtherByteOtherWord& e = dynamic_cast<DcmOtherByteOtherWord&>(element);
+
+        if (e.getUint16Array(content_).good() &&
+            content_ != NULL)
+        {
+          if (element.getLength() % sizeof(Uint16) != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
+          size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint16);
+          valid_ = true;
+        }
+      }
+
+      virtual bool IsValid() const ORTHANC_OVERRIDE
+      {
+        return valid_;
+      }
+
+      virtual uint64_t GetSize() const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        return size_;
+      }
+
+      virtual void ReadValue(std::string& value,
+                             uint64_t index) const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        value = boost::lexical_cast<std::string>(content_[index]);
+      }
+
+      void ReadArrayOfIntegers(std::vector<int64_t>& target) const
+      {
+        if (valid_)
+        {
+          target.resize(size_);
+          for (uint64_t i = 0; i < size_; i++)
+          {
+            target[i] = content_[i];
+          }
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+      }
+    };
 
 
 #if DCMTK_VERSION_NUMBER >= 362
@@ -1443,7 +1535,7 @@ namespace Orthanc
       {
         Uint8* data = NULL;
 
-        if (element.getUint8Array(data) == EC_Normal)
+        if (element.getUint8Array(data).good())
         {
           Uint32 length = element.getLength();
 
@@ -1530,11 +1622,11 @@ namespace Orthanc
           {
             Uint8* data = NULL;
             Uint16* data16 = NULL;
-            if (element.getUint8Array(data) == EC_Normal)
+            if (element.getUint8Array(data).good())
             {
               return new DicomValue(reinterpret_cast<const char*>(data), element.getLength(), true);
             }
-            else if (element.getUint16Array(data16) == EC_Normal)
+            else if (element.getUint16Array(data16).good())
             {
               return new DicomValue(reinterpret_cast<const char*>(data16), element.getLength(), true);
             }
@@ -1937,7 +2029,7 @@ namespace Orthanc
         }
       }
 
-      if (IsBinaryTag(element->getTag()))
+      if (IsBinaryTag(element->getTag()))   // TODO - Inspect the registry of tags
       {
         // This is a binary tag
         if ((tag == DICOM_TAG_PIXEL_DATA && !(flags & DicomToJsonFlags_IncludePixelData)) ||
@@ -2770,25 +2862,27 @@ namespace Orthanc
       decoded = &binary;
     }
 
-    if (element.getTag().getEVR() == EVR_OW)
+    if (IsBinaryTag(element.getTag()))   // TODO - Inspect the registry of tags
     {
-      if (decoded->size() % sizeof(Uint16) != 0)
+      bool ok;
+
+      if (element.getTag().getEVR() == EVR_OW)
       {
-        throw OrthancException(ErrorCode_ParameterOutOfRange, "A tag with OW VR must have an even number of bytes");
-      }
-      else if (element.putUint16Array(reinterpret_cast<const Uint16*>(decoded->c_str()), decoded->size() / sizeof(Uint16)).good())
-      {
-        return;  // We're done
+        if (decoded->size() % sizeof(Uint16) != 0)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange, "A tag with OW VR must have an even number of bytes");
+        }
+        else
+        {
+          ok = element.putUint16Array(reinterpret_cast<const Uint16*>(decoded->c_str()), decoded->size() / sizeof(Uint16)).good();
+        }
       }
       else
       {
-        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
+        ok = element.putUint8Array(reinterpret_cast<const Uint8*>(decoded->c_str()), decoded->size()).good();
       }
-    }
 
-    if (IsBinaryTag(element.getTag()))
-    {
-      if (element.putUint8Array(reinterpret_cast<const Uint8*>(decoded->c_str()), decoded->size()).good())
+      if (ok)
       {
         return;  // We're done
       }
@@ -2811,7 +2905,6 @@ namespace Orthanc
          **/
 
         case EVR_OB:  // other byte
-        case EVR_OW:  // other word
         case EVR_UN:  // unknown value representation
         case EVR_ox:  // OB or OW depending on context
           throw OrthancException(ErrorCode_InternalError);
@@ -2887,6 +2980,10 @@ namespace Orthanc
           }
           break;
         }
+
+        case EVR_OW:  // other word (was handled as a binary tag in Orthanc <= 1.12.11)
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_OW(), *decoded);
+          break;
 
         case EVR_US:  // unsigned short
           ok = IElementFiller::Apply(element, ValueRepresentationFiller_US(), *decoded);
@@ -3501,32 +3598,20 @@ namespace Orthanc
      * Deal with binary data (including PixelData).
      **/
 
-    if (evr == EVR_OB ||  // other byte
-        evr == EVR_OW ||  // other word
-        evr == EVR_UN)    // unknown value representation
+    if (IsBinaryTag(evr, element.getTag().getGroup(), element.getTag().getElement()))
     {
       Uint16* data16 = NULL;
       Uint8* data = NULL;
 
       ITagVisitor::Action action;
       
-      if ((element.getTag() == DCM_PixelData ||  // (*) New in Orthanc 1.9.1
-           evr == EVR_OW) &&
-          element.getUint16Array(data16) == EC_Normal)
+      if (evr == EVR_OW &&
+          element.getUint16Array(data16).good())
       {
         action = visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data16, element.getLength());
       }
-      else if (evr != EVR_OW &&
-               element.getUint8Array(data) == EC_Normal)
+      else if (element.getUint8Array(data).good())
       {
-        /**
-         * WARNING: The call to "getUint8Array()" crashes
-         * (segmentation fault) on big-endian architectures if applied
-         * to pixel data, during the call to "swapIfNecessary()" in
-         * "DcmPolymorphOBOW::getUint8Array()" (this method is not
-         * reimplemented in derived class "DcmPixelData"). However,
-         * "getUint16Array()" works correctly, hence (*).
-         **/
         action = visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data, element.getLength());
       }
       else
@@ -3636,7 +3721,7 @@ namespace Orthanc
         {
           Uint8* data = NULL;
           
-          if (element.getUint8Array(data) == EC_Normal)
+          if (element.getUint8Array(data).good())
           {
             const Uint32 length = element.getLength();
             Uint32 l = 0;
@@ -3790,6 +3875,20 @@ namespace Orthanc
           action = visitor.VisitDoubles(parentTags, parentIndexes, tag, vr, values);
           break;
         }
+
+        case EVR_OW:  // other word - binary array of 16-bit unsigned integers (new in Orthanc 1.12.12)
+          if (tag == DICOM_TAG_PIXEL_DATA)
+          {
+            throw OrthancException(ErrorCode_InternalError);  // Should have been handled by "visitor.VisitBinary()"
+          }
+          else
+          {
+            ValueRepresentationReader_OW reader(element);
+            std::vector<int64_t> values;
+            reader.ReadArrayOfIntegers(values);
+            action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
+            break;
+          }
 
         case EVR_OF:  // other float - binary array of 32-bit floats (new in Orthanc 1.12.11)
         {
