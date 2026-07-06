@@ -215,8 +215,7 @@ namespace Orthanc
     bool LookupBooleanParameter(bool& target,
                                 const std::string& parameter) const;
 
-    bool GetBooleanParameter(const std::string& parameter,
-                             bool defaultValue) const;
+    bool GetBooleanParameter(const std::string& parameter) const;
 
     void GetDicomModalityUsingSymbolicName(RemoteModalityParameters& modality,
                                            const std::string& name) const;
@@ -342,22 +341,22 @@ namespace Orthanc
 
     bool HasCheckRevisions() const
     {
-      return GetBooleanParameter(ORTHANC_CONFIG_CHECK_REVISIONS, false);
+      return GetBooleanParameter(ORTHANC_CONFIG_CHECK_REVISIONS);
     }
 
     bool HasStoreMD5ForAttachments() const
     {
-      return GetBooleanParameter(ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS, true);
+      return GetBooleanParameter(ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS);
     }
 
     bool HasStorageCompression() const
     {
-      return GetBooleanParameter(ORTHANC_CONFIG_STORAGE_COMPRESSION, false);
+      return GetBooleanParameter(ORTHANC_CONFIG_STORAGE_COMPRESSION);
     }
 
     bool HasPatientLevelEnabled() const
     {
-      return GetBooleanParameter(ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED, true);
+      return GetBooleanParameter(ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED);
     }
 
     static void DefaultExtractDicomSummary(DicomMap& target,

@@ -300,12 +300,12 @@ public:
   {
     {
       OrthancConfiguration::ReaderLock lock;
-      alwaysAllowEcho_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowEcho", true);
-      alwaysAllowFind_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowFind", false);
-      alwaysAllowFindWorklist_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowFindWorklist", false);
-      alwaysAllowGet_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowGet", false);
-      alwaysAllowMove_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowMove", false);
-      alwaysAllowStore_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowStore", true);
+      alwaysAllowEcho_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowEcho");
+      alwaysAllowFind_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowFind");
+      alwaysAllowFindWorklist_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowFindWorklist");
+      alwaysAllowGet_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowGet");
+      alwaysAllowMove_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowMove");
+      alwaysAllowStore_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowStore");
     }
 
     if (alwaysAllowFind_)
@@ -415,7 +415,7 @@ public:
       {
         OrthancConfiguration::ReaderLock lock;
         lock.GetConfiguration().LookupDicomModalitiesUsingAETitle(modalities, remoteAet);
-        checkIp = lock.GetConfiguration().GetBooleanParameter("DicomCheckModalityHost", false);
+        checkIp = lock.GetConfiguration().GetBooleanParameter("DicomCheckModalityHost");
       }
       
       if (modalities.empty())
@@ -1086,7 +1086,7 @@ static bool StartHttpServer(ServerContext& context,
 
   {
     OrthancConfiguration::ReaderLock lock;
-    httpServerEnabled = lock.GetConfiguration().GetBooleanParameter("HttpServerEnabled", true);
+    httpServerEnabled = lock.GetConfiguration().GetBooleanParameter("HttpServerEnabled");
   }
 
   if (!httpServerEnabled)
@@ -1101,9 +1101,9 @@ static bool StartHttpServer(ServerContext& context,
     bool httpDescribeErrors;
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
-    const bool defaultKeepAlive = false;
+    bool keepAlive = false;
 #elif ORTHANC_ENABLE_CIVETWEB == 1
-    const bool defaultKeepAlive = true;
+    bool keepAlive = true;
 #else
 #  error "Either Mongoose or Civetweb must be enabled to compile this file"
 #endif
@@ -1113,7 +1113,7 @@ static bool StartHttpServer(ServerContext& context,
     {
       OrthancConfiguration::ReaderLock lock;
       
-      httpDescribeErrors = lock.GetConfiguration().GetBooleanParameter("HttpDescribeErrors", true);
+      httpDescribeErrors = lock.GetConfiguration().GetBooleanParameter("HttpDescribeErrors");
   
       // HTTP server
       httpServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpThreadsCount"));
@@ -1121,11 +1121,13 @@ static bool StartHttpServer(ServerContext& context,
       std::set<std::string> httpBindAddresses;
       lock.GetConfiguration().GetSetOfStringsParameter(httpBindAddresses, "HttpBindAddresses");
       httpServer.SetBindAddresses(httpBindAddresses);
-      httpServer.SetRemoteAccessAllowed(lock.GetConfiguration().GetBooleanParameter("RemoteAccessAllowed", false));
-      httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", defaultKeepAlive));
+      httpServer.SetRemoteAccessAllowed(lock.GetConfiguration().GetBooleanParameter("RemoteAccessAllowed"));
+      
+      lock.GetConfiguration().LookupBooleanParameter(keepAlive, "KeepAlive"); // we cannot use GetBooleanParameter because the default value depends on the HttpServer lib that is used
+      httpServer.SetKeepAliveEnabled(keepAlive);
       httpServer.SetKeepAliveTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("KeepAliveTimeout"));
-      httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled", false));
-      httpServer.SetTcpNoDelay(lock.GetConfiguration().GetBooleanParameter("TcpNoDelay", true));
+      httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled"));
+      httpServer.SetTcpNoDelay(lock.GetConfiguration().GetBooleanParameter("TcpNoDelay"));
       httpServer.SetRequestTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpRequestTimeout"));
 
       // New in Orthanc 1.12.11
@@ -1222,7 +1224,7 @@ static bool StartHttpServer(ServerContext& context,
         }
       }
       
-      if (lock.GetConfiguration().GetBooleanParameter("SslEnabled", false))
+      if (lock.GetConfiguration().GetBooleanParameter("SslEnabled"))
       {
         boost::filesystem::path certificate = lock.GetConfiguration().InterpretStringParameterAsPath(
           lock.GetConfiguration().GetStringParameter("SslCertificate", "certificate.pem"));
@@ -1270,7 +1272,7 @@ static bool StartHttpServer(ServerContext& context,
         httpServer.SetSslEnabled(false);
       }
 
-      if (lock.GetConfiguration().GetBooleanParameter("SslVerifyPeers", false))
+      if (lock.GetConfiguration().GetBooleanParameter("SslVerifyPeers"))
       {
         boost::filesystem::path trustedClientCertificates = lock.GetConfiguration().InterpretStringParameterAsPath(
           lock.GetConfiguration().GetStringParameter("SslTrustedClientCertificates", "trustedCertificates.pem"));
@@ -1284,7 +1286,7 @@ static bool StartHttpServer(ServerContext& context,
 
       LOG(INFO) << "Version of Lua: " << LUA_VERSION;
 
-      if (lock.GetConfiguration().GetBooleanParameter("ExecuteLuaEnabled", false))
+      if (lock.GetConfiguration().GetBooleanParameter("ExecuteLuaEnabled"))
       {
         context.SetExecuteLuaEnabled(true);
         LOG(WARNING) << "====> Remote LUA script execution is enabled.  Review your configuration option \"ExecuteLuaEnabled\". "
@@ -1296,7 +1298,7 @@ static bool StartHttpServer(ServerContext& context,
         LOG(WARNING) << "Remote LUA script execution is disabled";
       }
 
-      if (lock.GetConfiguration().GetBooleanParameter("RestApiWriteToFileSystemEnabled", false))
+      if (lock.GetConfiguration().GetBooleanParameter("RestApiWriteToFileSystemEnabled"))
       {
         context.SetRestApiWriteToFileSystemEnabled(true);
         LOG(WARNING) << "====> Your REST API can write to the FileSystem.  Review your configuration option \"RestApiWriteToFileSystemEnabled\". "
@@ -1308,10 +1310,10 @@ static bool StartHttpServer(ServerContext& context,
         LOG(WARNING) << "REST API cannot write to the file system because the \"RestApiWriteToFileSystemEnabled\" configuration is set to false.  The URI /instances/../export is disabled.  This is the most secure configuration.";
       }
 
-      if (lock.GetConfiguration().GetBooleanParameter("WebDavEnabled", true))
+      if (lock.GetConfiguration().GetBooleanParameter("WebDavEnabled"))
       {
-        const bool allowDelete = lock.GetConfiguration().GetBooleanParameter("WebDavDeleteAllowed", false);
-        const bool allowUpload = lock.GetConfiguration().GetBooleanParameter("WebDavUploadAllowed", true);
+        const bool allowDelete = lock.GetConfiguration().GetBooleanParameter("WebDavDeleteAllowed");
+        const bool allowUpload = lock.GetConfiguration().GetBooleanParameter("WebDavUploadAllowed");
         
         UriComponents root;
         root.push_back("webdav");
@@ -1364,7 +1366,7 @@ static bool StartDicomServer(ServerContext& context,
 
   {
     OrthancConfiguration::ReaderLock lock;
-    dicomServerEnabled = lock.GetConfiguration().GetBooleanParameter("DicomServerEnabled", true);
+    dicomServerEnabled = lock.GetConfiguration().GetBooleanParameter("DicomServerEnabled");
   }
 
   if (!dicomServerEnabled)
@@ -1390,14 +1392,14 @@ static bool StartDicomServer(ServerContext& context,
 
     {
       OrthancConfiguration::ReaderLock lock;
-      dicomServer.SetCalledApplicationEntityTitleCheck(lock.GetConfiguration().GetBooleanParameter("DicomCheckCalledAet", false));
+      dicomServer.SetCalledApplicationEntityTitleCheck(lock.GetConfiguration().GetBooleanParameter("DicomCheckCalledAet"));
       dicomServer.SetAssociationTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScpTimeout"));
       dicomServer.SetPortNumber(lock.GetConfiguration().GetDicomPort());
       dicomServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomThreadsCount"));
       dicomServer.SetApplicationEntityTitle(lock.GetConfiguration().GetOrthancAET());
 
       // Configuration of DICOM TLS for Orthanc SCP (since Orthanc 1.9.0)
-      dicomServer.SetDicomTlsEnabled(lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_ENABLED, false));
+      dicomServer.SetDicomTlsEnabled(lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_ENABLED));
       if (dicomServer.IsDicomTlsEnabled())
       {
         dicomServer.SetOwnCertificatePath(
@@ -1417,7 +1419,7 @@ static bool StartDicomServer(ServerContext& context,
 
       // New option in Orthanc 1.9.3
       dicomServer.SetRemoteCertificateRequired(
-        lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED, true));
+        lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED));
     }
 
 #if ORTHANC_ENABLE_PLUGINS == 1
@@ -1505,8 +1507,7 @@ static bool ConfigureHttpHandler(ServerContext& context,
   bool orthancExplorerEnabled = false;
   {
     OrthancConfiguration::ReaderLock lock;
-    orthancExplorerEnabled = lock.GetConfiguration().GetBooleanParameter(
-        "OrthancExplorerEnabled", true);
+    orthancExplorerEnabled = lock.GetConfiguration().GetBooleanParameter("OrthancExplorerEnabled");
   }
 
   if (orthancExplorerEnabled)
@@ -1666,9 +1667,9 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       httpsCaCertificates = lock.GetConfiguration().InterpretStringParameterAsPath(httpsCaCertificatesStr);
     }
 
-    HttpClient::ConfigureSsl(lock.GetConfiguration().GetBooleanParameter("HttpsVerifyPeers", true),
+    HttpClient::ConfigureSsl(lock.GetConfiguration().GetBooleanParameter("HttpsVerifyPeers"),
                              httpsCaCertificates);
-    HttpClient::SetDefaultVerbose(lock.GetConfiguration().GetBooleanParameter("HttpVerbose", false));
+    HttpClient::SetDefaultVerbose(lock.GetConfiguration().GetBooleanParameter("HttpVerbose"));
 
     // The value "0" below makes the class HttpClient use its default
     // value (DEFAULT_HTTP_TIMEOUT = 60 seconds in Orthanc 1.5.7)
@@ -1686,7 +1687,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     }
 
     // New option in Orthanc 1.12.5
-    readOnly = lock.GetConfiguration().GetBooleanParameter(ORTHANC_CONFIG_READ_ONLY, false);
+    readOnly = lock.GetConfiguration().GetBooleanParameter(ORTHANC_CONFIG_READ_ONLY);
     
     // New option in Orthanc 1.12.6
     maxDcmtkConcurrentTranscoders = lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_CONCURRENT_DCMTK_TRANSCODERS);
@@ -1706,7 +1707,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
     // New option in Orthanc 1.9.3
     DicomAssociationParameters::SetDefaultRemoteCertificateRequired(
-      lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED, true));
+      lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED));
   }
   
   ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs, readOnly);
@@ -1743,7 +1744,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
         }
         else if (lock.GetJson()[ORTHANC_CONFIG_OVERWRITE_INSTANCES].isBool())
         {
-          bool overwriteInstancesLegacy = lock.GetConfiguration().GetBooleanParameter(ORTHANC_CONFIG_OVERWRITE_INSTANCES, false);
+          bool overwriteInstancesLegacy = lock.GetJson()[ORTHANC_CONFIG_OVERWRITE_INSTANCES].asBool();
           overwriteInstancesMode = (overwriteInstancesLegacy ? OverwriteInstancesMode_Always : OverwriteInstancesMode_Never);
         }
       }

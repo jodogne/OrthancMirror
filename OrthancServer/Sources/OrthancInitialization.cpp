@@ -362,7 +362,7 @@ namespace Orthanc
         locale = lock.GetConfiguration().GetStringParameter(LOCALE, "");
       }
       
-      bool loadPrivate = lock.GetConfiguration().GetBooleanParameter(LOAD_PRIVATE_DICTIONARY, true);
+      bool loadPrivate = lock.GetConfiguration().GetBooleanParameter(LOAD_PRIVATE_DICTIONARY);
       Orthanc::InitializeFramework(locale, loadPrivate);
     }
 
@@ -533,9 +533,9 @@ namespace Orthanc
     LOG(WARNING) << "Storage directory: " << SystemToolbox::PathToUtf8(storageDirectory);
 
     // New in Orthanc 1.7.4
-    bool fsyncOnWrite = lock.GetConfiguration().GetBooleanParameter(SYNC_STORAGE_AREA, true);
+    bool fsyncOnWrite = lock.GetConfiguration().GetBooleanParameter(SYNC_STORAGE_AREA);
 
-    if (lock.GetConfiguration().GetBooleanParameter(STORE_DICOM, true))
+    if (lock.GetConfiguration().GetBooleanParameter(STORE_DICOM))
     {
       return new PluginStorageAreaAdapter(new FilesystemStorage(storageDirectory, fsyncOnWrite));
     }

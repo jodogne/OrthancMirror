@@ -259,7 +259,7 @@ namespace Orthanc
 
   void OrthancConfiguration::LoadModalities()
   {
-    if (GetBooleanParameter(DICOM_MODALITIES_IN_DB, false))
+    if (GetBooleanParameter(DICOM_MODALITIES_IN_DB))
     {
       // Modalities are stored in the database
       if (serverIndex_ == NULL)
@@ -347,7 +347,7 @@ namespace Orthanc
 
   void OrthancConfiguration::LoadPeers()
   {
-    if (GetBooleanParameter(ORTHANC_PEERS_IN_DB, false))
+    if (GetBooleanParameter(ORTHANC_PEERS_IN_DB))
     {
       // Peers are stored in the database
       if (serverIndex_ == NULL)
@@ -417,7 +417,7 @@ namespace Orthanc
     
   void OrthancConfiguration::SaveModalities()
   {
-    if (GetBooleanParameter(DICOM_MODALITIES_IN_DB, false))
+    if (GetBooleanParameter(DICOM_MODALITIES_IN_DB))
     {
       // Modalities are stored in the database
       if (serverIndex_ == NULL)
@@ -449,7 +449,7 @@ namespace Orthanc
 
   void OrthancConfiguration::SavePeers()
   {
-    if (GetBooleanParameter(ORTHANC_PEERS_IN_DB, false))
+    if (GetBooleanParameter(ORTHANC_PEERS_IN_DB))
     {
       // Peers are stored in the database
       if (serverIndex_ == NULL)
@@ -628,17 +628,20 @@ namespace Orthanc
   }
 
 
-  bool OrthancConfiguration::GetBooleanParameter(const std::string& parameter,
-                                                 bool defaultValue) const
+  bool OrthancConfiguration::GetBooleanParameter(const std::string& parameter) const
   {
     bool value;
     if (LookupBooleanParameter(value, parameter))
     {
       return value;
     }
+    else if (defaultConfiguration.isMember(parameter) && defaultConfiguration[parameter].type() == Json::booleanValue)
+    {
+      return defaultConfiguration[parameter].asBool();
+    }
     else
     {
-      return defaultValue;
+      throw OrthancException(ErrorCode_InternalError, std::string("No or invalid default parameter found in the default configuration for '") + parameter + "'");
     }
   }
 
@@ -868,7 +871,7 @@ namespace Orthanc
   bool OrthancConfiguration::IsSameAETitle(const std::string& aet1,
                                            const std::string& aet2) const
   {
-    if (GetBooleanParameter("StrictAetComparison", false))
+    if (GetBooleanParameter("StrictAetComparison"))
     {
       // Case-sensitive matching
       return aet1 == aet2;
@@ -927,7 +930,7 @@ namespace Orthanc
                    << "\" is not listed in the \"DicomModalities\" configuration option";
       return false;
     }
-    else if (!GetBooleanParameter("DicomCheckModalityHost", false) ||
+    else if (!GetBooleanParameter("DicomCheckModalityHost") ||
              ip == modality.GetHost())
     {
       return true;
