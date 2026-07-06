@@ -336,6 +336,11 @@ namespace Orthanc
       return patientLevelEnabled_;
     }
 
+    std::string GetIngestTranscoding() const
+    {
+      return GetTransferSyntaxUid(ingestTransferSyntax_);
+    }
+
     void SetCompressionEnabled(bool enabled);
 
     bool IsCompressionEnabled() const

@@ -27,7 +27,8 @@ General
   - When Orthanc was requested to return a private tag in a C-Find query, Orthanc was actually not returning 
     the resources that did not contain the private tag although it was not used as a filter in the query.
 * Fix mismatches between the configuration default values and the documentation:
-  - "HttpTimeout": 0 (no timeout).  It was previously documented as 60.
+  - "HttpTimeout" was documented as 60 while its default value is 0 (no timeout).
+  - "Name" was documented as "MyOrthanc" while its default value is "ORTHANC".
 
 
 REST API

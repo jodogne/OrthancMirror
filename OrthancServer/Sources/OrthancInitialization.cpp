@@ -72,10 +72,6 @@
 
 
 
-static const char* const STORAGE_DIRECTORY = "StorageDirectory";
-static const char* const ORTHANC_STORAGE = "OrthancStorage";
-
-
 namespace Orthanc
 {
   static void RegisterUserMetadata(const Json::Value& config)
@@ -356,27 +352,16 @@ namespace Orthanc
 
     {
       std::string locale;
-      
-      if (lock.GetJson().isMember(LOCALE))
-      {
-        locale = lock.GetConfiguration().GetStringParameter(LOCALE, "");
-      }
-      
+      lock.GetConfiguration().LookupStringParameter(locale, LOCALE);
+
       bool loadPrivate = lock.GetConfiguration().GetBooleanParameter(LOAD_PRIVATE_DICTIONARY);
       Orthanc::InitializeFramework(locale, loadPrivate);
     }
 
     // The Orthanc framework is now initialized
 
-    if (lock.GetJson().isMember(DEFAULT_ENCODING))
-    {
-      std::string encoding = lock.GetConfiguration().GetStringParameter(DEFAULT_ENCODING, "");
-      SetDefaultDicomEncoding(StringToEncoding(encoding.c_str()));
-    }
-    else
-    {
-      SetDefaultDicomEncoding(ORTHANC_DEFAULT_DICOM_ENCODING);
-    }
+    std::string encoding = lock.GetConfiguration().GetStringParameter(DEFAULT_ENCODING);
+    SetDefaultDicomEncoding(StringToEncoding(encoding.c_str()));
 
     if (lock.GetJson().isMember(PKCS11))
     {
@@ -437,11 +422,17 @@ namespace Orthanc
     OrthancConfiguration::ReaderLock lock;
 
     std::string storageDirectoryStr = 
-      lock.GetConfiguration().GetStringParameter(STORAGE_DIRECTORY, ORTHANC_STORAGE);
+      lock.GetConfiguration().GetStringParameter(ORTHANC_CONFIG_STORAGE_DIRECTORY);
+
+    std::string indexDirectoryStr;
+    if (!lock.GetConfiguration().LookupStringParameter(indexDirectoryStr, "IndexDirectory"))
+    {
+      indexDirectoryStr = storageDirectoryStr;
+    }
 
     // Open the database
     boost::filesystem::path indexDirectory = lock.GetConfiguration().InterpretStringParameterAsPath(
-      lock.GetConfiguration().GetStringParameter("IndexDirectory", storageDirectoryStr));
+      indexDirectoryStr);
 
     LOG(WARNING) << "SQLite index directory: " << SystemToolbox::PathToUtf8(indexDirectory);
 
@@ -525,7 +516,7 @@ namespace Orthanc
     OrthancConfiguration::ReaderLock lock;
 
     std::string storageDirectoryStr = 
-      lock.GetConfiguration().GetStringParameter(STORAGE_DIRECTORY, ORTHANC_STORAGE);
+      lock.GetConfiguration().GetStringParameter(ORTHANC_CONFIG_STORAGE_DIRECTORY);
 
     boost::filesystem::path storageDirectory = 
       lock.GetConfiguration().InterpretStringParameterAsPath(storageDirectoryStr);

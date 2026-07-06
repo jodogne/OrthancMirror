@@ -1227,7 +1227,7 @@ static bool StartHttpServer(ServerContext& context,
       if (lock.GetConfiguration().GetBooleanParameter("SslEnabled"))
       {
         boost::filesystem::path certificate = lock.GetConfiguration().InterpretStringParameterAsPath(
-          lock.GetConfiguration().GetStringParameter("SslCertificate", "certificate.pem"));
+          lock.GetConfiguration().GetStringParameter("SslCertificate"));
         httpServer.SetSslEnabled(true);
         httpServer.SetSslCertificate(certificate.c_str());
         
@@ -1275,7 +1275,7 @@ static bool StartHttpServer(ServerContext& context,
       if (lock.GetConfiguration().GetBooleanParameter("SslVerifyPeers"))
       {
         boost::filesystem::path trustedClientCertificates = lock.GetConfiguration().InterpretStringParameterAsPath(
-          lock.GetConfiguration().GetStringParameter("SslTrustedClientCertificates", "trustedCertificates.pem"));
+          lock.GetConfiguration().GetStringParameter("SslTrustedClientCertificates"));
         httpServer.SetSslVerifyPeers(true);
         httpServer.SetSslTrustedClientCertificates(trustedClientCertificates);
       }
@@ -1402,11 +1402,18 @@ static bool StartDicomServer(ServerContext& context,
       dicomServer.SetDicomTlsEnabled(lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_ENABLED));
       if (dicomServer.IsDicomTlsEnabled())
       {
-        dicomServer.SetOwnCertificatePath(
-          lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_PRIVATE_KEY, ""),
-          lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_CERTIFICATE, ""));
-        dicomServer.SetTrustedCertificatesPath(
-          lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_TRUSTED_CERTIFICATES, ""));
+        std::string tlsPrivateKey, tlsCertificate;
+        if (lock.GetConfiguration().LookupStringParameter(tlsPrivateKey, KEY_DICOM_TLS_PRIVATE_KEY)
+            && lock.GetConfiguration().LookupStringParameter(tlsCertificate, KEY_DICOM_TLS_CERTIFICATE))
+        {
+          dicomServer.SetOwnCertificatePath(tlsPrivateKey, tlsCertificate);
+        }
+
+        std::string tlsTrustedCertificates;
+        if (lock.GetConfiguration().LookupStringParameter(tlsTrustedCertificates, KEY_DICOM_TLS_TRUSTED_CERTIFICATES))
+        {
+          dicomServer.SetTrustedCertificatesPath(tlsTrustedCertificates);
+        }
         dicomServer.SetMinimumTlsVersion(
           lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_DICOM_TLS_MINIMUM_PROTOCOL_VERSION));
         
@@ -1660,7 +1667,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     // ServerContext, otherwise the possible Lua scripts will not be
     // able to properly issue HTTP/HTTPS queries
 
-    std::string httpsCaCertificatesStr = lock.GetConfiguration().GetStringParameter("HttpsCACertificates", "");
+    std::string httpsCaCertificatesStr = lock.GetConfiguration().GetStringParameter("HttpsCACertificates");
     boost::filesystem::path httpsCaCertificates;
     if (!httpsCaCertificatesStr.empty())
     {
@@ -1675,7 +1682,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     // value (DEFAULT_HTTP_TIMEOUT = 60 seconds in Orthanc 1.5.7)
     HttpClient::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpTimeout"));
     
-    HttpClient::SetDefaultProxy(lock.GetConfiguration().GetStringParameter("HttpProxy", ""));
+    HttpClient::SetDefaultProxy(lock.GetConfiguration().GetStringParameter("HttpProxy"));
     
     DicomAssociationParameters::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScuTimeout"));
 
@@ -1697,13 +1704,18 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     }
 
     // Configuration of DICOM TLS for Orthanc SCU (since Orthanc 1.9.0)
-    DicomAssociationParameters::SetDefaultOwnCertificatePath(
-      lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_PRIVATE_KEY, ""),
-      lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_CERTIFICATE, ""));
-    DicomAssociationParameters::SetDefaultTrustedCertificatesPath(
-      lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_TRUSTED_CERTIFICATES, ""));
-    DicomAssociationParameters::SetDefaultMaximumPduLength(
-      lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_PDU_LENGTH));
+    std::string tlsPrivateKey, tlsCertificate;
+    if (lock.GetConfiguration().LookupStringParameter(tlsPrivateKey, KEY_DICOM_TLS_PRIVATE_KEY)
+        && lock.GetConfiguration().LookupStringParameter(tlsCertificate, KEY_DICOM_TLS_CERTIFICATE))
+    {
+      DicomAssociationParameters::SetDefaultOwnCertificatePath(tlsPrivateKey, tlsCertificate);
+    }
+
+    std::string tlsTrustedCertificates;
+    if (lock.GetConfiguration().LookupStringParameter(tlsTrustedCertificates, KEY_DICOM_TLS_TRUSTED_CERTIFICATES))
+    {
+      DicomAssociationParameters::SetDefaultTrustedCertificatesPath(tlsTrustedCertificates);
+    }
 
     // New option in Orthanc 1.9.3
     DicomAssociationParameters::SetDefaultRemoteCertificateRequired(

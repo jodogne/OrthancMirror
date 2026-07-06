@@ -509,17 +509,20 @@ namespace Orthanc
   }
 
 
-  std::string OrthancConfiguration::GetStringParameter(const std::string& parameter,
-                                                       const std::string& defaultValue) const
+  std::string OrthancConfiguration::GetStringParameter(const std::string& parameter) const
   {
     std::string value;
     if (LookupStringParameter(value, parameter))
     {
       return value;
     }
+    else if (defaultConfiguration.isMember(parameter) && defaultConfiguration[parameter].type() == Json::stringValue)
+    {
+      return defaultConfiguration[parameter].asString();
+    }
     else
     {
-      return defaultValue;
+      throw OrthancException(ErrorCode_InternalError, std::string("No or invalid default parameter found in the default configuration for '") + parameter + "'");
     }
   }
 
@@ -1068,9 +1071,11 @@ namespace Orthanc
   
   TemporaryFile* OrthancConfiguration::CreateTemporaryFile() const
   {
-    if (json_.isMember(TEMPORARY_DIRECTORY))
+    std::string temporaryDirectory = ".";
+
+    if (LookupStringParameter(temporaryDirectory, TEMPORARY_DIRECTORY))
     {
-      return new TemporaryFile(InterpretStringParameterAsPath(GetStringParameter(TEMPORARY_DIRECTORY, ".")), "");
+      return new TemporaryFile(InterpretStringParameterAsPath(temporaryDirectory), "");
     }
     else
     {
@@ -1082,7 +1087,7 @@ namespace Orthanc
   std::string OrthancConfiguration::GetDefaultPrivateCreator() const
   {
     // New configuration option in Orthanc 1.6.0
-    return GetStringParameter("DefaultPrivateCreator", "");
+    return GetStringParameter("DefaultPrivateCreator");
   }
 
 

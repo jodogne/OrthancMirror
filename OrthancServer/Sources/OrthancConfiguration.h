@@ -54,6 +54,7 @@ class DcmDataset;
 #define ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD "DicomDefaultRetrieveMethod"
 #define ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED "PatientLevelEnabled"
 #define ORTHANC_CONFIG_READ_ONLY "ReadOnly"
+#define ORTHANC_CONFIG_STORAGE_DIRECTORY "StorageDirectory"
 
 
 namespace Orthanc
@@ -198,8 +199,7 @@ namespace Orthanc
     bool LookupStringParameter(std::string& target,
                                const std::string& parameter) const;
 
-    std::string GetStringParameter(const std::string& parameter,
-                                   const std::string& defaultValue) const;
+    std::string GetStringParameter(const std::string& parameter) const;
     
     bool LookupIntegerParameter(int& target,
                                 const std::string& parameter) const;
@@ -292,27 +292,22 @@ namespace Orthanc
 
     std::string GetOrthancAET() const
     {
-      return GetStringParameter(ORTHANC_CONFIG_DICOM_AET, "ORTHANC");
+      return GetStringParameter(ORTHANC_CONFIG_DICOM_AET);
     }
 
     std::string GetOrthancName() const
     {
-      return GetStringParameter(ORTHANC_CONFIG_NAME, "ORTHANC");
-    }
-
-    std::string GetIngestTranscoding() const
-    {
-      return GetStringParameter(ORTHANC_CONFIG_INGEST_TRANSCODING, "");
+      return GetStringParameter(ORTHANC_CONFIG_NAME);
     }
 
     std::string GetMaximumStorageMode() const
     {
-      return GetStringParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE, "Recycle");
+      return GetStringParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE);
     }
 
     std::string GetDicomDefaultRetrieveMethod() const
     {
-      return GetStringParameter(ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD, "C-MOVE");
+      return GetStringParameter(ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD);
     }
     unsigned int GetMaximumStorageCacheSize() const
     {

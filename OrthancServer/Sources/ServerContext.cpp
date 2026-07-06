@@ -431,7 +431,7 @@ namespace Orthanc
         metricsRegistry_->SetEnabled(lock.GetConfiguration().GetBooleanParameter("MetricsEnabled"));
 
         // New configuration options in Orthanc 1.5.1
-        findStorageAccessMode_ = StringToFindStorageAccessMode(lock.GetConfiguration().GetStringParameter("StorageAccessOnFind", "Always"));
+        findStorageAccessMode_ = StringToFindStorageAccessMode(lock.GetConfiguration().GetStringParameter("StorageAccessOnFind"));
         limitFindInstances_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances");
         limitFindResults_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults");
 
@@ -481,7 +481,7 @@ namespace Orthanc
           CLOG(INFO, DICOM) << "Deidentification of log contents (notably for DIMSE queries) is enabled";
 
           DicomVersion version = StringToDicomVersion(
-              lock.GetConfiguration().GetStringParameter("DeidentifyLogsDicomVersion", "2023b"));
+              lock.GetConfiguration().GetStringParameter("DeidentifyLogsDicomVersion"));
           CLOG(INFO, DICOM) << "Version of DICOM standard used for deidentification is "
                             << EnumerationToString(version);
 
