@@ -550,20 +550,6 @@ namespace Orthanc
   }
 
 
-  int OrthancConfiguration::GetIntegerParameter(const std::string& parameter,
-                                                int defaultValue) const
-  {
-    int v;
-    if (LookupIntegerParameter(v, parameter))
-    {
-      return v;
-    }
-    else
-    {
-      return defaultValue;
-    }
-  }
-
     
   bool OrthancConfiguration::LookupUnsignedIntegerParameter(unsigned int& target,
                                                             const std::string& parameter) const
