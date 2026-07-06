@@ -626,7 +626,8 @@
   "HttpVerbose" : false,
 
   // Set the timeout for HTTP requests issued by Orthanc (in seconds).
-  "HttpTimeout" : 60,
+  // 0 means no timeout.
+  "HttpTimeout" : 0,
 
   // Enable the verification of the peers certificates during HTTPS
   // requests. Setting this option to "false" is equivalent to the

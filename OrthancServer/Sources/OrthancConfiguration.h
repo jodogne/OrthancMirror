@@ -210,8 +210,7 @@ namespace Orthanc
     bool LookupUnsignedIntegerParameter(unsigned int& target,
                                         const std::string& parameter) const;
 
-    unsigned int GetUnsignedIntegerParameter(const std::string& parameter,
-                                             unsigned int defaultValue) const;
+    unsigned int GetUnsignedIntegerParameter(const std::string& parameter) const;
 
     bool LookupBooleanParameter(bool& target,
                                 const std::string& parameter) const;
@@ -318,27 +317,27 @@ namespace Orthanc
     }
     unsigned int GetMaximumStorageCacheSize() const
     {
-      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE, 128);
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE);
     }
 
     unsigned int GetMaximumStorageSize() const
     {
-      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE, 0);
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE);
     }
 
     unsigned int GetMaximumPatientCount() const
     {
-      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT, 0);
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT);
     }
     
     unsigned int GetDicomPort() const
     {
-      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_PORT, 4242);
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_PORT);
     }
 
     unsigned int GetHttpPort() const
     {
-      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_HTTP_PORT, 8042);
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_HTTP_PORT);
     }
 
     bool HasCheckRevisions() const

@@ -50,6 +50,8 @@ static const char* const DICOM_LOSSY_TRANSCODING_QUALITY = "DicomLossyTranscodin
 static const char* const CONFIG_LOADER_THREADS = "LoaderThreads";
 static const char* const CONFIG_ZIP_LOADER_THREADS = "ZipLoaderThreads"; // for backward compatibility only
 
+static Json::Value defaultConfiguration;
+
 namespace Orthanc
 {
   static void AddFileToConfiguration(Json::Value& target,
@@ -133,6 +135,22 @@ namespace Orthanc
   static void ReadConfiguration(Json::Value& target, 
                                 const boost::filesystem::path &configurationFile)
   {
+    // lazy loading of the default configuration
+    if (defaultConfiguration.empty())
+    {
+      std::string defaultConfigurationContent;
+      GetFileResource(defaultConfigurationContent, ServerResources::CONFIGURATION_SAMPLE);
+
+      Json::Value tmp;
+      if (!Toolbox::ReadJson(tmp, defaultConfigurationContent) ||
+          tmp.type() != Json::objectValue)
+      {
+        throw OrthancException(ErrorCode_InternalError, "The default configuration file does not follow the JSON syntax !!");
+      }
+
+      Toolbox::CopyJsonWithoutComments(defaultConfiguration, tmp);
+    }
+
     target = Json::objectValue;
 
     if (!configurationFile.empty())
@@ -568,17 +586,20 @@ namespace Orthanc
   }
 
 
-  unsigned int OrthancConfiguration::GetUnsignedIntegerParameter(const std::string& parameter,
-                                                                 unsigned int defaultValue) const
+  unsigned int OrthancConfiguration::GetUnsignedIntegerParameter(const std::string& parameter) const
   {
     unsigned int v;
     if (LookupUnsignedIntegerParameter(v, parameter))
     {
       return v;
     }
+    else if (defaultConfiguration.isMember(parameter) && defaultConfiguration[parameter].type() == Json::intValue)
+    {
+      return static_cast<unsigned int>(defaultConfiguration[parameter].asInt());
+    }
     else
     {
-      return defaultValue;
+      throw OrthancException(ErrorCode_InternalError, std::string("No or invalid default parameter found in the default configuration for '") + parameter + "'");
     }
   }
 
@@ -742,7 +763,7 @@ namespace Orthanc
 
   unsigned int OrthancConfiguration::GetDicomLossyTranscodingQuality() const
   {
-    return GetUnsignedIntegerParameter(DICOM_LOSSY_TRANSCODING_QUALITY, 90);
+    return GetUnsignedIntegerParameter(DICOM_LOSSY_TRANSCODING_QUALITY);
   }
 
 
@@ -1353,7 +1374,12 @@ namespace Orthanc
   unsigned int OrthancConfiguration::GetLoaderThreads() const
   {
     // from 1.10.0 to 1.12.10, only CONFIG_ZIP_LOADER_THREADS was available -> read from it if CONFIG_LOADER_THREADS is not specified.
-    unsigned int loaderThreads = GetUnsignedIntegerParameter(CONFIG_LOADER_THREADS, GetUnsignedIntegerParameter(CONFIG_ZIP_LOADER_THREADS, 1));
+    unsigned int loaderThreads = 1; // old ZipLoaderThreads default value
+
+    if (!LookupUnsignedIntegerParameter(loaderThreads, CONFIG_LOADER_THREADS))
+    {
+      LookupUnsignedIntegerParameter(loaderThreads, CONFIG_ZIP_LOADER_THREADS); // we cannot use GetUnsignedIntegerParameter() because there is no default value for this old configuration
+    }
 
     if (loaderThreads <= 1)
     {

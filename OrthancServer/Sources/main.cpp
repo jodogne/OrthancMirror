@@ -234,8 +234,8 @@ public:
 
     {
       OrthancConfiguration::ReaderLock lock;
-      result->SetMaxResults(lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults", 0));
-      result->SetMaxInstances(lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances", 0));
+      result->SetMaxResults(lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults"));
+      result->SetMaxInstances(lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances"));
     }
 
     if (result->GetMaxResults() == 0)
@@ -1116,20 +1116,20 @@ static bool StartHttpServer(ServerContext& context,
       httpDescribeErrors = lock.GetConfiguration().GetBooleanParameter("HttpDescribeErrors", true);
   
       // HTTP server
-      httpServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpThreadsCount", 50));
+      httpServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpThreadsCount"));
       httpServer.SetPortNumber(lock.GetConfiguration().GetHttpPort());
       std::set<std::string> httpBindAddresses;
       lock.GetConfiguration().GetSetOfStringsParameter(httpBindAddresses, "HttpBindAddresses");
       httpServer.SetBindAddresses(httpBindAddresses);
       httpServer.SetRemoteAccessAllowed(lock.GetConfiguration().GetBooleanParameter("RemoteAccessAllowed", false));
       httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", defaultKeepAlive));
-      httpServer.SetKeepAliveTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("KeepAliveTimeout", 1));
+      httpServer.SetKeepAliveTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("KeepAliveTimeout"));
       httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled", false));
       httpServer.SetTcpNoDelay(lock.GetConfiguration().GetBooleanParameter("TcpNoDelay", true));
-      httpServer.SetRequestTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpRequestTimeout", 30));
+      httpServer.SetRequestTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpRequestTimeout"));
 
       // New in Orthanc 1.12.11
-      const unsigned int maxBodySize = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumRequestBodySizeMB", 8192);
+      const unsigned int maxBodySize = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumRequestBodySizeMB");
       if (maxBodySize != 0)
       {
         const uint64_t size = Toolbox::BoundMemorySizeToCurrentArchitecture(maxBodySize * MEGABYTE);
@@ -1141,7 +1141,7 @@ static bool StartHttpServer(ServerContext& context,
         LOG(WARNING) << "No limit on the maximum body size in HTTP requests";
       }
 
-      const unsigned int maxSizeInArchive = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumFileSizeInArchiveMB", 4096);
+      const unsigned int maxSizeInArchive = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumFileSizeInArchiveMB");
       if (maxSizeInArchive != 0)
       {
         const uint64_t size = Toolbox::BoundMemorySizeToCurrentArchitecture(maxSizeInArchive * MEGABYTE);
@@ -1231,8 +1231,7 @@ static bool StartHttpServer(ServerContext& context,
         
         // Default to TLS 1.2+1.3 as SSL minimum
         // See https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md "ssl_protocol_version" for mapping
-        static const unsigned int TLS_1_2_AND_1_3 = 4;
-        unsigned int minimumVersion = lock.GetConfiguration().GetUnsignedIntegerParameter("SslMinimumProtocolVersion", TLS_1_2_AND_1_3);
+        unsigned int minimumVersion = lock.GetConfiguration().GetUnsignedIntegerParameter("SslMinimumProtocolVersion");
         httpServer.SetSslMinimumVersion(minimumVersion);
 
         static const char* SSL_CIPHERS_ACCEPTED = "SslCiphersAccepted";
@@ -1392,9 +1391,9 @@ static bool StartDicomServer(ServerContext& context,
     {
       OrthancConfiguration::ReaderLock lock;
       dicomServer.SetCalledApplicationEntityTitleCheck(lock.GetConfiguration().GetBooleanParameter("DicomCheckCalledAet", false));
-      dicomServer.SetAssociationTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScpTimeout", 30));
+      dicomServer.SetAssociationTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScpTimeout"));
       dicomServer.SetPortNumber(lock.GetConfiguration().GetDicomPort());
-      dicomServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomThreadsCount", 4));
+      dicomServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomThreadsCount"));
       dicomServer.SetApplicationEntityTitle(lock.GetConfiguration().GetOrthancAET());
 
       // Configuration of DICOM TLS for Orthanc SCP (since Orthanc 1.9.0)
@@ -1407,14 +1406,14 @@ static bool StartDicomServer(ServerContext& context,
         dicomServer.SetTrustedCertificatesPath(
           lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_TRUSTED_CERTIFICATES, ""));
         dicomServer.SetMinimumTlsVersion(
-          lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_DICOM_TLS_MINIMUM_PROTOCOL_VERSION, 0));
+          lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_DICOM_TLS_MINIMUM_PROTOCOL_VERSION));
         
         std::set<std::string> acceptedCiphers;
         lock.GetConfiguration().GetSetOfStringsParameter(acceptedCiphers, KEY_DICOM_TLS_ACCEPTED_CIPHERS);
         dicomServer.SetAcceptedCiphers(acceptedCiphers);
       }
 
-      dicomServer.SetMaximumPduLength(lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_PDU_LENGTH, 16384));
+      dicomServer.SetMaximumPduLength(lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_PDU_LENGTH));
 
       // New option in Orthanc 1.9.3
       dicomServer.SetRemoteCertificateRequired(
@@ -1673,13 +1672,13 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
     // The value "0" below makes the class HttpClient use its default
     // value (DEFAULT_HTTP_TIMEOUT = 60 seconds in Orthanc 1.5.7)
-    HttpClient::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpTimeout", 0));
+    HttpClient::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpTimeout"));
     
     HttpClient::SetDefaultProxy(lock.GetConfiguration().GetStringParameter("HttpProxy", ""));
     
-    DicomAssociationParameters::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScuTimeout", 10));
+    DicomAssociationParameters::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScuTimeout"));
 
-    maxCompletedJobs = lock.GetConfiguration().GetUnsignedIntegerParameter("JobsHistorySize", 10);
+    maxCompletedJobs = lock.GetConfiguration().GetUnsignedIntegerParameter("JobsHistorySize");
 
     if (maxCompletedJobs == 0)
     {
@@ -1690,7 +1689,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     readOnly = lock.GetConfiguration().GetBooleanParameter(ORTHANC_CONFIG_READ_ONLY, false);
     
     // New option in Orthanc 1.12.6
-    maxDcmtkConcurrentTranscoders = lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_CONCURRENT_DCMTK_TRANSCODERS, 0);
+    maxDcmtkConcurrentTranscoders = lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_CONCURRENT_DCMTK_TRANSCODERS);
     if (maxDcmtkConcurrentTranscoders == 0)
     {
       maxDcmtkConcurrentTranscoders = static_cast<unsigned int>(boost::thread::hardware_concurrency());
@@ -1703,7 +1702,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     DicomAssociationParameters::SetDefaultTrustedCertificatesPath(
       lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_TRUSTED_CERTIFICATES, ""));
     DicomAssociationParameters::SetDefaultMaximumPduLength(
-      lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_PDU_LENGTH, 16384));
+      lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_PDU_LENGTH));
 
     // New option in Orthanc 1.9.3
     DicomAssociationParameters::SetDefaultRemoteCertificateRequired(

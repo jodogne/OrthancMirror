@@ -415,11 +415,11 @@ namespace Orthanc
         OrthancConfiguration::ReaderLock lock;
 
         queryRetrieveArchive_.reset(
-          new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("QueryRetrieveSize", 100)));
+          new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("QueryRetrieveSize")));
         mediaArchive_.reset(
-          new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("MediaArchiveSize", 1)));
+          new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("MediaArchiveSize")));
         defaultLocalAet_ = lock.GetConfiguration().GetOrthancAET();
-        jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs", 2));
+        jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs"));
 
         saveJobs_ = lock.GetConfiguration().GetBooleanParameter("SaveJobs", true);
         if (readOnly_ && saveJobs_)
@@ -432,11 +432,11 @@ namespace Orthanc
 
         // New configuration options in Orthanc 1.5.1
         findStorageAccessMode_ = StringToFindStorageAccessMode(lock.GetConfiguration().GetStringParameter("StorageAccessOnFind", "Always"));
-        limitFindInstances_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances", 0);
-        limitFindResults_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults", 0);
+        limitFindInstances_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances");
+        limitFindResults_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults");
 
         // New configuration option in Orthanc 1.6.0
-        storageCommitmentReports_.reset(new StorageCommitmentReports(lock.GetConfiguration().GetUnsignedIntegerParameter("StorageCommitmentReportsSize", 100)));
+        storageCommitmentReports_.reset(new StorageCommitmentReports(lock.GetConfiguration().GetUnsignedIntegerParameter("StorageCommitmentReportsSize")));
 
         // New options in Orthanc 1.7.0
         transcodeDicomProtocol_ = lock.GetConfiguration().GetBooleanParameter("TranscodeDicomProtocol", true);

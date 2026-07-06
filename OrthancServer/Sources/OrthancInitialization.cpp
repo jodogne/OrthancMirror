@@ -399,7 +399,7 @@ namespace Orthanc
 #if HAVE_MALLOPT == 1
     // New in Orthanc 1.8.2
     // https://orthanc.uclouvain.be/book/faq/scalability.html#controlling-memory-usage
-    unsigned int maxArena = lock.GetConfiguration().GetUnsignedIntegerParameter(MALLOC_ARENA_MAX, 5);
+    unsigned int maxArena = lock.GetConfiguration().GetUnsignedIntegerParameter(MALLOC_ARENA_MAX);
     if (maxArena != 0)
     {
       // https://man7.org/linux/man-pages/man3/mallopt.3.html

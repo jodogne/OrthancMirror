@@ -464,7 +464,7 @@ namespace Orthanc
     
     {
       OrthancConfiguration::ReaderLock lock;
-      stableAge = lock.GetConfiguration().GetUnsignedIntegerParameter("StableAge", 60);
+      stableAge = lock.GetConfiguration().GetUnsignedIntegerParameter("StableAge");
     }
 
     if (stableAge < 1)
