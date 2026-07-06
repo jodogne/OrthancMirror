@@ -46,6 +46,8 @@ namespace Orthanc
 {
   namespace Logging
   {
+    static bool logCallerThreadNameInContext = false; // add a "from THREADNAME" in the context everytime the context is copied from a thread to the other to help track the runnable/callable journey
+
     static const uint32_t ALL_CATEGORIES_MASK = 0xffffffff;
     
     static uint32_t infoCategoriesMask_ = 0;
@@ -1120,12 +1122,10 @@ namespace Orthanc
     ThreadContextMemento::ScopedSetter::ScopedSetter(const ThreadContextMemento& memento) :
       count_(memento.pimpl_->context_.size())
     {
-      if (false) // additional debug information: add the caller thread name
+      if (logCallerThreadNameInContext && enableThreadNames_)
       {
-        if (enableThreadNames_)
-        {
-          PushCurrentThreadContext("from " + GetCurrentThreadName());
-        }
+        count_++;
+        PushCurrentThreadContext("from " + GetCurrentThreadName());
       }
 
       for (std::list<std::string>::const_iterator it = memento.pimpl_->context_.begin(); it != memento.pimpl_->context_.end(); ++it)
