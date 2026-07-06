@@ -2013,6 +2013,8 @@ TEST(DicomWebJson, ValueRepresentation)
 
 #if DCMTK_VERSION_NUMBER >= 365
   FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7056, 0x1000), ValueRepresentation_OtherVeryLong, "Tag1", 1, 1, "");
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7056, 0x1001), ValueRepresentation_SignedVeryLong, "Tag2", 1, 1, "");
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7056, 0x1002), ValueRepresentation_UnsignedVeryLong, "Tag3", 1, 1, "");
 #endif
 
   ParsedDicomFile dicom(false);
@@ -2050,6 +2052,8 @@ TEST(DicomWebJson, ValueRepresentation)
 
 #if DCMTK_VERSION_NUMBER >= 365
   dicom.ReplacePlainString(DicomTag(0x7056, 0x1000), "-17");  // OV
+  dicom.ReplacePlainString(DicomTag(0x7056, 0x1001), "-18");  // SV
+  dicom.ReplacePlainString(DicomTag(0x7056, 0x1002), "19");  // UV
 #endif
 
   DicomWebJsonVisitor visitor;
@@ -2181,6 +2185,10 @@ TEST(DicomWebJson, ValueRepresentation)
 #if DCMTK_VERSION_NUMBER >= 365
   ASSERT_EQ("OV", visitor.GetResult() ["70561000"]["vr"].asString());
   ASSERT_EQ(-17, visitor.GetResult() ["70561000"]["Value"][0].asInt());
+  ASSERT_EQ("SV", visitor.GetResult() ["70561001"]["vr"].asString());
+  ASSERT_EQ(-18, visitor.GetResult() ["70561001"]["Value"][0].asInt());
+  ASSERT_EQ("UV", visitor.GetResult() ["70561002"]["vr"].asString());
+  ASSERT_EQ(19, visitor.GetResult() ["70561002"]["Value"][0].asInt());
 #endif
 
   std::string xml;
@@ -2191,7 +2199,7 @@ TEST(DicomWebJson, ValueRepresentation)
     m.FromDicomWeb(visitor.GetResult());
 
 #if DCMTK_VERSION_NUMBER >= 365
-    ASSERT_EQ(32u, m.GetSize());
+    ASSERT_EQ(34u, m.GetSize());
 #else
     ASSERT_EQ(31u, m.GetSize());
 #endif
@@ -2248,6 +2256,8 @@ TEST(DicomWebJson, ValueRepresentation)
 
 #if DCMTK_VERSION_NUMBER >= 365
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7056, 0x1000), true));  ASSERT_EQ("-17", s);  // OV
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7056, 0x1001), true));  ASSERT_EQ("-18", s);  // SV
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7056, 0x1002), true));  ASSERT_EQ("19", s);  // UV
 #endif
   }
 }

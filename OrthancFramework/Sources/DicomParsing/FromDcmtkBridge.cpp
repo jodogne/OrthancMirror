@@ -3841,6 +3841,63 @@ namespace Orthanc
         }
 #endif
 
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_SV:  // signed very long
+        {
+          DcmSigned64bitVeryLong& content = dynamic_cast<DcmSigned64bitVeryLong&>(element);
+
+          std::vector<int64_t> values;
+          values.reserve(content.getVM());
+
+          for (unsigned long i = 0; i < content.getVM(); i++)
+          {
+            Sint64 f;
+            if (content.getSint64(f, i).good())
+            {
+              values.push_back(f);
+            }
+          }
+
+          action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
+          break;
+        }
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_UV:  // unsigned very long
+        {
+          DcmUnsigned64bitVeryLong& content = dynamic_cast<DcmUnsigned64bitVeryLong&>(element);
+
+          bool truncated = false;
+
+          std::vector<int64_t> values;
+          values.reserve(content.getVM());
+
+          for (unsigned long i = 0; i < content.getVM(); i++)
+          {
+            Uint64 f;
+            if (content.getUint64(f, i).good())
+            {
+              values.push_back(f);
+
+              if (static_cast<Uint64>(values.back()) != f)
+              {
+                truncated = true;
+                values.back() = std::numeric_limits<int64_t>::max();
+              }
+            }
+          }
+
+          if (truncated)
+          {
+            LOG(WARNING) << "An UV element contains a value that is too large and was truncated";
+          }
+
+          action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
+          break;
+        }
+#endif
+
 
         /**
          * Attribute tag.
