@@ -727,8 +727,15 @@ namespace Orthanc
         dicomParserThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS, 2);
         LOG(WARNING) << "'" << ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS << "' is set to " << dicomParserThreads;
 
-        sequentialReaderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS, 2);
-        LOG(WARNING) << "'" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS << "' is set to " << sequentialReaderThreads;
+        if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(sequentialReaderThreads, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS))
+        {
+          LOG(WARNING) << "'" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS << "' is not defined in your configuration, setting it to the same value as '" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS << "': " << storageLoaderThreads;
+          sequentialReaderThreads = storageLoaderThreads;
+        }
+        else
+        {
+          LOG(WARNING) << "'" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS << "' is set to " << sequentialReaderThreads;
+        }
 
         // ----> IF you update values here, you must also update them in Configuration.json <-----
         GetMemoryConfiguration(storageMemoryCapacityMb, lock, ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY, 512);

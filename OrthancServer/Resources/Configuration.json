@@ -1157,6 +1157,11 @@
 
 
 
+  // -> TODO-Streaming: move this into AdvancedConfiguration.json
+
+  // add a page in the book: performance: fine tuning: limiting memory + increasing the number of threads blah blah blah
+
+
   // Number of threads that are used to parse DICOM files (when you need
   // to access the value of DICOM tags that are not store in DB).
   // (new in Orthanc 1.12.11+)
@@ -1201,26 +1206,33 @@
   "TranscoderCacheSize" : 128,
 
   // Number of threads that are used to provide DICOM files sequentially
-  // (currently used in Archive jobs, C-Store and C-Get).  This limits
-  // the number of concurrent such jobs.
-  // TODO-Streaming: clarify the meaning with Seb.  If the above definition
-  // is correct; shouldn't we simply set it to the same value as "ConcurrentJobs" if not defined ?
-  // (new in Orthanc 1.12.11+)
+  // (currently used in Archive jobs, C-Store and C-Get).
+  // Each time such a job needs to get a DICOM file content, it requests it from
+  // a sequential DICOM reader that will itself use a s torage loader thread.
+  // Therefore, by default, the value of this configuration is identical to
+  // "StorageLoaderThreads".
+  // (new in Orthanc 1.13.0)
   // You should monitor the "orthanc_seq_reader_available_threads" 
   // metrics to determine the optimal value for your setup and usage.
-  "SequentialDicomReaderThreads": 2,
+  // "SequentialDicomReaderThreads": 4,
 
-  // TODO-Streaming: clarify the meaning with Seb.
   // Number of files each sequential DICOM reader is allowed to buffer
   // in advance before it is consumed by the related job.
+  // This is kind of equivalent to the older "LoaderThreads" configuration
+  // but, furthermore, you must make sure that there are enough "StorageLoaderThreads"
+  // and "SequentialDicomReaderThreads" for each job -> 
+  // "StorageLoaderThreads" should be larger than "ConcurrentJobs" * "SequentialDicomReaderWindowCapacity"
+  // Together with "SequentialDicomReaderWindowCapacity", this also defines the amount of memory that is
+  // used by each job that required a SequentialDicomReader.
   "SequentialDicomReaderWindowSize": 4,
   
-  // TODO-Streaming: clarify the meaning with Seb.
   // Amount of RAM (in MB) that are allocated to each sequential DICOM
-  // Reader.
+  // Reader.  The sequential DICOM reader stops pauses buffering as soon
+  // as one of the "SequentialDicomReaderWindowSize" or 
+  // "SequentialDicomReaderWindowCapacity" limit is reached.
   // Note that this limit can be overpassed when a single file 
   // exceeds this size.
-  // (new in Orthanc 1.12.11+).
+  // (new in Orthanc 1.13.0).
   "SequentialDicomReaderWindowCapacity": 64
 
 }

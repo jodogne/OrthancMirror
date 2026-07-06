@@ -57,10 +57,9 @@ class DcmDataset;
 #define ORTHANC_CONFIG_HTTP_THREADS_COUNT "HttpThreadsCount"
 #define ORTHANC_CONFIG_DICOM_THREADS_COUNT "DicomThreadsCount"
 
-// TODO-Streaming: finalize the names with Seb
 #define ORTHANC_CONFIG_STORAGE_LOADER_THREADS "StorageLoaderThreads"
 #define ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY "StorageMemoryCapacity"
-#define ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE "MaximumStorageCacheSize"  // TODO-Streaming: we keep the old naming for historical reasons ?
+#define ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE "MaximumStorageCacheSize"
 #define ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS "DicomParserThreads"
 #define ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY "DicomParserMemoryCapacity"
 #define ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE "DicomParserCacheSize"
