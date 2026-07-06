@@ -2770,33 +2770,27 @@ namespace Orthanc
       decoded = &binary;
     }
 
+    if (element.getTag().getEVR() == EVR_OW)
+    {
+      if (decoded->size() % sizeof(Uint16) != 0)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "A tag with OW VR must have an even number of bytes");
+      }
+      else if (element.putUint16Array(reinterpret_cast<const Uint16*>(decoded->c_str()), decoded->size() / sizeof(Uint16)).good())
+      {
+        return;  // We're done
+      }
+      else
+      {
+        THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
+      }
+    }
+
     if (IsBinaryTag(element.getTag()))
     {
-      bool ok;
-
-      switch (element.getTag().getEVR())
+      if (element.putUint8Array(reinterpret_cast<const Uint8*>(decoded->c_str()), decoded->size()).good())
       {
-        case EVR_OW:
-          if (decoded->size() % sizeof(Uint16) != 0)
-          {
-            LOG(ERROR) << "A tag with OW VR must have an even number of bytes";
-            ok = false;
-          }
-          else
-          {
-            ok = element.putUint16Array(reinterpret_cast<const Uint16*>(decoded->c_str()), decoded->size() / sizeof(Uint16)).good();
-          }
-          
-          break;
-      
-        default:
-          ok = element.putUint8Array(reinterpret_cast<const Uint8*>(decoded->c_str()), decoded->size()).good();
-          break;
-      }
-      
-      if (ok)
-      {
-        return;
+        return;  // We're done
       }
       else
       {
@@ -2813,15 +2807,14 @@ namespace Orthanc
         // http://support.dcmtk.org/docs/dcvr_8h-source.html
 
         /**
-         * TODO.
+         * Cases handled above (cf. "IsBinaryTag()").
          **/
 
         case EVR_OB:  // other byte
         case EVR_OW:  // other word
-          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
-    
         case EVR_UN:  // unknown value representation
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        case EVR_ox:  // OB or OW depending on context
+          throw OrthancException(ErrorCode_InternalError);
 
 
           /**
@@ -2944,7 +2937,6 @@ namespace Orthanc
          * Internal to DCMTK.
          **/ 
 
-        case EVR_ox:  // OB or OW depending on context
         case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
         case EVR_na:  // na="not applicable", for data which has no VR
         case EVR_up:  // up="unsigned pointer", used internally for DICOMDIR suppor
