@@ -27,7 +27,6 @@ General
   - When Orthanc was requested to return a private tag in a C-Find query, Orthanc was actually not returning 
     the resources that did not contain the private tag although it was not used as a filter in the query.
 
-
 REST API
 --------
 
@@ -51,7 +50,6 @@ REST API
     "orthanc_jobs_total_success" and "orthanc_jobs_total_failed" that are now considering all the 
     jobs that have run since Orthanc started.
 
-
 Plugin SDK
 ----------
 
@@ -62,7 +60,7 @@ Plugin SDK
 Maintenance
 -----------
 
-* Added internal support for OV, SV, and UV value representations
+* Added support for OV, SV, and UV value representations
 * Added support for multiple values in AT value representation
 * Fix resubmit/pause/cancel and reloading of OrthancPeerStore and DicomModalityStore jobs 
   (bug introduced in 1.12.10)

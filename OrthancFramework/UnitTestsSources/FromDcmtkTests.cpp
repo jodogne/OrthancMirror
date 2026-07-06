@@ -2011,6 +2011,10 @@ TEST(DicomWebJson, ValueRepresentation)
 {
   // http://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.2.3.html
 
+#if DCMTK_VERSION_NUMBER >= 365
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7056, 0x1000), ValueRepresentation_OtherVeryLong, "Tag1", 1, 1, "");
+#endif
+
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DicomTag(0x0040, 0x0241), "AE");
   dicom.ReplacePlainString(DicomTag(0x0010, 0x1010), "AS");
@@ -2043,6 +2047,10 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0120), "UR");
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0301), "17");   // US
   dicom.ReplacePlainString(DicomTag(0x0040, 0x0031), "UT");  
+
+#if DCMTK_VERSION_NUMBER >= 365
+  dicom.ReplacePlainString(DicomTag(0x7056, 0x1000), "-17");  // OV
+#endif
 
   DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
@@ -2170,13 +2178,23 @@ TEST(DicomWebJson, ValueRepresentation)
   ASSERT_EQ("UT", visitor.GetResult() ["00400031"]["vr"].asString());
   ASSERT_EQ("UT", visitor.GetResult() ["00400031"]["Value"][0].asString());
 
+#if DCMTK_VERSION_NUMBER >= 365
+  ASSERT_EQ("OV", visitor.GetResult() ["70561000"]["vr"].asString());
+  ASSERT_EQ(-17, visitor.GetResult() ["70561000"]["Value"][0].asInt());
+#endif
+
   std::string xml;
   visitor.FormatXml(xml);
   
   {
     DicomMap m;
     m.FromDicomWeb(visitor.GetResult());
+
+#if DCMTK_VERSION_NUMBER >= 365
+    ASSERT_EQ(32u, m.GetSize());
+#else
     ASSERT_EQ(31u, m.GetSize());
+#endif
     
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0002, 0x0002), false));  ASSERT_EQ("UI", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0040, 0x0241), false));  ASSERT_EQ("AE", s);
@@ -2227,6 +2245,10 @@ TEST(DicomWebJson, ValueRepresentation)
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0120), true));  ASSERT_EQ("UR", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0301), true));  ASSERT_EQ("17", s);  // US (but tag unknown to DCMTK 3.6.0)
 #endif    
+
+#if DCMTK_VERSION_NUMBER >= 365
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7056, 0x1000), true));  ASSERT_EQ("-17", s);  // OV
+#endif
   }
 }
 
