@@ -1746,7 +1746,13 @@ TEST(DicomWebJson, BinaryModes)
     ASSERT_EQ("OD", result["7FE00009"]["vr"].asString());
     ASSERT_FLOAT_EQ(3.5f, result["7FE00009"]["Value"][0].asFloat());
 
+#if DCMTK_VERSION_NUMBER > 361
     ASSERT_EQ("OL", result["00660040"]["vr"].asString());
+#else
+    // DCMTK 3.6.1 confused "OL" with "UL", so it was handled as an array of values
+    ASSERT_EQ("UL", result["00660040"]["vr"].asString());
+#endif
+
     ASSERT_EQ(46, result["00660040"]["Value"][0].asInt());
 #endif
 
@@ -1797,7 +1803,10 @@ TEST(DicomWebJson, BinaryModes)
       case DicomWebJsonVisitor::BinaryMode_Ignore:
 #if DCMTK_VERSION_NUMBER >= 361
         ASSERT_FALSE(result.isMember("7FE00009"));
-        ASSERT_FALSE(result.isMember("00660040"));
+#endif
+
+#if DCMTK_VERSION_NUMBER > 361
+        ASSERT_FALSE(result.isMember("00660040"));  // DCMTK 3.6.1 considered OL as a non-other VR
 #endif
 
         ASSERT_FALSE(result.isMember("00281201"));
@@ -1808,7 +1817,11 @@ TEST(DicomWebJson, BinaryModes)
       case DicomWebJsonVisitor::BinaryMode_BulkDataUri:
 #if DCMTK_VERSION_NUMBER >= 361
         ASSERT_EQ("OD", result["7FE00009"]["vr"].asString());
+#endif
+
+#if DCMTK_VERSION_NUMBER > 361
         ASSERT_EQ("OL", result["00660040"]["vr"].asString());
+        ASSERT_EQ("http://bulk/0066,0040", result["00660040"]["BulkDataURI"].asString());
 #endif
 
         ASSERT_EQ("OW", result["00281201"]["vr"].asString());
@@ -1822,7 +1835,6 @@ TEST(DicomWebJson, BinaryModes)
         ASSERT_EQ("http://bulk/0028,1201", result["00281201"]["BulkDataURI"].asString());
         ASSERT_EQ("http://bulk/0064,0009", result["00640009"]["BulkDataURI"].asString());
         ASSERT_EQ("http://bulk/7fe0,0009", result["7FE00009"]["BulkDataURI"].asString());
-        ASSERT_EQ("http://bulk/0066,0040", result["00660040"]["BulkDataURI"].asString());
         ASSERT_EQ("http://bulk/0002,0102", result["00020102"]["BulkDataURI"].asString());
         break;
 
@@ -1830,6 +1842,9 @@ TEST(DicomWebJson, BinaryModes)
       {
 #if DCMTK_VERSION_NUMBER >= 361
         ASSERT_EQ("OD", result["7FE00009"]["vr"].asString());
+#endif
+
+#if DCMTK_VERSION_NUMBER > 361
         ASSERT_EQ("OL", result["00660040"]["vr"].asString());
 #endif
 
@@ -1861,6 +1876,9 @@ TEST(DicomWebJson, BinaryModes)
       {
 #if DCMTK_VERSION_NUMBER >= 361
         ASSERT_EQ("OD", result["7FE00009"]["vr"].asString());
+#endif
+
+#if DCMTK_VERSION_NUMBER > 361
         ASSERT_EQ("OL", result["00660040"]["vr"].asString());
 #endif
 
@@ -1877,6 +1895,9 @@ TEST(DicomWebJson, BinaryModes)
 
 #if DCMTK_VERSION_NUMBER >= 361
         ASSERT_EQ("AAAAAAAADEA=", result["7FE00009"]["InlineBinary"].asString());
+#endif
+
+#if DCMTK_VERSION_NUMBER > 361
         ASSERT_EQ("LgAAAA==", result["00660040"]["InlineBinary"].asString());
 #endif
 
