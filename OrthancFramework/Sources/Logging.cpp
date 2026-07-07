@@ -46,6 +46,8 @@ namespace Orthanc
 {
   namespace Logging
   {
+    static bool logCallerThreadNameInContext = false; // add a "from THREADNAME" in the context everytime the context is copied from a thread to the other to help track the runnable/callable journey
+
     static const uint32_t ALL_CATEGORIES_MASK = 0xffffffff;
     
     static uint32_t infoCategoriesMask_ = 0;
@@ -537,10 +539,12 @@ namespace
 #include "SystemToolbox.h"
 #include "Toolbox.h"
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
 #include <fstream>
+#include <list>
 
 
 namespace
@@ -620,6 +624,318 @@ namespace
 }
 
 
+static const size_t THREAD_NAME_MAX_SIZE = 16;   // Thread names are limited to 16 char + a space
+
+namespace
+{
+  class ThreadInformation : public boost::noncopyable
+  {
+  private:
+    bool                    hasName_;
+    std::string             name_;
+    std::list<std::string>  context_;
+
+  public:
+    ThreadInformation() :
+      hasName_(false)
+    {
+    }
+
+    void SetThreadName(const std::string& name)
+    {
+#if !defined(NDEBUG)
+      if (hasName_)
+      {
+        throw Orthanc::OrthancException(
+          Orthanc::ErrorCode_InternalError, "This thread already has a name or another thread is re-using "
+          "the same threadId and you have not called 'ClearCurrentThreadName()': " + name,
+          false /* don't log to avoid deadlock */);
+      }
+#endif
+
+      hasName_ = true;
+
+      if (name.size() < THREAD_NAME_MAX_SIZE)
+      {
+        name_ = std::string(THREAD_NAME_MAX_SIZE - name.size(), ' ') + name;
+      }
+      else if (name.size() == THREAD_NAME_MAX_SIZE)
+      {
+        name_ = name;
+      }
+      else
+      {
+        name_ = name.substr(THREAD_NAME_MAX_SIZE);
+      }
+
+      assert(name_.size() == THREAD_NAME_MAX_SIZE);
+    }
+
+    void ClearThreadName()
+    {
+      hasName_ = false;
+      name_.clear();
+    }
+
+    bool HasThreadName() const
+    {
+      return hasName_;
+    }
+
+    std::string GetThreadName() const
+    {
+      if (hasName_)
+      {
+        return name_;
+      }
+      else
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_BadSequenceOfCalls);
+      }
+    }
+
+    void PopContext()
+    {
+      if (context_.empty())
+      {
+#if !defined(NDEBUG)
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError, "Cannot pop from an empty context",
+                                        false /* don't log to avoid deadlock */);
+#endif
+      }
+      else
+      {
+        context_.pop_back();
+      }
+    }
+
+    void PushContext(const std::string& message)
+    {
+      context_.push_back(message);
+    }
+
+    const std::list<std::string>& GetContext() const
+    {
+      return context_;
+    }
+  };
+
+
+  class ThreadsInformations : public boost::noncopyable
+  {
+  private:
+    typedef std::map<boost::thread::id, ThreadInformation*>  Content;
+
+    boost::shared_mutex  mutex_;
+    Content              content_;
+
+  public:
+    ~ThreadsInformations()
+    {
+      Clear();
+    }
+
+    void Clear()
+    {
+      boost::unique_lock<boost::shared_mutex>  lock(mutex_);
+
+      for (Content::iterator it = content_.begin(); it != content_.end(); ++it)
+      {
+        assert(it->second != NULL);
+        delete it->second;
+      }
+
+      content_.clear();
+    }
+
+
+    class CurrentThreadReader : public boost::noncopyable
+    {
+    private:
+      boost::shared_lock<boost::shared_mutex>  lock_;
+      boost::thread::id                        threadId_;
+      bool                                     exists_;
+      const ThreadInformation*                 information_;
+
+    public:
+      explicit CurrentThreadReader(ThreadsInformations& informations) :
+        lock_(informations.mutex_),
+        threadId_(boost::this_thread::get_id()),
+        exists_(false),
+        information_(NULL)
+      {
+        Content::const_iterator found = informations.content_.find(threadId_);
+
+        if (found != informations.content_.end())
+        {
+          assert(found->second != NULL);
+
+          exists_ = true;
+          information_ = found->second;
+        }
+      }
+
+      std::string GetThreadName() const
+      {
+        assert(!exists_ || information_ != NULL);
+
+        if (exists_ &&
+            information_->HasThreadName())
+        {
+          return information_->GetThreadName();
+        }
+        else
+        {
+          return boost::lexical_cast<std::string>(threadId_);
+        }
+      }
+
+      bool HasThreadName() const
+      {
+        assert(!exists_ || information_ != NULL);
+        return (exists_ &&
+                information_->HasThreadName());
+      }
+
+      void FormatContext(std::string& context) const
+      {
+        assert(!exists_ || information_ != NULL);
+        if (exists_ &&
+            !information_->GetContext().empty())
+        {
+          context = "| " + boost::algorithm::join(information_->GetContext(), std::string(" | ")) + " | ";
+        }
+      }
+
+      void CopyContext(std::list<std::string>& target) const
+      {
+        if (exists_)
+        {
+          assert(information_ != NULL);
+          target = information_->GetContext();
+        }
+        else
+        {
+          target.clear();
+        }
+      }
+    };
+
+
+    class CurrentThreadWriter : public boost::noncopyable
+    {
+    private:
+      ThreadsInformations&                     informations_;
+      boost::unique_lock<boost::shared_mutex>  lock_;
+      boost::thread::id                        threadId_;
+      ThreadInformation*                       information_;
+      bool                                     valid_;
+
+      void Recycle()
+      {
+        if (!information_->HasThreadName() &&
+            information_->GetContext().empty())
+        {
+          Content::iterator found = informations_.content_.find(threadId_);
+          assert(found != informations_.content_.end());
+          assert(found->second != NULL);
+
+          delete found->second;
+          informations_.content_.erase(found);
+
+          valid_ = false;
+        }
+      }
+
+    public:
+      explicit CurrentThreadWriter(ThreadsInformations& informations) :
+        informations_(informations),
+        lock_(informations.mutex_),
+        threadId_(boost::this_thread::get_id()),
+        valid_(true)
+      {
+        Content::iterator found = informations.content_.find(threadId_);
+
+        if (found == informations.content_.end())
+        {
+          information_ = new ThreadInformation;
+          informations.content_[threadId_] = information_;
+        }
+        else
+        {
+          assert(found->second != NULL);
+          information_ = found->second;
+        }
+      }
+
+      void SetThreadName(const std::string& name)
+      {
+        if (!valid_)
+        {
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadSequenceOfCalls);
+        }
+
+        assert(information_ != NULL);
+        information_->SetThreadName(name);
+
+#if !defined(NDEBUG)
+        const std::string formattedName = information_->GetThreadName();
+
+        for (Content::const_iterator it = informations_.content_.begin(); it != informations_.content_.end(); ++it)
+        {
+          assert(it->second != NULL);
+          if (it->first != threadId_ &&
+              it->second->HasThreadName() &&
+              it->second->GetThreadName() == formattedName)
+          {
+            throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError,
+                                            "Another thread already uses this thread name: " + name,
+                                            false /* don't log to avoid deadlock */);
+          }
+        }
+#endif
+      }
+
+      void PushContext(const std::string& context)
+      {
+        if (!valid_)
+        {
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadSequenceOfCalls);
+        }
+
+        assert(information_ != NULL);
+        information_->PushContext(context);
+      }
+
+      void ClearThreadName()
+      {
+        if (!valid_)
+        {
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadSequenceOfCalls);
+        }
+
+        assert(information_ != NULL);
+        information_->ClearThreadName();
+
+        Recycle();
+      }
+
+      void PopContext()
+      {
+        if (!valid_)
+        {
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadSequenceOfCalls);
+        }
+
+        assert(information_ != NULL);
+        information_->PopContext();
+
+        Recycle();
+      }
+    };
+  };
+}
+
 
 static std::unique_ptr<LoggingStreamsContext>   loggingStreamsContext_;
 static boost::mutex                             loggingStreamsMutex_;
@@ -628,9 +944,9 @@ static OrthancPluginContext*                    pluginContext_ = NULL;    // thi
 static std::string                              pluginName_;              // this string can only be non-empty if running from a plugin
 static bool                                     hasOrthancAdvancedLogging_ = false;  // Whether the Orthanc runtime is >= 1.12.4
 static bool                                     hasClearThreadName_ = false;  // Whether the Orthanc runtime is >= 1.12.12
-static boost::shared_mutex                      threadNamesMutex_;
-static std::map<boost::thread::id, std::string> threadNames_;
+static ThreadsInformations                      threadsInformations_;
 static bool                                     enableThreadNames_ = true;
+static bool                                     enableThreadContexts_ = true;
 static std::list<Orthanc::Logging::ILoggingListener*> loggingListeners_;
 static boost::shared_mutex                            loggingListenersMutex_;
 
@@ -642,6 +958,11 @@ namespace Orthanc
     void SetThreadNamesEnabled(bool enabled)
     {
       enableThreadNames_ = enabled;
+    }
+
+    void SetThreadContextsEnabled(bool enabled)
+    {
+      enableThreadContexts_ = enabled;
     }
 
     static void GetLogPath(boost::filesystem::path& log,
@@ -704,18 +1025,17 @@ namespace Orthanc
 
     void SetCurrentThreadName(const std::string& name)
     {
-      if (name.size() > 16)
+      if (name.size() > THREAD_NAME_MAX_SIZE)
       {
-        throw OrthancException(ErrorCode_InternalError, std::string("Thread name can not exceed 16 characters: ") + name);
+        throw OrthancException(ErrorCode_InternalError, "Thread name can not exceed " +
+                               boost::lexical_cast<std::string>(THREAD_NAME_MAX_SIZE) + ": " + name);
       }
 
       if (pluginContext_ == NULL)
       {
-        const boost::thread::id threadId = boost::this_thread::get_id();
-
         {
-          boost::unique_lock<boost::shared_mutex> lock(threadNamesMutex_);
-          threadNames_[threadId] = name;
+          ThreadsInformations::CurrentThreadWriter writer(threadsInformations_);
+          writer.SetThreadName(name);
         }
 
 #if defined(__linux__) && !defined(NDEBUG) && !defined(__LSB_VERSION__)
@@ -732,11 +1052,14 @@ namespace Orthanc
 
     bool HasCurrentThreadName()
     {
-      const boost::thread::id threadId = boost::this_thread::get_id();
-
+      if (pluginContext_ == NULL)
       {
-        boost::shared_lock<boost::shared_mutex> lock(threadNamesMutex_);
-        return threadNames_.find(threadId) != threadNames_.end();
+        ThreadsInformations::CurrentThreadReader reader(threadsInformations_);
+        return reader.HasThreadName();
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_NotImplemented);  // Not available for plugins
       }
     }
 
@@ -745,12 +1068,8 @@ namespace Orthanc
     {
       if (pluginContext_ == NULL)
       {
-        const boost::thread::id threadId = boost::this_thread::get_id();
-
-        {
-          boost::unique_lock<boost::shared_mutex> lock(threadNamesMutex_);
-          threadNames_.erase(threadId);
-        }
+        ThreadsInformations::CurrentThreadWriter writer(threadsInformations_);
+        writer.ClearThreadName();
       }
       else if (hasClearThreadName_) // only recent runtimes support it (from 1.12.12)
       {
@@ -759,34 +1078,95 @@ namespace Orthanc
     }
 
 
-    static std::string GetCurrentThreadName()
+    std::string GetCurrentThreadName()
     {
-      const boost::thread::id threadId = boost::this_thread::get_id();
-
+      if (pluginContext_ == NULL)
       {
-        boost::shared_lock<boost::shared_mutex> lock(threadNamesMutex_);
-
-        std::map<boost::thread::id, std::string>::const_iterator found = threadNames_.find(threadId);
-        if (found != threadNames_.end())
-        {
-          return found->second;
-        }
+        ThreadsInformations::CurrentThreadReader reader(threadsInformations_);
+        return reader.GetThreadName();
       }
-
-      // "SetCurrentThreadName()" has not been invoked for this thread
-      return boost::lexical_cast<std::string>(threadId);
+      else
+      {
+        throw OrthancException(ErrorCode_NotImplemented);  // Not available for plugins
+      }
     }    
 
 
-    ScopedCurrentThreadNameSetter::ScopedCurrentThreadNameSetter(const std::string& threadName)
+    void PushCurrentThreadContext(const std::string& context)
     {
-      SetCurrentThreadName(threadName);
+      if (context.size() == 0)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        ThreadsInformations::CurrentThreadWriter writer(threadsInformations_);
+        writer.PushContext(context);
+      }
     }
 
 
-    ScopedCurrentThreadNameSetter::~ScopedCurrentThreadNameSetter()
+    void PopCurrentThreadContext()
     {
-      ClearCurrentThreadName();
+      ThreadsInformations::CurrentThreadWriter writer(threadsInformations_);
+      writer.PopContext();
+    }
+
+
+    struct ThreadContextMemento::PImpl : public boost::noncopyable
+    {
+      std::list<std::string>  context_;
+      std::string             threadName_;
+    };
+
+
+    ThreadContextMemento::ScopedSetter::ScopedSetter(const ThreadContextMemento& memento) :
+      count_(memento.pimpl_->context_.size())
+    {
+      if (logCallerThreadNameInContext && enableThreadNames_ && !memento.pimpl_->threadName_.empty())
+      {
+        count_++;
+        PushCurrentThreadContext("from " + memento.pimpl_->threadName_);
+      }
+
+      for (std::list<std::string>::const_iterator it = memento.pimpl_->context_.begin(); it != memento.pimpl_->context_.end(); ++it)
+      {
+        PushCurrentThreadContext(*it);
+      }
+    }
+
+
+    ThreadContextMemento::ScopedSetter::~ScopedSetter()
+    {
+      for (size_t i = 0; i < count_; i++)
+      {
+        PopCurrentThreadContext();
+      }
+    }
+
+
+    ThreadContextMemento::ThreadContextMemento() :
+      pimpl_(new PImpl)
+    {
+      ThreadsInformations::CurrentThreadReader reader(threadsInformations_);
+      reader.CopyContext(pimpl_->context_);
+      if (reader.HasThreadName())
+      {
+        pimpl_->threadName_ = reader.GetThreadName();
+      }
+    }
+
+
+    ThreadContextMemento::~ThreadContextMemento()
+    {
+      assert(pimpl_ != NULL);
+      delete pimpl_;
+    }
+
+
+    ThreadContextMemento* CreateCurrentThreadContextMemento()
+    {
+      return new ThreadContextMemento;
     }
 
 
@@ -870,14 +1250,23 @@ namespace Orthanc
               static_cast<int>(duration.seconds()),
               static_cast<int>(duration.fractional_seconds()));
 
-      char threadName[20]; // thread names are limited to 16 char + a space
-      if (enableThreadNames_)
+      std::string threadName;
+      std::string context;
+
+      if (enableThreadNames_ ||
+          enableThreadContexts_)
       {
-        sprintf(threadName, "%16s ", GetCurrentThreadName().c_str());
-      }
-      else
-      {
-        threadName[0] = '\0';
+        ThreadsInformations::CurrentThreadReader reader(threadsInformations_);
+
+        if (enableThreadNames_)
+        {
+          threadName = reader.GetThreadName() + " ";
+        }
+
+        if (enableThreadContexts_)
+        {
+          reader.FormatContext(context);
+        }
       }
 
       std::string internalPluginName = "";
@@ -887,7 +1276,7 @@ namespace Orthanc
       }
 
       prefix = (std::string(date) + threadName + internalPluginName + path.filename().string() + ":" +
-                boost::lexical_cast<std::string>(line) + "] ");
+                boost::lexical_cast<std::string>(line) + "] " + context);
 
       if (level != LogLevel_ERROR &&
           level != LogLevel_WARNING &&
