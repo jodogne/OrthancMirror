@@ -616,6 +616,19 @@ namespace Orthanc
   }
 
 
+  std::string ServerContext::GetIngestTranscoding() const
+  {
+    if (isIngestTranscoding_)
+    {
+      return GetTransferSyntaxUid(ingestTransferSyntax_);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
   void ServerContext::SetCompressionEnabled(bool enabled)
   {
     if (enabled)
