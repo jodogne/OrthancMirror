@@ -409,7 +409,8 @@ namespace Orthanc
 #endif
 
 
-  template <typename TargetType,
+  template <typename MemoryType,
+            typename JsonCppType,
             typename SourceType>
   static void ApplyBinaryModeToOtherTypes(Json::Value& node,
                                           DicomWebJsonVisitor::BinaryMode mode,
@@ -430,15 +431,17 @@ namespace Orthanc
         if (!values.empty())
         {
           std::string raw;
-          raw.resize(values.size() * sizeof(TargetType));
+          raw.resize(values.size() * sizeof(MemoryType));
 
           if (!raw.empty())
           {
-            TargetType *p = reinterpret_cast<TargetType*>(&raw[0]);
+            assert(Toolbox::DetectEndianness() == Endianness_Little);  // TODO - Add support for big endian
+
+            MemoryType *p = reinterpret_cast<MemoryType*>(&raw[0]);
 
             for (size_t i = 0; i < values.size(); i++, p++)
             {
-              *p = static_cast<TargetType>(values[i]);
+              *p = static_cast<MemoryType>(values[i]);
             }
           }
 
@@ -459,7 +462,7 @@ namespace Orthanc
 
           for (size_t i = 0; i < values.size(); i++)
           {
-            a.append(values[i]);
+            a.append(static_cast<JsonCppType>(values[i]));
           }
         }
 
@@ -624,15 +627,15 @@ namespace Orthanc
           switch (vr)
           {
             case ValueRepresentation_OtherWord:
-              ApplyBinaryModeToOtherTypes<uint16_t, int64_t>(node, mode, bulkDataUri, values);
+              ApplyBinaryModeToOtherTypes<uint16_t, Json::Value::UInt, int64_t>(node, mode, bulkDataUri, values);
               break;
 
             case ValueRepresentation_OtherLong:
-              ApplyBinaryModeToOtherTypes<uint32_t, int64_t>(node, mode, bulkDataUri, values);
+              ApplyBinaryModeToOtherTypes<uint32_t, Json::Value::UInt, int64_t>(node, mode, bulkDataUri, values);
               break;
 
             case ValueRepresentation_OtherVeryLong:
-              ApplyBinaryModeToOtherTypes<uint64_t, int64_t>(node, mode, bulkDataUri, values);
+              ApplyBinaryModeToOtherTypes<uint64_t, Json::Value::UInt64, int64_t>(node, mode, bulkDataUri, values);
               break;
 
             default:
@@ -700,11 +703,11 @@ namespace Orthanc
           switch (vr)
           {
             case ValueRepresentation_OtherDouble:
-              ApplyBinaryModeToOtherTypes<double, double>(node, mode, bulkDataUri, values);
+              ApplyBinaryModeToOtherTypes<double, double, double>(node, mode, bulkDataUri, values);
               break;
 
             case ValueRepresentation_OtherFloat:
-              ApplyBinaryModeToOtherTypes<float, double>(node, mode, bulkDataUri, values);
+              ApplyBinaryModeToOtherTypes<float, float, double>(node, mode, bulkDataUri, values);
               break;
 
             default:
