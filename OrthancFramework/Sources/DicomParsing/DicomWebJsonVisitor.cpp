@@ -420,14 +420,17 @@ namespace Orthanc
     switch (mode)
     {
       case DicomWebJsonVisitor::BinaryMode_Ignore:
-        return;
+        break;
 
       case DicomWebJsonVisitor::BinaryMode_BulkDataUri:
-        node[KEY_BULK_DATA_URI] = bulkDataUri;
+        if (!values.empty())
+        {
+          node[KEY_BULK_DATA_URI] = bulkDataUri;
+        }
+
         break;
 
       case DicomWebJsonVisitor::BinaryMode_InlineBinary:
-      {
         if (!values.empty())
         {
           std::string raw;
@@ -451,10 +454,8 @@ namespace Orthanc
         }
 
         break;
-      }
 
       case DicomWebJsonVisitor::BinaryMode_ArrayOfValues:
-      {
         if (!values.empty())
         {
           node[KEY_VALUE] = Json::arrayValue;
@@ -467,7 +468,9 @@ namespace Orthanc
         }
 
         break;
-      }
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -553,6 +556,7 @@ namespace Orthanc
               node[KEY_BULK_DATA_URI] = bulkDataUri;
               break;
 
+            case BinaryMode_ArrayOfValues:
             case BinaryMode_InlineBinary:
             {
               std::string tmp(static_cast<const char*>(data), size);
@@ -564,7 +568,6 @@ namespace Orthanc
               break;
             }
 
-            case BinaryMode_ArrayOfValues:
             default:
               throw OrthancException(ErrorCode_ParameterOutOfRange);
           }
@@ -583,6 +586,13 @@ namespace Orthanc
                                      ValueRepresentation vr,
                                      const std::vector<int64_t>& values)
   {
+    /**
+     * "If an attribute is present in DICOM but empty (i.e., Value
+     * Length is 0), it shall be preserved in the DICOM JSON attribute
+     * object containing no "Value", "BulkDataURI" or "InlineBinary"."
+     * https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_f.2.5.html
+     **/
+
     assert((vr == ValueRepresentation_OtherWord && tag != DICOM_TAG_PIXEL_DATA) ||
            vr == ValueRepresentation_OtherLong ||
            vr == ValueRepresentation_OtherVeryLong ||
@@ -596,33 +606,26 @@ namespace Orthanc
     if (tag.GetElement() != 0x0000 &&
         vr != ValueRepresentation_NotSupported)
     {
-      Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
-      node[KEY_VR] = EnumerationToString(vr);
-
-      /**
-       * "If an attribute is present in DICOM but empty (i.e., Value
-       * Length is 0), it shall be preserved in the DICOM JSON
-       * attribute object containing no "Value", "BulkDataURI" or
-       * "InlineBinary"."
-       * https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_f.2.5.html
-       **/
-      if (!values.empty())
+      if (vr == ValueRepresentation_OtherWord ||
+          vr == ValueRepresentation_OtherLong ||
+          vr == ValueRepresentation_OtherVeryLong)
       {
-        if (vr == ValueRepresentation_OtherWord ||
-            vr == ValueRepresentation_OtherLong ||
-            vr == ValueRepresentation_OtherVeryLong)
-        {
-          BinaryMode mode;
-          std::string bulkDataUri;
+        BinaryMode mode;
+        std::string bulkDataUri;
 
-          if (formatter_ == NULL)
-          {
-            mode = BinaryMode_ArrayOfValues;  // This was the default in Orthanc <= 1.12.11
-          }
-          else
-          {
-            mode = formatter_->Format(bulkDataUri, parentTags, parentIndexes, tag, vr);
-          }
+        if (formatter_ == NULL)
+        {
+          mode = BinaryMode_ArrayOfValues;  // This was the default in Orthanc <= 1.12.11
+        }
+        else
+        {
+          mode = formatter_->Format(bulkDataUri, parentTags, parentIndexes, tag, vr);
+        }
+
+        if (mode != BinaryMode_Ignore)
+        {
+          Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+          node[KEY_VR] = EnumerationToString(vr);
 
           switch (vr)
           {
@@ -642,7 +645,13 @@ namespace Orthanc
               throw OrthancException(ErrorCode_InternalError);
           }
         }
-        else
+      }
+      else
+      {
+        Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+        node[KEY_VR] = EnumerationToString(vr);
+
+        if (!values.empty())
         {
           Json::Value content = Json::arrayValue;
           for (size_t i = 0; i < values.size(); i++)
@@ -665,6 +674,13 @@ namespace Orthanc
                                     ValueRepresentation vr,
                                     const std::vector<double>& values)
   {
+    /**
+     * "If an attribute is present in DICOM but empty (i.e., Value
+     * Length is 0), it shall be preserved in the DICOM JSON attribute
+     * object containing no "Value", "BulkDataURI" or "InlineBinary"."
+     * https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_f.2.5.html
+     **/
+
     assert(vr == ValueRepresentation_FloatingPointDouble ||
            vr == ValueRepresentation_FloatingPointSingle ||
            vr == ValueRepresentation_OtherDouble ||
@@ -673,32 +689,25 @@ namespace Orthanc
     if (tag.GetElement() != 0x0000 &&
         vr != ValueRepresentation_NotSupported)
     {
-      Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
-      node[KEY_VR] = EnumerationToString(vr);
-
-      /**
-       * "If an attribute is present in DICOM but empty (i.e., Value
-       * Length is 0), it shall be preserved in the DICOM JSON
-       * attribute object containing no "Value", "BulkDataURI" or
-       * "InlineBinary"."
-       * https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_f.2.5.html
-       **/
-      if (!values.empty())
+      if (vr == ValueRepresentation_OtherDouble ||
+          vr == ValueRepresentation_OtherFloat)
       {
-        if (vr == ValueRepresentation_OtherDouble ||
-            vr == ValueRepresentation_OtherFloat)
-        {
-          BinaryMode mode;
-          std::string bulkDataUri;
+        BinaryMode mode;
+        std::string bulkDataUri;
 
-          if (formatter_ == NULL)
-          {
-            mode = BinaryMode_ArrayOfValues;  // This was the default in Orthanc <= 1.12.11
-          }
-          else
-          {
-            mode = formatter_->Format(bulkDataUri, parentTags, parentIndexes, tag, vr);
-          }
+        if (formatter_ == NULL)
+        {
+          mode = BinaryMode_ArrayOfValues;  // This was the default in Orthanc <= 1.12.11
+        }
+        else
+        {
+          mode = formatter_->Format(bulkDataUri, parentTags, parentIndexes, tag, vr);
+        }
+
+        if (mode != BinaryMode_Ignore)
+        {
+          Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+          node[KEY_VR] = EnumerationToString(vr);
 
           switch (vr)
           {
@@ -714,7 +723,13 @@ namespace Orthanc
               throw OrthancException(ErrorCode_InternalError);
           }
         }
-        else
+      }
+      else
+      {
+        Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+        node[KEY_VR] = EnumerationToString(vr);
+
+        if (!values.empty())
         {
           Json::Value content = Json::arrayValue;
           for (size_t i = 0; i < values.size(); i++)

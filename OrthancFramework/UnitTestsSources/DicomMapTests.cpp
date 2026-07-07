@@ -1250,11 +1250,7 @@ TEST(DicomWebJson, VisitIntegers)
       visitor.VisitIntegers(parentTags, parentIndexes, tag, *it, values);
 
       const Json::Value& result = visitor.GetResult();
-      ASSERT_TRUE(result.isMember("00660041"));
-      ASSERT_EQ(EnumerationToString(*it), result["00660041"]["vr"].asString());
-      ASSERT_FALSE(result["00660041"].isMember("BulkDataURI"));
-      ASSERT_FALSE(result["00660041"].isMember("Value"));
-      ASSERT_FALSE(result["00660041"].isMember("InlineBinary"));
+      ASSERT_FALSE(result.isMember("00660041"));
     }
 
     {
@@ -1315,11 +1311,7 @@ TEST(DicomWebJson, VisitIntegers)
       visitor.VisitIntegers(parentTags, parentIndexes, tag, *it, values);
 
       const Json::Value& result = visitor.GetResult();
-      ASSERT_TRUE(result.isMember("00660041"));
-      ASSERT_EQ(EnumerationToString(*it), result["00660041"]["vr"].asString());
-      ASSERT_FALSE(result["00660041"].isMember("BulkDataURI"));
-      ASSERT_FALSE(result["00660041"].isMember("Value"));
-      ASSERT_FALSE(result["00660041"].isMember("InlineBinary"));
+      ASSERT_FALSE(result.isMember("00660041"));
     }
 
     {
@@ -1472,11 +1464,7 @@ TEST(DicomWebJson, VisitDoubles)
       visitor.VisitDoubles(parentTags, parentIndexes, tag, *it, values);
 
       const Json::Value& result = visitor.GetResult();
-      ASSERT_TRUE(result.isMember("00660027"));
-      ASSERT_EQ(EnumerationToString(*it), result["00660027"]["vr"].asString());
-      ASSERT_FALSE(result["00660027"].isMember("BulkDataURI"));
-      ASSERT_FALSE(result["00660027"].isMember("Value"));
-      ASSERT_FALSE(result["00660027"].isMember("InlineBinary"));
+      ASSERT_FALSE(result.isMember("00660027"));
     }
 
     {
@@ -1536,11 +1524,7 @@ TEST(DicomWebJson, VisitDoubles)
       visitor.VisitDoubles(parentTags, parentIndexes, tag, *it, values);
 
       const Json::Value& result = visitor.GetResult();
-      ASSERT_TRUE(result.isMember("00660027"));
-      ASSERT_EQ(EnumerationToString(*it), result["00660027"]["vr"].asString());
-      ASSERT_FALSE(result["00660027"].isMember("BulkDataURI"));
-      ASSERT_FALSE(result["00660027"].isMember("Value"));
-      ASSERT_FALSE(result["00660027"].isMember("InlineBinary"));
+      ASSERT_FALSE(result.isMember("00660027"));
     }
 
     {
@@ -1799,23 +1783,29 @@ TEST(DicomWebJson, BinaryModes)
 #if DCMTK_VERSION_NUMBER >= 361
     ASSERT_EQ("US", result["00080301"]["vr"].asString());
     ASSERT_EQ(17u, result["00080301"]["Value"][0].asUInt());
-
-    ASSERT_EQ("OD", result["7FE00009"]["vr"].asString());
-    ASSERT_EQ("OL", result["00660040"]["vr"].asString());
 #endif
-
-    ASSERT_EQ("OW", result["00281201"]["vr"].asString());
-    ASSERT_EQ("OF", result["00640009"]["vr"].asString());
 
     switch (*mode)
     {
       case DicomWebJsonVisitor::BinaryMode_Ignore:
-        ASSERT_FALSE(result["00281201"].isMember("Value"));
-        ASSERT_FALSE(result["00281201"].isMember("BulkDataURI"));
-        ASSERT_FALSE(result["00281201"].isMember("InlineBinary"));
+#if DCMTK_VERSION_NUMBER >= 361
+        ASSERT_FALSE(result.isMember("7FE00009"));
+        ASSERT_FALSE(result.isMember("00660040"));
+#endif
+
+        ASSERT_FALSE(result.isMember("00281201"));
+        ASSERT_FALSE(result.isMember("00640009"));
         break;
 
       case DicomWebJsonVisitor::BinaryMode_BulkDataUri:
+#if DCMTK_VERSION_NUMBER >= 361
+        ASSERT_EQ("OD", result["7FE00009"]["vr"].asString());
+        ASSERT_EQ("OL", result["00660040"]["vr"].asString());
+#endif
+
+        ASSERT_EQ("OW", result["00281201"]["vr"].asString());
+        ASSERT_EQ("OF", result["00640009"]["vr"].asString());
+
         ASSERT_FALSE(result["00281201"].isMember("Value"));
         ASSERT_TRUE(result["00281201"].isMember("BulkDataURI"));
         ASSERT_FALSE(result["00281201"].isMember("InlineBinary"));
@@ -1827,6 +1817,14 @@ TEST(DicomWebJson, BinaryModes)
         break;
 
       case DicomWebJsonVisitor::BinaryMode_ArrayOfValues:
+#if DCMTK_VERSION_NUMBER >= 361
+        ASSERT_EQ("OD", result["7FE00009"]["vr"].asString());
+        ASSERT_EQ("OL", result["00660040"]["vr"].asString());
+#endif
+
+        ASSERT_EQ("OW", result["00281201"]["vr"].asString());
+        ASSERT_EQ("OF", result["00640009"]["vr"].asString());
+
         ASSERT_TRUE(result["00281201"].isMember("Value"));
         ASSERT_FALSE(result["00281201"].isMember("BulkDataURI"));
         ASSERT_FALSE(result["00281201"].isMember("InlineBinary"));
@@ -1842,6 +1840,14 @@ TEST(DicomWebJson, BinaryModes)
         break;
 
       case DicomWebJsonVisitor::BinaryMode_InlineBinary:
+#if DCMTK_VERSION_NUMBER >= 361
+        ASSERT_EQ("OD", result["7FE00009"]["vr"].asString());
+        ASSERT_EQ("OL", result["00660040"]["vr"].asString());
+#endif
+
+        ASSERT_EQ("OW", result["00281201"]["vr"].asString());
+        ASSERT_EQ("OF", result["00640009"]["vr"].asString());
+
         ASSERT_FALSE(result["00281201"].isMember("Value"));
         ASSERT_FALSE(result["00281201"].isMember("BulkDataURI"));
         ASSERT_TRUE(result["00281201"].isMember("InlineBinary"));

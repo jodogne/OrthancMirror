@@ -1071,7 +1071,7 @@ extern "C"
   /**
    * The available modes to export a binary DICOM tag into a DICOMweb
    * JSON or XML document. Binary DICOM tags correspond to the tags
-   * whose value representation is "other" (OB, OW, OL, OV, OF, or OD).
+   * whose value representation is "other" (OB, OD, OF, OL, OV, or OW).
    **/
   typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.5.4")
   {
