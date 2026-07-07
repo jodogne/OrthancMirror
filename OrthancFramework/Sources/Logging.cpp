@@ -639,7 +639,7 @@ namespace Orthanc
 {
   namespace Logging
   {
-    void EnableThreadNames(bool enabled)
+    void SetThreadNamesEnabled(bool enabled)
     {
       enableThreadNames_ = enabled;
     }
@@ -778,13 +778,13 @@ namespace Orthanc
     }    
 
 
-    ScopedThreadNameSetter::ScopedThreadNameSetter(const std::string& threadName)
+    ScopedCurrentThreadNameSetter::ScopedCurrentThreadNameSetter(const std::string& threadName)
     {
       SetCurrentThreadName(threadName);
     }
 
 
-    ScopedThreadNameSetter::~ScopedThreadNameSetter()
+    ScopedCurrentThreadNameSetter::~ScopedCurrentThreadNameSetter()
     {
       ClearCurrentThreadName();
     }

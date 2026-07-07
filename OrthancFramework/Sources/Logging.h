@@ -75,12 +75,12 @@ namespace Orthanc
       LogCategory_LUA     = (1 << 6)
     };
 
-    class ScopedThreadNameSetter
+    class ScopedCurrentThreadNameSetter
     {
     public:
-      explicit ScopedThreadNameSetter(const std::string& threadName);
+      explicit ScopedCurrentThreadNameSetter(const std::string& threadName);
 
-      ~ScopedThreadNameSetter();
+      ~ScopedCurrentThreadNameSetter();
     };
 
     class ILoggingListener
@@ -124,7 +124,7 @@ namespace Orthanc
 
     ORTHANC_PUBLIC void ClearLoggingListeners();
 
-    ORTHANC_PUBLIC void EnableThreadNames(bool enabled);
+    ORTHANC_PUBLIC void SetThreadNamesEnabled(bool enabled);
 
     ORTHANC_PUBLIC void EnableInfoLevel(bool enabled);
 

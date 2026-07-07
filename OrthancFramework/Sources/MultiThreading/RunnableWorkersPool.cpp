@@ -48,7 +48,7 @@ namespace Orthanc
  
       static void WorkerThread(Worker* that)
       {
-        Logging::ScopedThreadNameSetter setter(that->threadName_);
+        Logging::ScopedCurrentThreadNameSetter setter(that->threadName_);
 
         while (that->continue_)
         {

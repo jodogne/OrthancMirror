@@ -256,7 +256,7 @@ namespace Orthanc
 
   void ThreadedSetOfInstancesJob::InstanceWorkerThread(ThreadedSetOfInstancesJob* that)
   {
-    Logging::ScopedThreadNameSetter setter(::GetInstanceWorkerThreadName());
+    Logging::ScopedCurrentThreadNameSetter setter(::GetInstanceWorkerThreadName());
 
     while (true)
     {
