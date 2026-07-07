@@ -626,6 +626,24 @@ namespace
 
 static const size_t THREAD_NAME_MAX_SIZE = 16;   // Thread names are limited to 16 char + a space
 
+
+static std::string FormatThreadName(const std::string& name)
+{
+  if (name.size() < THREAD_NAME_MAX_SIZE)
+  {
+    return std::string(THREAD_NAME_MAX_SIZE - name.size(), ' ') + name;
+  }
+  else if (name.size() == THREAD_NAME_MAX_SIZE)
+  {
+    return name;
+  }
+  else
+  {
+    return name.substr(THREAD_NAME_MAX_SIZE);
+  }
+}
+
+
 namespace
 {
   class ThreadInformation : public boost::noncopyable
@@ -654,19 +672,7 @@ namespace
 #endif
 
       hasName_ = true;
-
-      if (name.size() < THREAD_NAME_MAX_SIZE)
-      {
-        name_ = std::string(THREAD_NAME_MAX_SIZE - name.size(), ' ') + name;
-      }
-      else if (name.size() == THREAD_NAME_MAX_SIZE)
-      {
-        name_ = name;
-      }
-      else
-      {
-        name_ = name.substr(THREAD_NAME_MAX_SIZE);
-      }
+      name_ = FormatThreadName(name);
 
       assert(name_.size() == THREAD_NAME_MAX_SIZE);
     }
@@ -786,7 +792,7 @@ namespace
         }
         else
         {
-          return boost::lexical_cast<std::string>(threadId_);
+          return FormatThreadName(boost::lexical_cast<std::string>(threadId_));
         }
       }
 
