@@ -1722,6 +1722,7 @@ TEST(DicomWebJson, BinaryModes)
   dicom.ReplacePlainString(DicomTag(0x0066, 0x0040), "46");    // OL (other long)
   dicom.ReplacePlainString(DicomTag(0x0008, 0x1161), "128");   // UL
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0301), "17");    // US
+  dicom.ReplacePlainString(DicomTag(0x0002, 0x0102), "MyPrivateInformation");   // OB
 
   {
     DicomWebJsonVisitor visitor;
@@ -1754,6 +1755,12 @@ TEST(DicomWebJson, BinaryModes)
 
     ASSERT_EQ("OF", result["00640009"]["vr"].asString());
     ASSERT_FLOAT_EQ(2.5f, result["00640009"]["Value"][0].asFloat());
+
+    ASSERT_EQ("OB", result["00020102"]["vr"].asString());
+
+    std::string decoded;
+    Toolbox::DecodeBase64(decoded, result["00020102"]["InlineBinary"].asString());
+    ASSERT_EQ("MyPrivateInformation", decoded);
   }
 
   std::set<DicomWebJsonVisitor::BinaryMode> modes;
@@ -1795,6 +1802,7 @@ TEST(DicomWebJson, BinaryModes)
 
         ASSERT_FALSE(result.isMember("00281201"));
         ASSERT_FALSE(result.isMember("00640009"));
+        ASSERT_FALSE(result.isMember("00020102"));
         break;
 
       case DicomWebJsonVisitor::BinaryMode_BulkDataUri:
@@ -1805,6 +1813,7 @@ TEST(DicomWebJson, BinaryModes)
 
         ASSERT_EQ("OW", result["00281201"]["vr"].asString());
         ASSERT_EQ("OF", result["00640009"]["vr"].asString());
+        ASSERT_EQ("OB", result["00020102"]["vr"].asString());
 
         ASSERT_FALSE(result["00281201"].isMember("Value"));
         ASSERT_TRUE(result["00281201"].isMember("BulkDataURI"));
@@ -1814,9 +1823,11 @@ TEST(DicomWebJson, BinaryModes)
         ASSERT_EQ("http://bulk/0064,0009", result["00640009"]["BulkDataURI"].asString());
         ASSERT_EQ("http://bulk/7fe0,0009", result["7FE00009"]["BulkDataURI"].asString());
         ASSERT_EQ("http://bulk/0066,0040", result["00660040"]["BulkDataURI"].asString());
+        ASSERT_EQ("http://bulk/0002,0102", result["00020102"]["BulkDataURI"].asString());
         break;
 
       case DicomWebJsonVisitor::BinaryMode_ArrayOfValues:
+      {
 #if DCMTK_VERSION_NUMBER >= 361
         ASSERT_EQ("OD", result["7FE00009"]["vr"].asString());
         ASSERT_EQ("OL", result["00660040"]["vr"].asString());
@@ -1824,6 +1835,7 @@ TEST(DicomWebJson, BinaryModes)
 
         ASSERT_EQ("OW", result["00281201"]["vr"].asString());
         ASSERT_EQ("OF", result["00640009"]["vr"].asString());
+        ASSERT_EQ("OB", result["00020102"]["vr"].asString());
 
         ASSERT_TRUE(result["00281201"].isMember("Value"));
         ASSERT_FALSE(result["00281201"].isMember("BulkDataURI"));
@@ -1837,9 +1849,16 @@ TEST(DicomWebJson, BinaryModes)
         ASSERT_EQ(46, result["00660040"]["Value"][0].asInt());
 #endif
 
+        // Special case: OB, UN, and OW for PixelData are always inlined
+        std::string decoded;
+        Toolbox::DecodeBase64(decoded, result["00020102"]["InlineBinary"].asString());
+        ASSERT_EQ("MyPrivateInformation", decoded);
+
         break;
+      }
 
       case DicomWebJsonVisitor::BinaryMode_InlineBinary:
+      {
 #if DCMTK_VERSION_NUMBER >= 361
         ASSERT_EQ("OD", result["7FE00009"]["vr"].asString());
         ASSERT_EQ("OL", result["00660040"]["vr"].asString());
@@ -1847,6 +1866,7 @@ TEST(DicomWebJson, BinaryModes)
 
         ASSERT_EQ("OW", result["00281201"]["vr"].asString());
         ASSERT_EQ("OF", result["00640009"]["vr"].asString());
+        ASSERT_EQ("OB", result["00020102"]["vr"].asString());
 
         ASSERT_FALSE(result["00281201"].isMember("Value"));
         ASSERT_FALSE(result["00281201"].isMember("BulkDataURI"));
@@ -1860,7 +1880,12 @@ TEST(DicomWebJson, BinaryModes)
         ASSERT_EQ("LgAAAA==", result["00660040"]["InlineBinary"].asString());
 #endif
 
+        std::string decoded;
+        Toolbox::DecodeBase64(decoded, result["00020102"]["InlineBinary"].asString());
+        ASSERT_EQ("MyPrivateInformation", decoded);
+
         break;
+      }
 
       default:
         break;
