@@ -1411,6 +1411,16 @@ namespace Orthanc
           // set to "/dev/null"
           return;
         }
+        else
+        {
+          if (enableThreadContexts_)
+          {
+            ThreadsInformations::CurrentThreadReader reader(threadsInformations_);
+            std::string prefix;
+            reader.FormatContext(prefix);
+            messageStream_ << prefix;
+          }
+        }
       }
       else
       {
