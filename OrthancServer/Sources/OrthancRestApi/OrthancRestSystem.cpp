@@ -178,6 +178,10 @@ namespace Orthanc
       {
         result[ORTHANC_CONFIG_INGEST_TRANSCODING] = GetTransferSyntaxUid(ingestTransferSyntax); // New in Orthanc 1.11.0
       }
+      else
+      {
+        result[ORTHANC_CONFIG_INGEST_TRANSCODING] = "";
+      }
 
       result[ORTHANC_CONFIG_DATABASE_SERVER_IDENTIFIER] = lock.GetConfiguration().GetDatabaseServerIdentifier();
       result[ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE] = lock.GetConfiguration().GetMaximumStorageSize(); // New in Orthanc 1.11.3
