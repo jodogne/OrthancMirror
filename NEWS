@@ -4,6 +4,8 @@ Pending changes in the mainline
 General
 -------
 
+* Orthanc will now refuse to start if you have "AuthenticationEnabled" and "RemoteAccessAllowed" 
+  set to true and have not defined any users in "RegisteredUsers".
 * New values for "OverwriteInstances" configuration. In previous versions, this configuration
   was a Boolean and it is now a string whose allowed values are "Never", "Always",
   and "IfChanged". For backward compatibility, you may still provide a Boolean value

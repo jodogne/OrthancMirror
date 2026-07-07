@@ -1200,21 +1200,15 @@ static bool StartHttpServer(ServerContext& context,
             status == OrthancConfiguration::RegisteredUsersStatus_NoConfiguration)
         {
           /**
-           * Starting with Orthanc 1.5.8, if no user is explicitly
-           * defined while remote access is allowed, we create a
-           * default user, and Orthanc Explorer shows a warning
-           * message about an "Insecure setup". This convention is
-           * used in Docker images "jodogne/orthanc",
-           * "jodogne/orthanc-plugins" and "osimis/orthanc".
+           * Starting with Orthanc 1.13.0, if no user is explicitly
+           * defined while remote access is allowed, Orthanc refuses to start
+           * and asks the user to create at least one user.
            **/
-          LOG(WARNING) << "====> HTTP authentication is enabled, but no user is declared. "
-                       << "Creating a default user: Review your configuration option \"RegisteredUsers\". "
-                       << "Your setup is INSECURE <====";
+          std::string errorMessage = "HTTP authentication is enabled and Remote Access is allowed, but no user is declared.  "
+                                     "Starting with Orthanc 1.13.0, you must at least explicitly declare one user in the configuration option \"RegisteredUsers\".";
+          LOG(ERROR) << "====> " << errorMessage << " Orthanc will refuse to start. <====";
 
-          context.SetHttpServerSecure(false);
-
-          // This is the username/password of the default user in Orthanc.
-          httpServer.RegisterUser("orthanc", "orthanc");
+          throw OrthancException(ErrorCode_IncompatibleConfigurations, errorMessage);
         }
         else
         {
@@ -1464,6 +1458,7 @@ static bool StartDicomServer(ServerContext& context,
 
     bool restart = false;
     ErrorCode error = ErrorCode_Success;
+    std::string errorDetails;
 
     try
     {
@@ -1472,6 +1467,7 @@ static bool StartDicomServer(ServerContext& context,
     catch (OrthancException& e)
     {
       error = e.GetErrorCode();
+      errorDetails = e.GetDetails();
     }
 
     dicomServer.Stop();
@@ -1481,7 +1477,7 @@ static bool StartDicomServer(ServerContext& context,
 
     if (error != ErrorCode_Success)
     {
-      throw OrthancException(error);
+      throw OrthancException(error, errorDetails);
     }
 
     return restart;
@@ -2350,7 +2346,7 @@ int main(int argc, char* argv[])
   }
   catch (const OrthancException& e)
   {
-    LOG(ERROR) << "Uncaught exception, stopping now: [" << e.What() << "] (code " << e.GetErrorCode() << ")";
+    LOG(ERROR) << "Uncaught exception, stopping now: [" << e.What() << "] (code " << e.GetErrorCode() << ") " << e.GetDetails();
 #if defined(_WIN32)
     if (e.GetErrorCode() >= ErrorCode_START_PLUGINS)
     {
