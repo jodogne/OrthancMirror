@@ -616,15 +616,16 @@ namespace Orthanc
   }
 
 
-  std::string ServerContext::GetIngestTranscoding() const
+  bool ServerContext::LookupIngestTranscoding(DicomTransferSyntax& target) const
   {
     if (isIngestTranscoding_)
     {
-      return GetTransferSyntaxUid(ingestTransferSyntax_);
+      target = ingestTransferSyntax_;
+      return true;
     }
     else
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      return false;
     }
   }
 

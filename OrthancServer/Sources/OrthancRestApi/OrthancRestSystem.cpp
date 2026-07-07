@@ -172,7 +172,13 @@ namespace Orthanc
       result[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = lock.GetConfiguration().GetMaximumStorageCacheSize(); // New in Orthanc 1.12.12
       result[ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS] = lock.GetConfiguration().HasStoreMD5ForAttachments(); // New in Orthanc 1.12.12
       result[ORTHANC_CONFIG_STORAGE_COMPRESSION] = lock.GetConfiguration().HasStorageCompression(); // New in Orthanc 1.11.0
-      result[ORTHANC_CONFIG_INGEST_TRANSCODING] = context.GetIngestTranscoding(); // New in Orthanc 1.11.0
+
+      DicomTransferSyntax ingestTransferSyntax;
+      if (context.LookupIngestTranscoding(ingestTransferSyntax))
+      {
+        result[ORTHANC_CONFIG_INGEST_TRANSCODING] = GetTransferSyntaxUid(ingestTransferSyntax); // New in Orthanc 1.11.0
+      }
+
       result[ORTHANC_CONFIG_DATABASE_SERVER_IDENTIFIER] = lock.GetConfiguration().GetDatabaseServerIdentifier();
       result[ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE] = lock.GetConfiguration().GetMaximumStorageSize(); // New in Orthanc 1.11.3
       result[ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT] = lock.GetConfiguration().GetMaximumPatientCount(); // New in Orthanc 1.12.4

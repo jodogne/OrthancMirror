@@ -336,7 +336,7 @@ namespace Orthanc
       return patientLevelEnabled_;
     }
 
-    std::string GetIngestTranscoding() const;
+    bool LookupIngestTranscoding(DicomTransferSyntax& target) const;
 
     void SetCompressionEnabled(bool enabled);
 
