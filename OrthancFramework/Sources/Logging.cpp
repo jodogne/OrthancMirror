@@ -1092,9 +1092,9 @@ namespace Orthanc
     }    
 
 
-    void PushCurrentThreadContext(const std::string& context)
+    static void PushCurrentThreadContext(const std::string& context)
     {
-      if (context.size() == 0)
+      if (context.empty())
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
@@ -1106,7 +1106,7 @@ namespace Orthanc
     }
 
 
-    void PopCurrentThreadContext()
+    static void PopCurrentThreadContext()
     {
       ThreadsInformations::CurrentThreadWriter writer(threadsInformations_);
       writer.PopContext();
@@ -1121,17 +1121,18 @@ namespace Orthanc
 
 
     ThreadContextMemento::ScopedSetter::ScopedSetter(const ThreadContextMemento& memento) :
-      count_(memento.pimpl_->context_.size())
+      count_(0)
     {
       if (logCallerThreadNameInContext && enableThreadNames_ && !memento.pimpl_->threadName_.empty())
       {
-        count_++;
         PushCurrentThreadContext("from " + memento.pimpl_->threadName_);
+        count_++;
       }
 
       for (std::list<std::string>::const_iterator it = memento.pimpl_->context_.begin(); it != memento.pimpl_->context_.end(); ++it)
       {
         PushCurrentThreadContext(*it);
+        count_++;
       }
     }
 
@@ -1375,6 +1376,18 @@ namespace Orthanc
         logTargetFile_ = path;
         logTargetFolder_.clear();
       }
+    }
+
+
+    ScopedCurrentThreadContextSetter::ScopedCurrentThreadContextSetter(const std::string& context)
+    {
+      PushCurrentThreadContext(context);
+    }
+
+
+    ScopedCurrentThreadContextSetter::~ScopedCurrentThreadContextSetter()
+    {
+      PopCurrentThreadContext();
     }
 
 
