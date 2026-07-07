@@ -734,8 +734,7 @@ namespace Orthanc
       {
         DcmAttributeTag& e = dynamic_cast<DcmAttributeTag&>(element);
 
-        if (e.getUint16Array(content_).good() &&
-            content_ != NULL)
+        if (e.getUint16Array(content_).good())
         {
           if (element.getLength() % sizeof(Uint16) != 0)
           {
@@ -743,6 +742,12 @@ namespace Orthanc
           }
 
           size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint16);
+          if (size_ != 0 &&
+              content_ == NULL)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
           if (size_ % 2 != 0)
           {
             throw OrthancException(ErrorCode_BadFileFormat);
@@ -777,6 +782,8 @@ namespace Orthanc
       virtual void ReadValue(std::string& value,
                              uint64_t index) const ORTHANC_OVERRIDE
       {
+        assert(valid_);
+        assert(index < size_);
         value = GetTag(index).Format();
       }
 
@@ -818,8 +825,7 @@ namespace Orthanc
          **/
         DcmFloatingPointSingle& e = dynamic_cast<DcmFloatingPointSingle&>(element);
 
-        if (e.getFloat32Array(content_).good() &&
-            content_ != NULL)
+        if (e.getFloat32Array(content_).good())
         {
           if (element.getLength() % sizeof(Float32) != 0)
           {
@@ -827,6 +833,12 @@ namespace Orthanc
           }
 
           size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Float32);
+          if (size_ != 0 &&
+              content_ == NULL)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
           valid_ = true;
         }
       }
@@ -846,6 +858,7 @@ namespace Orthanc
                              uint64_t index) const ORTHANC_OVERRIDE
       {
         assert(valid_);
+        assert(index < size_);
         value = boost::lexical_cast<std::string>(content_[index]);
       }
 
@@ -890,8 +903,7 @@ namespace Orthanc
          **/
         DcmFloatingPointDouble& e = dynamic_cast<DcmFloatingPointDouble&>(element);
 
-        if (e.getFloat64Array(content_).good() &&
-            content_ != NULL)
+        if (e.getFloat64Array(content_).good())
         {
           if (element.getLength() % sizeof(Float64) != 0)
           {
@@ -899,6 +911,12 @@ namespace Orthanc
           }
 
           size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Float64);
+          if (size_ != 0 &&
+              content_ == NULL)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
           valid_ = true;
         }
       }
@@ -918,6 +936,7 @@ namespace Orthanc
                              uint64_t index) const ORTHANC_OVERRIDE
       {
         assert(valid_);
+        assert(index < size_);
         value = boost::lexical_cast<std::string>(content_[index]);
       }
 
@@ -953,8 +972,7 @@ namespace Orthanc
       {
         DcmOtherByteOtherWord& e = dynamic_cast<DcmOtherByteOtherWord&>(element);
 
-        if (e.getUint16Array(content_).good() &&
-            content_ != NULL)
+        if (e.getUint16Array(content_).good())
         {
           if (element.getLength() % sizeof(Uint16) != 0)
           {
@@ -962,6 +980,12 @@ namespace Orthanc
           }
 
           size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint16);
+          if (size_ != 0 &&
+              content_ == NULL)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
           valid_ = true;
         }
       }
@@ -981,6 +1005,7 @@ namespace Orthanc
                              uint64_t index) const ORTHANC_OVERRIDE
       {
         assert(valid_);
+        assert(index < size_);
         value = boost::lexical_cast<std::string>(content_[index]);
       }
 
@@ -1022,8 +1047,7 @@ namespace Orthanc
          **/
         DcmUnsignedLong& e = dynamic_cast<DcmUnsignedLong&>(element);
 
-        if (e.getUint32Array(content_).good() &&
-            content_ != NULL)
+        if (e.getUint32Array(content_).good())
         {
           if (element.getLength() % sizeof(Uint32) != 0)
           {
@@ -1031,6 +1055,12 @@ namespace Orthanc
           }
 
           size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint32);
+          if (size_ != 0 &&
+              content_ == NULL)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
           valid_ = true;
         }
       }
@@ -1050,6 +1080,7 @@ namespace Orthanc
                              uint64_t index) const ORTHANC_OVERRIDE
       {
         assert(valid_);
+        assert(index < size_);
         value = boost::lexical_cast<std::string>(content_[index]);
       }
 
@@ -1086,8 +1117,7 @@ namespace Orthanc
       {
         DcmUnsigned64bitVeryLong& e = dynamic_cast<DcmOther64bitVeryLong&>(element);
 
-        if (e.getUint64Array(content_).good() &&
-            content_ != NULL)
+        if (e.getUint64Array(content_).good())
         {
           if (element.getLength() % sizeof(Uint64) != 0)
           {
@@ -1095,6 +1125,12 @@ namespace Orthanc
           }
 
           size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint64);
+          if (size_ != 0 &&
+              content_ == NULL)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
           valid_ = true;
         }
       }
@@ -1114,6 +1150,7 @@ namespace Orthanc
                              uint64_t index) const ORTHANC_OVERRIDE
       {
         assert(valid_);
+        assert(index < size_);
         value = boost::lexical_cast<std::string>(content_[index]);
       }
 
