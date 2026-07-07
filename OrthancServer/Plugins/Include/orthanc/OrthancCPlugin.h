@@ -1070,13 +1070,15 @@ extern "C"
 
   /**
    * The available modes to export a binary DICOM tag into a DICOMweb
-   * JSON or XML document.
+   * JSON or XML document. Binary DICOM tags correspond to the tags
+   * whose value representation is "other" (OB, OW, OL, OV, OF, or OD).
    **/
   typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.5.4")
   {
     OrthancPluginDicomWebBinaryMode_Ignore = 0,        /*!< Don't include binary tags */
     OrthancPluginDicomWebBinaryMode_InlineBinary = 1,  /*!< Inline encoding using Base64 */
-    OrthancPluginDicomWebBinaryMode_BulkDataUri = 2    /*!< Use a bulk data URI field */
+    OrthancPluginDicomWebBinaryMode_BulkDataUri = 2,   /*!< Use a bulk data URI field */
+    OrthancPluginDicomWebBinaryMode_ArrayOfValues ORTHANC_PLUGIN_SINCE_SDK("1.12.12") = 3  /*!< Encode the values as an array (not available for OB, new in Orthanc 1.12.12) */
   } OrthancPluginDicomWebBinaryMode;
 
 

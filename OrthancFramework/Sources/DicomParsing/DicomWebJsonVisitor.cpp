@@ -110,7 +110,7 @@ namespace Orthanc
       if (keyword != std::string(DcmTag_ERROR_TagName))
       {
         node.append_attribute("keyword").set_value(keyword.c_str());
-      }   
+      }
 
       if (content.isMember(KEY_VALUE))
       {
@@ -409,6 +409,66 @@ namespace Orthanc
 #endif
 
 
+  template <typename TargetType,
+            typename SourceType>
+  static void ApplyBinaryModeToOtherTypes(Json::Value& node,
+                                          DicomWebJsonVisitor::BinaryMode mode,
+                                          const std::string& bulkDataUri,
+                                          const std::vector<SourceType>& values)
+  {
+    switch (mode)
+    {
+      case DicomWebJsonVisitor::BinaryMode_Ignore:
+        return;
+
+      case DicomWebJsonVisitor::BinaryMode_BulkDataUri:
+        node[KEY_BULK_DATA_URI] = bulkDataUri;
+        break;
+
+      case DicomWebJsonVisitor::BinaryMode_InlineBinary:
+      {
+        if (!values.empty())
+        {
+          std::string raw;
+          raw.resize(values.size() * sizeof(TargetType));
+
+          if (!raw.empty())
+          {
+            TargetType *p = reinterpret_cast<TargetType*>(&raw[0]);
+
+            for (size_t i = 0; i < values.size(); i++, p++)
+            {
+              *p = static_cast<TargetType>(values[i]);
+            }
+          }
+
+          std::string base64;
+          Toolbox::EncodeBase64(base64, raw);
+          node[KEY_INLINE_BINARY] = base64;
+        }
+
+        break;
+      }
+
+      case DicomWebJsonVisitor::BinaryMode_ArrayOfValues:
+      {
+        if (!values.empty())
+        {
+          node[KEY_VALUE] = Json::arrayValue;
+          Json::Value& a = node[KEY_VALUE];
+
+          for (size_t i = 0; i < values.size(); i++)
+          {
+            a.append(values[i]);
+          }
+        }
+
+        break;
+      }
+    }
+  }
+
+
   ITagVisitor::Action
   DicomWebJsonVisitor::VisitNotSupported(const std::vector<DicomTag> &parentTags,
                                          const std::vector<size_t> &parentIndexes,
@@ -501,6 +561,7 @@ namespace Orthanc
               break;
             }
 
+            case BinaryMode_ArrayOfValues:
             default:
               throw OrthancException(ErrorCode_ParameterOutOfRange);
           }
@@ -535,15 +596,59 @@ namespace Orthanc
       Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
       node[KEY_VR] = EnumerationToString(vr);
 
+      /**
+       * "If an attribute is present in DICOM but empty (i.e., Value
+       * Length is 0), it shall be preserved in the DICOM JSON
+       * attribute object containing no "Value", "BulkDataURI" or
+       * "InlineBinary"."
+       * https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_f.2.5.html
+       **/
       if (!values.empty())
       {
-        Json::Value content = Json::arrayValue;
-        for (size_t i = 0; i < values.size(); i++)
+        if (vr == ValueRepresentation_OtherWord ||
+            vr == ValueRepresentation_OtherLong ||
+            vr == ValueRepresentation_OtherVeryLong)
         {
-          content.append(FormatInteger(values[i]));
-        }
+          BinaryMode mode;
+          std::string bulkDataUri;
 
-        node[KEY_VALUE] = content;
+          if (formatter_ == NULL)
+          {
+            mode = BinaryMode_ArrayOfValues;  // This was the default in Orthanc <= 1.12.11
+          }
+          else
+          {
+            mode = formatter_->Format(bulkDataUri, parentTags, parentIndexes, tag, vr);
+          }
+
+          switch (vr)
+          {
+            case ValueRepresentation_OtherWord:
+              ApplyBinaryModeToOtherTypes<uint16_t, int64_t>(node, mode, bulkDataUri, values);
+              break;
+
+            case ValueRepresentation_OtherLong:
+              ApplyBinaryModeToOtherTypes<uint32_t, int64_t>(node, mode, bulkDataUri, values);
+              break;
+
+            case ValueRepresentation_OtherVeryLong:
+              ApplyBinaryModeToOtherTypes<uint64_t, int64_t>(node, mode, bulkDataUri, values);
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_InternalError);
+          }
+        }
+        else
+        {
+          Json::Value content = Json::arrayValue;
+          for (size_t i = 0; i < values.size(); i++)
+          {
+            content.append(FormatInteger(values[i]));
+          }
+
+          node[KEY_VALUE] = content;
+        }
       }
     }
 
@@ -568,15 +673,54 @@ namespace Orthanc
       Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
       node[KEY_VR] = EnumerationToString(vr);
 
+      /**
+       * "If an attribute is present in DICOM but empty (i.e., Value
+       * Length is 0), it shall be preserved in the DICOM JSON
+       * attribute object containing no "Value", "BulkDataURI" or
+       * "InlineBinary"."
+       * https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_f.2.5.html
+       **/
       if (!values.empty())
       {
-        Json::Value content = Json::arrayValue;
-        for (size_t i = 0; i < values.size(); i++)
+        if (vr == ValueRepresentation_OtherDouble ||
+            vr == ValueRepresentation_OtherFloat)
         {
-          content.append(FormatDouble(values[i]));
+          BinaryMode mode;
+          std::string bulkDataUri;
+
+          if (formatter_ == NULL)
+          {
+            mode = BinaryMode_ArrayOfValues;  // This was the default in Orthanc <= 1.12.11
+          }
+          else
+          {
+            mode = formatter_->Format(bulkDataUri, parentTags, parentIndexes, tag, vr);
+          }
+
+          switch (vr)
+          {
+            case ValueRepresentation_OtherDouble:
+              ApplyBinaryModeToOtherTypes<double, double>(node, mode, bulkDataUri, values);
+              break;
+
+            case ValueRepresentation_OtherFloat:
+              ApplyBinaryModeToOtherTypes<float, double>(node, mode, bulkDataUri, values);
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_InternalError);
+          }
         }
+        else
+        {
+          Json::Value content = Json::arrayValue;
+          for (size_t i = 0; i < values.size(); i++)
+          {
+            content.append(FormatDouble(values[i]));
+          }
           
-        node[KEY_VALUE] = content;
+          node[KEY_VALUE] = content;
+        }
       }
     }
 
