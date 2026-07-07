@@ -184,6 +184,10 @@ namespace Orthanc
     {
       result[ORTHANC_CONFIG_INGEST_TRANSCODING] = GetTransferSyntaxUid(ingestTransferSyntax); // New in Orthanc 1.11.0
     }
+    else
+    {
+      result[ORTHANC_CONFIG_INGEST_TRANSCODING] = "";
+    }
 
     result[ORTHANC_CONFIG_OVERWRITE_INSTANCES] = context.IsOverwriteInstances(); // New in Orthanc 1.11.0
     result[OVERWRITE_INSTANCES_MODE] = EnumerationToString(context.GetOverwriteInstances()); // New in Orthanc 1.12.12

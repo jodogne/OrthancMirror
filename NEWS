@@ -4,6 +4,8 @@ Pending changes in the mainline
 General
 -------
 
+* Orthanc will now refuse to start if you have "AuthenticationEnabled" and "RemoteAccessAllowed"
+  set to true and have not defined any users in "RegisteredUsers".
 * New values for "OverwriteInstances" configuration. In previous versions, this configuration
   was a Boolean and it is now a string whose allowed values are "Never", "Always",
   and "IfChanged". For backward compatibility, you may still provide a Boolean value
@@ -29,7 +31,6 @@ General
 * Fix mismatches between the configuration default values and the documentation:
   - "HttpTimeout" was documented as 60 while its default value is 0 (no timeout).
   - "Name" was documented as "MyOrthanc" while its default value is "ORTHANC".
-
 
 REST API
 --------
