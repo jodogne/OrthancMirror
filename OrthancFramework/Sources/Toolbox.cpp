@@ -313,6 +313,8 @@ namespace Orthanc
     pimpl_->md5_.get_digest(digest);
 
     target.resize(32);
+
+#      if BOOST_ENDIAN_LITTLE_BYTE
     sprintf(&target[0], "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
             (digest[0] >> 0) & 0xFF, 
             (digest[0] >> 8) & 0xFF,
@@ -330,6 +332,25 @@ namespace Orthanc
             (digest[3] >> 8) & 0xFF,
             (digest[3] >> 16) & 0xFF,
             (digest[3] >> 24) & 0xFF);
+#      else
+    sprintf(&target[0], "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+            (digest[0] >> 24) & 0xFF,
+            (digest[0] >> 16) & 0xFF,
+            (digest[0] >> 8) & 0xFF,
+            (digest[0] >> 0) & 0xFF,
+            (digest[1] >> 24) & 0xFF,
+            (digest[1] >> 16) & 0xFF,
+            (digest[1] >> 8) & 0xFF,
+            (digest[1] >> 0) & 0xFF,
+            (digest[2] >> 24) & 0xFF,
+            (digest[2] >> 16) & 0xFF,
+            (digest[2] >> 8) & 0xFF,
+            (digest[2] >> 0) & 0xFF,
+            (digest[3] >> 24) & 0xFF,
+            (digest[3] >> 16) & 0xFF,
+            (digest[3] >> 8) & 0xFF,
+            (digest[3] >> 0) & 0xFF);
+#      endif
 
 #    endif //BOOST_VERSION >= 108600
   }
@@ -3313,6 +3334,47 @@ namespace Orthanc
     else
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange, "Not a valid version: " + std::string(version));
+    }
+  }
+
+
+  void Toolbox::SwapEndianness(void* data,
+                               size_t dataSize,
+                               size_t itemSize)
+  {
+    if (itemSize == 0 ||
+        dataSize % itemSize != 0)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (itemSize != 1)
+    {
+      uint8_t* p = reinterpret_cast<uint8_t*>(data);
+      const size_t count = dataSize / itemSize;
+
+      for (size_t i = 0; i < count; i++)
+      {
+        for (size_t b1 = 0; b1 < itemSize / 2; b1++)
+        {
+          size_t b2 = itemSize - 1 - b1;
+          uint8_t tmp = p[b1];
+          p[b1] = p[b2];
+          p[b2] = tmp;
+        }
+
+        p += itemSize;
+      }
+    }
+  }
+
+
+  void Toolbox::SwapEndianness(std::string& buffer,
+                               size_t itemSize)
+  {
+    if (!buffer.empty())
+    {
+      SwapEndianness(&buffer[0], buffer.size(), itemSize);
     }
   }
 }

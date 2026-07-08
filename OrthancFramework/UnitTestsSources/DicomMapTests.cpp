@@ -1372,6 +1372,13 @@ TEST(DicomWebJson, VisitIntegers)
     Toolbox::DecodeBase64(decoded, result["00660041"]["InlineBinary"].asString());
     ASSERT_EQ(3 * sizeof(uint16_t), decoded.size());
 
+    if (Toolbox::DetectEndianness() == Endianness_Big)
+    {
+      std::swap(decoded[0], decoded[1]);
+      std::swap(decoded[2], decoded[3]);
+      std::swap(decoded[4], decoded[5]);
+    }
+
     uint16_t f0, f1, f2;
     memcpy(&f0, decoded.c_str(), sizeof(uint16_t));
     memcpy(&f1, decoded.c_str() + sizeof(uint16_t), sizeof(uint16_t));
@@ -1399,6 +1406,11 @@ TEST(DicomWebJson, VisitIntegers)
     std::string decoded;
     Toolbox::DecodeBase64(decoded, result["00660041"]["InlineBinary"].asString());
     ASSERT_EQ(3 * sizeof(uint32_t), decoded.size());
+
+    if (Toolbox::DetectEndianness() == Endianness_Big)
+    {
+      Toolbox::SwapEndianness(decoded, sizeof(uint32_t));
+    }
 
     uint32_t f0, f1, f2;
     memcpy(&f0, decoded.c_str(), sizeof(uint32_t));
@@ -1428,6 +1440,11 @@ TEST(DicomWebJson, VisitIntegers)
     std::string decoded;
     Toolbox::DecodeBase64(decoded, result["00660041"]["InlineBinary"].asString());
     ASSERT_EQ(3 * sizeof(uint64_t), decoded.size());
+
+    if (Toolbox::DetectEndianness() == Endianness_Big)
+    {
+      Toolbox::SwapEndianness(decoded, sizeof(uint64_t));
+    }
 
     uint64_t f0, f1, f2;
     memcpy(&f0, decoded.c_str(), sizeof(uint64_t));
@@ -1584,6 +1601,11 @@ TEST(DicomWebJson, VisitDoubles)
     Toolbox::DecodeBase64(decoded, result["00660027"]["InlineBinary"].asString());
     ASSERT_EQ(2 * sizeof(float), decoded.size());
 
+    if (Toolbox::DetectEndianness() == Endianness_Big)
+    {
+      Toolbox::SwapEndianness(decoded, sizeof(float));
+    }
+
     float f0, f1;
     memcpy(&f0, decoded.c_str(), sizeof(float));
     memcpy(&f1, decoded.c_str() + sizeof(float), sizeof(float));
@@ -1609,6 +1631,11 @@ TEST(DicomWebJson, VisitDoubles)
     std::string decoded;
     Toolbox::DecodeBase64(decoded, result["00660027"]["InlineBinary"].asString());
     ASSERT_EQ(2 * sizeof(double), decoded.size());
+
+    if (Toolbox::DetectEndianness() == Endianness_Big)
+    {
+      Toolbox::SwapEndianness(decoded, sizeof(double));
+    }
 
     double f0, f1;
     memcpy(&f0, decoded.c_str(), sizeof(double));

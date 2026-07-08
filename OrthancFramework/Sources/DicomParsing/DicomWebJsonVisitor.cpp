@@ -417,6 +417,8 @@ namespace Orthanc
                                           const std::string& bulkDataUri,
                                           const std::vector<SourceType>& values)
   {
+    static const Endianness endianness = Toolbox::DetectEndianness();
+
     switch (mode)
     {
       case DicomWebJsonVisitor::BinaryMode_Ignore:
@@ -438,13 +440,16 @@ namespace Orthanc
 
           if (!raw.empty())
           {
-            assert(Toolbox::DetectEndianness() == Endianness_Little);  // TODO - Add support for big endian
-
             MemoryType *p = reinterpret_cast<MemoryType*>(&raw[0]);
 
             for (size_t i = 0; i < values.size(); i++, p++)
             {
               *p = static_cast<MemoryType>(values[i]);
+            }
+
+            if (endianness == Endianness_Big)
+            {
+              Toolbox::SwapEndianness(raw, sizeof(MemoryType));
             }
           }
 
