@@ -626,6 +626,24 @@ namespace
 
 static const size_t THREAD_NAME_MAX_SIZE = 16;   // Thread names are limited to 16 char + a space
 
+
+static std::string FormatThreadName(const std::string& name)
+{
+  if (name.size() < THREAD_NAME_MAX_SIZE)
+  {
+    return std::string(THREAD_NAME_MAX_SIZE - name.size(), ' ') + name;
+  }
+  else if (name.size() == THREAD_NAME_MAX_SIZE)
+  {
+    return name;
+  }
+  else
+  {
+    return name.substr(THREAD_NAME_MAX_SIZE);
+  }
+}
+
+
 namespace
 {
   class ThreadInformation : public boost::noncopyable
@@ -654,19 +672,7 @@ namespace
 #endif
 
       hasName_ = true;
-
-      if (name.size() < THREAD_NAME_MAX_SIZE)
-      {
-        name_ = std::string(THREAD_NAME_MAX_SIZE - name.size(), ' ') + name;
-      }
-      else if (name.size() == THREAD_NAME_MAX_SIZE)
-      {
-        name_ = name;
-      }
-      else
-      {
-        name_ = name.substr(THREAD_NAME_MAX_SIZE);
-      }
+      name_ = FormatThreadName(name);
 
       assert(name_.size() == THREAD_NAME_MAX_SIZE);
     }
@@ -786,7 +792,7 @@ namespace
         }
         else
         {
-          return boost::lexical_cast<std::string>(threadId_);
+          return FormatThreadName(boost::lexical_cast<std::string>(threadId_));
         }
       }
 
@@ -1092,9 +1098,9 @@ namespace Orthanc
     }    
 
 
-    void PushCurrentThreadContext(const std::string& context)
+    static void PushCurrentThreadContext(const std::string& context)
     {
-      if (context.size() == 0)
+      if (context.empty())
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
@@ -1106,7 +1112,7 @@ namespace Orthanc
     }
 
 
-    void PopCurrentThreadContext()
+    static void PopCurrentThreadContext()
     {
       ThreadsInformations::CurrentThreadWriter writer(threadsInformations_);
       writer.PopContext();
@@ -1121,17 +1127,18 @@ namespace Orthanc
 
 
     ThreadContextMemento::ScopedSetter::ScopedSetter(const ThreadContextMemento& memento) :
-      count_(memento.pimpl_->context_.size())
+      count_(0)
     {
       if (logCallerThreadNameInContext && enableThreadNames_ && !memento.pimpl_->threadName_.empty())
       {
-        count_++;
         PushCurrentThreadContext("from " + memento.pimpl_->threadName_);
+        count_++;
       }
 
       for (std::list<std::string>::const_iterator it = memento.pimpl_->context_.begin(); it != memento.pimpl_->context_.end(); ++it)
       {
         PushCurrentThreadContext(*it);
+        count_++;
       }
     }
 
@@ -1378,6 +1385,18 @@ namespace Orthanc
     }
 
 
+    ScopedCurrentThreadContextSetter::ScopedCurrentThreadContextSetter(const std::string& context)
+    {
+      PushCurrentThreadContext(context);
+    }
+
+
+    ScopedCurrentThreadContextSetter::~ScopedCurrentThreadContextSetter()
+    {
+      PopCurrentThreadContext();
+    }
+
+
     struct InternalLogger::PImpl
     {
       boost::mutex::scoped_lock  lock_;
@@ -1410,6 +1429,16 @@ namespace Orthanc
           // No trace level in plugins, directly exit as the stream is
           // set to "/dev/null"
           return;
+        }
+        else
+        {
+          if (enableThreadContexts_)
+          {
+            ThreadsInformations::CurrentThreadReader reader(threadsInformations_);
+            std::string prefix;
+            reader.FormatContext(prefix);
+            messageStream_ << prefix;
+          }
         }
       }
       else

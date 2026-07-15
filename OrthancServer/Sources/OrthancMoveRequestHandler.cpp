@@ -362,7 +362,7 @@ namespace Orthanc
 
     {
       OrthancConfiguration::ReaderLock lock;
-      synchronous = lock.GetConfiguration().GetBooleanParameter("SynchronousCMove", true);
+      synchronous = lock.GetConfiguration().GetBooleanParameter("SynchronousCMove");
     }
 
     if (synchronous)

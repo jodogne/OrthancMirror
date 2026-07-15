@@ -110,9 +110,18 @@ include_directories(
 
 # C_CHAR_UNSIGNED *must* be set before calling "GenerateDCMTKConfigure.cmake"
 IF (CMAKE_CROSSCOMPILING)
+  message(STATUS "Cross-compiling to CMAKE_SYSTEM_PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}")
   if (CMAKE_COMPILER_IS_GNUCXX AND
       CMAKE_SYSTEM_NAME STREQUAL "Windows")  # MinGW
     SET(C_CHAR_UNSIGNED 1 CACHE INTERNAL "Whether char is unsigned.")
+
+  elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(mips|mips64|mipsel|mips64el)$")
+      message(STATUS "Target architecture is MIPS, the char type should be unsigned (rough guess)")
+      SET(C_CHAR_UNSIGNED 0 CACHE INTERNAL "")
+    else()
+      SET(C_CHAR_UNSIGNED 1 CACHE INTERNAL "")
+    endif()
 
   elseif(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")  # WebAssembly or asm.js
 

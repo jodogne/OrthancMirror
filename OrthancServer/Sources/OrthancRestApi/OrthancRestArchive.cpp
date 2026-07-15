@@ -495,7 +495,7 @@ namespace Orthanc
       
       {
         OrthancConfiguration::ReaderLock lock;
-        streaming = lock.GetConfiguration().GetBooleanParameter("SynchronousZipStream", true);  // New in Orthanc 1.9.4
+        streaming = lock.GetConfiguration().GetBooleanParameter("SynchronousZipStream");  // New in Orthanc 1.9.4
       }
 
       if (streaming)
@@ -624,7 +624,7 @@ namespace Orthanc
 
       {
         OrthancConfiguration::ReaderLock lock;
-        defaultUtf8 = lock.GetConfiguration().GetBooleanParameter(CONFIG_ALLOW_UTF8, false);  // New in Orthanc 1.12.11
+        defaultUtf8 = lock.GetConfiguration().GetBooleanParameter(CONFIG_ALLOW_UTF8);  // New in Orthanc 1.12.11
       }
 
       bool synchronous, extended, transcode;
@@ -826,7 +826,7 @@ namespace Orthanc
 
       {
         OrthancConfiguration::ReaderLock lock;
-        defaultUtf8 = lock.GetConfiguration().GetBooleanParameter(CONFIG_ALLOW_UTF8, false);  // New in Orthanc 1.12.11
+        defaultUtf8 = lock.GetConfiguration().GetBooleanParameter(CONFIG_ALLOW_UTF8);  // New in Orthanc 1.12.11
       }
 
       bool synchronous, extended, transcode;

@@ -1128,6 +1128,10 @@ namespace Orthanc
             that.currentMode_ = DicomWebJsonVisitor::BinaryMode_BulkDataUri;
             break;
 
+          case OrthancPluginDicomWebBinaryMode_ArrayOfValues:
+            that.currentMode_ = DicomWebJsonVisitor::BinaryMode_ArrayOfValues;
+            break;
+
           default:
             throw OrthancException(ErrorCode_ParameterOutOfRange);
         }

@@ -40,7 +40,7 @@ namespace Orthanc
 
     {
       OrthancConfiguration::ReaderLock lock;
-      caseSensitivePN = lock.GetConfiguration().GetBooleanParameter("CaseSensitivePN", false);
+      caseSensitivePN = lock.GetConfiguration().GetBooleanParameter("CaseSensitivePN");
     }
 
     bool hasCodeExtensions;

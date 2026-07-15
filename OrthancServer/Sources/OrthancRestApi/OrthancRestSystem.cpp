@@ -171,7 +171,6 @@ namespace Orthanc
       result[ORTHANC_CONFIG_CHECK_REVISIONS] = lock.GetConfiguration().HasCheckRevisions();  // New in Orthanc 1.9.2
       result[ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS] = lock.GetConfiguration().HasStoreMD5ForAttachments(); // New in Orthanc 1.12.12
       result[ORTHANC_CONFIG_STORAGE_COMPRESSION] = lock.GetConfiguration().HasStorageCompression(); // New in Orthanc 1.11.0
-      result[ORTHANC_CONFIG_INGEST_TRANSCODING] = lock.GetConfiguration().GetIngestTranscoding(); // New in Orthanc 1.11.0
       result[ORTHANC_CONFIG_DATABASE_SERVER_IDENTIFIER] = lock.GetConfiguration().GetDatabaseServerIdentifier();
       result[ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE] = lock.GetConfiguration().GetMaximumStorageSize(); // New in Orthanc 1.11.3
       result[ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT] = lock.GetConfiguration().GetMaximumPatientCount(); // New in Orthanc 1.12.4
@@ -200,6 +199,16 @@ namespace Orthanc
       result[ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY] = BytesToMegabytes(dicomParserMemoryCapacityMb);
       result[ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE] = BytesToMegabytes(dicomParserMemoryCacheMb);
       result[ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS] = dicomParserThreadsCount;
+    }
+
+    DicomTransferSyntax ingestTransferSyntax;
+    if (context.LookupIngestTranscoding(ingestTransferSyntax))
+    {
+      result[ORTHANC_CONFIG_INGEST_TRANSCODING] = GetTransferSyntaxUid(ingestTransferSyntax); // New in Orthanc 1.11.0
+    }
+    else
+    {
+      result[ORTHANC_CONFIG_INGEST_TRANSCODING] = "";
     }
 
     result[ORTHANC_CONFIG_OVERWRITE_INSTANCES] = context.IsOverwriteInstances(); // New in Orthanc 1.11.0

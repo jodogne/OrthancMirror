@@ -593,7 +593,7 @@ namespace Orthanc
         allowTranscoding_ = (context_.IsTranscodeDicomProtocol() &&
                              remote.IsTranscodingAllowed());
       }
-      else if (lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowGet", false))
+      else if (lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowGet"))
       {
         CLOG(INFO, DICOM) << "C-GET: Allowing SCU request from unknown modality with AET: " << originatorAet;
         allowTranscoding_ = context_.IsTranscodeDicomProtocol();

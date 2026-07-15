@@ -500,12 +500,11 @@ namespace Orthanc
 
   static void GetMemoryConfiguration(unsigned int& resultMb, 
                                      OrthancConfiguration::ReaderLock& lock,
-                                     const char* configurationName,
-                                     unsigned int defaultValueMb)
+                                     const char* configurationName)
   {
     if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(resultMb, configurationName))
     {
-      resultMb = defaultValueMb;
+      resultMb = lock.GetConfiguration().GetUnsignedIntegerParameter(configurationName);
       LOG(WARNING) << "====> '" << configurationName << "' is not defined in your configuration, setting it to " << resultMb << ".  Depending on the available memory on the system, you might want to adapt this value.";
     }
     else
@@ -558,31 +557,31 @@ namespace Orthanc
         OrthancConfiguration::ReaderLock lock;
 
         queryRetrieveArchive_.reset(
-          new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("QueryRetrieveSize", 100)));
+          new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("QueryRetrieveSize")));
         mediaArchive_.reset(
-          new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("MediaArchiveSize", 1)));
+          new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("MediaArchiveSize")));
         defaultLocalAet_ = lock.GetConfiguration().GetOrthancAET();
         jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetConcurrentJobs());
 
-        saveJobs_ = lock.GetConfiguration().GetBooleanParameter("SaveJobs", true);
+        saveJobs_ = lock.GetConfiguration().GetBooleanParameter("SaveJobs");
         if (readOnly_ && saveJobs_)
         {
           LOG(WARNING) << "READ-ONLY SYSTEM: SaveJobs = true is incompatible with a ReadOnly system, ignoring this configuration";
           saveJobs_ = false;
         }
 
-        metricsRegistry_->SetEnabled(lock.GetConfiguration().GetBooleanParameter("MetricsEnabled", true));
+        metricsRegistry_->SetEnabled(lock.GetConfiguration().GetBooleanParameter("MetricsEnabled"));
 
         // New configuration options in Orthanc 1.5.1
-        findStorageAccessMode_ = StringToFindStorageAccessMode(lock.GetConfiguration().GetStringParameter("StorageAccessOnFind", "Always"));
-        limitFindInstances_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances", 0);
-        limitFindResults_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults", 0);
+        findStorageAccessMode_ = StringToFindStorageAccessMode(lock.GetConfiguration().GetStringParameter("StorageAccessOnFind"));
+        limitFindInstances_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances");
+        limitFindResults_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults");
 
         // New configuration option in Orthanc 1.6.0
-        storageCommitmentReports_.reset(new StorageCommitmentReports(lock.GetConfiguration().GetUnsignedIntegerParameter("StorageCommitmentReportsSize", 100)));
+        storageCommitmentReports_.reset(new StorageCommitmentReports(lock.GetConfiguration().GetUnsignedIntegerParameter("StorageCommitmentReportsSize")));
 
         // New options in Orthanc 1.7.0
-        transcodeDicomProtocol_ = lock.GetConfiguration().GetBooleanParameter("TranscodeDicomProtocol", true);
+        transcodeDicomProtocol_ = lock.GetConfiguration().GetBooleanParameter("TranscodeDicomProtocol");
 
         std::string s;
         if (lock.GetConfiguration().LookupStringParameter(s, ORTHANC_CONFIG_INGEST_TRANSCODING))
@@ -594,8 +593,8 @@ namespace Orthanc
                          << "transfer syntax: " << GetTransferSyntaxUid(ingestTransferSyntax_);
 
             // New options in Orthanc 1.8.2
-            ingestTranscodingOfUncompressed_ = lock.GetConfiguration().GetBooleanParameter("IngestTranscodingOfUncompressed", true);
-            ingestTranscodingOfCompressed_ = lock.GetConfiguration().GetBooleanParameter("IngestTranscodingOfCompressed", true);
+            ingestTranscodingOfUncompressed_ = lock.GetConfiguration().GetBooleanParameter("IngestTranscodingOfUncompressed");
+            ingestTranscodingOfCompressed_ = lock.GetConfiguration().GetBooleanParameter("IngestTranscodingOfCompressed");
 
             LOG(WARNING) << "  Ingest transcoding will "
                          << (ingestTranscodingOfUncompressed_ ? "be applied" : "*not* be applied")
@@ -618,13 +617,13 @@ namespace Orthanc
         }
 
         // New options in Orthanc 1.8.2
-        if (lock.GetConfiguration().GetBooleanParameter("DeidentifyLogs", true))
+        if (lock.GetConfiguration().GetBooleanParameter("DeidentifyLogs"))
         {
           deidentifyLogs_ = true;
           CLOG(INFO, DICOM) << "Deidentification of log contents (notably for DIMSE queries) is enabled";
 
           DicomVersion version = StringToDicomVersion(
-              lock.GetConfiguration().GetStringParameter("DeidentifyLogsDicomVersion", "2023b"));
+              lock.GetConfiguration().GetStringParameter("DeidentifyLogsDicomVersion"));
           CLOG(INFO, DICOM) << "Version of DICOM standard used for deidentification is "
                             << EnumerationToString(version);
 
@@ -649,7 +648,7 @@ namespace Orthanc
 
         lock.GetConfiguration().GetAcceptedTransferSyntaxes(acceptedTransferSyntaxes_);
 
-        isUnknownSopClassAccepted_ = lock.GetConfiguration().GetBooleanParameter("UnknownSopClassAccepted", false);
+        isUnknownSopClassAccepted_ = lock.GetConfiguration().GetBooleanParameter("UnknownSopClassAccepted");
 
         // New options in Orthanc 1.12.6
         std::list<std::string> acceptedSopClasses;
@@ -725,10 +724,10 @@ namespace Orthanc
         }
 
         // ----> IF you update values here, you must also update them in Configuration.json <-----
-        transcoderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_TRANSCODER_THREADS, 4);
+        transcoderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_TRANSCODER_THREADS);
         LOG(WARNING) << "'" << ORTHANC_CONFIG_TRANSCODER_THREADS << "' is set to " << transcoderThreads;
 
-        dicomParserThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS, 2);
+        dicomParserThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS);
         LOG(WARNING) << "'" << ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS << "' is set to " << dicomParserThreads;
 
         if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(sequentialReaderThreads, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS))
@@ -742,14 +741,14 @@ namespace Orthanc
         }
 
         // ----> IF you update values here, you must also update them in Configuration.json <-----
-        GetMemoryConfiguration(storageMemoryCapacityMb, lock, ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY, 512);
-        GetMemoryConfiguration(dicomParserMemoryCapacityMb, lock, ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY, 256);
-        GetMemoryConfiguration(dicomParserCacheSizeMb, lock, ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE, 128);
-        GetMemoryConfiguration(transcoderMemoryCapacityMb, lock, ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY, 256);
-        GetMemoryConfiguration(transcoderCacheSizeMb, lock, ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE, 128);
-        GetMemoryConfiguration(sequentialReaderWindowCapacityMb, lock, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_CAPACITY, 64);
+        GetMemoryConfiguration(storageMemoryCapacityMb, lock, ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY);
+        GetMemoryConfiguration(dicomParserMemoryCapacityMb, lock, ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY);
+        GetMemoryConfiguration(dicomParserCacheSizeMb, lock, ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE);
+        GetMemoryConfiguration(transcoderMemoryCapacityMb, lock, ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY);
+        GetMemoryConfiguration(transcoderCacheSizeMb, lock, ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE);
+        GetMemoryConfiguration(sequentialReaderWindowCapacityMb, lock, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_CAPACITY);
 
-        sequentialReaderWindowSize = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE, 4);
+        sequentialReaderWindowSize = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE);
         LOG(WARNING) << "'" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE << "' is set to " << sequentialReaderWindowSize;
       }
 
@@ -923,6 +922,20 @@ namespace Orthanc
       // Do not change the order below!
       jobsEngine_.Stop();
       index_.Stop();
+    }
+  }
+
+
+  bool ServerContext::LookupIngestTranscoding(DicomTransferSyntax& target) const
+  {
+    if (isIngestTranscoding_)
+    {
+      target = ingestTransferSyntax_;
+      return true;
+    }
+    else
+    {
+      return false;
     }
   }
 

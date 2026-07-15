@@ -2015,6 +2015,12 @@ TEST(DicomWebJson, ValueRepresentation)
 {
   // http://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.2.3.html
 
+#if DCMTK_VERSION_NUMBER >= 365
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7056, 0x1000), ValueRepresentation_OtherVeryLong, "Tag1", 1, 1, "");
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7056, 0x1001), ValueRepresentation_SignedVeryLong, "Tag2", 1, 1, "");
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7056, 0x1002), ValueRepresentation_UnsignedVeryLong, "Tag3", 1, 1, "");
+#endif
+
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DicomTag(0x0040, 0x0241), "AE");
   dicom.ReplacePlainString(DicomTag(0x0010, 0x1010), "AS");
@@ -2033,7 +2039,7 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x0064, 0x0009), "2.71828");  // OF (other float)
   dicom.ReplacePlainString(DicomTag(0x0066, 0x0040), "46");  // OL (other long)
   ASSERT_THROW(dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "O"), OrthancException);
-  dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "OWOW");
+  dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "57");  // OW
   dicom.ReplacePlainString(DicomTag(0x0010, 0x0010), "PN");
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0050), "SH");
   dicom.ReplacePlainString(DicomTag(0x0018, 0x6020), "-15");  // SL
@@ -2047,6 +2053,12 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0120), "UR");
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0301), "17");   // US
   dicom.ReplacePlainString(DicomTag(0x0040, 0x0031), "UT");  
+
+#if DCMTK_VERSION_NUMBER >= 365
+  dicom.ReplacePlainString(DicomTag(0x7056, 0x1000), "17");  // OV
+  dicom.ReplacePlainString(DicomTag(0x7056, 0x1001), "-18");  // SV
+  dicom.ReplacePlainString(DicomTag(0x7056, 0x1002), "19");  // UV
+#endif
 
   DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
@@ -2113,8 +2125,7 @@ TEST(DicomWebJson, ValueRepresentation)
 #endif
 
   ASSERT_EQ("OW", visitor.GetResult() ["00281201"]["vr"].asString());
-  Toolbox::DecodeBase64(s, visitor.GetResult() ["00281201"]["InlineBinary"].asString());
-  ASSERT_EQ("OWOW", s);
+  ASSERT_EQ(57, visitor.GetResult() ["00281201"]["Value"][0].asInt());
 
   ASSERT_EQ("PN", visitor.GetResult() ["00100010"]["vr"].asString());
   ASSERT_EQ("PN", visitor.GetResult() ["00100010"]["Value"][0]["Alphabetic"].asString());
@@ -2174,13 +2185,27 @@ TEST(DicomWebJson, ValueRepresentation)
   ASSERT_EQ("UT", visitor.GetResult() ["00400031"]["vr"].asString());
   ASSERT_EQ("UT", visitor.GetResult() ["00400031"]["Value"][0].asString());
 
+#if DCMTK_VERSION_NUMBER >= 365
+  ASSERT_EQ("OV", visitor.GetResult() ["70561000"]["vr"].asString());
+  ASSERT_EQ(17, visitor.GetResult() ["70561000"]["Value"][0].asInt());
+  ASSERT_EQ("SV", visitor.GetResult() ["70561001"]["vr"].asString());
+  ASSERT_EQ(-18, visitor.GetResult() ["70561001"]["Value"][0].asInt());
+  ASSERT_EQ("UV", visitor.GetResult() ["70561002"]["vr"].asString());
+  ASSERT_EQ(19, visitor.GetResult() ["70561002"]["Value"][0].asInt());
+#endif
+
   std::string xml;
   visitor.FormatXml(xml);
   
   {
     DicomMap m;
     m.FromDicomWeb(visitor.GetResult());
+
+#if DCMTK_VERSION_NUMBER >= 365
+    ASSERT_EQ(34u, m.GetSize());
+#else
     ASSERT_EQ(31u, m.GetSize());
+#endif
     
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0002, 0x0002), false));  ASSERT_EQ("UI", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0040, 0x0241), false));  ASSERT_EQ("AE", s);
@@ -2208,7 +2233,7 @@ TEST(DicomWebJson, ValueRepresentation)
 
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0064, 0x0009), true));
     ASSERT_FLOAT_EQ(2.71828f, boost::lexical_cast<float>(s));
-    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0028, 0x1201), true));   ASSERT_EQ("OWOW", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0028, 0x1201), false));  ASSERT_EQ("57", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x0010), false));  ASSERT_EQ("PN", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0050), false));  ASSERT_EQ("SH", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0018, 0x6020), false));  ASSERT_EQ("-15", s);
@@ -2231,6 +2256,12 @@ TEST(DicomWebJson, ValueRepresentation)
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0120), true));  ASSERT_EQ("UR", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0301), true));  ASSERT_EQ("17", s);  // US (but tag unknown to DCMTK 3.6.0)
 #endif    
+
+#if DCMTK_VERSION_NUMBER >= 365
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7056, 0x1000), true));  ASSERT_EQ("17", s);  // OV
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7056, 0x1001), true));  ASSERT_EQ("-18", s);  // SV
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7056, 0x1002), true));  ASSERT_EQ("19", s);  // UV
+#endif
   }
 }
 

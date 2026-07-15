@@ -50,6 +50,7 @@ static const char* const DICOM_LOSSY_TRANSCODING_QUALITY = "DicomLossyTranscodin
 static const char* const CONFIG_LOADER_THREADS = "LoaderThreads";
 static const char* const CONFIG_ZIP_LOADER_THREADS = "ZipLoaderThreads"; // for backward compatibility only
 
+static Json::Value defaultConfiguration;
 
 namespace Orthanc
 {
@@ -134,6 +135,22 @@ namespace Orthanc
   static void ReadConfiguration(Json::Value& target, 
                                 const boost::filesystem::path &configurationFile)
   {
+    // lazy loading of the default configuration
+    if (defaultConfiguration.empty())
+    {
+      std::string defaultConfigurationContent;
+      GetFileResource(defaultConfigurationContent, ServerResources::CONFIGURATION_SAMPLE);
+
+      Json::Value tmp;
+      if (!Toolbox::ReadJson(tmp, defaultConfigurationContent) ||
+          tmp.type() != Json::objectValue)
+      {
+        throw OrthancException(ErrorCode_InternalError, "The default configuration file does not follow the JSON syntax !!");
+      }
+
+      Toolbox::CopyJsonWithoutComments(defaultConfiguration, tmp);
+    }
+
     target = Json::objectValue;
 
     if (!configurationFile.empty())
@@ -242,7 +259,7 @@ namespace Orthanc
 
   void OrthancConfiguration::LoadModalities()
   {
-    if (GetBooleanParameter(DICOM_MODALITIES_IN_DB, false))
+    if (GetBooleanParameter(DICOM_MODALITIES_IN_DB))
     {
       // Modalities are stored in the database
       if (serverIndex_ == NULL)
@@ -330,7 +347,7 @@ namespace Orthanc
 
   void OrthancConfiguration::LoadPeers()
   {
-    if (GetBooleanParameter(ORTHANC_PEERS_IN_DB, false))
+    if (GetBooleanParameter(ORTHANC_PEERS_IN_DB))
     {
       // Peers are stored in the database
       if (serverIndex_ == NULL)
@@ -400,7 +417,7 @@ namespace Orthanc
     
   void OrthancConfiguration::SaveModalities()
   {
-    if (GetBooleanParameter(DICOM_MODALITIES_IN_DB, false))
+    if (GetBooleanParameter(DICOM_MODALITIES_IN_DB))
     {
       // Modalities are stored in the database
       if (serverIndex_ == NULL)
@@ -432,7 +449,7 @@ namespace Orthanc
 
   void OrthancConfiguration::SavePeers()
   {
-    if (GetBooleanParameter(ORTHANC_PEERS_IN_DB, false))
+    if (GetBooleanParameter(ORTHANC_PEERS_IN_DB))
     {
       // Peers are stored in the database
       if (serverIndex_ == NULL)
@@ -492,17 +509,20 @@ namespace Orthanc
   }
 
 
-  std::string OrthancConfiguration::GetStringParameter(const std::string& parameter,
-                                                       const std::string& defaultValue) const
+  std::string OrthancConfiguration::GetStringParameter(const std::string& parameter) const
   {
     std::string value;
     if (LookupStringParameter(value, parameter))
     {
       return value;
     }
+    else if (defaultConfiguration.isMember(parameter) && defaultConfiguration[parameter].type() == Json::stringValue)
+    {
+      return defaultConfiguration[parameter].asString();
+    }
     else
     {
-      return defaultValue;
+      throw OrthancException(ErrorCode_InternalError, std::string("No or invalid default parameter found in the default configuration for '") + parameter + "'");
     }
   }
 
@@ -530,20 +550,6 @@ namespace Orthanc
   }
 
 
-  int OrthancConfiguration::GetIntegerParameter(const std::string& parameter,
-                                                int defaultValue) const
-  {
-    int v;
-    if (LookupIntegerParameter(v, parameter))
-    {
-      return v;
-    }
-    else
-    {
-      return defaultValue;
-    }
-  }
-
     
   bool OrthancConfiguration::LookupUnsignedIntegerParameter(unsigned int& target,
                                                             const std::string& parameter) const
@@ -569,17 +575,20 @@ namespace Orthanc
   }
 
 
-  unsigned int OrthancConfiguration::GetUnsignedIntegerParameter(const std::string& parameter,
-                                                                 unsigned int defaultValue) const
+  unsigned int OrthancConfiguration::GetUnsignedIntegerParameter(const std::string& parameter) const
   {
     unsigned int v;
     if (LookupUnsignedIntegerParameter(v, parameter))
     {
       return v;
     }
+    else if (defaultConfiguration.isMember(parameter) && defaultConfiguration[parameter].type() == Json::intValue)
+    {
+      return static_cast<unsigned int>(defaultConfiguration[parameter].asInt());
+    }
     else
     {
-      return defaultValue;
+      throw OrthancException(ErrorCode_InternalError, std::string("No or invalid default parameter found in the default configuration for '") + parameter + "'");
     }
   }
 
@@ -608,17 +617,20 @@ namespace Orthanc
   }
 
 
-  bool OrthancConfiguration::GetBooleanParameter(const std::string& parameter,
-                                                 bool defaultValue) const
+  bool OrthancConfiguration::GetBooleanParameter(const std::string& parameter) const
   {
     bool value;
     if (LookupBooleanParameter(value, parameter))
     {
       return value;
     }
+    else if (defaultConfiguration.isMember(parameter) && defaultConfiguration[parameter].type() == Json::booleanValue)
+    {
+      return defaultConfiguration[parameter].asBool();
+    }
     else
     {
-      return defaultValue;
+      throw OrthancException(ErrorCode_InternalError, std::string("No or invalid default parameter found in the default configuration for '") + parameter + "'");
     }
   }
 
@@ -743,7 +755,7 @@ namespace Orthanc
 
   unsigned int OrthancConfiguration::GetDicomLossyTranscodingQuality() const
   {
-    return GetUnsignedIntegerParameter(DICOM_LOSSY_TRANSCODING_QUALITY, 90);
+    return GetUnsignedIntegerParameter(DICOM_LOSSY_TRANSCODING_QUALITY);
   }
 
 
@@ -848,7 +860,7 @@ namespace Orthanc
   bool OrthancConfiguration::IsSameAETitle(const std::string& aet1,
                                            const std::string& aet2) const
   {
-    if (GetBooleanParameter("StrictAetComparison", false))
+    if (GetBooleanParameter("StrictAetComparison"))
     {
       // Case-sensitive matching
       return aet1 == aet2;
@@ -907,7 +919,7 @@ namespace Orthanc
                    << "\" is not listed in the \"DicomModalities\" configuration option";
       return false;
     }
-    else if (!GetBooleanParameter("DicomCheckModalityHost", false) ||
+    else if (!GetBooleanParameter("DicomCheckModalityHost") ||
              ip == modality.GetHost())
     {
       return true;
@@ -1045,9 +1057,11 @@ namespace Orthanc
   
   TemporaryFile* OrthancConfiguration::CreateTemporaryFile() const
   {
-    if (json_.isMember(TEMPORARY_DIRECTORY))
+    std::string temporaryDirectory = ".";
+
+    if (LookupStringParameter(temporaryDirectory, TEMPORARY_DIRECTORY))
     {
-      return new TemporaryFile(InterpretStringParameterAsPath(GetStringParameter(TEMPORARY_DIRECTORY, ".")), "");
+      return new TemporaryFile(InterpretStringParameterAsPath(temporaryDirectory), "");
     }
     else
     {
@@ -1059,7 +1073,7 @@ namespace Orthanc
   std::string OrthancConfiguration::GetDefaultPrivateCreator() const
   {
     // New configuration option in Orthanc 1.6.0
-    return GetStringParameter("DefaultPrivateCreator", "");
+    return GetStringParameter("DefaultPrivateCreator");
   }
 
 
@@ -1354,7 +1368,12 @@ namespace Orthanc
   unsigned int OrthancConfiguration::GetLoaderThreads() const
   {
     // from 1.10.0 to 1.12.10, only CONFIG_ZIP_LOADER_THREADS was available -> read from it if CONFIG_LOADER_THREADS is not specified.
-    unsigned int loaderThreads = GetUnsignedIntegerParameter(CONFIG_LOADER_THREADS, GetUnsignedIntegerParameter(CONFIG_ZIP_LOADER_THREADS, 1));
+    unsigned int loaderThreads = 1; // old ZipLoaderThreads default value
+
+    if (!LookupUnsignedIntegerParameter(loaderThreads, CONFIG_LOADER_THREADS))
+    {
+      LookupUnsignedIntegerParameter(loaderThreads, CONFIG_ZIP_LOADER_THREADS); // we cannot use GetUnsignedIntegerParameter() because there is no default value for this old configuration
+    }
 
     if (loaderThreads <= 1)
     {
@@ -1368,16 +1387,16 @@ namespace Orthanc
 
   unsigned int OrthancConfiguration::GetConcurrentJobs() const
   {
-    return GetUnsignedIntegerParameter(ORTHANC_CONFIG_CONCURRENT_JOBS, 2);
+    return GetUnsignedIntegerParameter(ORTHANC_CONFIG_CONCURRENT_JOBS);
   }
 
   unsigned int OrthancConfiguration::GetHttpThreadsCount() const
   {
-    return GetUnsignedIntegerParameter(ORTHANC_CONFIG_HTTP_THREADS_COUNT, 50);
+    return GetUnsignedIntegerParameter(ORTHANC_CONFIG_HTTP_THREADS_COUNT);
   }
 
   unsigned int OrthancConfiguration::GetDicomThreadsCount() const
   {
-    return GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_THREADS_COUNT, 4);
+    return GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_THREADS_COUNT);
   }
 }

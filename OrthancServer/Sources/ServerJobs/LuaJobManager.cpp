@@ -62,7 +62,7 @@ namespace Orthanc
     
     {
       OrthancConfiguration::ReaderLock lock;
-      dicomTimeout = lock.GetConfiguration().GetUnsignedIntegerParameter("DicomAssociationCloseDelay", 5);
+      dicomTimeout = lock.GetConfiguration().GetUnsignedIntegerParameter("DicomAssociationCloseDelay");
     }
 
     connectionManager_.SetInactivityTimeout(dicomTimeout * 1000);  // Milliseconds expected

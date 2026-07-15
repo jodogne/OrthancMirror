@@ -1311,7 +1311,7 @@ namespace Orthanc
 
     std::list<std::string> luaScripts;
     configLock.GetConfiguration().GetListOfStringsParameter(luaScripts, "LuaScripts");
-    heartBeatPeriod_ = configLock.GetConfiguration().GetIntegerParameter("LuaHeartBeatPeriod", 0);
+    heartBeatPeriod_ = configLock.GetConfiguration().GetUnsignedIntegerParameter("LuaHeartBeatPeriod");
 
     LuaScripting::Lock lock(*this);
 

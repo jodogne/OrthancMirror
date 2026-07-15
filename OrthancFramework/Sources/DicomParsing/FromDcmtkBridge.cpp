@@ -165,13 +165,24 @@ namespace Orthanc
   }
 
 
+  static bool IsBinaryTag(DcmEVR evr,
+                          Uint16 group,
+                          Uint16 element)
+  {
+    return (evr == EVR_OB ||
+            (evr == EVR_OW &&
+             group == DCM_PixelData.getGroup() &&
+             element == DCM_PixelData.getElement()) ||
+            evr == EVR_UN ||
+            evr == EVR_ox);
+  }
+
+
   static bool IsBinaryTag(const DcmTag& key)
   {
+    // TODO - WARNING: This function doesn't inspect the registry of tags, don't use if possible
     return (key.isUnknownVR() ||
-            key.getEVR() == EVR_OB ||
-            key.getEVR() == EVR_OW ||
-            key.getEVR() == EVR_UN ||
-            key.getEVR() == EVR_ox);
+            IsBinaryTag(key.getEVR(), key.getGTag(), key.getETag()));
   }
 
 
@@ -541,6 +552,25 @@ namespace Orthanc
     };
 
 
+    class ValueRepresentationFiller_OW : public ValueRepresentationFillerGeneric<Uint16>
+    {
+    protected:
+      virtual bool PutSingleValue(DcmElement& element,
+                                  const Uint16& value) const ORTHANC_OVERRIDE
+      {
+        // Contrary to US, the underlying type "DcmOtherByteOtherWord"
+        // doesn't implement "putUint16()" for a single value
+        return element.putUint16Array(&value, 1).good();
+      }
+
+      virtual bool PutMultipleValues(DcmElement& element,
+                                     const std::vector<Uint16>& values) const ORTHANC_OVERRIDE
+      {
+        return element.putUint16Array(values.empty() ? NULL : &values[0], values.size()).good();
+      }
+    };
+
+
     class ValueRepresentationFiller_US : public ValueRepresentationFillerGeneric<Uint16>
     {
     protected:
@@ -704,8 +734,7 @@ namespace Orthanc
       {
         DcmAttributeTag& e = dynamic_cast<DcmAttributeTag&>(element);
 
-        if (e.getUint16Array(content_).good() &&
-            content_ != NULL)
+        if (e.getUint16Array(content_).good())
         {
           if (element.getLength() % sizeof(Uint16) != 0)
           {
@@ -713,6 +742,12 @@ namespace Orthanc
           }
 
           size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint16);
+          if (size_ != 0 &&
+              content_ == NULL)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
           if (size_ % 2 != 0)
           {
             throw OrthancException(ErrorCode_BadFileFormat);
@@ -738,12 +773,34 @@ namespace Orthanc
         return size_;
       }
 
+      DicomTag GetTag(uint64_t index) const
+      {
+        assert(valid_);
+        return DicomTag(content_[2 * index], content_[2 * index + 1]);
+      }
+
       virtual void ReadValue(std::string& value,
                              uint64_t index) const ORTHANC_OVERRIDE
       {
         assert(valid_);
-        DicomTag tag(content_[2 * index], content_[2 * index + 1]);
-        value = tag.Format();
+        assert(index < size_);
+        value = GetTag(index).Format();
+      }
+
+      void ReadArrayOfAttributes(std::vector<DicomTag>& target) const
+      {
+        if (valid_)
+        {
+          target.reserve(size_);
+          for (uint64_t i = 0; i < size_; i++)
+          {
+            target.push_back(GetTag(i));
+          }
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
       }
     };
 
@@ -768,8 +825,7 @@ namespace Orthanc
          **/
         DcmFloatingPointSingle& e = dynamic_cast<DcmFloatingPointSingle&>(element);
 
-        if (e.getFloat32Array(content_).good() &&
-            content_ != NULL)
+        if (e.getFloat32Array(content_).good())
         {
           if (element.getLength() % sizeof(Float32) != 0)
           {
@@ -777,6 +833,12 @@ namespace Orthanc
           }
 
           size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Float32);
+          if (size_ != 0 &&
+              content_ == NULL)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
           valid_ = true;
         }
       }
@@ -796,7 +858,24 @@ namespace Orthanc
                              uint64_t index) const ORTHANC_OVERRIDE
       {
         assert(valid_);
+        assert(index < size_);
         value = boost::lexical_cast<std::string>(content_[index]);
+      }
+
+      void ReadArrayOfDoubles(std::vector<double>& target) const
+      {
+        if (valid_)
+        {
+          target.resize(size_);
+          for (uint64_t i = 0; i < size_; i++)
+          {
+            target[i] = content_[i];
+          }
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
       }
     };
 
@@ -814,15 +893,17 @@ namespace Orthanc
         valid_(false)
       {
         /**
-         * OD stores a binary array of 64-bit IEEE doubles. Similar to OF,
-         * getVM() returns 1 for OD. We must use getFloat64Array() to access
-         * the raw double buffer.
-         * The resulting string is formatted as in ApplyDcmtkToCTypeConverter().
+         * OD stores a binary array of 64-bit IEEE doubles. Unlike FD
+         * where getVM() returns the count of values, for OD getVM()
+         * returns 1 (the entire binary blob is considered one
+         * "value"). But similar to OF, getVM() returns 1 for OD. We
+         * must use getFloat64Array() to access the raw double buffer.
+         * The resulting string is formatted as in
+         * ApplyDcmtkToCTypeConverter().
          **/
         DcmFloatingPointDouble& e = dynamic_cast<DcmFloatingPointDouble&>(element);
 
-        if (e.getFloat64Array(content_).good() &&
-            content_ != NULL)
+        if (e.getFloat64Array(content_).good())
         {
           if (element.getLength() % sizeof(Float64) != 0)
           {
@@ -830,6 +911,12 @@ namespace Orthanc
           }
 
           size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Float64);
+          if (size_ != 0 &&
+              content_ == NULL)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
           valid_ = true;
         }
       }
@@ -849,10 +936,95 @@ namespace Orthanc
                              uint64_t index) const ORTHANC_OVERRIDE
       {
         assert(valid_);
+        assert(index < size_);
         value = boost::lexical_cast<std::string>(content_[index]);
+      }
+
+      void ReadArrayOfDoubles(std::vector<double>& target) const
+      {
+        if (valid_)
+        {
+          target.resize(size_);
+          for (uint64_t i = 0; i < size_; i++)
+          {
+            target[i] = content_[i];
+          }
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
       }
     };
 #endif
+
+
+    class ValueRepresentationReader_OW : public ILeafElementArrayReader
+    {
+    private:
+      bool      valid_;
+      uint64_t  size_;
+      Uint16*   content_;
+
+    public:
+      ValueRepresentationReader_OW(DcmElement& element) :
+        valid_(false)
+      {
+        DcmOtherByteOtherWord& e = dynamic_cast<DcmOtherByteOtherWord&>(element);
+
+        if (e.getUint16Array(content_).good())
+        {
+          if (element.getLength() % sizeof(Uint16) != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
+          size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint16);
+          if (size_ != 0 &&
+              content_ == NULL)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
+          valid_ = true;
+        }
+      }
+
+      virtual bool IsValid() const ORTHANC_OVERRIDE
+      {
+        return valid_;
+      }
+
+      virtual uint64_t GetSize() const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        return size_;
+      }
+
+      virtual void ReadValue(std::string& value,
+                             uint64_t index) const ORTHANC_OVERRIDE
+      {
+        assert(valid_);
+        assert(index < size_);
+        value = boost::lexical_cast<std::string>(content_[index]);
+      }
+
+      void ReadArrayOfIntegers(std::vector<int64_t>& target) const
+      {
+        if (valid_)
+        {
+          target.resize(size_);
+          for (uint64_t i = 0; i < size_; i++)
+          {
+            target[i] = content_[i];
+          }
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+      }
+    };
 
 
 #if DCMTK_VERSION_NUMBER >= 362
@@ -875,8 +1047,7 @@ namespace Orthanc
          **/
         DcmUnsignedLong& e = dynamic_cast<DcmUnsignedLong&>(element);
 
-        if (e.getUint32Array(content_).good() &&
-            content_ != NULL)
+        if (e.getUint32Array(content_).good())
         {
           if (element.getLength() % sizeof(Uint32) != 0)
           {
@@ -884,6 +1055,12 @@ namespace Orthanc
           }
 
           size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint32);
+          if (size_ != 0 &&
+              content_ == NULL)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
           valid_ = true;
         }
       }
@@ -903,7 +1080,24 @@ namespace Orthanc
                              uint64_t index) const ORTHANC_OVERRIDE
       {
         assert(valid_);
+        assert(index < size_);
         value = boost::lexical_cast<std::string>(content_[index]);
+      }
+
+      void ReadArrayOfIntegers(std::vector<int64_t>& target) const
+      {
+        if (valid_)
+        {
+          target.resize(size_);
+          for (uint64_t i = 0; i < size_; i++)
+          {
+            target[i] = content_[i];
+          }
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
       }
     };
 #endif
@@ -923,8 +1117,7 @@ namespace Orthanc
       {
         DcmUnsigned64bitVeryLong& e = dynamic_cast<DcmOther64bitVeryLong&>(element);
 
-        if (e.getUint64Array(content_).good() &&
-            content_ != NULL)
+        if (e.getUint64Array(content_).good())
         {
           if (element.getLength() % sizeof(Uint64) != 0)
           {
@@ -932,6 +1125,12 @@ namespace Orthanc
           }
 
           size_ = static_cast<uint64_t>(element.getLength()) / sizeof(Uint64);
+          if (size_ != 0 &&
+              content_ == NULL)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
           valid_ = true;
         }
       }
@@ -951,7 +1150,37 @@ namespace Orthanc
                              uint64_t index) const ORTHANC_OVERRIDE
       {
         assert(valid_);
+        assert(index < size_);
         value = boost::lexical_cast<std::string>(content_[index]);
+      }
+
+      void ReadArrayOfIntegers(std::vector<int64_t>& target) const
+      {
+        if (valid_)
+        {
+          bool truncated = false;
+          target.resize(size_);
+
+          for (uint64_t i = 0; i < size_; i++)
+          {
+            target[i] = static_cast<int64_t>(content_[i]);
+
+            if (static_cast<Uint64>(target[i]) != content_[i])
+            {
+              truncated = true;
+              target[i] = std::numeric_limits<int64_t>::max();
+            }
+          }
+
+          if (truncated)
+          {
+            LOG(WARNING) << "An OV element contains a value that is too large and was truncated";
+          }
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
       }
     };
 #endif
@@ -1343,7 +1572,7 @@ namespace Orthanc
       {
         Uint8* data = NULL;
 
-        if (element.getUint8Array(data) == EC_Normal)
+        if (element.getUint8Array(data).good())
         {
           Uint32 length = element.getLength();
 
@@ -1430,11 +1659,11 @@ namespace Orthanc
           {
             Uint8* data = NULL;
             Uint16* data16 = NULL;
-            if (element.getUint8Array(data) == EC_Normal)
+            if (element.getUint8Array(data).good())
             {
               return new DicomValue(reinterpret_cast<const char*>(data), element.getLength(), true);
             }
-            else if (element.getUint16Array(data16) == EC_Normal)
+            else if (element.getUint16Array(data16).good())
             {
               return new DicomValue(reinterpret_cast<const char*>(data16), element.getLength(), true);
             }
@@ -1837,7 +2066,7 @@ namespace Orthanc
         }
       }
 
-      if (IsBinaryTag(element->getTag()))
+      if (IsBinaryTag(element->getTag()))   // TODO - Inspect the registry of tags
       {
         // This is a binary tag
         if ((tag == DICOM_TAG_PIXEL_DATA && !(flags & DicomToJsonFlags_IncludePixelData)) ||
@@ -2670,33 +2899,29 @@ namespace Orthanc
       decoded = &binary;
     }
 
-    if (IsBinaryTag(element.getTag()))
+    if (IsBinaryTag(element.getTag()))   // TODO - Inspect the registry of tags
     {
       bool ok;
 
-      switch (element.getTag().getEVR())
+      if (element.getTag().getEVR() == EVR_OW)
       {
-        case EVR_OW:
-          if (decoded->size() % sizeof(Uint16) != 0)
-          {
-            LOG(ERROR) << "A tag with OW VR must have an even number of bytes";
-            ok = false;
-          }
-          else
-          {
-            ok = element.putUint16Array(reinterpret_cast<const Uint16*>(decoded->c_str()), decoded->size() / sizeof(Uint16)).good();
-          }
-          
-          break;
-      
-        default:
-          ok = element.putUint8Array(reinterpret_cast<const Uint8*>(decoded->c_str()), decoded->size()).good();
-          break;
+        if (decoded->size() % sizeof(Uint16) != 0)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange, "A tag with OW VR must have an even number of bytes");
+        }
+        else
+        {
+          ok = element.putUint16Array(reinterpret_cast<const Uint16*>(decoded->c_str()), decoded->size() / sizeof(Uint16)).good();
+        }
       }
-      
+      else
+      {
+        ok = element.putUint8Array(reinterpret_cast<const Uint8*>(decoded->c_str()), decoded->size()).good();
+      }
+
       if (ok)
       {
-        return;
+        return;  // We're done
       }
       else
       {
@@ -2713,15 +2938,13 @@ namespace Orthanc
         // http://support.dcmtk.org/docs/dcvr_8h-source.html
 
         /**
-         * TODO.
+         * Cases handled above (cf. "IsBinaryTag()").
          **/
 
         case EVR_OB:  // other byte
-        case EVR_OW:  // other word
-          THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
-    
         case EVR_UN:  // unknown value representation
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        case EVR_ox:  // OB or OW depending on context
+          throw OrthancException(ErrorCode_InternalError);
 
 
           /**
@@ -2795,6 +3018,10 @@ namespace Orthanc
           break;
         }
 
+        case EVR_OW:  // other word (was handled as a binary tag in Orthanc <= 1.12.11)
+          ok = IElementFiller::Apply(element, ValueRepresentationFiller_OW(), *decoded);
+          break;
+
         case EVR_US:  // unsigned short
           ok = IElementFiller::Apply(element, ValueRepresentationFiller_US(), *decoded);
           break;
@@ -2844,7 +3071,6 @@ namespace Orthanc
          * Internal to DCMTK.
          **/ 
 
-        case EVR_ox:  // OB or OW depending on context
         case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
         case EVR_na:  // na="not applicable", for data which has no VR
         case EVR_up:  // up="unsigned pointer", used internally for DICOMDIR suppor
@@ -3409,32 +3635,20 @@ namespace Orthanc
      * Deal with binary data (including PixelData).
      **/
 
-    if (evr == EVR_OB ||  // other byte
-        evr == EVR_OW ||  // other word
-        evr == EVR_UN)    // unknown value representation
+    if (IsBinaryTag(evr, element.getTag().getGroup(), element.getTag().getElement()))
     {
       Uint16* data16 = NULL;
       Uint8* data = NULL;
 
       ITagVisitor::Action action;
       
-      if ((element.getTag() == DCM_PixelData ||  // (*) New in Orthanc 1.9.1
-           evr == EVR_OW) &&
-          element.getUint16Array(data16) == EC_Normal)
+      if (evr == EVR_OW &&
+          element.getUint16Array(data16).good())
       {
         action = visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data16, element.getLength());
       }
-      else if (evr != EVR_OW &&
-               element.getUint8Array(data) == EC_Normal)
+      else if (element.getUint8Array(data).good())
       {
-        /**
-         * WARNING: The call to "getUint8Array()" crashes
-         * (segmentation fault) on big-endian architectures if applied
-         * to pixel data, during the call to "swapIfNecessary()" in
-         * "DcmPolymorphOBOW::getUint8Array()" (this method is not
-         * reimplemented in derived class "DcmPixelData"). However,
-         * "getUint16Array()" works correctly, hence (*).
-         **/
         action = visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data, element.getLength());
       }
       else
@@ -3544,7 +3758,7 @@ namespace Orthanc
         {
           Uint8* data = NULL;
           
-          if (element.getUint8Array(data) == EC_Normal)
+          if (element.getUint8Array(data).good())
           {
             const Uint32 length = element.getLength();
             Uint32 l = 0;
@@ -3699,35 +3913,25 @@ namespace Orthanc
           break;
         }
 
-        case EVR_OF:  // other float - binary array of 32-bit floats (new in Orthanc 1.12.11)
-        {
-          /**
-           * OF stores a binary array of 32-bit IEEE floats. Unlike FL where getVM()
-           * returns the count of values, for OF getVM() returns 1 (the entire binary
-           * blob is considered one "value"). We must use getFloat32Array() to access
-           * the raw float buffer, then iterate over all values.
-           **/
-          DcmFloatingPointSingle& content = dynamic_cast<DcmFloatingPointSingle&>(element);
-
-          std::vector<double> values;
-
-          Float32* floatArray = NULL;
-          if (content.getFloat32Array(floatArray).good() && floatArray != NULL)
+        case EVR_OW:  // other word - binary array of 16-bit unsigned integers (new in Orthanc 1.12.12)
+          if (tag == DICOM_TAG_PIXEL_DATA)
           {
-            if (element.getLength() % sizeof(Float32) != 0)
-            {
-              throw OrthancException(ErrorCode_BadFileFormat);
-            }
-
-            const unsigned long numFloats = static_cast<unsigned long>(element.getLength() / sizeof(Float32));
-            values.reserve(numFloats);
-
-            for (unsigned long i = 0; i < numFloats; i++)
-            {
-              values.push_back(static_cast<double>(floatArray[i]));
-            }
+            throw OrthancException(ErrorCode_InternalError);  // Should have been handled by "visitor.VisitBinary()"
+          }
+          else
+          {
+            ValueRepresentationReader_OW reader(element);
+            std::vector<int64_t> values;
+            reader.ReadArrayOfIntegers(values);
+            action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
+            break;
           }
 
+        case EVR_OF:  // other float - binary array of 32-bit floats (new in Orthanc 1.12.11)
+        {
+          ValueRepresentationReader_OF reader(element);
+          std::vector<double> values;
+          reader.ReadArrayOfDoubles(values);
           action = visitor.VisitDoubles(parentTags, parentIndexes, tag, vr, values);
           break;
         }
@@ -3735,33 +3939,9 @@ namespace Orthanc
 #if DCMTK_VERSION_NUMBER >= 361
         case EVR_OD:  // other double - binary array of 64-bit floats (new in Orthanc 1.12.11)
         {
-          /**
-           * OD stores a binary array of 64-bit IEEE doubles. Unlike FD where getVM()
-           * returns the count of values, for OD getVM() returns 1 (the entire binary
-           * blob is considered one "value"). We must use getFloat64Array() to access
-           * the raw double buffer, then iterate over all values.
-           **/
-          DcmFloatingPointDouble& content = dynamic_cast<DcmFloatingPointDouble&>(element);
-
+          ValueRepresentationReader_OD reader(element);
           std::vector<double> values;
-
-          Float64* doubleArray = NULL;
-          if (content.getFloat64Array(doubleArray).good() && doubleArray != NULL)
-          {
-            if (element.getLength() % sizeof(Float64) != 0)
-            {
-              throw OrthancException(ErrorCode_BadFileFormat);
-            }
-
-            const unsigned long numDoubles = static_cast<unsigned long>(element.getLength() / sizeof(Float64));
-            values.reserve(numDoubles);
-
-            for (unsigned long i = 0; i < numDoubles; i++)
-            {
-              values.push_back(doubleArray[i]);
-            }
-          }
-
+          reader.ReadArrayOfDoubles(values);
           action = visitor.VisitDoubles(parentTags, parentIndexes, tag, vr, values);
           break;
         }
@@ -3770,31 +3950,75 @@ namespace Orthanc
 #if DCMTK_VERSION_NUMBER >= 362
         case EVR_OL:  // other long - binary array of 32-bit unsigned integers (new in Orthanc 1.12.11)
         {
-          /**
-           * OL stores a binary array of 32-bit unsigned integers. Like OF/OD,
-           * getVM() returns 1 for OL (the entire binary blob is one "value").
-           * We must use getUint32Array() to access the raw buffer, then iterate
-           * over all values based on element length.
-           **/
-          DcmUnsignedLong& content = dynamic_cast<DcmUnsignedLong&>(element);
+          ValueRepresentationReader_OL reader(element);
+          std::vector<int64_t> values;
+          reader.ReadArrayOfIntegers(values);
+          action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
+          break;
+        }
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_OV:  // other very long - binary array of 64-bit unsigned integers (new in Orthanc 1.12.12)
+        {
+          ValueRepresentationReader_OV reader(element);
+          std::vector<int64_t> values;
+          reader.ReadArrayOfIntegers(values);
+          action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
+          break;
+        }
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_SV:  // signed very long
+        {
+          DcmSigned64bitVeryLong& content = dynamic_cast<DcmSigned64bitVeryLong&>(element);
 
           std::vector<int64_t> values;
+          values.reserve(content.getVM());
 
-          Uint32* uint32Array = NULL;
-          if (content.getUint32Array(uint32Array).good() && uint32Array != NULL)
+          for (unsigned long i = 0; i < content.getVM(); i++)
           {
-            if (element.getLength() % sizeof(Uint32) != 0)
+            Sint64 f;
+            if (content.getSint64(f, i).good())
             {
-              throw OrthancException(ErrorCode_BadFileFormat);
+              values.push_back(f);
             }
+          }
 
-            const unsigned long numValues = static_cast<unsigned long>(element.getLength() / sizeof(Uint32));
-            values.reserve(numValues);
+          action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
+          break;
+        }
+#endif
 
-            for (unsigned long i = 0; i < numValues; i++)
+#if DCMTK_VERSION_NUMBER >= 365
+        case EVR_UV:  // unsigned very long
+        {
+          DcmUnsigned64bitVeryLong& content = dynamic_cast<DcmUnsigned64bitVeryLong&>(element);
+
+          bool truncated = false;
+
+          std::vector<int64_t> values;
+          values.reserve(content.getVM());
+
+          for (unsigned long i = 0; i < content.getVM(); i++)
+          {
+            Uint64 f;
+            if (content.getUint64(f, i).good())
             {
-              values.push_back(static_cast<int64_t>(uint32Array[i]));
+              values.push_back(f);
+
+              if (static_cast<Uint64>(values.back()) != f)
+              {
+                truncated = true;
+                values.back() = std::numeric_limits<int64_t>::max();
+              }
             }
+          }
+
+          if (truncated)
+          {
+            LOG(WARNING) << "An UV element contains a value that is too large and was truncated";
           }
 
           action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
@@ -3809,22 +4033,12 @@ namespace Orthanc
 
         case EVR_AT:
         {
-          DcmAttributeTag& content = dynamic_cast<DcmAttributeTag&>(element);
-
-          std::vector<DicomTag> values;
-          values.reserve(content.getVM());
-
-          for (unsigned long i = 0; i < content.getVM(); i++)
-          {
-            DcmTagKey f;
-            if (content.getTagVal(f, i).good())
-            {
-              DicomTag t(f.getGroup(), f.getElement());
-              values.push_back(t);
-            }
-          }
-
           assert(vr == ValueRepresentation_AttributeTag);
+
+          ValueRepresentationReader_AT reader(element);
+          std::vector<DicomTag> values;
+          reader.ReadArrayOfAttributes(values);
+
           action = visitor.VisitAttributes(parentTags, parentIndexes, tag, values);
           break;
         }

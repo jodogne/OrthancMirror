@@ -56,6 +56,7 @@ class DcmDataset;
 #define ORTHANC_CONFIG_CONCURRENT_JOBS "ConcurrentJobs"
 #define ORTHANC_CONFIG_HTTP_THREADS_COUNT "HttpThreadsCount"
 #define ORTHANC_CONFIG_DICOM_THREADS_COUNT "DicomThreadsCount"
+#define ORTHANC_CONFIG_STORAGE_DIRECTORY "StorageDirectory"
 
 #define ORTHANC_CONFIG_STORAGE_LOADER_THREADS "StorageLoaderThreads"
 #define ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY "StorageMemoryCapacity"
@@ -69,6 +70,7 @@ class DcmDataset;
 #define ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS "SequentialDicomReaderThreads"
 #define ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE "SequentialDicomReaderWindowSize"
 #define ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_CAPACITY "SequentialDicomReaderWindowCapacity"
+
 
 
 namespace Orthanc
@@ -213,26 +215,20 @@ namespace Orthanc
     bool LookupStringParameter(std::string& target,
                                const std::string& parameter) const;
 
-    std::string GetStringParameter(const std::string& parameter,
-                                   const std::string& defaultValue) const;
+    std::string GetStringParameter(const std::string& parameter) const;
     
     bool LookupIntegerParameter(int& target,
                                 const std::string& parameter) const;
 
-    int GetIntegerParameter(const std::string& parameter,
-                            int defaultValue) const;
-
     bool LookupUnsignedIntegerParameter(unsigned int& target,
                                         const std::string& parameter) const;
 
-    unsigned int GetUnsignedIntegerParameter(const std::string& parameter,
-                                             unsigned int defaultValue) const;
+    unsigned int GetUnsignedIntegerParameter(const std::string& parameter) const;
 
     bool LookupBooleanParameter(bool& target,
                                 const std::string& parameter) const;
 
-    bool GetBooleanParameter(const std::string& parameter,
-                             bool defaultValue) const;
+    bool GetBooleanParameter(const std::string& parameter) const;
 
     void GetDicomModalityUsingSymbolicName(RemoteModalityParameters& modality,
                                            const std::string& name) const;
@@ -315,71 +311,66 @@ namespace Orthanc
 
     std::string GetOrthancAET() const
     {
-      return GetStringParameter(ORTHANC_CONFIG_DICOM_AET, "ORTHANC");
+      return GetStringParameter(ORTHANC_CONFIG_DICOM_AET);
     }
 
     std::string GetOrthancName() const
     {
-      return GetStringParameter(ORTHANC_CONFIG_NAME, "ORTHANC");
-    }
-
-    std::string GetIngestTranscoding() const
-    {
-      return GetStringParameter(ORTHANC_CONFIG_INGEST_TRANSCODING, "");
+      return GetStringParameter(ORTHANC_CONFIG_NAME);
     }
 
     std::string GetMaximumStorageMode() const
     {
-      return GetStringParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE, "Recycle");
+      return GetStringParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE);
     }
 
     std::string GetDicomDefaultRetrieveMethod() const
     {
-      return GetStringParameter(ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD, "C-MOVE");
+      return GetStringParameter(ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD);
     }
     unsigned int GetMaximumStorageCacheSize() const
     {
-      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE, 128);
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE);
     }
 
     unsigned int GetMaximumStorageSize() const
     {
-      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE, 0);
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE);
     }
 
     unsigned int GetMaximumPatientCount() const
     {
-      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT, 0);
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT);
     }
     
     unsigned int GetDicomPort() const
     {
-      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_PORT, 4242);
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_PORT);
     }
 
     unsigned int GetHttpPort() const
     {
-      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_HTTP_PORT, 8042);
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_HTTP_PORT);
     }
 
     bool HasCheckRevisions() const
     {
-      return GetBooleanParameter(ORTHANC_CONFIG_CHECK_REVISIONS, false);
+      return GetBooleanParameter(ORTHANC_CONFIG_CHECK_REVISIONS);
     }
 
     bool HasStoreMD5ForAttachments() const
     {
-      return GetBooleanParameter(ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS, true);
+      return GetBooleanParameter(ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS);
     }
 
     bool HasStorageCompression() const
     {
-      return GetBooleanParameter(ORTHANC_CONFIG_STORAGE_COMPRESSION, false);
+      return GetBooleanParameter(ORTHANC_CONFIG_STORAGE_COMPRESSION);
     }
 
     bool HasPatientLevelEnabled() const
     {
-      return GetBooleanParameter(ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED, true);
+      return GetBooleanParameter(ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED);
     }
 
     static void DefaultExtractDicomSummary(DicomMap& target,

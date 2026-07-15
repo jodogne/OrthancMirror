@@ -167,7 +167,7 @@ namespace Orthanc
     else
     {
       OrthancConfiguration::ReaderLock lock;
-      checkFind = lock.GetConfiguration().GetBooleanParameter("DicomEchoChecksFind", false);
+      checkFind = lock.GetConfiguration().GetBooleanParameter("DicomEchoChecksFind");
     }
 
     ScuOperationFlags operations = ScuOperationFlags_Echo;
@@ -1429,7 +1429,7 @@ namespace Orthanc
 
     {
       OrthancConfiguration::ReaderLock lock;
-      logExportedResources = lock.GetConfiguration().GetBooleanParameter("LogExportedResources", false);
+      logExportedResources = lock.GetConfiguration().GetBooleanParameter("LogExportedResources");
     }
 
     for (Json::Value::ArrayIndex i = 0; i < resources->size(); i++)

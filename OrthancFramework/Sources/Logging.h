@@ -147,10 +147,6 @@ namespace Orthanc
 
     ORTHANC_PUBLIC std::string GetCurrentThreadName();
 
-    ORTHANC_PUBLIC void PushCurrentThreadContext(const std::string& context);
-
-    ORTHANC_PUBLIC void PopCurrentThreadContext();
-
     ORTHANC_PUBLIC ThreadContextMemento* CreateCurrentThreadContextMemento();
 
     ORTHANC_PUBLIC void AddLoggingListener(ILoggingListener* listener);
@@ -204,15 +200,9 @@ namespace Orthanc
     class ScopedCurrentThreadContextSetter : public boost::noncopyable
     {
     public:
-      explicit ScopedCurrentThreadContextSetter(const std::string& context)
-      {
-        PushCurrentThreadContext(context);
-      }
+      explicit ScopedCurrentThreadContextSetter(const std::string& context);
 
-      ~ScopedCurrentThreadContextSetter()
-      {
-        PopCurrentThreadContext();
-      }
+      ~ScopedCurrentThreadContextSetter();
     };
 
     struct ORTHANC_LOCAL NullStream : public std::ostream

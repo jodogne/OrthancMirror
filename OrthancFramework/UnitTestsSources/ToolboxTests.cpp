@@ -492,3 +492,33 @@ TEST(Toolbox, Constants)
   ASSERT_EQ(static_cast<int32_t>(16 * 1024 * 1024) * KILOBYTE, 16ull * 1024ull * 1024ull * 1024ull);
   ASSERT_EQ(KILOBYTE * static_cast<int32_t>(16 * 1024 * 1024), 16ull * 1024ull * 1024ull * 1024ull);
 }
+
+
+TEST(Toolbox, SwapEndianness)
+{
+  const std::string s = "abcdefgh";
+
+  {
+    std::string t = s;
+    Toolbox::SwapEndianness(t, 1);
+    ASSERT_EQ("abcdefgh", t);
+  }
+
+  {
+    std::string t = s;
+    Toolbox::SwapEndianness(t, 2);
+    ASSERT_EQ("badcfehg", t);
+  }
+
+  {
+    std::string t = s;
+    Toolbox::SwapEndianness(t, 4);
+    ASSERT_EQ("dcbahgfe", t);
+  }
+
+  {
+    std::string t = s;
+    Toolbox::SwapEndianness(t, 8);
+    ASSERT_EQ("hgfedcba", t);
+  }
+}

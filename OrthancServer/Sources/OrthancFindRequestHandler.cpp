@@ -280,12 +280,12 @@ namespace Orthanc
 
     {
       OrthancConfiguration::ReaderLock lock;
-      caseSensitivePN = lock.GetConfiguration().GetBooleanParameter("CaseSensitivePN", false);
+      caseSensitivePN = lock.GetConfiguration().GetBooleanParameter("CaseSensitivePN");
 
       RemoteModalityParameters remote;
       if (!lock.GetConfiguration().LookupDicomModalityUsingAETitle(remote, connection.GetRemoteAet()))
       {
-        if (lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowFind", false))
+        if (lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowFind"))
         {
           CLOG(INFO, DICOM) << "C-FIND: Allowing SCU request from unknown modality with AET: " << connection.GetRemoteAet();
         }

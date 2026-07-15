@@ -2692,7 +2692,7 @@ namespace Orthanc
     {
       OrthancConfiguration::ReaderLock lock;
 
-      if (lock.GetConfiguration().GetBooleanParameter("StoreDicom", true) &&
+      if (lock.GetConfiguration().GetBooleanParameter("StoreDicom") &&
           contentType == FileContentType_DicomAsJson)
       {
         allowed = true;
