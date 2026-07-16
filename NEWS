@@ -41,6 +41,8 @@ General
   - Some line of log now contain additional contextual informations like the job id they relate to.
     A new "--logs-no-context" command line option can be used to get back to the previous behavior to
     keep backward compatibility and reduce the lines length.
+    Another "--logs-threadnames-in-context" command line option can be used to add more information in the 
+    contexts wrt the thread that has requested a service.  This is mainly for developers.
 * C-Find SCP:
   - When Orthanc was requested a sequence in a C-Find query, Orthanc was actually not returning
     any sequences in the C-Find answer if the matched resource did contain the requested sequence and

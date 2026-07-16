@@ -756,6 +756,9 @@ static void PrintHelp(const boost::filesystem::path& path)
     << "\t\t\t(if \"file\" is \"-\", dumps to stdout)" << std::endl
     << "  --errors\t\tprint the supported error codes and exit" << std::endl
     << "  --verbose\t\tbe verbose in logs" << std::endl
+    << "  --logs-no-thread\tto remove thread names from logs" << std::endl
+    << "  --logs-no-context\tto remove contexts from logs" << std::endl
+    << "  --logs-threadnames-in-context\t\tto add caller thread names in logs contexts" << std::endl
     << "  --trace\t\thighest verbosity in logs (for debug)" << std::endl
     << "  --upgrade\t\tallow Orthanc to upgrade the version of the" << std::endl
     << "\t\t\tdatabase (beware that the database will become" << std::endl
@@ -2074,6 +2077,10 @@ int main(int argc, char* argv[])
     else if (argument == "--logs-no-context")
     {
       Logging::SetThreadContextsEnabled(false);
+    }
+    else if (argument == "--logs-threadnames-in-context")
+    {
+      Logging::SetThreadNamesInContextsEnabled(true);
     }
     else if (argument == "--trace")
     {

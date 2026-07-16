@@ -139,6 +139,8 @@ namespace Orthanc
 
     ORTHANC_PUBLIC void SetThreadContextsEnabled(bool enabled);
 
+    ORTHANC_PUBLIC void SetThreadNamesInContextsEnabled(bool enabled);
+
     ORTHANC_PUBLIC void SetCurrentThreadName(const std::string& name);
 
     ORTHANC_PUBLIC bool HasCurrentThreadName();
