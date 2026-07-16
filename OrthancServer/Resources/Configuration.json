@@ -1206,7 +1206,7 @@
   // is disabled.  (new in Orthanc 1.12.11+)
   "TranscoderCacheSize" : 128,
 
-  // Number of threads that are used to provide DICOM files sequentially
+  // Total number of threads that are used to provide DICOM files sequentially
   // (currently used in Archive jobs, C-Store and C-Get).
   // Each time such a job needs to get a DICOM file content, it requests it from
   // a sequential DICOM reader that will itself use a s torage loader thread.
@@ -1222,10 +1222,11 @@
   // This is kind of equivalent to the older "LoaderThreads" configuration
   // but, furthermore, you must make sure that there are enough "StorageLoaderThreads"
   // and "SequentialDicomReaderThreads" for each job -> 
-  // "StorageLoaderThreads" should be larger than "ConcurrentJobs" * "SequentialDicomReaderWindowCapacity"
+  // "StorageLoaderThreads" should be larger than "ConcurrentJobs" * "SequentialDicomReaderWindowSize"
   // Together with "SequentialDicomReaderWindowCapacity", this also defines the amount of memory that is
   // used by each job that required a SequentialDicomReader.
-  "SequentialDicomReaderWindowSize": 4,
+  // By default, the value of this configuration is the same as "LoaderThreads".
+  // "SequentialDicomReaderWindowSize": 4,
   
   // Amount of RAM (in MB) that are allocated to each sequential DICOM
   // Reader.  The sequential DICOM reader stops pauses buffering as soon

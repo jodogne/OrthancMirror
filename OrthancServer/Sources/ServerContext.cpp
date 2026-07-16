@@ -715,7 +715,7 @@ namespace Orthanc
           else
           {
             storageLoaderThreads = std::min(50u, storageLoaderThreads);
-            LOG(WARNING) << "'" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS << "' is not defined in your configuration, setting it to " << storageLoaderThreads << ", based on 'ConcurrentJobs' and the old 'LoaderThreads' configurations.";
+            LOG(WARNING) << "'" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS << "' is not defined in your configuration, setting it to " << storageLoaderThreads << ", based on the '" << ORTHANC_CONFIG_CONCURRENT_JOBS << "' and the '" << ORTHANC_CONFIG_LOADER_THREADS << "' configurations capped at 50.";
           }
         }
         else
@@ -723,12 +723,17 @@ namespace Orthanc
           LOG(WARNING) << "'" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS << "' is set to " << storageLoaderThreads;
         }
 
-        // ----> IF you update values here, you must also update them in Configuration.json <-----
         transcoderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_TRANSCODER_THREADS);
         LOG(WARNING) << "'" << ORTHANC_CONFIG_TRANSCODER_THREADS << "' is set to " << transcoderThreads;
 
         dicomParserThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS);
         LOG(WARNING) << "'" << ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS << "' is set to " << dicomParserThreads;
+
+        GetMemoryConfiguration(storageMemoryCapacityMb, lock, ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY);
+        GetMemoryConfiguration(dicomParserMemoryCapacityMb, lock, ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY);
+        GetMemoryConfiguration(dicomParserCacheSizeMb, lock, ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE);
+        GetMemoryConfiguration(transcoderMemoryCapacityMb, lock, ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY);
+        GetMemoryConfiguration(transcoderCacheSizeMb, lock, ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE);
 
         if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(sequentialReaderThreads, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS))
         {
@@ -740,16 +745,17 @@ namespace Orthanc
           LOG(WARNING) << "'" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS << "' is set to " << sequentialReaderThreads;
         }
 
-        // ----> IF you update values here, you must also update them in Configuration.json <-----
-        GetMemoryConfiguration(storageMemoryCapacityMb, lock, ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY);
-        GetMemoryConfiguration(dicomParserMemoryCapacityMb, lock, ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY);
-        GetMemoryConfiguration(dicomParserCacheSizeMb, lock, ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE);
-        GetMemoryConfiguration(transcoderMemoryCapacityMb, lock, ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY);
-        GetMemoryConfiguration(transcoderCacheSizeMb, lock, ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE);
-        GetMemoryConfiguration(sequentialReaderWindowCapacityMb, lock, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_CAPACITY);
+        if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(sequentialReaderWindowSize, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE))
+        {
+          LOG(WARNING) << "'" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE << "' is not defined in your configuration, setting it to the same value as '" << ORTHANC_CONFIG_LOADER_THREADS << "': " << loaderThreads;
+          sequentialReaderWindowSize = loaderThreads;
+        }
+        else
+        {
+          LOG(WARNING) << "'" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE << "' is set to " << sequentialReaderWindowSize;
+        }
 
-        sequentialReaderWindowSize = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE);
-        LOG(WARNING) << "'" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE << "' is set to " << sequentialReaderWindowSize;
+        GetMemoryConfiguration(sequentialReaderWindowCapacityMb, lock, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_CAPACITY);
       }
 
       // For streaming
@@ -840,13 +846,6 @@ namespace Orthanc
       }
 
       {
-        // unsigned int loaderThreads;
-
-        // {
-        //   OrthancConfiguration::ReaderLock lock;
-        //   loaderThreads = lock.GetConfiguration().GetLoaderThreads();
-        // }
-
         std::unique_ptr<ThreadPool> pool(new ThreadPool);
         pool->SetThreadsCount(sequentialReaderThreads);  // TODO-Streaming - Check - clarify the difference between SequentialLoader and DataSourceReader
         pool->SetLoggingThreadName("SEQ-READER");

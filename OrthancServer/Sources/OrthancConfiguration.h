@@ -58,6 +58,10 @@ class DcmDataset;
 #define ORTHANC_CONFIG_DICOM_THREADS_COUNT "DicomThreadsCount"
 #define ORTHANC_CONFIG_STORAGE_DIRECTORY "StorageDirectory"
 
+#define ORTHANC_CONFIG_LOADER_THREADS "LoaderThreads"
+#define ORTHANC_CONFIG_ZIP_LOADER_THREADS "ZipLoaderThreads"   // for backward compatibility only
+
+
 #define ORTHANC_CONFIG_STORAGE_LOADER_THREADS "StorageLoaderThreads"
 #define ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY "StorageMemoryCapacity"
 #define ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE "MaximumStorageCacheSize"

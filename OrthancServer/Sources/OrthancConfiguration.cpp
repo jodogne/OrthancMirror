@@ -47,8 +47,6 @@ static const char* const TEMPORARY_DIRECTORY = "TemporaryDirectory";
 static const char* const WARNINGS = "Warnings";
 static const char* const JOBS_ENGINE_THREADS_COUNT = "JobsEngineThreadsCount";
 static const char* const DICOM_LOSSY_TRANSCODING_QUALITY = "DicomLossyTranscodingQuality";
-static const char* const CONFIG_LOADER_THREADS = "LoaderThreads";
-static const char* const CONFIG_ZIP_LOADER_THREADS = "ZipLoaderThreads"; // for backward compatibility only
 
 static Json::Value defaultConfiguration;
 
@@ -1370,9 +1368,9 @@ namespace Orthanc
     // from 1.10.0 to 1.12.10, only CONFIG_ZIP_LOADER_THREADS was available -> read from it if CONFIG_LOADER_THREADS is not specified.
     unsigned int loaderThreads = 1; // old ZipLoaderThreads default value
 
-    if (!LookupUnsignedIntegerParameter(loaderThreads, CONFIG_LOADER_THREADS))
+    if (!LookupUnsignedIntegerParameter(loaderThreads, ORTHANC_CONFIG_LOADER_THREADS))
     {
-      LookupUnsignedIntegerParameter(loaderThreads, CONFIG_ZIP_LOADER_THREADS); // we cannot use GetUnsignedIntegerParameter() because there is no default value for this old configuration
+      LookupUnsignedIntegerParameter(loaderThreads, ORTHANC_CONFIG_ZIP_LOADER_THREADS); // we cannot use GetUnsignedIntegerParameter() because there is no default value for this old configuration
     }
 
     if (loaderThreads <= 1)
