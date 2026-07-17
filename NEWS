@@ -81,7 +81,7 @@ Maintenance
 * Fix a Denial of Service via Deeply Nested DICOM Sequences (CVE-2026-10528):
   https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=258
   Security issue reported by Jose Lopez Martinez (aka elpe_pinillo) from Deloitte.
-* Fixed various OOB read/write (TODO: finalize release notes)
+* Fixed various OOB read/write (TODO: still waiting for CVE ID)
 * Improved preview and rendering of multiframe instances a with a Color Lookup Table; 
   notably, some cardiac US instances.
 * Lua: Fix the "ReceivedCStoreInstanceFilter" Lua callback whose return value was

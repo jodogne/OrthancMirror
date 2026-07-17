@@ -73,6 +73,8 @@ General
       "Hashing": "sha1"} }
 * Have a single instance of "ThreadedInstancesLoader" shared by all the jobs
   in the Orthanc server to prevent resource exhaustion.
+* Unable to cancel an ArchiveJob when Orthanc does not have access to the storage anymore.
+  (To reproduce: remove the cable while downloading a study from S3)
 
 
 ============================
