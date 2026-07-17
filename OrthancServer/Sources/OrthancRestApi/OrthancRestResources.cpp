@@ -4226,13 +4226,19 @@ namespace Orthanc
 
   static void BulkDelete(RestApiPostCall& call)
   {
+    static const char* const KEY_RESOURCES = "Resources";
+    static const char* const KEY_LEVEL = "Level";
+    static const char* const KEY_ID = "ID";
+
     if (call.IsDocumentation())
     {
       call.GetDocumentation()
         .SetTag("System")
         .SetSummary("Delete a set of resources")
-        .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
+        .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "List of the Orthanc identifiers of the patients/studies/series/instances of interest.  "
+                         "Starting from Orthanc 1.13.0, this array can also contain an array of JSON objects with "
+                         "2 fields each: 'Level' and 'ID'.", true)
         .SetDescription("Delete all the DICOM patients, studies, series or instances "
                         "whose identifiers are provided in the `Resources` field.");
       return;
@@ -4249,19 +4255,44 @@ namespace Orthanc
     }
     else
     {
-      std::set<std::string> resources;
-      SerializationToolbox::ReadSetOfStrings(resources, request, "Resources");
-
-      for (std::set<std::string>::const_iterator
-             it = resources.begin(); it != resources.end(); ++it)
+      if (!request.isMember(KEY_RESOURCES) || !request[KEY_RESOURCES].isArray()) 
       {
-        ResourceType type;
+        throw OrthancException(ErrorCode_BadRequest, 
+                               std::string("The body must contain a ") + KEY_RESOURCES + " array");
+      }
+
+      for (Json::ArrayIndex i = 0; i < request[KEY_RESOURCES].size(); ++i)
+      {
         Json::Value remainingAncestor;  // Unused
-        
-        if (!context.GetIndex().LookupResourceType(type, *it) ||
-            !context.DeleteResource(remainingAncestor, *it, type))
+
+        const Json::Value& resource = request[KEY_RESOURCES][i];
+        if (resource.isString())
         {
-          CLOG(INFO, HTTP) << "Unknown resource during a bulk deletion: " << *it;
+          ResourceType type;
+          
+          const std::string& resourceId = resource.asString();
+
+          if (!context.GetIndex().LookupResourceType(type, resourceId) ||
+              !context.DeleteResource(remainingAncestor, resourceId, type))
+          {
+            CLOG(INFO, HTTP) << "Unknown resource during a bulk deletion: " << resourceId;
+          }
+        }
+        else if (resource.isObject() && resource.isMember(KEY_ID) && resource[KEY_ID].isString()
+          && resource.isMember(KEY_LEVEL) && resource[KEY_LEVEL].isString())
+        {
+          ResourceType type = StringToResourceType(resource[KEY_LEVEL].asString().c_str());
+          
+          const std::string& resourceId = resource[KEY_ID].asString();
+
+          if (!context.DeleteResource(remainingAncestor, resourceId, type))
+          {
+            CLOG(INFO, HTTP) << "Unknown resource during a bulk deletion: " << resourceId;
+          }
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadRequest, "Invalid payload");
         }
       }
     

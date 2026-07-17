@@ -35,7 +35,7 @@ General
 REST API
 --------
 
-* API version upgraded to 31
+* API version upgraded to 33
 * New fields reported in the "/system" route:
   - "OverwriteInstancesMode" (Boolean field "OverwriteInstances" is kept for backward
     compatibility)
@@ -54,6 +54,9 @@ REST API
     monitoring.  These metrics have been replaced by "orthanc_jobs_total_completed", 
     "orthanc_jobs_total_success" and "orthanc_jobs_total_failed" that are now considering all the 
     jobs that have run since Orthanc started.
+* The "/tools/bulk-delete" route now also accepts a payload of this type:
+  {"Resources": [{"Level": "Study", "ID": "..."}]}.  This payload reduces the number
+  of calls to the SQL DB and is more suitable for the authorization plugin.
 
 Plugin SDK
 ----------
