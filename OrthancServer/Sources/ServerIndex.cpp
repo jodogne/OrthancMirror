@@ -276,7 +276,7 @@ namespace Orthanc
   void ServerIndex::FlushThread(ServerIndex* that,
                                 unsigned int threadSleepGranularityMilliseconds)
   {
-    Logging::ScopedThreadNameSetter setter("DB-FLUSH");
+    Logging::ScopedCurrentThreadNameSetter setter("DB-FLUSH");
 
     // By default, wait for 10 seconds before flushing
     static const unsigned int SLEEP_SECONDS = 10;
@@ -458,7 +458,7 @@ namespace Orthanc
   void ServerIndex::UnstableResourcesMonitorThread(ServerIndex* that,
                                                    unsigned int threadSleepGranularityMilliseconds)
   {
-    Logging::ScopedThreadNameSetter setter("UNSTABLE-MON");
+    Logging::ScopedCurrentThreadNameSetter setter("UNSTABLE-MON");
 
     unsigned int stableAge = 0;
     

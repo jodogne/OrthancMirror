@@ -188,7 +188,7 @@ static OrthancPluginErrorCode StorageRemove(const char* uuid,
 
 static void DeletionWorker()
 {
-  Orthanc::Logging::ScopedThreadNameSetter setter("DELETION");
+  Orthanc::Logging::ScopedCurrentThreadNameSetter setter("DELETION");
 
   static const unsigned int GRANULARITY = 100;  // In milliseconds
 

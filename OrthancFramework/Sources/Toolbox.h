@@ -432,6 +432,13 @@ namespace Orthanc
                                unsigned int major,
                                unsigned int minor,
                                unsigned int revision);
+
+    static void SwapEndianness(void* data,
+                               size_t dataSize,
+                               size_t itemSize);
+
+    static void SwapEndianness(std::string& buffer,
+                               size_t itemSize);
   };
 }
 

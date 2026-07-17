@@ -39,11 +39,14 @@ namespace Orthanc
   class ORTHANC_PUBLIC DicomWebJsonVisitor : public ITagVisitor
   {
   public:
+    // This enumeration specifies how "other" value representations
+    // (OB, OW, OL, OV, OF, and OD) are encoded
     enum BinaryMode
     {
       BinaryMode_Ignore,
       BinaryMode_BulkDataUri,
-      BinaryMode_InlineBinary
+      BinaryMode_InlineBinary,
+      BinaryMode_ArrayOfValues  // New in Orthanc 1.12.12
     };
     
     class IBinaryFormatter : public boost::noncopyable

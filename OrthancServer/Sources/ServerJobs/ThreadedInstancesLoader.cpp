@@ -155,7 +155,7 @@ namespace Orthanc
 
   void ThreadedInstancesLoader::PreloaderWorkerThread(ThreadedInstancesLoader* that)
   {
-    Logging::ScopedThreadNameSetter setter(::GetLoaderThreadName(that->nameForLogs4Char_));
+    Logging::ScopedCurrentThreadNameSetter setter(::GetLoaderThreadName(that->nameForLogs4Char_));
 
     LOG(INFO) << "Loader thread has started";
 

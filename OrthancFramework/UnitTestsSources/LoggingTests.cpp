@@ -132,11 +132,24 @@ namespace
 
 
 #if ORTHANC_ENABLE_LOGGING_STDIO == 0
+namespace
+{
+  class BasicTestRestore : public boost::noncopyable
+  {
+  public:
+    ~BasicTestRestore()
+    {
+      Orthanc::Logging::EnableTraceLevel(false);  // Back to normal
+    }
+  };
+}
+
 TEST(FuncStreamBuf, BasicTest)
 {
   LoggingMementoScope loggingConfiguration;
 
   Orthanc::Logging::EnableTraceLevel(true);
+  BasicTestRestore restore;
 
   typedef void(*LoggingFunctionFunc)(const char*);
 
@@ -199,8 +212,6 @@ TEST(FuncStreamBuf, BasicTest)
     ASSERT_TRUE(ok);
     ASSERT_STREQ(payload.c_str(), text);
   }
-
-  Orthanc::Logging::EnableTraceLevel(false);  // Back to normal
 }
 #endif
 

@@ -4,7 +4,7 @@ Pending changes in the mainline
 General
 -------
 
-* Orthanc will now refuse to start if you have "AuthenticationEnabled" and "RemoteAccessAllowed" 
+* Orthanc will now refuse to start if you have "AuthenticationEnabled" and "RemoteAccessAllowed"
   set to true and have not defined any users in "RegisteredUsers".
 * New values for "OverwriteInstances" configuration. In previous versions, this configuration
   was a Boolean and it is now a string whose allowed values are "Never", "Always",
@@ -31,7 +31,6 @@ General
 * Fix mismatches between the configuration default values and the documentation:
   - "HttpTimeout" was documented as 60 while its default value is 0 (no timeout).
   - "Name" was documented as "MyOrthanc" while its default value is "ORTHANC".
-
 
 REST API
 --------
@@ -62,12 +61,15 @@ Plugin SDK
 * Added OrthancPluginClearCurrentThreadName() to avoid storing many thread
   names when dynamically creating/killing threads in a plugin.
 * Added OD, OL, UC, UR, OV, SV, and UV values to the OrthancPluginValueRepresentation enumeration
+* Added OrthancPluginDicomWebBinaryMode_ArrayOfValues to generate DICOMweb
+  representations with OW, OL, OV, OF, and OD value representations as array of values
 
 Maintenance
 -----------
 
 * Added support for OV, SV, and UV value representations
 * Added support for multiple values in AT value representation
+* Improved support of OW, OL, OV, OF, and OD value representations in DICOMweb JSON
 * Fix resubmit/pause/cancel and reloading of OrthancPeerStore and DicomModalityStore jobs 
   (bug introduced in 1.12.10)
 * Fix OrthancPeerStore jobs that was using the loader threads only if transcoding

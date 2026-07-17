@@ -2051,7 +2051,7 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x0040, 0x0031), "UT");  
 
 #if DCMTK_VERSION_NUMBER >= 365
-  dicom.ReplacePlainString(DicomTag(0x7056, 0x1000), "-17");  // OV
+  dicom.ReplacePlainString(DicomTag(0x7056, 0x1000), "17");  // OV
   dicom.ReplacePlainString(DicomTag(0x7056, 0x1001), "-18");  // SV
   dicom.ReplacePlainString(DicomTag(0x7056, 0x1002), "19");  // UV
 #endif
@@ -2183,7 +2183,7 @@ TEST(DicomWebJson, ValueRepresentation)
 
 #if DCMTK_VERSION_NUMBER >= 365
   ASSERT_EQ("OV", visitor.GetResult() ["70561000"]["vr"].asString());
-  ASSERT_EQ(-17, visitor.GetResult() ["70561000"]["Value"][0].asInt());
+  ASSERT_EQ(17, visitor.GetResult() ["70561000"]["Value"][0].asInt());
   ASSERT_EQ("SV", visitor.GetResult() ["70561001"]["vr"].asString());
   ASSERT_EQ(-18, visitor.GetResult() ["70561001"]["Value"][0].asInt());
   ASSERT_EQ("UV", visitor.GetResult() ["70561002"]["vr"].asString());
@@ -2254,7 +2254,7 @@ TEST(DicomWebJson, ValueRepresentation)
 #endif    
 
 #if DCMTK_VERSION_NUMBER >= 365
-    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7056, 0x1000), true));  ASSERT_EQ("-17", s);  // OV
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7056, 0x1000), true));  ASSERT_EQ("17", s);  // OV
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7056, 0x1001), true));  ASSERT_EQ("-18", s);  // SV
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7056, 0x1002), true));  ASSERT_EQ("19", s);  // UV
 #endif
