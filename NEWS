@@ -57,7 +57,9 @@ General
 REST API
 --------
 
-* API version upgraded to 32
+* API version upgraded to 34 (34 in streaming branch, 33 in default and 1.12.11 was 30 ! 
+  TODO: for the release, we may go backward to 31 but we need to change the conditional 
+  tests - see this commit: https://orthanc.uclouvain.be/hg/orthanc-tests/rev/3a440ee47213)
 * New fields reported in the "/system" route:
   - "OverwriteInstancesMode" (Boolean field "OverwriteInstances" is kept for backward
     compatibility)
@@ -76,6 +78,9 @@ REST API
     monitoring.  These metrics have been replaced by "orthanc_jobs_total_completed",
     "orthanc_jobs_total_success" and "orthanc_jobs_total_failed" that are now considering all the
     jobs that have run since Orthanc started.
+* The "/tools/bulk-delete" route now also accepts a payload of this type:
+  {"Resources": [{"Level": "Study", "ID": "..."}]}.  This payload reduces the number
+  of calls to the SQL DB and is more suitable for the authorization plugin.
 
 Plugin SDK
 ----------
@@ -105,7 +110,7 @@ Maintenance
 * Fix a Denial of Service via Deeply Nested DICOM Sequences (CVE-2026-10528):
   https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=258
   Security issue reported by Jose Lopez Martinez (aka elpe_pinillo) from Deloitte.
-* Fixed various OOB read/write (TODO: finalize release notes)
+* Fixed various OOB read/write (TODO: still waiting for CVE ID)
 * Improved preview and rendering of multiframe instances a with a Color Lookup Table; 
   notably, some cardiac US instances.
 * Lua: Fix the "ReceivedCStoreInstanceFilter" Lua callback whose return value was
