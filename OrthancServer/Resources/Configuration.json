@@ -1160,7 +1160,7 @@
 
   // -> TODO-Streaming: move this into AdvancedConfiguration.json
 
-  // add a page in the book: performance: fine tuning: limiting memory + increasing the number of threads blah blah blah
+  // TODO-Streaming: add a page in the book: performance: fine tuning: limiting memory + increasing the number of threads blah blah blah
 
 
   // Number of threads that are used to parse DICOM files (when you need

@@ -847,7 +847,7 @@ namespace Orthanc
 
       {
         std::unique_ptr<ThreadPool> pool(new ThreadPool);
-        pool->SetThreadsCount(sequentialReaderThreads);  // TODO-Streaming - Check - clarify the difference between SequentialLoader and DataSourceReader
+        pool->SetThreadsCount(sequentialReaderThreads);
         pool->SetLoggingThreadName("SEQ-READER");
         pool->SetDequeueTimeout(100);
         pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_SEQ_READER_THREAD_POOL_AVAILABLE_THREADS);
