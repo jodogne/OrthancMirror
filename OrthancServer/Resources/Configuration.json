@@ -921,7 +921,9 @@
 
   // Whether Orthanc transcodes DICOM files to an uncompressed
   // transfer syntax over the DICOM protocol, if the remote modality
-  // does not support compressed transfer syntaxes (new in Orthanc 1.7.0).
+  // does not support compressed transfer syntaxes. This option is
+  // used in outgoing C-STORE SCU commands (including if synchronous
+  // C-MOVE is used), and by the C-GET SCP handler. (new in Orthanc 1.7.0).
   "TranscodeDicomProtocol" : true,
 
   // If some plugin to decode/transcode DICOM instances is installed,
