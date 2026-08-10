@@ -2,7 +2,7 @@ name: Mirror Mercurial to GitHub
 
 env:
   HG_SOURCE_URL: https://orthanc.uclouvain.be/hg/orthanc/
-  GITHUB_TARGET: jodogne/OrthancMirror.git
+  GITHUB_TARGET: jodogne/OrthancMirror
   FAST_EXPORT_VERSION: fast-export-260405
 
 on:
@@ -19,6 +19,7 @@ permissions:
 
 jobs:
   mirror:
+    if: ${{ github.repository == 'jodogne/OrthancMirror' }}
     runs-on: ubuntu-slim
     steps:
       - name: Install Mercurial and fast-export
