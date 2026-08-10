@@ -1280,7 +1280,10 @@ namespace Orthanc
                                struct mg_connection *connection,
                                const struct mg_request_info *request)
   {
-    server.UpdateCurrentThreadName();
+    // Since we don't control the thread creation ourselves, we set and clear 
+    // the thread name everytime otherwise, the thread name will persist even 
+    // after a call to /tools/reset and Orthanc would stop because the same thread name is used multiple times
+    Logging::ScopedCurrentThreadNameSetter setter(server.GetCurrentThreadName()); 
 
     std::unique_ptr<MetricsRegistry::AvailableResourcesDecounter> counter(server.CreateAvailableHttpThreadsDecounter());
 
@@ -2467,13 +2470,25 @@ namespace Orthanc
   }
 
 
-  void HttpServer::UpdateCurrentThreadName()
+  std::string HttpServer::GetCurrentThreadName()
   {
     // threads are created in CivetWeb -> assign them a name the first time they are used
-    if (!Logging::HasCurrentThreadName())
+    boost::thread::id threadId = boost::this_thread::get_id();
+
+    boost::upgrade_lock<boost::shared_mutex> readerLock(threadCounterMutex_); // reader lock to check if the threadId has already been registered
+
+    if (threadNames_.find(threadId) == threadNames_.end())
     {
-      boost::mutex::scoped_lock lock(threadCounterMutex_);
-      Logging::SetCurrentThreadName(std::string("HTTP-") + boost::lexical_cast<std::string>(threadCounter_++));
+      boost::upgrade_to_unique_lock<boost::shared_mutex> writerLock(readerLock);
+      
+      std::string thisThreadName = std::string("HTTP-") + boost::lexical_cast<std::string>(threadCounter_++);
+      threadNames_[threadId] = thisThreadName;
+      
+      return thisThreadName;
+    }
+    else
+    {
+      return threadNames_[threadId];
     }
   }
 
