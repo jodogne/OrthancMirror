@@ -442,7 +442,7 @@ namespace Orthanc
     }
     catch (boost::filesystem::filesystem_error& e)
     {
-      LOG(WARNING) << "Error encountered while creating IndexDirectory: " << e.what(); // the exception was ignored before 1.12.12; let's log it
+      LOG(WARNING) << "Error encountered while creating IndexDirectory: " << e.what(); // the exception was ignored before 1.13.0; let's log it
     }
 
     return new SQLiteDatabaseWrapper(Orthanc::SystemToolbox::PathToUtf8(indexDirectory) + "/index");

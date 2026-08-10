@@ -1707,14 +1707,14 @@ namespace Orthanc
         }
 
 #if DCMTK_VERSION_NUMBER >= 365
-        case EVR_SV:  // signed very long (64-bit, new in Orthanc 1.12.12)
+        case EVR_SV:  // signed very long (64-bit, new in Orthanc 1.13.0)
         {
           return ApplyDcmtkToCTypeConverter<DcmtkToSint64Converter>(element);
         }
 #endif
 
 #if DCMTK_VERSION_NUMBER >= 365
-        case EVR_UV:  // unsigned very long (64-bit, new in Orthanc 1.12.12)
+        case EVR_UV:  // unsigned very long (64-bit, new in Orthanc 1.13.0)
         {
           return ApplyDcmtkToCTypeConverter<DcmtkToUint64Converter>(element);
         }
@@ -1757,7 +1757,7 @@ namespace Orthanc
 
         case EVR_AT:
         {
-          // Support for multiple values was added in Orthanc 1.12.12
+          // Support for multiple values was added in Orthanc 1.13.0
           ValueRepresentationReader_AT reader(element);
           return ILeafElementArrayReader::Apply(reader, element.getTag(), maxStringLength, maxBinaryArrayLength);
         }
@@ -2989,7 +2989,7 @@ namespace Orthanc
           break;
 
 #if DCMTK_VERSION_NUMBER >= 365
-        case EVR_SV:  // signed very long (64-bit, new in Orthanc 1.12.12)
+        case EVR_SV:  // signed very long (64-bit, new in Orthanc 1.13.0)
           ok = IElementFiller::Apply(element, ValueRepresentationFiller_SV(), *decoded);
           break;
 #endif
@@ -3027,8 +3027,8 @@ namespace Orthanc
           break;
 
 #if DCMTK_VERSION_NUMBER >= 365
-        case EVR_UV:  // unsigned very long (64-bit, new in Orthanc 1.12.12)
-        case EVR_OV:  // other very long (64-bit, new in Orthanc 1.12.12)
+        case EVR_UV:  // unsigned very long (64-bit, new in Orthanc 1.13.0)
+        case EVR_OV:  // other very long (64-bit, new in Orthanc 1.13.0)
           ok = IElementFiller::Apply(element, ValueRepresentationFiller_UV(), *decoded);
           break;
 #endif
@@ -3051,7 +3051,7 @@ namespace Orthanc
          **/
         
         case EVR_AT:  // attribute tag, new in Orthanc 1.9.4
-          // Multiple values are supported since Orthanc 1.12.12
+          // Multiple values are supported since Orthanc 1.13.0
           ok = IElementFiller::Apply(element, ValueRepresentationFiller_AT(), *decoded);
           break;
 
@@ -3913,7 +3913,7 @@ namespace Orthanc
           break;
         }
 
-        case EVR_OW:  // other word - binary array of 16-bit unsigned integers (new in Orthanc 1.12.12)
+        case EVR_OW:  // other word - binary array of 16-bit unsigned integers (new in Orthanc 1.13.0)
           if (tag == DICOM_TAG_PIXEL_DATA)
           {
             throw OrthancException(ErrorCode_InternalError);  // Should have been handled by "visitor.VisitBinary()"
@@ -3959,7 +3959,7 @@ namespace Orthanc
 #endif
 
 #if DCMTK_VERSION_NUMBER >= 365
-        case EVR_OV:  // other very long - binary array of 64-bit unsigned integers (new in Orthanc 1.12.12)
+        case EVR_OV:  // other very long - binary array of 64-bit unsigned integers (new in Orthanc 1.13.0)
         {
           ValueRepresentationReader_OV reader(element);
           std::vector<int64_t> values;

@@ -1,0 +1,53 @@
+name: Mirror Mercurial to GitHub
+
+env:
+  HG_SOURCE_URL: https://orthanc.uclouvain.be/hg/orthanc/
+  GITHUB_TARGET: jodogne/OrthancMirror
+  FAST_EXPORT_VERSION: fast-export-260405
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: hg-mirror
+  cancel-in-progress: false
+
+permissions:
+  contents: write  # GITHUB_TOKEN is read-only by default; this grants push access
+
+jobs:
+  mirror:
+    if: ${{ github.repository == 'jodogne/OrthancMirror' }}
+    runs-on: ubuntu-slim
+    steps:
+      - name: Install Mercurial and fast-export
+        run: |
+          sudo apt-get update
+          DEBIAN_FRONTEND=noninteractive sudo apt-get install -y mercurial git wget
+          cd /tmp/
+          wget https://orthanc.uclouvain.be/downloads/third-party-downloads/${FAST_EXPORT_VERSION}.tar.gz
+          tar xvf ${FAST_EXPORT_VERSION}.tar.gz
+
+      - name: Full clone of Mercurial source
+        run: |
+          hg clone "${HG_SOURCE_URL}" hg-repo
+
+      - name: Full conversion (fresh git repo every run)
+        run: |
+          git init --bare git-repo
+          cd git-repo
+          /tmp/${FAST_EXPORT_VERSION}/hg-fast-export.sh -r ../hg-repo --hg-hash --hgtags
+
+      - name: Push (never force, so it can't rewrite or delete history)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd git-repo
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_TARGET}"
+          git push origin 'refs/heads/*:refs/heads/*'
+          git push origin 'refs/tags/*:refs/tags/*'
+          if git rev-parse --verify refs/notes/hg >/dev/null 2>&1; then
+            git push origin refs/notes/hg:refs/notes/hg
+          fi

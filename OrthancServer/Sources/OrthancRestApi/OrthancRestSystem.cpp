@@ -124,13 +124,13 @@ namespace Orthanc
         .SetAnswerField(ORTHANC_CONFIG_OVERWRITE_INSTANCES, RestApiCallDocumentation::Type_Boolean,
                         "Whether instances are overwritten when re-ingested (new in Orthanc 1.11.0 and kept as a bool for backward compatibility)")
         .SetAnswerField(OVERWRITE_INSTANCES_MODE, RestApiCallDocumentation::Type_String,
-                        "Whether instances are overwritten when re-ingested (new in Orthanc 1.12.12)")
+                        "Whether instances are overwritten when re-ingested (new in Orthanc 1.13.0)")
         .SetAnswerField(ORTHANC_CONFIG_INGEST_TRANSCODING, RestApiCallDocumentation::Type_String,
                         "Whether instances are transcoded when ingested into Orthanc (`""` if no transcoding is performed) (new in Orthanc 1.11.0)")
         .SetAnswerField(ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE, RestApiCallDocumentation::Type_Number,
-                        std::string("The configured ") + ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE + " in MB (new in Orthanc 1.12.12)")
+                        std::string("The configured ") + ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE + " in MB (new in Orthanc 1.13.0)")
         .SetAnswerField(ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS, RestApiCallDocumentation::Type_Boolean,
-                        std::string("The configured ") + ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS + " (new in Orthanc 1.12.12)")
+                        std::string("The configured ") + ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS + " (new in Orthanc 1.13.0)")
         .SetAnswerField(ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE, RestApiCallDocumentation::Type_Number,
                         "The configured " + std::string(ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE) + " in MB (new in Orthanc 1.11.3)")
         .SetAnswerField(ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT, RestApiCallDocumentation::Type_Number,
@@ -169,7 +169,8 @@ namespace Orthanc
       result[ORTHANC_CONFIG_DICOM_PORT] = lock.GetConfiguration().GetDicomPort();
       result[ORTHANC_CONFIG_HTTP_PORT] = lock.GetConfiguration().GetHttpPort();
       result[ORTHANC_CONFIG_CHECK_REVISIONS] = lock.GetConfiguration().HasCheckRevisions();  // New in Orthanc 1.9.2
-      result[ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS] = lock.GetConfiguration().HasStoreMD5ForAttachments(); // New in Orthanc 1.12.12
+      result[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = lock.GetConfiguration().GetMaximumStorageCacheSize(); // New in Orthanc 1.13.0
+      result[ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS] = lock.GetConfiguration().HasStoreMD5ForAttachments(); // New in Orthanc 1.13.0
       result[ORTHANC_CONFIG_STORAGE_COMPRESSION] = lock.GetConfiguration().HasStorageCompression(); // New in Orthanc 1.11.0
       result[ORTHANC_CONFIG_DATABASE_SERVER_IDENTIFIER] = lock.GetConfiguration().GetDatabaseServerIdentifier();
       result[ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE] = lock.GetConfiguration().GetMaximumStorageSize(); // New in Orthanc 1.11.3
@@ -212,7 +213,7 @@ namespace Orthanc
     }
 
     result[ORTHANC_CONFIG_OVERWRITE_INSTANCES] = context.IsOverwriteInstances(); // New in Orthanc 1.11.0
-    result[OVERWRITE_INSTANCES_MODE] = EnumerationToString(context.GetOverwriteInstances()); // New in Orthanc 1.12.12
+    result[OVERWRITE_INSTANCES_MODE] = EnumerationToString(context.GetOverwriteInstances()); // New in Orthanc 1.13.0
     result[ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED] = context.IsPatientLevelEnabled(); // New in Orthanc 1.12.11
 
     result[STORAGE_AREA_PLUGIN] = Json::nullValue;
