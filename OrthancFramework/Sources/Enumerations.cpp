@@ -984,13 +984,13 @@ namespace Orthanc
       case ValueRepresentation_UnlimitedText:         // UT
         return "UT";
 
-      case ValueRepresentation_OtherVeryLong:         // OV (new in Orthanc 1.12.12)
+      case ValueRepresentation_OtherVeryLong:         // OV (new in Orthanc 1.13.0)
         return "OV";
 
-      case ValueRepresentation_SignedVeryLong:        // SV (new in Orthanc 1.12.12)
+      case ValueRepresentation_SignedVeryLong:        // SV (new in Orthanc 1.13.0)
         return "SV";
 
-      case ValueRepresentation_UnsignedVeryLong:      // UV (new in Orthanc 1.12.12)
+      case ValueRepresentation_UnsignedVeryLong:      // UV (new in Orthanc 1.13.0)
         return "UV";
 
       case ValueRepresentation_NotSupported:

@@ -46,7 +46,7 @@ namespace Orthanc
       BinaryMode_Ignore,
       BinaryMode_BulkDataUri,
       BinaryMode_InlineBinary,
-      BinaryMode_ArrayOfValues  // New in Orthanc 1.12.12
+      BinaryMode_ArrayOfValues  // New in Orthanc 1.13.0
     };
     
     class IBinaryFormatter : public boost::noncopyable

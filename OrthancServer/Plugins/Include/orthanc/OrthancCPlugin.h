@@ -125,8 +125,8 @@
 #endif
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
-#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     12
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  12
+#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     13
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -528,7 +528,7 @@ extern "C"
     _OrthancPluginService_EmitAuditLog = 61,                        /* New in Orthanc 1.12.9 */
     _OrthancPluginService_ReserveQueueValue = 62,                   /* New in Orthanc 1.12.10 */
     _OrthancPluginService_AcknowledgeQueueValue = 63,               /* New in Orthanc 1.12.10 */
-    _OrthancPluginService_ClearCurrentThreadName = 64,              /* New in Orthanc 1.12.12 */
+    _OrthancPluginService_ClearCurrentThreadName = 64,              /* New in Orthanc 1.13.0 */
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -915,13 +915,13 @@ extern "C"
     OrthancPluginValueRepresentation_UN = 25,  /*!< Unknown */
     OrthancPluginValueRepresentation_US = 26,  /*!< Unsigned Short */
     OrthancPluginValueRepresentation_UT = 27,  /*!< Unlimited Text */
-    OrthancPluginValueRepresentation_OD = 28,  /*!< Other Double           (new in Orthanc 1.12.12) */
-    OrthancPluginValueRepresentation_OL = 29,  /*!< Other Long             (new in Orthanc 1.12.12) */
-    OrthancPluginValueRepresentation_UC = 30,  /*!< Unlimited Characters   (new in Orthanc 1.12.12) */
-    OrthancPluginValueRepresentation_UR = 31,  /*!< URI / URL              (new in Orthanc 1.12.12) */
-    OrthancPluginValueRepresentation_OV = 32,  /*!< Other Very Long        (new in Orthanc 1.12.12) */
-    OrthancPluginValueRepresentation_SV = 33,  /*!< Signed Very Long       (new in Orthanc 1.12.12) */
-    OrthancPluginValueRepresentation_UV = 34,  /*!< Unsigned Very Long     (new in Orthanc 1.12.12) */
+    OrthancPluginValueRepresentation_OD = 28,  /*!< Other Double           (new in Orthanc 1.13.0) */
+    OrthancPluginValueRepresentation_OL = 29,  /*!< Other Long             (new in Orthanc 1.13.0) */
+    OrthancPluginValueRepresentation_UC = 30,  /*!< Unlimited Characters   (new in Orthanc 1.13.0) */
+    OrthancPluginValueRepresentation_UR = 31,  /*!< URI / URL              (new in Orthanc 1.13.0) */
+    OrthancPluginValueRepresentation_OV = 32,  /*!< Other Very Long        (new in Orthanc 1.13.0) */
+    OrthancPluginValueRepresentation_SV = 33,  /*!< Signed Very Long       (new in Orthanc 1.13.0) */
+    OrthancPluginValueRepresentation_UV = 34,  /*!< Unsigned Very Long     (new in Orthanc 1.13.0) */
 
     _OrthancPluginValueRepresentation_INTERNAL = 0x7fffffff
   } OrthancPluginValueRepresentation;
@@ -1078,7 +1078,7 @@ extern "C"
     OrthancPluginDicomWebBinaryMode_Ignore = 0,        /*!< Don't include binary tags */
     OrthancPluginDicomWebBinaryMode_InlineBinary = 1,  /*!< Inline encoding using Base64 */
     OrthancPluginDicomWebBinaryMode_BulkDataUri = 2,   /*!< Use a bulk data URI field */
-    OrthancPluginDicomWebBinaryMode_ArrayOfValues ORTHANC_PLUGIN_SINCE_SDK("1.12.12") = 3  /*!< Encode the values as an array (not available for OB, new in Orthanc 1.12.12) */
+    OrthancPluginDicomWebBinaryMode_ArrayOfValues ORTHANC_PLUGIN_SINCE_SDK("1.13.0") = 3  /*!< Encode the values as an array (not available for OB, new in Orthanc 1.13.0) */
   } OrthancPluginDicomWebBinaryMode;
 
 
@@ -11209,7 +11209,7 @@ extern "C"
    * @return 0 if success, other value if error.
    * @ingroup Toolbox
    **/
-  ORTHANC_PLUGIN_SINCE_SDK("1.12.12")
+  ORTHANC_PLUGIN_SINCE_SDK("1.13.0")
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginClearCurrentThreadName(
     OrthancPluginContext*  context)
   {

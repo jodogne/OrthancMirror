@@ -85,7 +85,7 @@ namespace Orthanc
     FindStorageAccessMode_DiskOnLookupAndAnswer
   };
 
-  // New in Orthanc 1.12.12
+  // New in Orthanc 1.13.0
   enum OverwriteInstancesMode
   {
     OverwriteInstancesMode_Never,

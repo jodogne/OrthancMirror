@@ -1734,7 +1734,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       context.SetCompressionEnabled(lock.GetConfiguration().HasStorageCompression());
       context.SetStoreMD5ForAttachments(lock.GetConfiguration().HasStoreMD5ForAttachments());
 
-      // New option in Orthanc 1.4.2 (bool), changed to a string in 1.12.12
+      // New option in Orthanc 1.4.2 (bool), changed to a string in 1.13.0
       OverwriteInstancesMode overwriteInstancesMode = OverwriteInstancesMode_Never;
       if (lock.GetJson().isMember(ORTHANC_CONFIG_OVERWRITE_INSTANCES))
       {
