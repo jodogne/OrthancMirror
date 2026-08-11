@@ -2049,17 +2049,7 @@ int main(int argc, char* argv[])
     }
     else if (argument[0] != '-')
     {
-      if (!configurationPaths.empty())
-      {
-        LOG(ERROR) << "More than one configuration path were provided on the command line, aborting";
-        return -1;
-      }
-      else
-      {
-        // Use the first argument that does not start with a "-" as
-        // the configuration file
-
-        boost::filesystem::path configurationFile = SystemToolbox::PathFromUtf8(argument);
+      boost::filesystem::path configurationFile = SystemToolbox::PathFromUtf8(argument);
 
 //        // TODO WHAT IS THE ENCODING?
 //#if defined(_WIN32)
@@ -2068,8 +2058,7 @@ int main(int argc, char* argv[])
 //        configurationFileUtf8Str = std::string(argv[i]);
 //#endif
 
-        configurationPaths.push_back(configurationFile);
-      }
+      configurationPaths.push_back(configurationFile);
     }
     else if (argument == "--errors")
     {

@@ -693,8 +693,8 @@ namespace Orthanc
     {
       if (configurationPaths_.size() >= 2)
       {
-        LOG(WARNING) << "A plugin has called deprecated OrthancPluginGetConfigurationPath(), the results "
-                     << "are unreliable because multiple configuration path were provided";
+        LOG(WARNING) << "A plugin has called the deprecated OrthancPluginGetConfigurationPath() primitive, the results "
+                     << "are unreliable because multiple configuration paths were provided";
       }
 
       const boost::filesystem::path& first = configurationPaths_.front();
