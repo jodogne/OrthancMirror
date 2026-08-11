@@ -328,6 +328,15 @@ namespace Orthanc
         calledAet = (/*OFSTRING_GUARD*/(calledAet_C));
       }
 
+      if (!Toolbox::IsValidAet(remoteAet))
+      {
+        LOG(ERROR) << "Association Received from an invalid AET (sanitized: " << Toolbox::NormalizeAet(remoteAet) << ")" 
+                   << " on IP " << remoteIp << ", rejecting the association";
+        return NULL;
+      }
+
+      remoteAet = Toolbox::NormalizeAet(remoteAet);  // removes leading/trailing spaces that are not significant according to the standard
+
       CLOG(INFO, DICOM) << "Association Received from AET " << remoteAet 
                         << " on IP " << remoteIp;
 
