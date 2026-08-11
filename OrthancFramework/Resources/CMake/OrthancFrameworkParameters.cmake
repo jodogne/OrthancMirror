@@ -137,6 +137,7 @@ set(ENABLE_DCMTK OFF CACHE INTERNAL "Enable DCMTK")
 set(ENABLE_DCMTK_NETWORKING OFF CACHE INTERNAL "Enable DICOM networking in DCMTK")
 set(ENABLE_DCMTK_TRANSCODING OFF CACHE INTERNAL "Enable DICOM transcoding in DCMTK")
 set(ENABLE_OPENSSL_ENGINES OFF CACHE INTERNAL "Enable support of engines in OpenSSL")
+set(ENABLE_BOOST_PROGRAM_OPTIONS OFF CACHE BOOL "Enable support for the boost::program_options library")  # New in Orthanc 1.13.0
 
 set(ORTHANC_SANDBOXED OFF CACHE INTERNAL
   "Whether Orthanc runs inside a sandboxed environment (such as Google NaCl or WebAssembly)")
