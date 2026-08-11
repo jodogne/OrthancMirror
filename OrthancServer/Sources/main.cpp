@@ -1998,6 +1998,73 @@ static bool DisplayPerformanceWarning()
 }
 
 
+static void ExportOpenApi(const std::string& target)
+{
+  Json::Value openapi;
+
+  {
+    SQLiteDatabaseWrapper inMemoryDatabase;
+    inMemoryDatabase.Open();
+    PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
+    ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
+    OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
+    restApi.GenerateOpenApiDocumentation(openapi);
+    context.Stop();
+  }
+
+  openapi["info"]["version"] = ORTHANC_VERSION;
+  openapi["info"]["title"] = "Orthanc API";
+  openapi["info"]["description"] =
+    "This is the full documentation of the [REST API](https://orthanc.uclouvain.be/book/users/rest.html) "
+    "of Orthanc.<p>This reference is automatically generated from the source code of Orthanc. A "
+    "[shorter cheat sheet](https://orthanc.uclouvain.be/book/users/rest-cheatsheet.html) is part of "
+    "the Orthanc Book.<p>An earlier, manually crafted version from August 2019, is [still available]"
+    "(2019-08-orthanc-openapi.html), but is not up-to-date anymore ([source]"
+    "(https://groups.google.com/g/orthanc-users/c/NUiJTEICSl8/m/xKeqMrbqAAAJ)).";
+
+  Json::Value server = Json::objectValue;
+  server["url"] = "https://orthanc.uclouvain.be/demo/";
+  openapi["servers"].append(server);
+
+  std::string s;
+  Toolbox::WriteStyledJson(s, openapi);
+
+  if (target == "-")
+  {
+    std::cout << s;   // Print to stdout
+  }
+  else
+  {
+    SystemToolbox::WriteFile(s, SystemToolbox::PathFromUtf8(target));
+  }
+}
+
+
+static void ExportCheatSheet(const std::string& target)
+{
+  std::string cheatsheet;
+
+  {
+    SQLiteDatabaseWrapper inMemoryDatabase;
+    inMemoryDatabase.Open();
+    PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
+    ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
+    OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
+    restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
+    context.Stop();
+  }
+
+  if (target == "-")
+  {
+    std::cout << cheatsheet;   // Print to stdout
+  }
+  else
+  {
+    SystemToolbox::WriteFile(cheatsheet, SystemToolbox::PathFromUtf8(target));
+  }
+}
+
+
 #if defined(_WIN32) && !defined(__MINGW32__)
 // arguments are passed as UTF-16 on Windows
 int wmain(int argc, wchar_t *argv[])
@@ -2032,7 +2099,8 @@ int main(int argc, char* argv[])
 
   bool upgradeDatabase = false;
   bool loadJobsFromDatabase = true;
-  boost::filesystem::path configurationFile;
+  std::list<boost::filesystem::path> configurationPaths;
+
 
   /**
    * Parse the command-line options.
@@ -2048,24 +2116,16 @@ int main(int argc, char* argv[])
     }
     else if (argument[0] != '-')
     {
-      if (!configurationFile.empty())
-      {
-        LOG(ERROR) << "More than one configuration path were provided on the command line, aborting";
-        return -1;
-      }
-      else
-      {
-        // Use the first argument that does not start with a "-" as
-        // the configuration file
+      boost::filesystem::path configurationFile = SystemToolbox::PathFromUtf8(argument);
 
-        configurationFile = SystemToolbox::PathFromUtf8(argument);
 //        // TODO WHAT IS THE ENCODING?
 //#if defined(_WIN32)
 //        //configurationFileUtf8Str = SystemToolbox::WStringToUtf8(SystemToolbox::WStringFromCharPtr(argv[i]));
 //#else
 //        configurationFileUtf8Str = std::string(argv[i]);
 //#endif
-      }
+
+      configurationPaths.push_back(configurationFile);
     }
     else if (argument == "--errors")
     {
@@ -2178,47 +2238,11 @@ int main(int argc, char* argv[])
     }
     else if (boost::starts_with(argument, "--openapi="))
     {
-      std::string target = argument.substr(10);
+      const std::string target = argument.substr(argument.find('=') + 1);
 
       try
       {
-        Json::Value openapi;
-
-        {
-          SQLiteDatabaseWrapper inMemoryDatabase;
-          inMemoryDatabase.Open();
-          PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
-          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
-          OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
-          restApi.GenerateOpenApiDocumentation(openapi);
-          context.Stop();
-        }
-
-        openapi["info"]["version"] = ORTHANC_VERSION;
-        openapi["info"]["title"] = "Orthanc API";
-        openapi["info"]["description"] =
-          "This is the full documentation of the [REST API](https://orthanc.uclouvain.be/book/users/rest.html) "
-          "of Orthanc.<p>This reference is automatically generated from the source code of Orthanc. A "
-          "[shorter cheat sheet](https://orthanc.uclouvain.be/book/users/rest-cheatsheet.html) is part of "
-          "the Orthanc Book.<p>An earlier, manually crafted version from August 2019, is [still available]"
-          "(2019-08-orthanc-openapi.html), but is not up-to-date anymore ([source]"
-          "(https://groups.google.com/g/orthanc-users/c/NUiJTEICSl8/m/xKeqMrbqAAAJ)).";
-
-        Json::Value server = Json::objectValue;
-        server["url"] = "https://orthanc.uclouvain.be/demo/";
-        openapi["servers"].append(server);
-        
-        std::string s;
-        Toolbox::WriteStyledJson(s, openapi);
-
-        if (target == "-")
-        {
-          std::cout << s;   // Print to stdout
-        }
-        else
-        {
-          SystemToolbox::WriteFile(s, SystemToolbox::PathFromUtf8(target));
-        }
+        ExportOpenApi(target);
         return 0;
       }
       catch (OrthancException&)
@@ -2233,26 +2257,7 @@ int main(int argc, char* argv[])
 
       try
       {
-        std::string cheatsheet;
-
-        {
-          SQLiteDatabaseWrapper inMemoryDatabase;
-          inMemoryDatabase.Open();
-          PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
-          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
-          OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
-          restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
-          context.Stop();
-        }
-
-        if (target == "-")
-        {
-          std::cout << cheatsheet;   // Print to stdout
-        }
-        else
-        {
-          SystemToolbox::WriteFile(cheatsheet, SystemToolbox::PathFromUtf8(target));
-        }
+        ExportCheatSheet(target);
         return 0;
       }
       catch (OrthancException&)
@@ -2329,7 +2334,7 @@ int main(int argc, char* argv[])
   {
     for (;;)
     {
-      OrthancInitialize(configurationFile);
+      OrthancInitialize(configurationPaths);
 
       bool restart = StartOrthanc(arguments, upgradeDatabase, loadJobsFromDatabase);
       if (restart)
