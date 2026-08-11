@@ -30,7 +30,9 @@
 
 namespace Orthanc
 {
-  void OrthancInitialize(const boost::filesystem::path& configurationFile);
+  void OrthancInitialize(const std::list<boost::filesystem::path>& configurationPaths);
+
+  void OrthancInitialize();  // Use only the default configuration
 
   void OrthancFinalize();
 

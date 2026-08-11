@@ -331,7 +331,7 @@ namespace Orthanc
 
 
 
-  void OrthancInitialize(const boost::filesystem::path& configurationFile)
+  void OrthancInitialize(const std::list<boost::filesystem::path>& configurationPaths)
   {
     static const char* const LOCALE = "Locale";
     static const char* const PKCS11 = "Pkcs11";
@@ -348,7 +348,7 @@ namespace Orthanc
     InitializeServerEnumerations();
 
     // Read the user-provided configuration
-    lock.GetConfiguration().Read(configurationFile);
+    lock.GetConfiguration().Read(configurationPaths);
 
     {
       std::string locale;
@@ -404,6 +404,12 @@ namespace Orthanc
 #endif
   }
 
+
+  void OrthancInitialize()
+  {
+    std::list<boost::filesystem::path> configurationPaths;
+    OrthancInitialize(configurationPaths);
+  }
 
 
   void OrthancFinalize()

@@ -50,45 +50,70 @@ static const char* const DICOM_LOSSY_TRANSCODING_QUALITY = "DicomLossyTranscodin
 static const char* const CONFIG_LOADER_THREADS = "LoaderThreads";
 static const char* const CONFIG_ZIP_LOADER_THREADS = "ZipLoaderThreads"; // for backward compatibility only
 
-static Json::Value defaultConfiguration;
-
 namespace Orthanc
 {
-  static void AddFileToConfiguration(Json::Value& target,
-                                     const boost::filesystem::path& path)
+  static void ReadConfigurationFromString(Json::Value& target,
+                                          const std::string& content)
   {
     std::map<std::string, std::string> env;
     SystemToolbox::GetEnvironmentVariables(env);
-    
-    LOG(WARNING) << "Reading the configuration from: " << SystemToolbox::PathToUtf8(path);
 
-    Json::Value config;
+    std::string substituted = Toolbox::SubstituteVariables(content, env);
 
+    Json::Value tmp;
+    if (!Toolbox::ReadJson(tmp, substituted) ||
+        tmp.type() != Json::objectValue)
     {
-      std::string content;
-      SystemToolbox::ReadFile(content, path);
-
-      content = Toolbox::SubstituteVariables(content, env);
-
-      Json::Value tmp;
-      if (!Toolbox::ReadJson(tmp, content) ||
-          tmp.type() != Json::objectValue)
-      {
-        throw OrthancException(ErrorCode_BadJson,
-                               "The configuration file does not follow the JSON syntax: " + SystemToolbox::PathToUtf8(path));
-      }
-
-      Toolbox::CopyJsonWithoutComments(config, tmp);
+      throw OrthancException(ErrorCode_BadJson, "The configuration file does not follow the JSON syntax");
     }
 
-    if (target.size() == 0)
+    Toolbox::CopyJsonWithoutComments(target, tmp);
+  }
+
+
+  static void ReadConfigurationFromFile(Json::Value& target,
+                                        const boost::filesystem::path& path)
+  {
+    LOG(WARNING) << "Reading the configuration file: " << SystemToolbox::PathToUtf8(path);
+
+    std::string content;
+    SystemToolbox::ReadFile(content, path);
+
+    ReadConfigurationFromString(target, content);
+  }
+
+
+  static void ReadDefaultConfiguration(Json::Value& target)
+  {
+#if ORTHANC_STANDALONE == 1
+    std::string content;
+    GetFileResource(content, ServerResources::CONFIGURATION_SAMPLE);
+
+    ReadConfigurationFromString(target, content);
+#else
+    // In a non-standalone build, we use the
+    // "Resources/Configuration.json" from the Orthanc source code
+
+    boost::filesystem::path p = ORTHANC_PATH;
+    p /= "Resources";
+    p /= "Configuration.json";
+
+    ReadConfigurationFromFile(target, p);
+#endif
+  }
+
+
+  static void MergeConfigurations(Json::Value& target,
+                                  const Json::Value& source)
+  {
+    if (target.type() != Json::objectValue ||
+        source.type() != Json::objectValue)
     {
-      target = config;
+      throw OrthancException(ErrorCode_InternalError);
     }
     else
     {
-      // Merge the newly-added file with the previous content of "target"
-      Json::Value::Members members = config.getMemberNames();
+      Json::Value::Members members = source.getMemberNames();
       for (Json::Value::ArrayIndex i = 0; i < members.size(); i++)
       {
         if (target.isMember(members[i]))
@@ -99,24 +124,21 @@ namespace Orthanc
         }
         else
         {
-          target[members[i]] = config[members[i]];
+          target[members[i]] = source[members[i]];
         }
       }
     }
   }
 
-    
-  static void ScanFolderForConfiguration(Json::Value& target,
-                                         const boost::filesystem::path& folder)
+
+  static void ReadConfigurationsFromFolder(Json::Value& target,
+                                           const boost::filesystem::path& folder)
   {
-    using namespace boost::filesystem;
+    LOG(WARNING) << "Scanning folder for configuration files: " << Orthanc::SystemToolbox::PathToUtf8(folder);
 
-    LOG(WARNING) << "Scanning folder \"" << Orthanc::SystemToolbox::PathToUtf8(folder) << "\" for configuration files";
+    boost::filesystem::directory_iterator end_it; // default construction yields past-the-end
 
-    directory_iterator end_it; // default construction yields past-the-end
-    for (directory_iterator it(folder);
-         it != end_it;
-         ++it)
+    for (boost::filesystem::directory_iterator it(folder); it != end_it; ++it)
     {
       if (!is_directory(it->status()))
       {
@@ -125,69 +147,33 @@ namespace Orthanc
 
         if (extension == ".json")
         {
-          AddFileToConfiguration(target, it->path());
+          Json::Value config;
+          ReadConfigurationFromFile(config, it->path());
+          MergeConfigurations(target, config);
         }
       }
     }
   }
 
-    
-  static void ReadConfiguration(Json::Value& target, 
-                                const boost::filesystem::path &configurationFile)
+
+  static void ReadConfiguration(Json::Value& target,
+                                const std::list<boost::filesystem::path>& configurationPaths)
   {
-    // lazy loading of the default configuration
-    if (defaultConfiguration.empty())
-    {
-      std::string defaultConfigurationContent;
-      GetFileResource(defaultConfigurationContent, ServerResources::CONFIGURATION_SAMPLE);
-
-      Json::Value tmp;
-      if (!Toolbox::ReadJson(tmp, defaultConfigurationContent) ||
-          tmp.type() != Json::objectValue)
-      {
-        throw OrthancException(ErrorCode_InternalError, "The default configuration file does not follow the JSON syntax !!");
-      }
-
-      Toolbox::CopyJsonWithoutComments(defaultConfiguration, tmp);
-    }
-
     target = Json::objectValue;
 
-    if (!configurationFile.empty())
+    for (std::list<boost::filesystem::path>::const_iterator it = configurationPaths.begin();
+         it != configurationPaths.end(); ++it)
     {
-      if (!boost::filesystem::exists(configurationFile))
+      if (boost::filesystem::is_directory(*it))
       {
-        throw OrthancException(ErrorCode_InexistentFile,
-                               "Inexistent path to configuration: " +
-                               SystemToolbox::PathToUtf8(configurationFile));
-      }
-      
-      if (boost::filesystem::is_directory(configurationFile))
-      {
-        ScanFolderForConfiguration(target, configurationFile);
+        ReadConfigurationsFromFolder(target, *it);
       }
       else
       {
-        AddFileToConfiguration(target, configurationFile);
+        Json::Value config;
+        ReadConfigurationFromFile(config, *it);
+        MergeConfigurations(target, config);
       }
-    }
-    else
-    {
-#if ORTHANC_STANDALONE == 1
-      // No default path for the standalone configuration
-      LOG(WARNING) << "Using the default Orthanc configuration";
-      return;
-
-#else
-      // In a non-standalone build, we use the
-      // "Resources/Configuration.json" from the Orthanc source code
-
-      boost::filesystem::path p = ORTHANC_PATH;
-      p /= "Resources";
-      p /= "Configuration.json";
-
-      AddFileToConfiguration(target, p);
-#endif
     }
   }
 
@@ -204,6 +190,13 @@ namespace Orthanc
                                "in the names of modalities/peers, but found: " + s);
       }
     }
+  }
+
+
+  OrthancConfiguration::OrthancConfiguration() :
+    serverIndex_(NULL)
+  {
+    ReadDefaultConfiguration(defaultConfiguration_);
   }
 
 
@@ -486,19 +479,20 @@ namespace Orthanc
   }
 
 
-  bool OrthancConfiguration::LookupStringParameter(std::string& target,
-                                                   const std::string& parameter) const
+  static bool LookupStringParameterInternal(std::string& target,
+                                            const Json::Value& config,
+                                            const std::string& parameter)
   {
-    if (json_.isMember(parameter))
+    if (config.isMember(parameter))
     {
-      if (json_[parameter].type() != Json::stringValue)
+      if (config[parameter].type() != Json::stringValue)
       {
         throw OrthancException(ErrorCode_BadParameterType,
                                "The configuration option \"" + parameter + "\" must be a string");
       }
       else
       {
-        target = json_[parameter].asString();
+        target = config[parameter].asString();
         return true;
       }
     }
@@ -506,6 +500,13 @@ namespace Orthanc
     {
       return false;
     }
+  }
+
+
+  bool OrthancConfiguration::LookupStringParameter(std::string& target,
+                                                   const std::string& parameter) const
+  {
+    return LookupStringParameterInternal(target, json_, parameter);
   }
 
 
@@ -516,30 +517,32 @@ namespace Orthanc
     {
       return value;
     }
-    else if (defaultConfiguration.isMember(parameter) && defaultConfiguration[parameter].type() == Json::stringValue)
+    else if (LookupStringParameterInternal(value, defaultConfiguration_, parameter))
     {
-      return defaultConfiguration[parameter].asString();
+      return value;
     }
     else
     {
-      throw OrthancException(ErrorCode_InternalError, std::string("No or invalid default parameter found in the default configuration for '") + parameter + "'");
+      throw OrthancException(ErrorCode_InternalError,
+                             "No or invalid default parameter found in the default configuration for '" + parameter + "'");
     }
   }
 
-    
-  bool OrthancConfiguration::LookupIntegerParameter(int& target,
-                                                    const std::string& parameter) const
+
+  static bool LookupIntegerParameterInternal(int& target,
+                                             const Json::Value& config,
+                                             const std::string& parameter)
   {
-    if (json_.isMember(parameter))
+    if (config.isMember(parameter))
     {
-      if (json_[parameter].type() != Json::intValue)
+      if (config[parameter].type() != Json::intValue)
       {
         throw OrthancException(ErrorCode_BadParameterType,
                                "The configuration option \"" + parameter + "\" must be an integer");
       }
       else
       {
-        target = json_[parameter].asInt();
+        target = config[parameter].asInt();
         return true;
       }
     }
@@ -550,12 +553,40 @@ namespace Orthanc
   }
 
 
-    
-  bool OrthancConfiguration::LookupUnsignedIntegerParameter(unsigned int& target,
-                                                            const std::string& parameter) const
+  bool OrthancConfiguration::LookupIntegerParameter(int& target,
+                                                    const std::string& parameter) const
+  {
+    return LookupIntegerParameterInternal(target, json_, parameter);
+  }
+
+
+  bool OrthancConfiguration::GetIntegerParameter(int& target,
+                                                 const std::string& parameter) const
   {
     int v;
+
     if (LookupIntegerParameter(v, parameter))
+    {
+      return v;
+    }
+    else if (LookupIntegerParameterInternal(v, defaultConfiguration_, parameter))
+    {
+      return v;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "No or invalid default parameter found in the default configuration for '" + parameter + "'");
+    }
+  }
+
+    
+  static bool LookupUnsignedIntegerParameterInternal(unsigned int& target,
+                                                     const Json::Value& config,
+                                                     const std::string& parameter)
+  {
+    int v;
+    if (LookupIntegerParameterInternal(v, config, parameter))
     {
       if (v < 0)
       {
@@ -575,6 +606,13 @@ namespace Orthanc
   }
 
 
+  bool OrthancConfiguration::LookupUnsignedIntegerParameter(unsigned int& target,
+                                                            const std::string& parameter) const
+  {
+    return LookupUnsignedIntegerParameterInternal(target, json_, parameter);
+  }
+
+
   unsigned int OrthancConfiguration::GetUnsignedIntegerParameter(const std::string& parameter) const
   {
     unsigned int v;
@@ -582,23 +620,25 @@ namespace Orthanc
     {
       return v;
     }
-    else if (defaultConfiguration.isMember(parameter) && defaultConfiguration[parameter].type() == Json::intValue)
+    else if (LookupUnsignedIntegerParameterInternal(v, defaultConfiguration_, parameter))
     {
-      return static_cast<unsigned int>(defaultConfiguration[parameter].asInt());
+      return v;
     }
     else
     {
-      throw OrthancException(ErrorCode_InternalError, std::string("No or invalid default parameter found in the default configuration for '") + parameter + "'");
+      throw OrthancException(ErrorCode_InternalError,
+                             "No or invalid default parameter found in the default configuration for '" + parameter + "'");
     }
   }
 
 
-  bool OrthancConfiguration::LookupBooleanParameter(bool& target,
-                                                    const std::string& parameter) const
+  static bool LookupBooleanParameterInternal(bool& target,
+                                             const Json::Value& config,
+                                             const std::string& parameter)
   {
-    if (json_.isMember(parameter))
+    if (config.isMember(parameter))
     {
-      if (json_[parameter].type() != Json::booleanValue)
+      if (config[parameter].type() != Json::booleanValue)
       {
         throw OrthancException(ErrorCode_BadParameterType,
                                "The configuration option \"" + parameter +
@@ -606,7 +646,7 @@ namespace Orthanc
       }
       else
       {
-        target = json_[parameter].asBool();
+        target = config[parameter].asBool();
         return true;
       }
     }
@@ -617,6 +657,13 @@ namespace Orthanc
   }
 
 
+  bool OrthancConfiguration::LookupBooleanParameter(bool& target,
+                                                    const std::string& parameter) const
+  {
+    return LookupBooleanParameterInternal(target, json_, parameter);
+  }
+
+
   bool OrthancConfiguration::GetBooleanParameter(const std::string& parameter) const
   {
     bool value;
@@ -624,52 +671,76 @@ namespace Orthanc
     {
       return value;
     }
-    else if (defaultConfiguration.isMember(parameter) && defaultConfiguration[parameter].type() == Json::booleanValue)
+    else if (LookupBooleanParameterInternal(value, defaultConfiguration_, parameter))
     {
-      return defaultConfiguration[parameter].asBool();
+      return value;
     }
     else
     {
-      throw OrthancException(ErrorCode_InternalError, std::string("No or invalid default parameter found in the default configuration for '") + parameter + "'");
+      throw OrthancException(ErrorCode_InternalError,
+                             "No or invalid default parameter found in the default configuration for '" + parameter + "'");
     }
   }
 
 
-  void OrthancConfiguration::Read(const boost::filesystem::path& configurationFile)
+  std::string OrthancConfiguration::GetConfigurationAbsolutePath() const
   {
-    // Read the content of the configuration
-    configurationFileArg_ = configurationFile;
-    ReadConfiguration(json_, configurationFile);
-
-    // Adapt the paths to the configurations
-    defaultDirectory_ = boost::filesystem::current_path();
-    configurationAbsolutePath_ = "";
-
-    if (configurationFile.empty())
+    if (configurationPaths_.empty())
     {
-      if (boost::filesystem::is_directory(configurationFile))
-      {
-        defaultDirectory_ = configurationFile;
-        configurationAbsolutePath_ = boost::filesystem::absolute(configurationFile).parent_path().string();
-      }
-      else
-      {
-        defaultDirectory_ = boost::filesystem::path(configurationFile).parent_path();
-        configurationAbsolutePath_ = boost::filesystem::absolute(configurationFile).string();
-      }
+      return "";
     }
     else
     {
-#if ORTHANC_STANDALONE != 1
-      // In a non-standalone build, we use the
-      // "Resources/Configuration.json" from the Orthanc source code
+      if (configurationPaths_.size() >= 2)
+      {
+        LOG(WARNING) << "A plugin has called deprecated OrthancPluginGetConfigurationPath(), the results "
+                     << "are unreliable because multiple configuration path were provided";
+      }
 
-      boost::filesystem::path p = ORTHANC_PATH;
-      p /= "Resources";
-      p /= "Configuration.json";
-      configurationAbsolutePath_ = boost::filesystem::absolute(p).string();
-#endif
+      const boost::filesystem::path& first = configurationPaths_.front();
+
+      if (boost::filesystem::is_directory(first))
+      {
+        return boost::filesystem::absolute(first).parent_path().string();
+      }
+      else
+      {
+        return boost::filesystem::absolute(first).string();
+      }
+    }    
+  }
+
+
+  void OrthancConfiguration::Read(const std::list<boost::filesystem::path>& configurationPaths)
+  {
+    if (configurationPaths.empty())
+    {
+      LOG(WARNING) << "Using the default Orthanc configuration";
     }
+
+    // Read the content of the configuration
+    configurationPaths_ = configurationPaths;
+    ReadConfiguration(json_, configurationPaths);
+
+    // Adapt the paths to the configurations
+    defaultDirectory_ = boost::filesystem::current_path();
+
+    if (!configurationPaths.empty())
+    {
+      const boost::filesystem::path& first = configurationPaths.front();
+
+      if (boost::filesystem::is_directory(first))
+      {
+        defaultDirectory_ = first;
+      }
+      else
+      {
+        defaultDirectory_ = boost::filesystem::path(first).parent_path();
+      }
+    }
+
+    LOG(WARNING) << "The paths in the Orthanc configuration will be interpreted relative to folder: "
+                 << SystemToolbox::PathToUtf8(defaultDirectory_);
   }
 
 
@@ -1033,7 +1104,7 @@ namespace Orthanc
   bool OrthancConfiguration::HasConfigurationChanged() const
   {
     Json::Value current;
-    ReadConfiguration(current, configurationFileArg_);
+    ReadConfiguration(current, configurationPaths_);
 
     std::string a, b;
     Toolbox::WriteFastJson(a, json_);

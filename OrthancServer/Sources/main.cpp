@@ -2032,7 +2032,8 @@ int main(int argc, char* argv[])
 
   bool upgradeDatabase = false;
   bool loadJobsFromDatabase = true;
-  boost::filesystem::path configurationFile;
+  std::list<boost::filesystem::path> configurationPaths;
+
 
   /**
    * Parse the command-line options.
@@ -2048,7 +2049,7 @@ int main(int argc, char* argv[])
     }
     else if (argument[0] != '-')
     {
-      if (!configurationFile.empty())
+      if (!configurationPaths.empty())
       {
         LOG(ERROR) << "More than one configuration path were provided on the command line, aborting";
         return -1;
@@ -2058,13 +2059,16 @@ int main(int argc, char* argv[])
         // Use the first argument that does not start with a "-" as
         // the configuration file
 
-        configurationFile = SystemToolbox::PathFromUtf8(argument);
+        boost::filesystem::path configurationFile = SystemToolbox::PathFromUtf8(argument);
+
 //        // TODO WHAT IS THE ENCODING?
 //#if defined(_WIN32)
 //        //configurationFileUtf8Str = SystemToolbox::WStringToUtf8(SystemToolbox::WStringFromCharPtr(argv[i]));
 //#else
 //        configurationFileUtf8Str = std::string(argv[i]);
 //#endif
+
+        configurationPaths.push_back(configurationFile);
       }
     }
     else if (argument == "--errors")
@@ -2329,7 +2333,7 @@ int main(int argc, char* argv[])
   {
     for (;;)
     {
-      OrthancInitialize(configurationFile);
+      OrthancInitialize(configurationPaths);
 
       bool restart = StartOrthanc(arguments, upgradeDatabase, loadJobsFromDatabase);
       if (restart)
