@@ -349,6 +349,7 @@ namespace Orthanc
 
     // Read the user-provided configuration
     lock.GetConfiguration().Read(configurationPaths);
+    lock.GetConfiguration().LoadOrthancAET();  // read it early because we need it for the ServerDatabaseIdentifier
 
     {
       std::string locale;
