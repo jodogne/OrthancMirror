@@ -278,9 +278,9 @@ namespace Orthanc
     else
     {
       // Modalities are stored in the configuration files
-      if (json_.isMember(DICOM_MODALITIES))
+      if (userConfiguration_.isMember(DICOM_MODALITIES))
       {
-        LoadModalitiesFromJson(json_[DICOM_MODALITIES]);
+        LoadModalitiesFromJson(userConfiguration_[DICOM_MODALITIES]);
       }
       else
       {
@@ -294,9 +294,9 @@ namespace Orthanc
     // default values
     jobsEngineThreadsCount_["ResourceModification"] = 1;
 
-    if (json_.isMember(JOBS_ENGINE_THREADS_COUNT))
+    if (userConfiguration_.isMember(JOBS_ENGINE_THREADS_COUNT))
     {
-      const Json::Value& source = json_[JOBS_ENGINE_THREADS_COUNT];
+      const Json::Value& source = userConfiguration_[JOBS_ENGINE_THREADS_COUNT];
       if (source.type() != Json::objectValue)
       {
         throw OrthancException(ErrorCode_BadFileFormat,
@@ -366,9 +366,9 @@ namespace Orthanc
     else
     {
       // Peers are stored in the configuration files
-      if (json_.isMember(ORTHANC_PEERS))
+      if (userConfiguration_.isMember(ORTHANC_PEERS))
       {
-        LoadPeersFromJson(json_[ORTHANC_PEERS]);
+        LoadPeersFromJson(userConfiguration_[ORTHANC_PEERS]);
       }
       else
       {
@@ -432,9 +432,9 @@ namespace Orthanc
     {
       // Modalities are stored in the configuration files
       if (!modalities_.empty() ||
-          json_.isMember(DICOM_MODALITIES))
+          userConfiguration_.isMember(DICOM_MODALITIES))
       {
-        SaveModalitiesToJson(json_[DICOM_MODALITIES]);
+        SaveModalitiesToJson(userConfiguration_[DICOM_MODALITIES]);
       }
     }
   }
@@ -464,9 +464,9 @@ namespace Orthanc
     {
       // Peers are stored in the configuration files
       if (!peers_.empty() ||
-          json_.isMember(ORTHANC_PEERS))
+          userConfiguration_.isMember(ORTHANC_PEERS))
       {
-        SavePeersToJson(json_[ORTHANC_PEERS]);
+        SavePeersToJson(userConfiguration_[ORTHANC_PEERS]);
       }
     }
   }
@@ -506,7 +506,7 @@ namespace Orthanc
   bool OrthancConfiguration::LookupStringParameter(std::string& target,
                                                    const std::string& parameter) const
   {
-    return LookupStringParameterInternal(target, json_, parameter);
+    return LookupStringParameterInternal(target, userConfiguration_, parameter);
   }
 
 
@@ -556,7 +556,7 @@ namespace Orthanc
   bool OrthancConfiguration::LookupIntegerParameter(int& target,
                                                     const std::string& parameter) const
   {
-    return LookupIntegerParameterInternal(target, json_, parameter);
+    return LookupIntegerParameterInternal(target, userConfiguration_, parameter);
   }
 
 
@@ -609,7 +609,7 @@ namespace Orthanc
   bool OrthancConfiguration::LookupUnsignedIntegerParameter(unsigned int& target,
                                                             const std::string& parameter) const
   {
-    return LookupUnsignedIntegerParameterInternal(target, json_, parameter);
+    return LookupUnsignedIntegerParameterInternal(target, userConfiguration_, parameter);
   }
 
 
@@ -660,7 +660,7 @@ namespace Orthanc
   bool OrthancConfiguration::LookupBooleanParameter(bool& target,
                                                     const std::string& parameter) const
   {
-    return LookupBooleanParameterInternal(target, json_, parameter);
+    return LookupBooleanParameterInternal(target, userConfiguration_, parameter);
   }
 
 
@@ -720,7 +720,7 @@ namespace Orthanc
 
     // Read the content of the configuration
     configurationPaths_ = configurationPaths;
-    ReadConfiguration(json_, configurationPaths);
+    ReadConfiguration(userConfiguration_, configurationPaths);
 
     // Adapt the paths to the configurations
     defaultDirectory_ = boost::filesystem::current_path();
@@ -836,13 +836,13 @@ namespace Orthanc
 
     httpServer.ClearUsers();
 
-    if (!json_.isMember(REGISTERED_USERS))
+    if (!userConfiguration_.isMember(REGISTERED_USERS))
     {
       return RegisteredUsersStatus_NoConfiguration;
     }
     else
     {
-      const Json::Value& users = json_[REGISTERED_USERS];
+      const Json::Value& users = userConfiguration_[REGISTERED_USERS];
       if (users.type() != Json::objectValue)
       {
         throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of users");
@@ -885,12 +885,12 @@ namespace Orthanc
   {
     target.clear();
   
-    if (!json_.isMember(key))
+    if (!userConfiguration_.isMember(key))
     {
       return;
     }
 
-    const Json::Value& lst = json_[key];
+    const Json::Value& lst = userConfiguration_[key];
 
     if (lst.type() != Json::arrayValue)
     {
@@ -909,12 +909,12 @@ namespace Orthanc
   {
     target.clear();
   
-    if (!json_.isMember(key))
+    if (!userConfiguration_.isMember(key))
     {
       return;
     }
 
-    const Json::Value& lst = json_[key];
+    const Json::Value& lst = userConfiguration_[key];
 
     if (lst.type() != Json::arrayValue)
     {
@@ -1087,7 +1087,7 @@ namespace Orthanc
 
   void OrthancConfiguration::Format(std::string& result) const
   {
-    Toolbox::WriteStyledJson(result, json_);
+    Toolbox::WriteStyledJson(result, userConfiguration_);
   }
 
 
@@ -1097,7 +1097,7 @@ namespace Orthanc
 
     // Propagate the encoding to the configuration file that is
     // stored in memory
-    json_["DefaultEncoding"] = EnumerationToString(encoding);
+    userConfiguration_["DefaultEncoding"] = EnumerationToString(encoding);
   }
 
 
@@ -1107,7 +1107,7 @@ namespace Orthanc
     ReadConfiguration(current, configurationPaths_);
 
     std::string a, b;
-    Toolbox::WriteFastJson(a, json_);
+    Toolbox::WriteFastJson(a, userConfiguration_);
     Toolbox::WriteFastJson(b, current);
 
     return a != b;
@@ -1189,9 +1189,9 @@ namespace Orthanc
 
     static const char* const ACCEPTED_TRANSFER_SYNTAXES = "AcceptedTransferSyntaxes";
 
-    if (json_.isMember(ACCEPTED_TRANSFER_SYNTAXES))
+    if (userConfiguration_.isMember(ACCEPTED_TRANSFER_SYNTAXES))
     {
-      ParseAcceptedTransferSyntaxes(target, json_[ACCEPTED_TRANSFER_SYNTAXES]);
+      ParseAcceptedTransferSyntaxes(target, userConfiguration_[ACCEPTED_TRANSFER_SYNTAXES]);
     }
     else
     {
@@ -1278,9 +1278,9 @@ namespace Orthanc
 
   void OrthancConfiguration::LoadWarnings()
   {
-    if (json_.isMember(WARNINGS))
+    if (userConfiguration_.isMember(WARNINGS))
     {
-      const Json::Value& warnings = json_[WARNINGS];
+      const Json::Value& warnings = userConfiguration_[WARNINGS];
       if (!warnings.isObject())
       {
         throw OrthancException(ErrorCode_BadFileFormat, std::string(WARNINGS) + " configuration entry is not a Json object");

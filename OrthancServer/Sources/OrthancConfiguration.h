@@ -82,17 +82,17 @@ namespace Orthanc
     typedef std::map<std::string, WebServiceParameters>       Peers;
     typedef std::map<std::string, unsigned int>               JobsEngineThreadsCount;
 
-    boost::shared_mutex      mutex_;
-    Json::Value              defaultConfiguration_;
-    Json::Value              json_;
-    boost::filesystem::path  defaultDirectory_;
-    FontRegistry             fontRegistry_;
+    boost::shared_mutex                 mutex_;
+    Json::Value                         defaultConfiguration_;
     std::list<boost::filesystem::path>  configurationPaths_;
-    Modalities               modalities_;
-    Peers                    peers_;
-    JobsEngineThreadsCount   jobsEngineThreadsCount_;
-    ServerIndex*             serverIndex_;
-    std::set<Warnings>       disabledWarnings_;
+    Json::Value                         userConfiguration_;
+    boost::filesystem::path             defaultDirectory_;
+    FontRegistry                        fontRegistry_;
+    Modalities                          modalities_;
+    Peers                               peers_;
+    JobsEngineThreadsCount              jobsEngineThreadsCount_;
+    ServerIndex*                        serverIndex_;
+    std::set<Warnings>                  disabledWarnings_;
 
     OrthancConfiguration();
 
@@ -135,7 +135,7 @@ namespace Orthanc
 
       const Json::Value& GetJson() const
       {
-        return configuration_.json_;
+        return configuration_.userConfiguration_;
       }
     };
 
@@ -165,7 +165,7 @@ namespace Orthanc
 
       const Json::Value& GetJson() const
       {
-        return configuration_.json_;
+        return configuration_.userConfiguration_;
       }
     };
 
