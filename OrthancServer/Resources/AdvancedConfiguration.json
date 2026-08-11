@@ -1,0 +1,9 @@
+{
+  /**
+   * Advanced configuration options of Orthanc
+   *
+   * This file gathers advanced options that were part of the main
+   * configuration file until Orthanc 1.12.11.
+   **/
+
+}
