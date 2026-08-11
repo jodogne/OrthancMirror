@@ -1828,8 +1828,11 @@ namespace Orthanc
 
   void HttpServer::Start()
   {
-    // reset thread counter used to generate HTTP thread names.
-    threadCounter_ = 0;
+    {
+      // reset thread counter used to generate HTTP thread names.
+      boost::unique_lock<boost::shared_mutex> lock(threadCounterMutex_);
+      threadCounter_ = 0;
+    }
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
     CLOG(INFO, HTTP) << "Starting embedded Web server using Mongoose";
@@ -2473,7 +2476,7 @@ namespace Orthanc
   std::string HttpServer::GetCurrentThreadName()
   {
     // threads are created in CivetWeb -> assign them a name the first time they are used
-    boost::thread::id threadId = boost::this_thread::get_id();
+    const boost::thread::id threadId = boost::this_thread::get_id();
 
     boost::upgrade_lock<boost::shared_mutex> readerLock(threadCounterMutex_); // reader lock to check if the threadId has already been registered
 
