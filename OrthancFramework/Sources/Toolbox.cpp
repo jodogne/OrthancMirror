@@ -3057,14 +3057,18 @@ namespace Orthanc
   // + removes leading and trailing spaces that must be ignored
   std::string Toolbox::NormalizeAet(const std::string& aet)
   {
-    std::string normalizedAet = aet;
-    uint8_t* p = reinterpret_cast<uint8_t*>(normalizedAet.data());
+    std::string normalizedAet;
 
-    for (size_t i = 0; i < aet.size(); ++i, ++p)
+    for (size_t i = 0; i < aet.size(); ++i)
     {
-      if (iscntrl(*p) || *p == '\\')
+      if (iscntrl(aet[i]) ||
+          aet[i] == '\\')
       {
-        *p = '*';
+        normalizedAet.push_back('*');
+      }
+      else
+      {
+        normalizedAet.push_back(aet[i]);
       }
     }
 
