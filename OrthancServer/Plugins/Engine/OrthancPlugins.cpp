@@ -2581,7 +2581,7 @@ namespace Orthanc
             cgroups_.resize(what.size() - 1);
             for (size_t i = 1; i < what.size(); i++)
             {
-              groups_[i - 1] = what[i];
+              groups_[i - 1] = what[static_cast<int>(i)];
               cgroups_[i - 1] = groups_[i - 1].c_str();
             }
           }

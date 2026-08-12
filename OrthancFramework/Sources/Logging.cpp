@@ -1573,7 +1573,7 @@ namespace Orthanc
             {
               (*it)->HandleLog(level_, category_, pluginName_, file_, line_, messageStream_.str());
             }
-            catch (...)
+            catch (...) // NOLINT(bugprone-empty-catch)
             {
               // Don't throw in destructors
             }

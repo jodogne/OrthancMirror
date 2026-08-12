@@ -4006,7 +4006,7 @@ namespace Orthanc
             Uint64 f;
             if (content.getUint64(f, i).good())
             {
-              values.push_back(f);
+              values.push_back(static_cast<int64_t>(f));
 
               if (static_cast<Uint64>(values.back()) != f)
               {

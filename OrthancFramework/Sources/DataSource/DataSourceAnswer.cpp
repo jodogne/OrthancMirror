@@ -54,7 +54,7 @@ namespace Orthanc
   DataSourceAnswer::Item::Item(IDataIdentifier* id /* takes ownership */,
                                const OrthancException& error) :
     id_(id),
-    error_(new OrthancException(error)),
+    error_(new OrthancException(error)),  // NOLINT(bugprone-throw-keyword-missing)
     memorySize_(0)
   {
     if (id == NULL)
