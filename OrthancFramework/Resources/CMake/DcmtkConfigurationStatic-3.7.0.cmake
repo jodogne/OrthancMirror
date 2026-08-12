@@ -52,6 +52,8 @@ endif()
 DownloadPackage(${DCMTK_MD5} ${DCMTK_URL} "${DCMTK_SOURCES_DIR}")
 
 
+list(APPEND ORTHANC_PATCHES_LIST "dcmtk-3.7.0-max-nested-sequence.patch")  # Must be out of "FirstRun"
+
 if (FirstRun)
   # Apply the patches
   execute_process(
@@ -65,7 +67,6 @@ if (FirstRun)
     message(FATAL_ERROR "Error while patching a file")
   endif()
 
-  list(APPEND ORTHANC_PATCHES_LIST "dcmtk-3.7.0-max-nested-sequence.patch")
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
     ${CMAKE_CURRENT_LIST_DIR}/../Patches/dcmtk-3.7.0-max-nested-sequence.patch
