@@ -55,14 +55,14 @@
   // Amount of RAM (in MB) that are allocated to the storage loader threads.
   // Note that this limit can be overpassed when a single file
   // exceeds this size.
-  // (new in Orthanc 1.12.11+).
+  // (new in Orthanc 1.13.0).
   // You should monitor the "orthanc_storage_memory_usage_mb" and
   // "orthanc_storage_memory_max_usage_mb" metrics to determine the
   // optimal value for your setup.
   "StorageMemoryCapacity" : 512,
 
   // Number of threads that are used to read files from the storage.
-  // (new in Orthanc 1.12.11+)
+  // (new in Orthanc 1.13.0)
   // A value > 4 is meaningful only if the storage is a distributed
   // network storage (e.g., object storage plugin).  In this case,
   // you can typically increase it to 20 and you should then monitor
