@@ -101,7 +101,7 @@
   // all to Orthanc while, in the second case, external HTTP clients
   // will be able to connect but will receive a 401 Unauthorized
   // HTTP status code.
-  //"HttpBindAddresses": ["1.2.3.4", "127.0.0.1"]
+  //"HttpBindAddresses" : ["1.2.3.4", "127.0.0.1"]
 
   // Number of threads that are used by the embedded HTTP server.
   "HttpThreadsCount" : 50,
@@ -427,7 +427,7 @@
     //  "UseDicomTls" : false,             // new in 1.9.0
     //  "LocalAet" : "HELLO",              // new in 1.9.0
     //  "Timeout" : 60,                    // new in 1.9.1
-    //  "RetrieveMethod": "C-MOVE"         // new in 1.12.6
+    //  "RetrieveMethod" : "C-MOVE"        // new in 1.12.6
     //}
   },
 
@@ -814,8 +814,8 @@
       "BitsAllocated"
     ],
     "Series" : [],
-    "Study": [],
-    "Patient": []
+    "Study" : [],
+    "Patient" : []
   },
   */
 
