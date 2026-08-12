@@ -296,7 +296,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadSequenceOfCalls); // the acceptedStorageSopClassUids should always be defined for a C-Get
       }
 
-      DicomAssociationRole proposedStoreRole = DicomAssociationRole_Scu;
+      DicomAssociationRole proposedStoreRole = DicomAssociationRole_Scp;
 
       if (parameters_.GetRemoteModality().GetManufacturer() == ModalityManufacturer_SiemensSyngoCT)
       {
