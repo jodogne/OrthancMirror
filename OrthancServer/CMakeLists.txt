@@ -260,8 +260,6 @@ endif()
 #####################################################################
 
 set(ORTHANC_EMBEDDED_FILES
-  CONFIGURATION_SAMPLE              ${CMAKE_SOURCE_DIR}/Resources/Configuration.json
-  ADVANCED_CONFIGURATION_SAMPLE     ${CMAKE_SOURCE_DIR}/Resources/AdvancedConfiguration.json
   DICOM_CONFORMANCE_STATEMENT       ${CMAKE_SOURCE_DIR}/Resources/DicomConformanceStatement.txt
   FONT_UBUNTU_MONO_BOLD_16          ${CMAKE_SOURCE_DIR}/Resources/Fonts/UbuntuMonoBold-16.json
   LUA_TOOLBOX                       ${CMAKE_SOURCE_DIR}/Resources/Toolbox.lua
@@ -284,7 +282,9 @@ if (STANDALONE_BUILD)
     )
 
   list(APPEND ORTHANC_EMBEDDED_FILES
-    ORTHANC_EXPLORER ${CMAKE_SOURCE_DIR}/OrthancExplorer
+    ORTHANC_EXPLORER                ${CMAKE_SOURCE_DIR}/OrthancExplorer
+    CONFIGURATION_SAMPLE            ${CMAKE_SOURCE_DIR}/Resources/Configuration.json
+    ADVANCED_CONFIGURATION_SAMPLE   ${CMAKE_SOURCE_DIR}/Resources/AdvancedConfiguration.json
     )
 else()
   add_definitions(

@@ -771,7 +771,7 @@ static void PrintVersion(const boost::filesystem::path &path)
     << "Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics Department, University Hospital of Liege (Belgium)" << std::endl
     << "Copyright (C) 2017-2023 Osimis S.A. (Belgium)" << std::endl
     << "Copyright (C) 2024-2026 Orthanc Team SRL (Belgium)" << std::endl
-    << "Copyright (C) 2021-2026 Sebastien Jodogne, ICTEAM UCLouvain (Belgium)" << std::endl
+    << "Copyright (C) 2021-2026 Sebastien Jodogne, ICTEAM UCLouvain (Belgium)" << std::endl << std::endl
     << "Licensing GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>." << std::endl
     << "This is free software: you are free to change and redistribute it." << std::endl
     << "There is NO WARRANTY, to the extent permitted by law." << std::endl
@@ -1959,6 +1959,30 @@ static bool DisplayPerformanceWarning()
 }
 
 
+static int ExportFile(const std::string& target,
+                      const std::string& content)
+{
+  try
+  {
+    if (target == "-")
+    {
+      std::cout << content;   // Print to stdout
+    }
+    else
+    {
+      SystemToolbox::WriteFile(content, SystemToolbox::PathFromUtf8(target));
+    }
+
+    return 0;
+  }
+  catch (OrthancException&)
+  {
+    LOG(ERROR) << "Cannot export to file \"" << target << "\"";
+    return -1;
+  }
+}
+
+
 static int ExportOpenApi(const std::string& target)
 {
   Json::Value openapi;
@@ -1991,24 +2015,7 @@ static int ExportOpenApi(const std::string& target)
   std::string s;
   Toolbox::WriteStyledJson(s, openapi);
 
-  try
-  {
-    if (target == "-")
-    {
-      std::cout << s;   // Print to stdout
-    }
-    else
-    {
-      SystemToolbox::WriteFile(s, SystemToolbox::PathFromUtf8(target));
-    }
-
-    return 0;
-  }
-  catch (OrthancException&)
-  {
-    LOG(ERROR) << "Cannot export OpenAPI documentation as file \"" << target << "\"";
-    return -1;
-  }
+  return ExportFile(target, s);
 }
 
 
@@ -2027,58 +2034,42 @@ static int ExportCheatSheet(const std::string& target)
     context.Stop();
   }
 
-  try
-  {
-    if (target == "-")
-    {
-      std::cout << cheatsheet;   // Print to stdout
-    }
-    else
-    {
-      SystemToolbox::WriteFile(cheatsheet, SystemToolbox::PathFromUtf8(target));
-    }
-
-    return 0;
-  }
-  catch (OrthancException&)
-  {
-    LOG(ERROR) << "Cannot export REST cheat sheet as file \"" << target << "\"";
-    return -1;
-  }
+  return ExportFile(target, cheatsheet);
 }
 
 
+#if ORTHANC_STANDALONE == 1
 static int ExportResource(const std::string& target,
                           Orthanc::ServerResources::FileResourceId resource)
 {
-  try
-  {
-    std::string content;
-    GetFileResource(content, resource);
+  std::string content;
+  GetFileResource(content, resource);
 
 #if defined(_WIN32)
-    // Replace UNIX newlines with DOS newlines
-    boost::replace_all(content, "\n", "\r\n");
+  // Replace UNIX newlines with DOS newlines
+  boost::replace_all(content, "\n", "\r\n");
 #endif
 
-    if (target == "-")
-    {
-      // New in 1.5.8: Print to stdout
-      std::cout << content;
-    }
-    else
-    {
-      SystemToolbox::WriteFile(content, SystemToolbox::PathFromUtf8(target));
-    }
-
-    return 0;
-  }
-  catch (OrthancException&)
-  {
-    LOG(ERROR) << "Cannot write to file " << SystemToolbox::PathFromUtf8(target) << ", aborting.";
-    return -1;
-  }
+  return ExportFile(target, content);
 }
+#endif
+
+
+#if ORTHANC_STANDALONE == 0
+static int ExportResource(const std::string& target,
+                          const boost::filesystem::path& path)
+{
+  std::string content;
+  Orthanc::SystemToolbox::ReadFile(content, path);
+
+#if defined(_WIN32)
+  // Replace UNIX newlines with DOS newlines
+  boost::replace_all(content, "\n", "\r\n");
+#endif
+
+  return ExportFile(target, content);
+}
+#endif
 
 
 #if defined(_WIN32) && !defined(__MINGW32__)
@@ -2356,13 +2347,23 @@ int main(int argc, char* argv[])
   if (options.count(OPTION_CONFIG) == 1)
   {
     const std::string file = options[OPTION_CONFIG].as<std::string>();
+
+#if ORTHANC_STANDALONE == 1
     return ExportResource(file, Orthanc::ServerResources::CONFIGURATION_SAMPLE);
+#else
+    return ExportResource(file, boost::filesystem::path(ORTHANC_PATH) / "Resources" / "Configuration.json");
+#endif
   }
 
   if (options.count(OPTION_ADVANCED_CONFIG) == 1)
   {
     const std::string file = options[OPTION_ADVANCED_CONFIG].as<std::string>();
+
+#if ORTHANC_STANDALONE == 1
     return ExportResource(file, Orthanc::ServerResources::ADVANCED_CONFIGURATION_SAMPLE);
+#else
+    return ExportResource(file, boost::filesystem::path(ORTHANC_PATH) / "Resources" / "AdvancedConfiguration.json");
+#endif
   }
 
   if (options.count(OPTION_ERRORS) == 1)
@@ -2530,7 +2531,14 @@ int main(int argc, char* argv[])
 
   LOG(WARNING) << "Orthanc has stopped";
 
-  OrthancFinalize();
+  try
+  {
+    OrthancFinalize();
+  }
+  catch (const OrthancException& e)
+  {
+    LOG(ERROR) << "Exception while finalizing: " << e.What();
+  }
 
   return status;
 }
