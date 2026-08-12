@@ -57,18 +57,6 @@ namespace Orthanc
 
     void Setup(const boost::filesystem::path& root);
     
-#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
-    // Alias for binary compatibility with Orthanc Framework 1.7.2 => don't use it anymore
-    explicit FilesystemStorage(std::string root);
-#endif
-
-#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
-    // Binary compatibility with Orthanc Framework <= 1.8.2
-    void Read(std::string& content,
-              const std::string& uuid,
-              FileContentType type);
-#endif
-
   public:
     explicit FilesystemStorage(const boost::filesystem::path& root);
 

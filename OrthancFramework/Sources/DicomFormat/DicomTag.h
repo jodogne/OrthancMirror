@@ -74,10 +74,6 @@ namespace Orthanc
 
     static void AddTagsForModule(std::set<DicomTag>& target,
                                  DicomModule module);
-
-#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
-    ORTHANC_PUBLIC ORTHANC_DEPRECATED(friend std::ostream& operator<<(std::ostream& o, const DicomTag& tag));
-#endif
   };
 
   // Aliases for the most useful tags

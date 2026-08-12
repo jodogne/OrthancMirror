@@ -201,7 +201,6 @@ if (BUILD_UNIT_TESTS)
     ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerConfigTests.cpp
     ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerIndexTests.cpp
     ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerJobsTests.cpp
-    ${CMAKE_SOURCE_DIR}/UnitTestsSources/SizeOfTests.cpp
     ${CMAKE_SOURCE_DIR}/UnitTestsSources/UnitTestsMain.cpp
     ${CMAKE_SOURCE_DIR}/UnitTestsSources/VersionsTests.cpp
     )

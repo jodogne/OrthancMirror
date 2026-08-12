@@ -333,24 +333,4 @@ namespace Orthanc
   {
     return boost::filesystem::space(root_).available;
   }
-
-
-#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
-  FilesystemStorage::FilesystemStorage(std::string root) :
-    fsyncOnWrite_(false)
-  {
-    Setup(root);
-  }
-#endif
-
-
-#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
-  void FilesystemStorage::Read(std::string& content,
-                               const std::string& uuid,
-                               FileContentType type)
-  {
-    std::unique_ptr<IMemoryBuffer> buffer(ReadWhole(uuid, type));
-    buffer->MoveToString(content);
-  }
-#endif
 }

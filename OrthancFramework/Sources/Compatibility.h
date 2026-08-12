@@ -36,24 +36,24 @@
 
 
 // Macro "ORTHANC_DEPRECATED" tags a function as having been deprecated
-#if (__cplusplus >= 201402L)  // C++14
-#  define ORTHANC_DEPRECATED(f) [[deprecated]] f
-#elif defined(__GNUC__) || defined(__clang__)
+#if defined(__GNUC__) || defined(__clang__)
 #  define ORTHANC_DEPRECATED(f) f __attribute__((deprecated))
 #elif defined(_MSC_VER)
 #  define ORTHANC_DEPRECATED(f) __declspec(deprecated) f
+#elif (__cplusplus >= 201402L)  // C++14
+#  define ORTHANC_DEPRECATED(f) [[deprecated]] f
 #else
 #  define ORTHANC_DEPRECATED
 #endif
 
 
 // Macro "ORTHANC_DEPRECATED_CLASS" tags a class as having been deprecated
-#if (__cplusplus >= 201402L)  // C++14
-#  define ORTHANC_DEPRECATED_CLASS(f) [[deprecated]] f
-#elif defined(__GNUC__) || defined(__clang__)
+#if defined(__GNUC__) || defined(__clang__)
 #  define ORTHANC_DEPRECATED_CLASS(f) __attribute__((deprecated)) f
 #elif defined(_MSC_VER)
 #  define ORTHANC_DEPRECATED_CLASS(f) __declspec(deprecated) f
+#elif (__cplusplus >= 201402L)  // C++14
+#  define ORTHANC_DEPRECATED_CLASS(f) [[deprecated]] f
 #else
 #  define ORTHANC_DEPRECATED
 #endif
