@@ -679,7 +679,8 @@ namespace Orthanc
     ModalityManufacturer_GenericNoWildcardInDates,
     ModalityManufacturer_GenericNoUniversalWildcard,
     ModalityManufacturer_Vitrea,
-    ModalityManufacturer_GE
+    ModalityManufacturer_GE,
+    ModalityManufacturer_SiemensSyngoCT
   };
 
   enum DicomRequestType

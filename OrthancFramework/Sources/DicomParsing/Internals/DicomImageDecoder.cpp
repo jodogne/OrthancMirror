@@ -573,15 +573,13 @@ namespace Orthanc
           throw OrthancException(ErrorCode_NotImplemented, std::string("Palette Color Lookup Table Descriptor not supported: '") + r.c_str() + "'");
         }
 
-        const unsigned int width = target->GetWidth();
-        const unsigned int height = target->GetHeight();
         const uint16_t* source = reinterpret_cast<const uint16_t*>(pixelData + expectedFrameSourceSize * frameToDecode);
         
-        for (unsigned int y = 0; y < height; y++)
+        for (unsigned int y = 0; y < static_cast<unsigned int>(height); y++)
         {
           uint16_t* p = reinterpret_cast<uint16_t*>(target->GetRow(y));
 
-          for (unsigned int x = 0; x < width; x++)
+          for (unsigned int x = 0; x < static_cast<unsigned int>(width); x++)
           {
             p[0] = lutRed[*source];
             p[1] = lutGreen[*source];

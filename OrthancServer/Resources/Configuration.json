@@ -385,6 +385,8 @@
      * - "Vitrea",
      * - "GE" (Enterprise Archive, MRI consoles and Advantage Workstation
      *   from GE Healthcare).
+     * - "SiemensSyngoCT" (proposes both SCP and SCU C-Store roles when performing
+     *    a C-Get SCU)
      *
      * This parameter is case-sensitive.
      **/

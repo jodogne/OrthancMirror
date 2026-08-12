@@ -607,8 +607,7 @@ namespace Orthanc
   }
 
 
-  bool OrthancConfiguration::GetIntegerParameter(int& target,
-                                                 const std::string& parameter) const
+  int OrthancConfiguration::GetIntegerParameter(const std::string& parameter) const
   {
     int v;
 

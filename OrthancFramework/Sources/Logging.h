@@ -94,7 +94,7 @@ namespace Orthanc
         size_t  count_;
 
       public:
-        ScopedSetter(const ThreadContextMemento& memento);
+        explicit ScopedSetter(const ThreadContextMemento& memento);
 
         ~ScopedSetter();
       };

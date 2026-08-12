@@ -221,8 +221,7 @@ namespace Orthanc
                                 const std::string& parameter) const;
 
     // If the parameter is not part of the user configuration, it it retrieved from the default configuration
-    bool GetIntegerParameter(int& target,
-                             const std::string& parameter) const;
+    int GetIntegerParameter(const std::string& parameter) const;
 
     bool LookupUnsignedIntegerParameter(unsigned int& target,
                                         const std::string& parameter) const;

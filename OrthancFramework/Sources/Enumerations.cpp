@@ -816,7 +816,10 @@ namespace Orthanc
       
       case ModalityManufacturer_GE:
         return "GE";
-      
+
+      case ModalityManufacturer_SiemensSyngoCT:
+        return "SiemensSyngoCT";
+        
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1632,6 +1635,10 @@ namespace Orthanc
     else if (manufacturer == "GE")
     {
       return ModalityManufacturer_GE;
+    }
+    else if (manufacturer == "SiemensSyngoCT")
+    {
+      return ModalityManufacturer_SiemensSyngoCT;
     }
     else if (manufacturer == "AgfaImpax" ||
              manufacturer == "SyngoVia")
