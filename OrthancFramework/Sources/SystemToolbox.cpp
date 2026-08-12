@@ -227,8 +227,8 @@ namespace Orthanc
   {
     if (!IsRegularFile(path))
     {
-      throw OrthancException(ErrorCode_RegularFileExpected,
-                             "The path does not point to a regular file: " + PathToUtf8(path), log);
+      throw OrthancException(ErrorCode_RegularFileExpected, 
+                             "Not a regular file or file not found: " + PathToUtf8(path), log);
     }
 
     try
@@ -258,11 +258,13 @@ namespace Orthanc
     }
     catch (boost::filesystem::filesystem_error&)
     {
-      throw OrthancException(ErrorCode_InexistentFile);
+      throw OrthancException(ErrorCode_InexistentFile, 
+                             "File not found: " + PathToUtf8(path));
     }
     catch (...)  // To catch "std::system_error&" in C++11
     {
-      throw OrthancException(ErrorCode_InexistentFile);
+      throw OrthancException(ErrorCode_InexistentFile, 
+                             "File not found: " + PathToUtf8(path));
     }
   }
 
@@ -273,8 +275,8 @@ namespace Orthanc
   {
     if (!IsRegularFile(path))
     {
-      throw OrthancException(ErrorCode_RegularFileExpected,
-                             "The path does not point to a regular file: " + PathToUtf8(path));
+      throw OrthancException(ErrorCode_RegularFileExpected, 
+                             "Not a regular file or file not found: " + PathToUtf8(path));
     }
 
     try
@@ -283,7 +285,8 @@ namespace Orthanc
       f.open(path, std::ifstream::in | std::ifstream::binary);
       if (!f.good())
       {
-        throw OrthancException(ErrorCode_InexistentFile);
+        throw OrthancException(ErrorCode_InexistentFile,
+                               "File not found: " + PathToUtf8(path));
       }
 
       bool full = true;
@@ -314,11 +317,13 @@ namespace Orthanc
     }
     catch (boost::filesystem::filesystem_error&)
     {
-      throw OrthancException(ErrorCode_InexistentFile);
+      throw OrthancException(ErrorCode_InexistentFile, 
+                             "File not found: " + PathToUtf8(path));
     }
     catch (...)  // To catch "std::system_error&" in C++11
     {
-      throw OrthancException(ErrorCode_InexistentFile);
+      throw OrthancException(ErrorCode_InexistentFile, 
+                             "File not found: " + PathToUtf8(path));
     }
   }
 
@@ -414,7 +419,8 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_RegularFileExpected);
+        throw OrthancException(ErrorCode_RegularFileExpected, 
+                               "Not a regular file or file not found: " + PathToUtf8(path));
       }
     }
   }
@@ -428,11 +434,13 @@ namespace Orthanc
     }
     catch (boost::filesystem::filesystem_error&)
     {
-      throw OrthancException(ErrorCode_InexistentFile);
+      throw OrthancException(ErrorCode_InexistentFile,
+                             "File not found: " + PathToUtf8(path));
     }
     catch (...)  // To catch "std::system_error&" in C++11
     {
-      throw OrthancException(ErrorCode_InexistentFile);
+      throw OrthancException(ErrorCode_InexistentFile, 
+                             "File not found: " + PathToUtf8(path));
     }
   }
 
@@ -1068,16 +1076,16 @@ namespace Orthanc
     
     if (!IsRegularFile(path))
     {
-      throw OrthancException(ErrorCode_RegularFileExpected,
-                             "The path does not point to a regular file: " + SystemToolbox::PathToUtf8(path));
+      throw OrthancException(ErrorCode_RegularFileExpected, 
+                             "Not a regular file or file not found: " + PathToUtf8(path));
     }
 
     boost::filesystem::ifstream f;
     f.open(path, std::ifstream::in | std::ifstream::binary);
     if (!f.good())
     {
-      throw OrthancException(ErrorCode_InexistentFile, 
-                             "File not found: " + SystemToolbox::PathToUtf8(path));
+      throw OrthancException(ErrorCode_InexistentFile,
+                             "File not found: " + PathToUtf8(path));
     }
 
     uint64_t fileSize = static_cast<uint64_t>(GetStreamSize(f));

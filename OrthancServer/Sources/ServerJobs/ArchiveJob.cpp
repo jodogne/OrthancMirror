@@ -1404,7 +1404,7 @@ namespace Orthanc
     // New in Orthanc 1.12.11
     value[KEY_ALLOW_UTF8] = allowUtf8_;
 
-    // New in Orthanc 1.12.12
+    // New in Orthanc 1.13.0
     if (hasLossyQuality_)
     {
       value[KEY_LOSSY_QUALITY] = lossyQuality_;

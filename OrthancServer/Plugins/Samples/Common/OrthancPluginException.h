@@ -48,11 +48,16 @@
       errorCode, #errorCode " triggered from " __ORTHANC_FILE__ ":"       \
       PLUGIN_ORTHANC_EXCEPTION_STRINGIFY_LINE(__LINE__))
 
+#  define PLUGIN_THROW_WITH_FILE_AND_LINE_INFO_HELPER(errorCode, errorCodeStr)                \
+    throw ::Orthanc::OrthancException( \
+      errorCode, "Plugin error code " + errorCodeStr + " triggered from " __ORTHANC_FILE__ ":"       \
+      PLUGIN_ORTHANC_EXCEPTION_STRINGIFY_LINE(__LINE__))
+
 #  define ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code)                   \
-  PLUGIN_THROW_WITH_FILE_AND_LINE_INFO(static_cast<ORTHANC_PLUGINS_ERROR_ENUMERATION>(code))    
+  PLUGIN_THROW_WITH_FILE_AND_LINE_INFO_HELPER(static_cast<ORTHANC_PLUGINS_ERROR_ENUMERATION>(code), boost::lexical_cast<std::string>(code))    
 
 #  define ORTHANC_PLUGINS_THROW_EXCEPTION(code)                           \
-  PLUGIN_THROW_WITH_FILE_AND_LINE_INFO(ORTHANC_PLUGINS_GET_ERROR_CODE(code))    
+  PLUGIN_THROW_WITH_FILE_AND_LINE_INFO_HELPER(ORTHANC_PLUGINS_GET_ERROR_CODE(code), boost::lexical_cast<std::string>(ORTHANC_PLUGINS_GET_ERROR_CODE(code)))    
 
 #else // the PluginException does not accept a detail argument
 #  define ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code)                   \

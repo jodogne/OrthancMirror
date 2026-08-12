@@ -32,6 +32,7 @@ project(Orthanc)
 include(${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/CMake/OrthancFrameworkParameters.cmake)
 
 # Enable all the optional components of the Orthanc framework
+set(ENABLE_BOOST_PROGRAM_OPTIONS ON)
 set(ENABLE_CRYPTO_OPTIONS ON)
 set(ENABLE_DCMTK ON)
 set(ENABLE_DCMTK_NETWORKING ON)
@@ -260,6 +261,7 @@ endif()
 
 set(ORTHANC_EMBEDDED_FILES
   CONFIGURATION_SAMPLE              ${CMAKE_SOURCE_DIR}/Resources/Configuration.json
+  ADVANCED_CONFIGURATION_SAMPLE     ${CMAKE_SOURCE_DIR}/Resources/AdvancedConfiguration.json
   DICOM_CONFORMANCE_STATEMENT       ${CMAKE_SOURCE_DIR}/Resources/DicomConformanceStatement.txt
   FONT_UBUNTU_MONO_BOLD_16          ${CMAKE_SOURCE_DIR}/Resources/Fonts/UbuntuMonoBold-16.json
   LUA_TOOLBOX                       ${CMAKE_SOURCE_DIR}/Resources/Toolbox.lua

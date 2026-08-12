@@ -3022,6 +3022,60 @@ namespace Orthanc
   }
 
 
+  bool Toolbox::IsValidAet(const std::string& aet)
+  {
+    if (aet.size() == 0)
+    {
+      return false;
+    }
+
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(aet.c_str());
+    size_t spacesCount = 0;
+
+    for (size_t i = 0; i < aet.size(); ++i, ++p)
+    {
+      if (iscntrl(*p) || *p == '\\') // formaly, only LF, FF, CR and ESC and \ are invalid but let's refuse any control character to be extra safe.
+      {
+        return false;
+      }
+      else if (*p == ' ')
+      {
+        ++spacesCount;
+      }
+    }
+
+    if (spacesCount == aet.size()) // an AET made of only spaces is invalid
+    {
+      return false;
+    }
+
+    return true;
+  }
+
+
+  // replaces any invalid char by * such that the AET is safe to log
+  // + removes leading and trailing spaces that must be ignored
+  std::string Toolbox::NormalizeAet(const std::string& aet)
+  {
+    std::string normalizedAet;
+
+    for (size_t i = 0; i < aet.size(); ++i)
+    {
+      if (iscntrl(aet[i]) ||
+          aet[i] == '\\')
+      {
+        normalizedAet.push_back('*');
+      }
+      else
+      {
+        normalizedAet.push_back(aet[i]);
+      }
+    }
+
+    return StripSpaces(normalizedAet); // remove any leading/trailing spaces (all leading \t\n\r have already been sanitized before)
+  }
+
+
   std::string Toolbox::NormalizePath(const std::string& utf8,
                                      bool allowUtf8,
                                      bool allowSlashes)

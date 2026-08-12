@@ -411,6 +411,10 @@ namespace Orthanc
 
     static bool IsValidUtf8(const std::string& s);
 
+    static bool IsValidAet(const std::string& aet);
+
+    static std::string NormalizeAet(const std::string& aet);
+
     static std::string NormalizePath(const std::string& utf8,
                                      bool allowUtf8,
                                      bool allowSlashes);

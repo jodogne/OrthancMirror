@@ -461,6 +461,28 @@ TEST(Toolbox, IsValidUtf8)
   ASSERT_FALSE(Orthanc::Toolbox::IsValidUtf8("\xF0\x28\x8C\x28"));
 }
 
+TEST(Toolbox, IsValidAet)
+{
+  ASSERT_TRUE(Orthanc::Toolbox::IsValidAet("ABC_DEF"));
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidAet(""));
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidAet(" "));
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidAet("  "));
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidAet("NEW_LINE\n"));
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidAet("CAR_RET\r"));
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidAet("\\SLASH"));
+  ASSERT_FALSE(Orthanc::Toolbox::IsValidAet(" \x01CNTRL"));
+}
+
+TEST(Toolbox, NormalizeAet)
+{
+  ASSERT_EQ("ABC_DEF", Orthanc::Toolbox::NormalizeAet(" ABC_DEF "));
+  ASSERT_EQ("NEW_LINE*", Orthanc::Toolbox::NormalizeAet("NEW_LINE\n"));
+  ASSERT_EQ("WITH MIDDLE SPACE", Orthanc::Toolbox::NormalizeAet("WITH MIDDLE SPACE"));
+  ASSERT_EQ("CAR_RET*", Orthanc::Toolbox::NormalizeAet("CAR_RET\r"));
+  ASSERT_EQ("SLASH*", Orthanc::Toolbox::NormalizeAet("SLASH\\"));
+  ASSERT_EQ("CNTRL*", Orthanc::Toolbox::NormalizeAet("CNTRL\x01"));
+}
+
 TEST(Toolbox, BoundMemorySizeToCurrentArchitecture)
 {
   if (sizeof(void*) == 4)

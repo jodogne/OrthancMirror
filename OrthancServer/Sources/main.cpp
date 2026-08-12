@@ -57,6 +57,8 @@
 #include "StorageCommitmentReports.h"
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/program_options.hpp>
+
 #include <dcmtk/dcmnet/dimse.h>  // For STATUS_STORE_Error_CannotUnderstand
 
 #if defined(_WIN32) || defined(__CYGWIN__)
@@ -727,13 +729,14 @@ public:
 };
 
 
-static void PrintHelp(const boost::filesystem::path& path)
+static void PrintHelp(const boost::filesystem::path& path,
+                      const boost::program_options::options_description& all)
 {
   std::cout 
     << "Usage: " << SystemToolbox::PathToUtf8(path) << " [OPTION]... [CONFIGURATION]" << std::endl
     << "Orthanc, lightweight, RESTful DICOM server for healthcare and medical research." << std::endl
     << std::endl
-    << "The \"CONFIGURATION\" argument can be a single file or a directory. In the " << std::endl
+    << "The \"CONFIGURATION\" argument can be a list of files or directories. In the " << std::endl
     << "case of a directory, all the JSON files it contains will be merged. " << std::endl
     << "If no configuration path is given on the command line, a set of default " << std::endl
     << "parameters is used. Please refer to the Orthanc Book for the full " << std::endl
@@ -744,43 +747,9 @@ static void PrintHelp(const boost::filesystem::path& path)
     << "reset the value of other log-related options that were read before." << std::endl
     << std::endl
     << "The recommended set of options to debug DICOM communications is " << std::endl
-    << "\"--verbose --trace-dicom --logfile=dicom.log\"" << std::endl
-    << std::endl
-    << "Command-line options:" << std::endl
-    << "  --help\t\tdisplay this help and exit" << std::endl
-    << "  --logdir=[dir]\tdirectory where to store the log files" << std::endl
-    << "\t\t\t(by default, the log is dumped to stderr)" << std::endl
-    << "  --logfile=[file]\tfile where to store the log of Orthanc" << std::endl
-    << "\t\t\t(by default, the log is dumped to stderr)" << std::endl
-    << "  --config=[file]\tcreate a sample configuration file and exit" << std::endl
-    << "\t\t\t(if \"file\" is \"-\", dumps to stdout)" << std::endl
-    << "  --errors\t\tprint the supported error codes and exit" << std::endl
-    << "  --verbose\t\tbe verbose in logs" << std::endl
-    << "  --logs-no-thread\tto remove thread names from logs" << std::endl
-    << "  --logs-no-context\tto remove contexts from logs" << std::endl
-    << "  --logs-threadnames-in-context\t\tto add caller thread names in logs contexts" << std::endl
-    << "  --trace\t\thighest verbosity in logs (for debug)" << std::endl
-    << "  --upgrade\t\tallow Orthanc to upgrade the version of the" << std::endl
-    << "\t\t\tdatabase (beware that the database will become" << std::endl
-    << "\t\t\tincompatible with former versions of Orthanc)" << std::endl
-    << "  --no-jobs\t\tdon't restart the jobs that were stored during" << std::endl
-    << "\t\t\tthe last execution of Orthanc" << std::endl
-    << "  --openapi=[file]\twrite the OpenAPI documentation and exit" << std::endl
-    << "\t\t\t(if \"file\" is \"-\", dumps to stdout)" << std::endl
-    << "  --cheatsheet=[file]\twrite the cheat sheet of REST API as CSV" << std::endl
-    << "\t\t\tand exit (if \"file\" is \"-\", dumps to stdout)" << std::endl
-    << "  --version\t\toutput version information and exit" << std::endl
-    << std::endl
-    << "Fine-tuning of log categories:" << std::endl;
+    << "\"--verbose --trace-dicom --logfile=dicom.log\"" << std::endl;
 
-  for (size_t i = 0; i < Logging::GetCategoriesCount(); i++)
-  {
-    const std::string name = Logging::GetCategoryName(i);
-    std::cout << "  --verbose-" << name
-              << "\tbe verbose in logs of category \"" << name << "\"" << std::endl;
-    std::cout << "  --trace-" << name
-              << "\tuse highest verbosity for logs of category \"" << name << "\"" << std::endl;
-  }
+  std::cout << all;
   
   std::cout
     << std::endl
@@ -1731,7 +1700,13 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
     if (context.IsReadOnly())
     {
-      LOG(WARNING) << "READ-ONLY SYSTEM: ignoring these configurations: " << ORTHANC_CONFIG_STORAGE_COMPRESSION << ", " << ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS << ", " << ORTHANC_CONFIG_OVERWRITE_INSTANCES << ", " << ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT << ", " << ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE <<", " << ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE << ", SaveJobs"; 
+      LOG(WARNING) << "READ-ONLY SYSTEM: ignoring these configurations: "
+                   << ORTHANC_CONFIG_STORAGE_COMPRESSION << ", "
+                   << ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS << ", "
+                   << ORTHANC_CONFIG_OVERWRITE_INSTANCES << ", "
+                   << ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT << ", "
+                   << ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE << ", "
+                   << ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE << ", SaveJobs";
     }
     else
     {
@@ -1750,7 +1725,9 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
           overwriteInstancesMode = StringToOverwriteInstancesMode(strOverwriteInstancesMode);
           if (overwriteInstancesMode == OverwriteInstancesMode_IfChanged && !context.IsStoreMD5ForAttachments())
           {
-            LOG(ERROR) << "Can not set \"" << ORTHANC_CONFIG_OVERWRITE_INSTANCES << "\" to \"IfChanged\" when \"" << ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS << "\" is set to false.";
+            LOG(ERROR) << "Can not set \"" << ORTHANC_CONFIG_OVERWRITE_INSTANCES
+                       << "\" to \"IfChanged\" when \"" << ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS
+                       << "\" is set to false.";
             return false;
           }
         }
@@ -1982,6 +1959,128 @@ static bool DisplayPerformanceWarning()
 }
 
 
+static int ExportOpenApi(const std::string& target)
+{
+  Json::Value openapi;
+
+  {
+    SQLiteDatabaseWrapper inMemoryDatabase;
+    inMemoryDatabase.Open();
+    PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
+    ServerContext context(inMemoryDatabase, inMemoryStorage, NULL /* no transcoder */,
+                          true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
+    OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
+    restApi.GenerateOpenApiDocumentation(openapi);
+    context.Stop();
+  }
+
+  openapi["info"]["version"] = ORTHANC_VERSION;
+  openapi["info"]["title"] = "Orthanc API";
+  openapi["info"]["description"] =
+    "This is the full documentation of the [REST API](https://orthanc.uclouvain.be/book/users/rest.html) "
+    "of Orthanc.<p>This reference is automatically generated from the source code of Orthanc. A "
+    "[shorter cheat sheet](https://orthanc.uclouvain.be/book/users/rest-cheatsheet.html) is part of "
+    "the Orthanc Book.<p>An earlier, manually crafted version from August 2019, is [still available]"
+    "(2019-08-orthanc-openapi.html), but is not up-to-date anymore ([source]"
+    "(https://groups.google.com/g/orthanc-users/c/NUiJTEICSl8/m/xKeqMrbqAAAJ)).";
+
+  Json::Value server = Json::objectValue;
+  server["url"] = "https://orthanc.uclouvain.be/demo/";
+  openapi["servers"].append(server);
+
+  std::string s;
+  Toolbox::WriteStyledJson(s, openapi);
+
+  try
+  {
+    if (target == "-")
+    {
+      std::cout << s;   // Print to stdout
+    }
+    else
+    {
+      SystemToolbox::WriteFile(s, SystemToolbox::PathFromUtf8(target));
+    }
+
+    return 0;
+  }
+  catch (OrthancException&)
+  {
+    LOG(ERROR) << "Cannot export OpenAPI documentation as file \"" << target << "\"";
+    return -1;
+  }
+}
+
+
+static int ExportCheatSheet(const std::string& target)
+{
+  std::string cheatsheet;
+
+  {
+    SQLiteDatabaseWrapper inMemoryDatabase;
+    inMemoryDatabase.Open();
+    PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
+    ServerContext context(inMemoryDatabase, inMemoryStorage, NULL /* no transcoder */,
+                          true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
+    OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
+    restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
+    context.Stop();
+  }
+
+  try
+  {
+    if (target == "-")
+    {
+      std::cout << cheatsheet;   // Print to stdout
+    }
+    else
+    {
+      SystemToolbox::WriteFile(cheatsheet, SystemToolbox::PathFromUtf8(target));
+    }
+
+    return 0;
+  }
+  catch (OrthancException&)
+  {
+    LOG(ERROR) << "Cannot export REST cheat sheet as file \"" << target << "\"";
+    return -1;
+  }
+}
+
+
+static int ExportResource(const std::string& target,
+                          Orthanc::ServerResources::FileResourceId resource)
+{
+  try
+  {
+    std::string content;
+    GetFileResource(content, resource);
+
+#if defined(_WIN32)
+    // Replace UNIX newlines with DOS newlines
+    boost::replace_all(content, "\n", "\r\n");
+#endif
+
+    if (target == "-")
+    {
+      // New in 1.5.8: Print to stdout
+      std::cout << content;
+    }
+    else
+    {
+      SystemToolbox::WriteFile(content, SystemToolbox::PathFromUtf8(target));
+    }
+
+    return 0;
+  }
+  catch (OrthancException&)
+  {
+    LOG(ERROR) << "Cannot write to file " << SystemToolbox::PathFromUtf8(target) << ", aborting.";
+    return -1;
+  }
+}
+
+
 #if defined(_WIN32) && !defined(__MINGW32__)
 // arguments are passed as UTF-16 on Windows
 int wmain(int argc, wchar_t *argv[])
@@ -2016,248 +2115,306 @@ int main(int argc, char* argv[])
 
   bool upgradeDatabase = false;
   bool loadJobsFromDatabase = true;
-  boost::filesystem::path configurationFile;
+  std::list<boost::filesystem::path> configurationPaths;
+
 
   /**
    * Parse the command-line options.
-   **/ 
+   **/
 
-  for (size_t i = 1; i < arguments.size(); i++)
+  static const char* const OPTION_HELP = "help";
+  static const char* const OPTION_VERSION = "version";
+  static const char* const OPTION_CONFIG = "config";
+  static const char* const OPTION_ADVANCED_CONFIG = "advanced-config";
+  static const char* const OPTION_ERRORS = "errors";
+  static const char* const OPTION_UPGRADE = "upgrade";
+  static const char* const OPTION_NO_JOBS = "no-jobs";
+  static const char* const OPTION_OPENAPI = "openapi";
+  static const char* const OPTION_CHEATSHEET = "cheatsheet";
+  static const char* const OPTION_INPUTS = "inputs";
+
+  static const char* const OPTION_LOGDIR = "logdir";
+  static const char* const OPTION_LOGFILE = "logfile";
+  static const char* const OPTION_VERBOSE = "verbose";
+  static const char* const OPTION_TRACE = "trace";
+  static const char* const OPTION_LOGS_NO_THREAD = "logs-no-thread";
+  static const char* const OPTION_LOGS_NO_CONTEXT = "logs-no-context";
+  static const char* const OPTION_LOGS_THREAD_NAMES_IN_CONTEXT = "logs-thread-names-in-context";
+
+  boost::program_options::options_description allWithoutHidden;
+  std::vector<std::string> orderSensitiveArguments;
+  std::vector<std::string> unrecognized;
+  boost::program_options::variables_map options;
+
   {
-    const std::string& argument = arguments[i];    
+    boost::program_options::options_description generic("Generic options");
+    generic.add_options()
+      (OPTION_HELP, "display this help and exit")
+      (OPTION_VERSION, "output version information and exit")
+      (OPTION_CONFIG, boost::program_options::value<std::string>()->value_name("file"),
+       "create a sample configuration file and exit (if \"file\" is \"-\", dumps to stdout)")
+      (OPTION_ADVANCED_CONFIG, boost::program_options::value<std::string>()->value_name("file"),
+       "create a file containing the advanced configuration options and exit (if \"file\" is \"-\", dumps to stdout)")
+      (OPTION_ERRORS, "print the supported error codes and exit")
+      (OPTION_UPGRADE, "allow Orthanc to upgrade the version of the database "
+       "(beware that the database will become incompatible with former versions of Orthanc)")
+      (OPTION_NO_JOBS, "don't restart the jobs that were stored during the last execution of Orthanc")
+      (OPTION_OPENAPI, boost::program_options::value<std::string>()->value_name("file"),
+       "write the OpenAPI documentation and exit (if \"file\" is \"-\", dumps to stdout)")
+      (OPTION_CHEATSHEET, boost::program_options::value<std::string>()->value_name("file"),
+       "write the cheat sheet of REST API as CSV and exit (if \"file\" is \"-\", dumps to stdout)");
 
-    if (argument.empty())
-    {
-      // Ignore empty arguments
-    }
-    else if (argument[0] != '-')
-    {
-      if (!configurationFile.empty())
-      {
-        LOG(ERROR) << "More than one configuration path were provided on the command line, aborting";
-        return -1;
-      }
-      else
-      {
-        // Use the first argument that does not start with a "-" as
-        // the configuration file
+    boost::program_options::options_description logging("Logging options");
+    logging.add_options()
+      (OPTION_LOGDIR, boost::program_options::value<std::string>()->value_name("dir"),
+       "directory where to store the log files (by default, the log is dumped to stderr)")
+      (OPTION_LOGFILE, boost::program_options::value<std::string>()->value_name("file"),
+       "file where to store the log of Orthanc (by default, the log is dumped to stderr)")
+      (OPTION_VERBOSE, "be verbose in logs")
+      (OPTION_TRACE, "highest verbosity in logs (for debug)")
 
-        configurationFile = SystemToolbox::PathFromUtf8(argument);
-//        // TODO WHAT IS THE ENCODING?
-//#if defined(_WIN32)
-//        //configurationFileUtf8Str = SystemToolbox::WStringToUtf8(SystemToolbox::WStringFromCharPtr(argv[i]));
-//#else
-//        configurationFileUtf8Str = std::string(argv[i]);
-//#endif
+      // New in Orthanc 1.12.12
+      (OPTION_LOGS_NO_THREAD, "remove thread names from logs")
+
+      // New in Orthanc 1.13.0
+      (OPTION_LOGS_NO_CONTEXT, "remove contexts from logs")
+      (OPTION_LOGS_THREAD_NAMES_IN_CONTEXT, "include caller thread names in log contexts");
+
+    boost::program_options::options_description finetuning("Fine-tuning of log categories");
+
+    std::set<std::string> orderSensitiveOptions;
+    orderSensitiveOptions.insert(OPTION_VERBOSE);
+    orderSensitiveOptions.insert(OPTION_TRACE);
+
+    for (size_t i = 0; i < Logging::GetCategoriesCount(); i++)
+    {
+      const std::string name = Logging::GetCategoryName(i);
+      const std::string verboseName = "verbose-" + name;
+      const std::string verboseDescription = "be verbose in logs of category \"" + name + "\"";
+      const std::string traceName = "trace-" + name;
+      const std::string traceDescription = "use highest verbosity for logs of category \"" + name + "\"";
+
+      finetuning.add_options() (verboseName.c_str(), verboseDescription.c_str());
+      finetuning.add_options() (traceName.c_str(), traceDescription.c_str());
+
+      orderSensitiveOptions.insert(verboseName);
+      orderSensitiveOptions.insert(traceName);
+    }
+
+    allWithoutHidden.add(generic);
+    allWithoutHidden.add(logging);
+    allWithoutHidden.add(finetuning);
+
+    boost::program_options::options_description hidden;
+    hidden.add_options()
+      (OPTION_INPUTS, boost::program_options::value< std::vector<std::string> >(),
+       "Input configuration files");
+
+    boost::program_options::options_description all;
+    all.add(allWithoutHidden);
+    all.add(hidden);
+
+    boost::program_options::positional_options_description positional;
+    positional.add(OPTION_INPUTS, -1);  // -1 = all remaining positional arguments
+
+    if (arguments.empty())
+    {
+      LOG(ERROR) << "The program name is not available, aborting";
+      return -1;
+    }
+
+    std::vector<std::string> orderNonSensitiveArguments;
+    orderSensitiveArguments.reserve(arguments.size());
+    orderNonSensitiveArguments.reserve(arguments.size());
+
+    for (size_t i = 1 /* skip the program name */; i < arguments.size(); i++)
+    {
+      bool isOrderSensitive = false;
+
+      if (boost::starts_with(arguments[i], "--"))
+      {
+        const std::string key = arguments[i].substr(2);
+
+        if (orderSensitiveOptions.find(key) != orderSensitiveOptions.end())
+        {
+          isOrderSensitive = true;
+          orderSensitiveArguments.push_back(key);
+        }
+      }
+
+      if (!isOrderSensitive)
+      {
+        orderNonSensitiveArguments.push_back(arguments[i]);
       }
     }
-    else if (argument == "--errors")
+
+    try
     {
-      PrintErrors(SystemToolbox::PathFromUtf8(arguments[0]));
-      return 0;
+      boost::program_options::parsed_options parsed = boost::program_options::command_line_parser(orderNonSensitiveArguments)
+        .options(all)
+        .positional(positional)
+        .allow_unregistered()   // don't throw on unknown options
+        .run();
+
+      // Pull out everything that didn't match a declared option
+      unrecognized = boost::program_options::collect_unrecognized(parsed.options, boost::program_options::exclude_positional);
+
+      boost::program_options::store(parsed, options);
+      boost::program_options::notify(options);
     }
-    else if (argument == "--help")
+    catch (boost::program_options::error& e)
     {
-      PrintHelp(SystemToolbox::PathFromUtf8(arguments[0]));
-      return 0;
+      LOG(ERROR) << "Error while parsing the command-line arguments: " << e.what();
+      return -1;
     }
-    else if (argument == "--version")
-    {
-      PrintVersion(SystemToolbox::PathFromUtf8(arguments[0]));
-      return 0;
-    }
-    else if (argument == "--verbose")
+  }
+
+
+  /**
+   * Process the command-line options.
+   **/
+
+  for (size_t i = 0; i < unrecognized.size(); i++)
+  {
+    LOG(WARNING) << "Option unsupported by the core of Orthanc: " << unrecognized[i];
+  }
+
+  for (size_t i = 0; i < orderSensitiveArguments.size(); i++)
+  {
+    const std::string& arg = orderSensitiveArguments[i];
+
+    if (arg == OPTION_VERBOSE)
     {
       SetGlobalVerbosity(Verbosity_Verbose);
     }
-    else if (argument == "--logs-no-thread")
-    {
-      Logging::SetThreadNamesEnabled(false);
-    }
-    else if (argument == "--logs-no-context")
-    {
-      Logging::SetThreadContextsEnabled(false);
-    }
-    else if (argument == "--logs-threadnames-in-context")
-    {
-      Logging::SetThreadNamesInContextsEnabled(true);
-    }
-    else if (argument == "--trace")
+    else if (arg == OPTION_TRACE)
     {
       SetGlobalVerbosity(Verbosity_Trace);
     }
-    else if (boost::starts_with(argument, "--verbose-") &&
-             SetCategoryVerbosity(Verbosity_Verbose, argument.substr(10)))
+    else if (boost::starts_with(arg, "verbose-") &&
+             SetCategoryVerbosity(Verbosity_Verbose, arg.substr(arg.find('-') + 1)))
     {
       // New in Orthanc 1.8.1
     }
-    else if (boost::starts_with(argument, "--trace-") &&
-             SetCategoryVerbosity(Verbosity_Trace, argument.substr(8)))
+    else if (boost::starts_with(arg, "trace-") &&
+             SetCategoryVerbosity(Verbosity_Trace, arg.substr(arg.find('-') + 1)))
     {
       // New in Orthanc 1.8.1
-    }
-    else if (boost::starts_with(argument, "--logdir="))
-    {
-      // TODO WHAT IS THE ENCODING?
-      const std::string directory = argument.substr(9);
-
-      try
-      {
-        Logging::SetTargetFolder(directory);
-      }
-      catch (OrthancException&)
-      {
-        LOG(ERROR) << "The directory where to store the log files (" 
-                   << directory << ") is inexistent, aborting.";
-        return -1;
-      }
-    }
-    else if (boost::starts_with(argument, "--logfile="))
-    {
-      // TODO WHAT IS THE ENCODING?
-      const std::string file = argument.substr(10);
-
-      try
-      {
-        Logging::SetTargetFile(file);
-      }
-      catch (OrthancException&)
-      {
-        LOG(ERROR) << "Cannot write to the specified log file (" 
-                   << file << "), aborting.";
-        return -1;
-      }
-    }
-    else if (argument == "--upgrade")
-    {
-      upgradeDatabase = true;
-    }
-    else if (argument == "--no-jobs")
-    {
-      loadJobsFromDatabase = false;
-    }
-    else if (boost::starts_with(argument, "--config="))
-    {
-      // TODO WHAT IS THE ENCODING?
-      std::string configurationSample;
-      GetFileResource(configurationSample, ServerResources::CONFIGURATION_SAMPLE);
-
-#if defined(_WIN32)
-      // Replace UNIX newlines with DOS newlines 
-      boost::replace_all(configurationSample, "\n", "\r\n");
-#endif
-
-      std::string target = argument.substr(9);
-
-      try
-      {
-        if (target == "-")
-        {
-          // New in 1.5.8: Print to stdout
-          std::cout << configurationSample;
-        }
-        else
-        {
-          SystemToolbox::WriteFile(configurationSample, SystemToolbox::PathFromUtf8(target));
-        }
-        return 0;
-      }
-      catch (OrthancException&)
-      {
-        LOG(ERROR) << "Cannot write sample configuration as file \"" << target << "\"";
-        return -1;
-      }
-    }
-    else if (boost::starts_with(argument, "--openapi="))
-    {
-      std::string target = argument.substr(10);
-
-      try
-      {
-        Json::Value openapi;
-
-        {
-          SQLiteDatabaseWrapper inMemoryDatabase;
-          inMemoryDatabase.Open();
-          PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
-          ServerContext context(inMemoryDatabase, inMemoryStorage, NULL /* no transcoder */,
-                                true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
-          OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
-          restApi.GenerateOpenApiDocumentation(openapi);
-          context.Stop();
-        }
-
-        openapi["info"]["version"] = ORTHANC_VERSION;
-        openapi["info"]["title"] = "Orthanc API";
-        openapi["info"]["description"] =
-          "This is the full documentation of the [REST API](https://orthanc.uclouvain.be/book/users/rest.html) "
-          "of Orthanc.<p>This reference is automatically generated from the source code of Orthanc. A "
-          "[shorter cheat sheet](https://orthanc.uclouvain.be/book/users/rest-cheatsheet.html) is part of "
-          "the Orthanc Book.<p>An earlier, manually crafted version from August 2019, is [still available]"
-          "(2019-08-orthanc-openapi.html), but is not up-to-date anymore ([source]"
-          "(https://groups.google.com/g/orthanc-users/c/NUiJTEICSl8/m/xKeqMrbqAAAJ)).";
-
-        Json::Value server = Json::objectValue;
-        server["url"] = "https://orthanc.uclouvain.be/demo/";
-        openapi["servers"].append(server);
-        
-        std::string s;
-        Toolbox::WriteStyledJson(s, openapi);
-
-        if (target == "-")
-        {
-          std::cout << s;   // Print to stdout
-        }
-        else
-        {
-          SystemToolbox::WriteFile(s, SystemToolbox::PathFromUtf8(target));
-        }
-        return 0;
-      }
-      catch (OrthancException&)
-      {
-        LOG(ERROR) << "Cannot export OpenAPI documentation as file \"" << target << "\"";
-        return -1;
-      }
-    }
-    else if (boost::starts_with(argument, "--cheatsheet="))
-    {
-      std::string target = argument.substr(13);
-
-      try
-      {
-        std::string cheatsheet;
-
-        {
-          SQLiteDatabaseWrapper inMemoryDatabase;
-          inMemoryDatabase.Open();
-          PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
-          ServerContext context(inMemoryDatabase, inMemoryStorage, NULL /* no transcoder */,
-                                true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
-          OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
-          restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
-          context.Stop();
-        }
-
-        if (target == "-")
-        {
-          std::cout << cheatsheet;   // Print to stdout
-        }
-        else
-        {
-          SystemToolbox::WriteFile(cheatsheet, SystemToolbox::PathFromUtf8(target));
-        }
-        return 0;
-      }
-      catch (OrthancException&)
-      {
-        LOG(ERROR) << "Cannot export REST cheat sheet as file \"" << target << "\"";
-        return -1;
-      }
     }
     else
     {
-      LOG(WARNING) << "Option unsupported by the core of Orthanc: " << argument;
+      // Should never happen
+      LOG(ERROR) << "Unsupported command-line option: " << arg;
+      return -1;
+    }
+  }
+
+  if (options.count(OPTION_HELP) == 1)
+  {
+    PrintHelp(arguments[0], allWithoutHidden);
+    return 0;
+  }
+
+  if (options.count(OPTION_VERSION) == 1)
+  {
+    PrintVersion(arguments[0]);
+    return 0;
+  }
+
+  if (options.count(OPTION_LOGDIR) == 1)
+  {
+    const std::string directory = options[OPTION_LOGDIR].as<std::string>();
+
+    try
+    {
+      Logging::SetTargetFolder(directory);
+    }
+    catch (OrthancException&)
+    {
+      LOG(ERROR) << "The directory where to store the log files ("
+                 << SystemToolbox::PathFromUtf8(directory) << ") is inexistent, aborting.";
+      return -1;
+    }
+  }
+
+  if (options.count(OPTION_LOGFILE) == 1)
+  {
+    const std::string file = options[OPTION_LOGFILE].as<std::string>();
+
+    try
+    {
+      Logging::SetTargetFile(file);
+    }
+    catch (OrthancException&)
+    {
+      LOG(ERROR) << "Cannot write to the specified log file ("
+                 << SystemToolbox::PathFromUtf8(file) << "), aborting.";
+      return -1;
+    }
+  }
+
+  if (options.count(OPTION_CONFIG) == 1)
+  {
+    const std::string file = options[OPTION_CONFIG].as<std::string>();
+    return ExportResource(file, Orthanc::ServerResources::CONFIGURATION_SAMPLE);
+  }
+
+  if (options.count(OPTION_ADVANCED_CONFIG) == 1)
+  {
+    const std::string file = options[OPTION_ADVANCED_CONFIG].as<std::string>();
+    return ExportResource(file, Orthanc::ServerResources::ADVANCED_CONFIGURATION_SAMPLE);
+  }
+
+  if (options.count(OPTION_ERRORS) == 1)
+  {
+    PrintErrors(arguments[0]);
+    return 0;
+  }
+
+  if (options.count(OPTION_UPGRADE) == 1)
+  {
+    upgradeDatabase = true;
+  }
+
+  if (options.count(OPTION_NO_JOBS) == 1)
+  {
+    loadJobsFromDatabase = false;
+  }
+
+  if (options.count(OPTION_OPENAPI) == 1)
+  {
+    const std::string file = options[OPTION_OPENAPI].as<std::string>();
+    return ExportOpenApi(file);
+  }
+
+  if (options.count(OPTION_CHEATSHEET) == 1)
+  {
+    const std::string file = options[OPTION_CHEATSHEET].as<std::string>();
+    return ExportCheatSheet(file);
+  }
+
+  if (options.count(OPTION_LOGS_NO_THREAD) == 1)
+  {
+    Logging::SetThreadNamesEnabled(false);
+  }
+
+  if (options.count(OPTION_LOGS_NO_CONTEXT) == 1)
+  {
+    Logging::SetThreadContextsEnabled(false);
+  }
+
+  if (options.count(OPTION_LOGS_THREAD_NAMES_IN_CONTEXT) == 1)
+  {
+    Logging::SetThreadNamesInContextsEnabled(true);
+  }
+
+  if (options.count(OPTION_INPUTS) != 0)
+  {
+    const std::vector<std::string>& inputs = options[OPTION_INPUTS].as<std::vector<std::string> >();
+
+    for (size_t i = 0; i < inputs.size(); i++)
+    {
+      configurationPaths.push_back(SystemToolbox::PathFromUtf8(inputs[i]));
     }
   }
 
@@ -2323,7 +2480,7 @@ int main(int argc, char* argv[])
   {
     for (;;)
     {
-      OrthancInitialize(configurationFile);
+      OrthancInitialize(configurationPaths);
 
       bool restart = StartOrthanc(arguments, upgradeDatabase, loadJobsFromDatabase);
       if (restart)

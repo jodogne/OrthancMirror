@@ -54,6 +54,7 @@
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/thread.hpp>
 
 
 namespace Orthanc
@@ -118,8 +119,9 @@ namespace Orthanc
     unsigned int requestTimeout_;  // In seconds
     std::unique_ptr<MetricsRegistry::SharedMetrics> availableHttpThreadsMetrics_;  // New in Orthanc 1.12.9
 
-    boost::mutex threadCounterMutex_;  // New in Orthanc 1.12.9
-    uint16_t threadCounter_;           // Introduced as a global, static variable in Orthanc 1.12.2
+    boost::shared_mutex threadCounterMutex_;  // protects threadCounter_ and threadNames_;
+    uint16_t threadCounter_;
+    std::map<boost::thread::id, std::string> threadNames_;
 
     // New in Orthanc 1.12.11
     bool    hasMaxBodySize_;
@@ -247,7 +249,7 @@ namespace Orthanc
     // Can return NULL if SetMetricsRegistry() was not call beforehand
     MetricsRegistry::AvailableResourcesDecounter* CreateAvailableHttpThreadsDecounter();
 
-    void UpdateCurrentThreadName();
+    std::string GetCurrentThreadName();
 
     void SetMaxBodySize(uint64_t size);
 

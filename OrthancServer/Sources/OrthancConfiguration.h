@@ -102,22 +102,20 @@ namespace Orthanc
     typedef std::map<std::string, WebServiceParameters>       Peers;
     typedef std::map<std::string, unsigned int>               JobsEngineThreadsCount;
 
-    boost::shared_mutex      mutex_;
-    Json::Value              json_;
-    boost::filesystem::path  defaultDirectory_;
-    std::string              configurationAbsolutePath_;
-    FontRegistry             fontRegistry_;
-    boost::filesystem::path  configurationFileArg_;
-    Modalities               modalities_;
-    Peers                    peers_;
-    JobsEngineThreadsCount   jobsEngineThreadsCount_;
-    ServerIndex*             serverIndex_;
-    std::set<Warnings>       disabledWarnings_;
+    boost::shared_mutex                 mutex_;
+    Json::Value                         defaultConfiguration_;
+    std::list<boost::filesystem::path>  configurationPaths_;
+    Json::Value                         userConfiguration_;
+    boost::filesystem::path             defaultDirectory_;
+    FontRegistry                        fontRegistry_;
+    Modalities                          modalities_;
+    Peers                               peers_;
+    JobsEngineThreadsCount              jobsEngineThreadsCount_;
+    ServerIndex*                        serverIndex_;
+    std::set<Warnings>                  disabledWarnings_;
+    std::string                         orthancDicomAet_;
 
-    OrthancConfiguration() :
-      serverIndex_(NULL)
-    {
-    }
+    OrthancConfiguration();
 
     void LoadModalitiesFromJson(const Json::Value& source);
     
@@ -158,7 +156,7 @@ namespace Orthanc
 
       const Json::Value& GetJson() const
       {
-        return configuration_.json_;
+        return configuration_.userConfiguration_;
       }
     };
 
@@ -188,22 +186,19 @@ namespace Orthanc
 
       const Json::Value& GetJson() const
       {
-        return configuration_.json_;
+        return configuration_.userConfiguration_;
       }
     };
 
 
-    const std::string& GetConfigurationAbsolutePath() const
-    {
-      return configurationAbsolutePath_;
-    }
+    std::string GetConfigurationAbsolutePath() const;
 
     const FontRegistry& GetFontRegistry() const
     {
       return fontRegistry_;
     }
 
-    void Read(const boost::filesystem::path &configurationFile);
+    void Read(const std::list<boost::filesystem::path>& configurationPaths);
 
     // "SetServerIndex()" must have been called
     void LoadModalitiesAndPeers();
@@ -223,6 +218,9 @@ namespace Orthanc
     
     bool LookupIntegerParameter(int& target,
                                 const std::string& parameter) const;
+
+    bool GetIntegerParameter(int& target,
+                             const std::string& parameter) const;
 
     bool LookupUnsignedIntegerParameter(unsigned int& target,
                                         const std::string& parameter) const;
@@ -313,10 +311,9 @@ namespace Orthanc
       return disabledWarnings_.count(warning) == 0;
     }
 
-    std::string GetOrthancAET() const
-    {
-      return GetStringParameter(ORTHANC_CONFIG_DICOM_AET);
-    }
+    void LoadOrthancAET();
+
+    std::string GetOrthancAET() const;
 
     std::string GetOrthancName() const
     {
