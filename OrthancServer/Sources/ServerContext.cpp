@@ -505,7 +505,8 @@ namespace Orthanc
     if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(resultMb, configurationName))
     {
       resultMb = lock.GetConfiguration().GetUnsignedIntegerParameter(configurationName);
-      LOG(WARNING) << "====> '" << configurationName << "' is not defined in your configuration, setting it to " << resultMb << ".  Depending on the available memory on the system, you might want to adapt this value.";
+      LOG(WARNING) << "====> '" << configurationName << "' is not defined in your configuration, setting it to "
+                   << resultMb << "MB. Depending on the available memory on the system, you may want to adapt this value.";
     }
     else
     {
@@ -2440,22 +2441,22 @@ namespace Orthanc
     return *dicomSequentialReaderFactory_;
   }
 
-  void ServerContext::GetDataSourcesConfigurations(uint64_t& storageMemoryCapacityMb,
-                                                   size_t& storageMemoryCacheMb,
+  void ServerContext::GetDataSourcesConfigurations(uint64_t& storageMemoryCapacity,
+                                                   size_t& storageMemoryCache,
                                                    unsigned int& storageReaderThreadsCount,
-                                                   uint64_t& transcoderMemoryCapacityMb,
-                                                   size_t& transcoderMemoryCacheMb,
+                                                   uint64_t& transcoderMemoryCapacity,
+                                                   size_t& transcoderMemoryCache,
                                                    unsigned int& transcoderReaderThreadsCount,
-                                                   uint64_t& dicomParserMemoryCapacityMb,
-                                                   size_t& dicomParserMemoryCacheMb,
+                                                   uint64_t& dicomParserMemoryCapacity,
+                                                   size_t& dicomParserMemoryCache,
                                                    unsigned int& dicomParserThreadsCount)
   {
-    storageMemoryCapacityMb = storageAreaReader_->GetCapacity();
-    storageMemoryCacheMb = storageAreaReader_->GetCacheCapacity();
-    transcoderMemoryCapacityMb = transcoderReader_->GetCapacity();
-    transcoderMemoryCacheMb = transcoderReader_->GetCacheCapacity();
-    dicomParserMemoryCapacityMb = dicomReader_->GetCapacity();
-    dicomParserMemoryCacheMb = dicomReader_->GetCacheCapacity();
+    storageMemoryCapacity = storageAreaReader_->GetCapacity();
+    storageMemoryCache = storageAreaReader_->GetCacheCapacity();
+    transcoderMemoryCapacity = transcoderReader_->GetCapacity();
+    transcoderMemoryCache = transcoderReader_->GetCacheCapacity();
+    dicomParserMemoryCapacity = dicomReader_->GetCapacity();
+    dicomParserMemoryCache = dicomReader_->GetCacheCapacity();
 
     {
       boost::shared_ptr<IExecutorService> service = storageAreaReader_->GetExecutorService();

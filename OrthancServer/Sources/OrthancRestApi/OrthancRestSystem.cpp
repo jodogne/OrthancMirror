@@ -183,22 +183,22 @@ namespace Orthanc
     }
 
     {
-      uint64_t storageMemoryCapacityMb, transcoderMemoryCapacityMb, dicomParserMemoryCapacityMb;
-      size_t storageMemoryCacheMb, transcoderMemoryCacheMb, dicomParserMemoryCacheMb;
+      uint64_t storageMemoryCapacity, transcoderMemoryCapacity, dicomParserMemoryCapacity;
+      size_t storageMemoryCache, transcoderMemoryCache, dicomParserMemoryCache;
       unsigned int storageReaderThreadsCount, transcoderReaderThreadsCount, dicomParserThreadsCount;
 
-      context.GetDataSourcesConfigurations(storageMemoryCapacityMb, storageMemoryCacheMb, storageReaderThreadsCount,
-                                          transcoderMemoryCapacityMb, transcoderMemoryCacheMb, transcoderReaderThreadsCount,
-                                          dicomParserMemoryCapacityMb, dicomParserMemoryCacheMb, dicomParserThreadsCount);
+      context.GetDataSourcesConfigurations(storageMemoryCapacity, storageMemoryCache, storageReaderThreadsCount,
+                                          transcoderMemoryCapacity, transcoderMemoryCache, transcoderReaderThreadsCount,
+                                          dicomParserMemoryCapacity, dicomParserMemoryCache, dicomParserThreadsCount);
 
-      result[ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY] = BytesToMegabytes(storageMemoryCapacityMb);
-      result[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = BytesToMegabytes(storageMemoryCacheMb);
+      result[ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY] = BytesToMegabytes(storageMemoryCapacity);
+      result[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = BytesToMegabytes(storageMemoryCache);
       result[ORTHANC_CONFIG_STORAGE_LOADER_THREADS] = storageReaderThreadsCount;
-      result[ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY] = BytesToMegabytes(transcoderMemoryCapacityMb);
-      result[ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE] = BytesToMegabytes(transcoderMemoryCacheMb);
+      result[ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY] = BytesToMegabytes(transcoderMemoryCapacity);
+      result[ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE] = BytesToMegabytes(transcoderMemoryCache);
       result[ORTHANC_CONFIG_TRANSCODER_THREADS] = transcoderReaderThreadsCount;
-      result[ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY] = BytesToMegabytes(dicomParserMemoryCapacityMb);
-      result[ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE] = BytesToMegabytes(dicomParserMemoryCacheMb);
+      result[ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY] = BytesToMegabytes(dicomParserMemoryCapacity);
+      result[ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE] = BytesToMegabytes(dicomParserMemoryCache);
       result[ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS] = dicomParserThreadsCount;
     }
 
