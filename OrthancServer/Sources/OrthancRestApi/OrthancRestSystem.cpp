@@ -88,6 +88,7 @@ namespace Orthanc
     static const char* const HAS_QUEUES = "HasQueues";
     static const char* const HAS_EXTENDED_FIND = "HasExtendedFind";
     static const char* const HAS_RESERVE_QUEUE_VALUE = "HasReserveQueueValue";
+    static const char* const PERFORMANCE = "Performance";
 
     if (call.IsDocumentation())
     {
@@ -122,13 +123,11 @@ namespace Orthanc
         .SetAnswerField(ORTHANC_CONFIG_STORAGE_COMPRESSION, RestApiCallDocumentation::Type_Boolean,
                         "Whether storage compression is enabled (new in Orthanc 1.11.0)")
         .SetAnswerField(ORTHANC_CONFIG_OVERWRITE_INSTANCES, RestApiCallDocumentation::Type_Boolean,
-                        "Whether instances are overwritten when re-ingested (new in Orthanc 1.11.0 and kept as a bool for backward compatibility)")
+                        "Whether instances are overwritten when re-ingested (new in Orthanc 1.11.0 and kept as a Boolean for backward compatibility)")
         .SetAnswerField(OVERWRITE_INSTANCES_MODE, RestApiCallDocumentation::Type_String,
-                        "Whether instances are overwritten when re-ingested (new in Orthanc 1.13.0)")
+                        "Overwriting mode governing how instances are re-ingested (new in Orthanc 1.13.0)")
         .SetAnswerField(ORTHANC_CONFIG_INGEST_TRANSCODING, RestApiCallDocumentation::Type_String,
                         "Whether instances are transcoded when ingested into Orthanc (`""` if no transcoding is performed) (new in Orthanc 1.11.0)")
-        .SetAnswerField(ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE, RestApiCallDocumentation::Type_Number,
-                        std::string("The configured ") + ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE + " in MB (new in Orthanc 1.13.0)")
         .SetAnswerField(ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS, RestApiCallDocumentation::Type_Boolean,
                         std::string("The configured ") + ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS + " (new in Orthanc 1.13.0)")
         .SetAnswerField(ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE, RestApiCallDocumentation::Type_Number,
@@ -149,6 +148,8 @@ namespace Orthanc
                         "Whether Orthanc is running in read only mode (new in Orthanc 1.12.5)")
         .SetAnswerField(ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED, RestApiCallDocumentation::Type_Boolean,
                         "Whether Patient level routes and sanity checks are enabled (new in Orthanc 1.12.11)")
+        .SetAnswerField(PERFORMANCE, RestApiCallDocumentation::Type_JsonObject,
+                        "The performance options from the configuration file, with sizes expressed in MB (new in Orthanc 1.13.0)")
         .SetHttpGetSample("https://orthanc.uclouvain.be/demo/system", true);
       return;
     }
@@ -156,6 +157,7 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value result = Json::objectValue;
+    Json::Value performance = Json::objectValue;
 
     result[API_VERSION] = ORTHANC_API_VERSION;
     result[VERSION] = ORTHANC_VERSION;
@@ -164,12 +166,12 @@ namespace Orthanc
 
     {
       OrthancConfiguration::ReaderLock lock;
+
       result[ORTHANC_CONFIG_NAME] = lock.GetConfiguration().GetOrthancName();
       result[ORTHANC_CONFIG_DICOM_AET] = lock.GetConfiguration().GetOrthancAET();
       result[ORTHANC_CONFIG_DICOM_PORT] = lock.GetConfiguration().GetDicomPort();
       result[ORTHANC_CONFIG_HTTP_PORT] = lock.GetConfiguration().GetHttpPort();
       result[ORTHANC_CONFIG_CHECK_REVISIONS] = lock.GetConfiguration().HasCheckRevisions();  // New in Orthanc 1.9.2
-      result[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = lock.GetConfiguration().GetMaximumStorageCacheSize(); // New in Orthanc 1.13.0
       result[ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS] = lock.GetConfiguration().HasStoreMD5ForAttachments(); // New in Orthanc 1.13.0
       result[ORTHANC_CONFIG_STORAGE_COMPRESSION] = lock.GetConfiguration().HasStorageCompression(); // New in Orthanc 1.11.0
       result[ORTHANC_CONFIG_DATABASE_SERVER_IDENTIFIER] = lock.GetConfiguration().GetDatabaseServerIdentifier();
@@ -177,12 +179,15 @@ namespace Orthanc
       result[ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT] = lock.GetConfiguration().GetMaximumPatientCount(); // New in Orthanc 1.12.4
       result[ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE] = lock.GetConfiguration().GetMaximumStorageMode(); // New in Orthanc 1.11.3
       result[ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD] = lock.GetConfiguration().GetDicomDefaultRetrieveMethod();
-      result[ORTHANC_CONFIG_CONCURRENT_JOBS] = lock.GetConfiguration().GetConcurrentJobs();
-      result[ORTHANC_CONFIG_HTTP_THREADS_COUNT] = lock.GetConfiguration().GetHttpThreadsCount();
-      result[ORTHANC_CONFIG_DICOM_THREADS_COUNT] = lock.GetConfiguration().GetDicomThreadsCount();
+
+      performance[ORTHANC_CONFIG_HTTP_THREADS_COUNT] = lock.GetConfiguration().GetHttpThreadsCount();
+      performance[ORTHANC_CONFIG_DICOM_THREADS_COUNT] = lock.GetConfiguration().GetDicomThreadsCount();
+      performance[ORTHANC_CONFIG_CONCURRENT_JOBS] = lock.GetConfiguration().GetConcurrentJobs();
     }
 
     {
+      // New in Orthanc 1.13.0
+
       uint64_t storageMemoryCapacity, transcoderMemoryCapacity, dicomParserMemoryCapacity;
       size_t storageMemoryCache, transcoderMemoryCache, dicomParserMemoryCache;
       unsigned int storageReaderThreadsCount, transcoderReaderThreadsCount, dicomParserThreadsCount;
@@ -191,16 +196,18 @@ namespace Orthanc
                                           transcoderMemoryCapacity, transcoderMemoryCache, transcoderReaderThreadsCount,
                                           dicomParserMemoryCapacity, dicomParserMemoryCache, dicomParserThreadsCount);
 
-      result[ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY] = BytesToMegabytes(storageMemoryCapacity);
-      result[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = BytesToMegabytes(storageMemoryCache);
-      result[ORTHANC_CONFIG_STORAGE_LOADER_THREADS] = storageReaderThreadsCount;
-      result[ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY] = BytesToMegabytes(transcoderMemoryCapacity);
-      result[ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE] = BytesToMegabytes(transcoderMemoryCache);
-      result[ORTHANC_CONFIG_TRANSCODER_THREADS] = transcoderReaderThreadsCount;
-      result[ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY] = BytesToMegabytes(dicomParserMemoryCapacity);
-      result[ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE] = BytesToMegabytes(dicomParserMemoryCache);
-      result[ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS] = dicomParserThreadsCount;
+      performance[ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE] = BytesToMegabytes(dicomParserMemoryCache);
+      performance[ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY] = BytesToMegabytes(dicomParserMemoryCapacity);
+      performance[ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS] = dicomParserThreadsCount;
+      performance[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = BytesToMegabytes(storageMemoryCache);
+      performance[ORTHANC_CONFIG_STORAGE_LOADER_THREADS] = storageReaderThreadsCount;
+      performance[ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY] = BytesToMegabytes(storageMemoryCapacity);
+      performance[ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE] = BytesToMegabytes(transcoderMemoryCache);
+      performance[ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY] = BytesToMegabytes(transcoderMemoryCapacity);
+      performance[ORTHANC_CONFIG_TRANSCODER_THREADS] = transcoderReaderThreadsCount;
     }
+
+    result[PERFORMANCE] = performance;
 
     DicomTransferSyntax ingestTransferSyntax;
     if (context.LookupIngestTranscoding(ingestTransferSyntax))

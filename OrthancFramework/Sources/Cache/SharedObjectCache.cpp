@@ -81,10 +81,14 @@ namespace Orthanc
   }
 
 
-  SharedObjectCache::SharedObjectCache(size_t capacity) :
+  SharedObjectCache::SharedObjectCache(uint64_t capacity) :
     capacity_(capacity),
     currentSize_(0)
   {
+    if (static_cast<uint64_t>(static_cast<size_t>(capacity)) != capacity)
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
   }
 
 

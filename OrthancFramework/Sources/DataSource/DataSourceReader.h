@@ -105,7 +105,7 @@ namespace Orthanc
 
     void SetMetricsConfiguration(const MetricsConfiguration& configuration);
 
-    void CreateCache(size_t capacity);
+    void CreateCache(uint64_t capacity);
 
     /**
      * Apply backpressure by limiting memory for pending read

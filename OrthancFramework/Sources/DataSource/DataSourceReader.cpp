@@ -284,7 +284,7 @@ namespace Orthanc
   }
 
 
-  void DataSourceReader::CreateCache(size_t capacity)
+  void DataSourceReader::CreateCache(uint64_t capacity)
   {
     cache_ = boost::make_shared<SharedObjectCache>(capacity);
   }
@@ -294,11 +294,12 @@ namespace Orthanc
     metricsConfiguration_ = configuration;
     if (budget_.get())
     {
-      budget_->SetMetricsConfiguration(Internals::DataSourceMemoryBudget::MetricsConfiguration(configuration.metrics_,
-                                                                                               configuration.capacityMaxSizeMegabytesName_,
-                                                                                               configuration.capacityCurrentSizeMegabytesName_,
-                                                                                               configuration.capacityCountName_,
-                                                                                               configuration.capacityMaxUsageSinceStartMegabytesName_));
+      budget_->SetMetricsConfiguration(Internals::DataSourceMemoryBudget::MetricsConfiguration(
+                                         configuration.metrics_,
+                                         configuration.capacityMaxSizeMegabytesName_,
+                                         configuration.capacityCurrentSizeMegabytesName_,
+                                         configuration.capacityCountName_,
+                                         configuration.capacityMaxUsageSinceStartMegabytesName_));
     }
   }
 
@@ -306,11 +307,12 @@ namespace Orthanc
   void DataSourceReader::SetCapacity(uint64_t maximumMemory)
   {
     budget_ = boost::make_shared<Internals::DataSourceMemoryBudget>(maximumMemory);
-    budget_->SetMetricsConfiguration(Internals::DataSourceMemoryBudget::MetricsConfiguration(metricsConfiguration_.metrics_,
-                                                                                             metricsConfiguration_.capacityMaxSizeMegabytesName_,
-                                                                                             metricsConfiguration_.capacityCurrentSizeMegabytesName_,
-                                                                                             metricsConfiguration_.capacityCountName_,
-                                                                                             metricsConfiguration_.capacityMaxUsageSinceStartMegabytesName_));
+    budget_->SetMetricsConfiguration(Internals::DataSourceMemoryBudget::MetricsConfiguration(
+                                       metricsConfiguration_.metrics_,
+                                       metricsConfiguration_.capacityMaxSizeMegabytesName_,
+                                       metricsConfiguration_.capacityCurrentSizeMegabytesName_,
+                                       metricsConfiguration_.capacityCountName_,
+                                       metricsConfiguration_.capacityMaxUsageSinceStartMegabytesName_));
   }
 
   uint64_t DataSourceReader::GetCapacity() const

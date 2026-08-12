@@ -6,7 +6,7 @@ General
 
 * Full rewrite of access to storage area and of DICOM parsing/transcoding
   to improve caching and to limit memory usage.  
-  This change brings updated configurations (TODO: review):
+  This change brings updated configurations (TODO-Streaming: review):
   - "StorageLoaderThreads"
   - "StorageMemoryCapacity"
   - "DicomParserThreads"
@@ -19,7 +19,7 @@ General
   - "SequentialDicomReaderWindowSize"
   - "SequentialDicomReaderWindowCapacity"
   And new metrics:
-  - TODO list
+  - TODO-Streaming list
 * Multiple paths to configuration files can now be provided, instead of a single file or a single folder
 * Split the configuration into a main file and a second file for advanced settings
 * Orthanc will now refuse to start if you have "AuthenticationEnabled" and "RemoteAccessAllowed"
@@ -66,9 +66,8 @@ REST API
   TODO: for the release, we may go backward to 31 but we need to change the conditional 
   tests - see this commit: https://orthanc.uclouvain.be/hg/orthanc-tests/rev/3a440ee47213)
 * New fields reported in the "/system" route:
-  - "OverwriteInstancesMode" (Boolean field "OverwriteInstances" is kept for backward
-    compatibility)
-  - "MaximumStorageCacheSize"
+  - "OverwriteInstancesMode" (Boolean field "OverwriteInstances" is kept for backward compatibility)
+  - "Performance" reports configuration options that may affect performance of Orthanc
   - "StoreMD5ForAttachments"
 * The "LocalAet" field of the payload to "/modalities/../move", "/modalities/../store", 
   "/modalities/../get", "queries/../answers/../retrieve" now always overwrites the "DicomAet"
