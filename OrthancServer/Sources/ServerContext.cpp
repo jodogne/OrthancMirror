@@ -499,7 +499,7 @@ namespace Orthanc
 
 
   static void GetMemorySizeConfiguration(uint64_t& result,
-                                         OrthancConfiguration::ReaderLock& lock,
+                                         const OrthancConfiguration::ReaderLock& lock,
                                          const char* parameter)
   {
     unsigned int mb;

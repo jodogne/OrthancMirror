@@ -87,7 +87,6 @@ namespace Orthanc
 
     boost::shared_ptr<IExecutorService>                   executor_;
     std::unique_ptr<IDataSource>                          source_;
-    size_t                                                cacheSize_;
     boost::shared_ptr<SharedObjectCache>                  cache_;
     boost::shared_ptr<Internals::DataSourceMemoryBudget>  budget_;
     MetricsConfiguration                                  metricsConfiguration_;

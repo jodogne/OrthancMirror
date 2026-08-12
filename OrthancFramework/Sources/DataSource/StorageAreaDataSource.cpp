@@ -44,7 +44,7 @@
 
 namespace Orthanc
 {
-  static std::string ComputeCacheKey(std::string uuid,
+  static std::string ComputeCacheKey(const std::string& uuid,
                                      FileContentType type,
                                      uint64_t start,
                                      uint64_t end)
