@@ -129,6 +129,7 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestModalities.cpp
   ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestResources.cpp
   ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestSystem.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/ThirdPartyVersions.cpp
   ${CMAKE_SOURCE_DIR}/Sources/OrthancWebDav.cpp
   ${CMAKE_SOURCE_DIR}/Sources/OutgoingDicomInstance.cpp
   ${CMAKE_SOURCE_DIR}/Sources/QueryRetrieveHandler.cpp

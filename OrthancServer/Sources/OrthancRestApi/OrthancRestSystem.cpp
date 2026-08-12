@@ -32,6 +32,9 @@
 #include "../OrthancConfiguration.h"
 #include "../OrthancInitialization.h"
 #include "../ServerContext.h"
+#include "ThirdPartyVersions.h"
+
+#include <PatchList.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -89,6 +92,8 @@ namespace Orthanc
     static const char* const HAS_EXTENDED_FIND = "HasExtendedFind";
     static const char* const HAS_RESERVE_QUEUE_VALUE = "HasReserveQueueValue";
     static const char* const PERFORMANCE = "Performance";
+    static const char* const THIRD_PARTY_PATCHES = "ThirdPartyPatches";
+    static const char* const THIRD_PARTY_VERSIONS = "ThirdPartyVersions";
 
     if (call.IsDocumentation())
     {
@@ -150,6 +155,10 @@ namespace Orthanc
                         "Whether Patient level routes and sanity checks are enabled (new in Orthanc 1.12.11)")
         .SetAnswerField(PERFORMANCE, RestApiCallDocumentation::Type_JsonObject,
                         "The performance options from the configuration file, with sizes expressed in MB (new in Orthanc 1.13.0)")
+        .SetAnswerField(THIRD_PARTY_PATCHES, RestApiCallDocumentation::Type_JsonListOfStrings,
+                        "Patches applied to the third-party libraries included in this binary version of Orthanc (new in Orthanc 1.13.0)")
+        .SetAnswerField(THIRD_PARTY_VERSIONS, RestApiCallDocumentation::Type_JsonObject,
+                        "Versions of the third-party libraries (new in Orthanc 1.13.0)")
         .SetHttpGetSample("https://orthanc.uclouvain.be/demo/system", true);
       return;
     }
@@ -257,7 +266,26 @@ namespace Orthanc
     result[CAPABILITIES][HAS_KEY_VALUE_STORES] = OrthancRestApi::GetIndex(call).HasKeyValueStoresSupport();
     result[CAPABILITIES][HAS_QUEUES] = OrthancRestApi::GetIndex(call).HasQueuesSupport();
     result[CAPABILITIES][HAS_RESERVE_QUEUE_VALUE] = OrthancRestApi::GetIndex(call).HasReserveQueueValueSupport();
-    
+
+    {
+      // New in Orthanc 1.13.0
+      Json::Value patches = Json::arrayValue;
+
+      for (unsigned int i = 0; i < ORTHANC_PATCHES_COUNT; i++)
+      {
+        patches.append(ORTHANC_PATCHES[i]);
+      }
+
+      result[THIRD_PARTY_PATCHES] = patches;
+    }
+
+    {
+      // New in Orthanc 1.13.0
+      Json::Value versions;
+      GetThirdPartyVersions(versions);
+      result[THIRD_PARTY_VERSIONS] = versions;
+    }
+
     call.GetOutput().AnswerJson(result);
   }
 

@@ -70,6 +70,8 @@ REST API
   - "OverwriteInstancesMode" (Boolean field "OverwriteInstances" is kept for backward compatibility)
   - "Performance" reports configuration options that may affect performance of Orthanc
   - "StoreMD5ForAttachments"
+  - "ThirdPartyPatches" lists the patches applied to the third-party libraries
+  - "ThirdPartyVersions" lists the versions of the main third-party libraries
 * The "LocalAet" field of the payload to "/modalities/../move", "/modalities/../store", 
   "/modalities/../get", "queries/../answers/../retrieve" now always overwrites the "DicomAet"
   and the "DicomModalities.LocalAet" configurations.

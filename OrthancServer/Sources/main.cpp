@@ -56,6 +56,8 @@
 #include "ServerTranscoder.h"
 #include "StorageCommitmentReports.h"
 
+#include <PatchList.h>
+
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/program_options.hpp>
 
@@ -2443,6 +2445,11 @@ int main(int argc, char* argv[])
 
     LOG(WARNING) << "Orthanc version: " << version;
     assert(DisplayPerformanceWarning());
+
+    for (unsigned int i = 0; i < ORTHANC_PATCHES_COUNT; i++)
+    {
+      LOG(WARNING) << "This binary includes the following patch to a third-party library: " << ORTHANC_PATCHES[i];
+    }
 
     std::string s = "Architecture: ";
     if (sizeof(void*) == 4)

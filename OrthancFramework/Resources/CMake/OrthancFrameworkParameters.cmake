@@ -111,6 +111,10 @@ mark_as_advanced(USE_GOOGLE_TEST_DEBIAN_PACKAGE)
 mark_as_advanced(USE_PUGIXML)
 
 
+# Must be filled with the list of patches applied to system-wide libraries (new in Orthanc 1.13.0)
+set(ORTHANC_PATCHES_LIST)
+
+
 #####################################################################
 ## Internal CMake parameters to enable the optional subcomponents of
 ## the Orthanc framework
