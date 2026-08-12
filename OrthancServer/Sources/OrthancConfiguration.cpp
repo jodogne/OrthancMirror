@@ -83,26 +83,6 @@ namespace Orthanc
   }
 
 
-  static void ReadDefaultConfiguration(Json::Value& target)
-  {
-#if ORTHANC_STANDALONE == 1
-    std::string content;
-    GetFileResource(content, ServerResources::CONFIGURATION_SAMPLE);
-
-    ReadConfigurationFromString(target, content);
-#else
-    // In a non-standalone build, we use the
-    // "Resources/Configuration.json" from the Orthanc source code
-
-    boost::filesystem::path p = ORTHANC_PATH;
-    p /= "Resources";
-    p /= "Configuration.json";
-
-    ReadConfigurationFromFile(target, p);
-#endif
-  }
-
-
   static void MergeConfigurations(Json::Value& target,
                                   const Json::Value& source)
   {
@@ -128,6 +108,53 @@ namespace Orthanc
         }
       }
     }
+  }
+
+
+  static void ReadDefaultConfiguration(Json::Value& target)
+  {
+#if ORTHANC_STANDALONE == 1
+    {
+      std::string content;
+      GetFileResource(content, ServerResources::CONFIGURATION_SAMPLE);
+      ReadConfigurationFromString(target, content);
+    }
+
+    {
+      // Merge with the content of the advanced configuration
+      std::string content;
+      GetFileResource(content, ServerResources::ADVANCED_CONFIGURATION_SAMPLE);
+
+      Json::Value advanced;
+      ReadConfigurationFromString(advanced, content);
+
+      MergeConfigurations(target, advanced);
+    }
+
+#else
+    // In a non-standalone build, we use the
+    // "Resources/Configuration.json" from the Orthanc source code
+
+    {
+      boost::filesystem::path p = ORTHANC_PATH;
+      p /= "Resources";
+      p /= "Configuration.json";
+
+      ReadConfigurationFromFile(target, p);
+    }
+
+    {
+      // Merge with the content of the advanced configuration
+      boost::filesystem::path p = ORTHANC_PATH;
+      p /= "Resources";
+      p /= "AdvancedConfiguration.json";
+
+      Json::Value advanced;
+      ReadConfigurationFromFile(advanced, p);
+
+      MergeConfigurations(target, advanced);
+    }
+#endif
   }
 
 
