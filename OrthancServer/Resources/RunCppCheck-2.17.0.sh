@@ -10,56 +10,69 @@ if [ $# -ge 1 ]; then
 fi
 
 cat <<EOF > /tmp/cppcheck-suppressions.txt
-assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
-assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1026
-assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:277
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
-assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3058
-assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:286
-nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:322
-stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1525
+assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:293
+constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.cpp:50
+constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp:112
+constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp:113
+constParameterCallback:../../OrthancFramework/Sources/Pkcs11.cpp:125
+constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3553
+constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp:66
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:450
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:454
+constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3467
+knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:112
+knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:444
+knownConditionTrueFalse:../../OrthancFramework/Sources/Images/PamReader.cpp:204
+knownConditionTrueFalse:../../OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp:345
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2451
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2452
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2453
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2454
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2455
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2456
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2457
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2458
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2459
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2460
+nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
-stlFindInsert:../../OrthancServer/Sources/Database/MainDicomTagsRegistry.cpp:65
-stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:328
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp:41
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:361
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp:191
+stlFindInsert:../../OrthancServer/Sources/Database/ResourcesContent.h:141
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
-syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:322
-uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:417
-unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1173
-useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
+syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:345
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:95
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
-useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:277
+variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:230
+variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:98
 EOF
 
 CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.17.0/
 mkdir -p ${CPPCHECK_BUILD_DIR}
 
-${CPPCHECK} -j8 --enable=all --std=gnu++11 --library=boost \
+${CPPCHECK} -j8 --enable=all --quiet --std=c++11 \
             --cppcheck-build-dir=${CPPCHECK_BUILD_DIR} \
             --suppressions-list=/tmp/cppcheck-suppressions.txt \
-            -I/usr/include/ \
-            -I/usr/include/jsoncpp/ \
-            -I/usr/include/linux/ \
-            -I/usr/include/c++/11/ \
-            -I/usr/include/c++/11/tr1/ \
-            -I/usr/include/x86_64-linux-gnu/c++/11/ \
+            --suppress=unusedFunction \
+            --suppress=missingIncludeSystem \
+            --suppress=missingInclude \
+            --suppress=useStlAlgorithm \
+            --check-level=exhaustive \
             -DBOOST_HAS_DATE_TIME=1 \
             -DBOOST_HAS_FILESYSTEM_V3=1 \
             -DBOOST_HAS_REGEX=1 \
             -DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=1 \
             -DCIVETWEB_HAS_WEBDAV_WRITING=1 \
             -DDCMTK_VERSION_NUMBER=369 \
-            -DJCONFIG_INCLUDED \
             -DHAVE_MALLOPT=1 \
-            -DMONGOOSE_USE_CALLBACKS=1 \
+            -DJCONFIG_INCLUDED \
             -DJSONCPP_VERSION_MAJOR=1 \
             -DJSONCPP_VERSION_MINOR=0 \
+            -DMONGOOSE_USE_CALLBACKS=1 \
             -DORTHANC_BUILDING_FRAMEWORK_LIBRARY=0 \
             -DORTHANC_BUILD_UNIT_TESTS=1 \
             -DORTHANC_ENABLE_BASE64=1 \
@@ -86,8 +99,9 @@ ${CPPCHECK} -j8 --enable=all --std=gnu++11 --library=boost \
             -DORTHANC_ENABLE_ZLIB=1 \
             -DORTHANC_SANDBOXED=0 \
             -DORTHANC_SQLITE_VERSION=3027001 \
-            -DORTHANC_UNIT_TESTS_LINK_FRAMEWORK=0 \
+            -DORTHANC_UNIT_TESTS_LINK_FRAMEWORK=1 \
             -DORTHANC_USE_SYSTEM_MINIZIP=0 \
+            -DORTHANC_VERSION="\"mainline\"" \
             -DPUGIXML_VERSION=150 \
             -DUNIT_TESTS_WITH_HTTP_CONNEXIONS=1 \
             -D__BYTE_ORDER=__LITTLE_ENDIAN \
