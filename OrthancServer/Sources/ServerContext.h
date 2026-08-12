@@ -281,14 +281,16 @@ namespace Orthanc
 
     void RemoveFile(const FileInfo& attachment);
 
-    // This method corresponds to StorageAccessor::Write() in Orthanc <= 1.12.11
-    void CreateFile(FileInfo& info,
-                    const void* data,
-                    size_t size,
-                    FileContentType type,
-                    CompressionType compression,
-                    const std::string& precomputedMd5,
-                    const DicomInstanceToStore* instance);
+    // This method corresponds to StorageAccessor::Write() in Orthanc
+    // <= 1.12.11. Don't name this method "CreateFile()", otherwise it
+    // could be renamed "CreateFileA()" by Microsoft Windows SDK macros.
+    void StoreFile(FileInfo& info,
+                   const void* data,
+                   size_t size,
+                   FileContentType type,
+                   CompressionType compression,
+                   const std::string& precomputedMd5,
+                   const DicomInstanceToStore* instance);
 
     // This DicomModification object is intended to be used as a
     // "rules engine" when de-identifying logs for C-Find, C-Get, and

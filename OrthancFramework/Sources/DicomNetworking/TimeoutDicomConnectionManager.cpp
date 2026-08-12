@@ -28,6 +28,9 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 
+#include <dcmtk/dcmdata/dcfilefo.h>
+
+
 namespace Orthanc
 {
   static boost::posix_time::ptime GetNow()

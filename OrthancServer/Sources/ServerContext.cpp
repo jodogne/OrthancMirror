@@ -151,13 +151,13 @@ namespace Orthanc
   }
 
 
-  void ServerContext::CreateFile(FileInfo& info,
-                                 const void* data,
-                                 size_t size,
-                                 FileContentType type,
-                                 CompressionType compression,
-                                 const std::string& precomputedMd5,
-                                 const DicomInstanceToStore* instance)
+  void ServerContext::StoreFile(FileInfo& info,
+                                const void* data,
+                                size_t size,
+                                FileContentType type,
+                                CompressionType compression,
+                                const std::string& precomputedMd5,
+                                const DicomInstanceToStore* instance)
   {
     assert(metricsRegistry_.get() != NULL);
     const std::string uuid = Toolbox::GenerateUuid();
@@ -980,7 +980,7 @@ namespace Orthanc
     /**
      * Note that it is not necessary to explicitly invalidate the
      * cache after the removal of an attachment, as each attachment
-     * receives a unique UUID in ServerContext::CreateFile(), even if
+     * receives a unique UUID in ServerContext::StoreFile(), even if
      * the DICOM instance is overwritten. The key of the removed
      * attachment will thus never be seen again as new files are added.
      **/
@@ -1151,8 +1151,8 @@ namespace Orthanc
 
       if (!isAdoption)
       {
-        CreateFile(dicomInfo, dicom.GetBufferData(), dicom.GetBufferSize(),
-                   FileContentType_Dicom, compression, dicomMd5, &dicom);
+        StoreFile(dicomInfo, dicom.GetBufferData(), dicom.GetBufferSize(),
+                  FileContentType_Dicom, compression, dicomMd5, &dicom);
 
         attachments.push_back(dicomInfo);
       }
@@ -1166,8 +1166,8 @@ namespace Orthanc
           (!area_.HasEfficientReadRange() ||
            compressionEnabled_))
       {
-        CreateFile(dicomUntilPixelData, dicom.GetBufferData(), pixelDataOffset, FileContentType_DicomUntilPixelData,
-                   compression, "" /* MD5 will be computed if needed */, NULL);
+        StoreFile(dicomUntilPixelData, dicom.GetBufferData(), pixelDataOffset, FileContentType_DicomUntilPixelData,
+                  compression, "" /* MD5 will be computed if needed */, NULL);
 
         attachments.push_back(dicomUntilPixelData);
       }
@@ -1501,8 +1501,8 @@ namespace Orthanc
     {
       std::unique_ptr<StorageAreaDataSource::Range> range(ReadAttachment(attachment, true /* uncompress */));
 
-      CreateFile(modified, range->GetData(), range->GetSize(), attachmentType, compression,
-                 "" /* MD5 will be computed if needed */, NULL);
+      StoreFile(modified, range->GetData(), range->GetSize(), attachmentType, compression,
+                "" /* MD5 will be computed if needed */, NULL);
     }
 
     try
@@ -1892,7 +1892,7 @@ namespace Orthanc
     assert(attachmentType != FileContentType_Dicom && attachmentType != FileContentType_DicomUntilPixelData); // this method can not be used to store instances
 
     FileInfo attachment;
-    CreateFile(attachment, data, size, attachmentType, compression, "" /* MD5 will be computed if needed */, NULL);
+    StoreFile(attachment, data, size, attachmentType, compression, "" /* MD5 will be computed if needed */, NULL);
 
     try
     {

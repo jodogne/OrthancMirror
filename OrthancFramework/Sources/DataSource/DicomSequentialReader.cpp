@@ -35,6 +35,8 @@
 #include "StorageAreaDataSource.h"
 #include "TranscoderDataSource.h"
 
+#include <dcmtk/dcmdata/dcfilefo.h>
+
 
 namespace Orthanc
 {
