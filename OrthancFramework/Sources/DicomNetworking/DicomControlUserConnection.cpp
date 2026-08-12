@@ -296,9 +296,16 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadSequenceOfCalls); // the acceptedStorageSopClassUids should always be defined for a C-Get
       }
 
+      DicomAssociationRole proposedStoreRole = DicomAssociationRole_Scu;
+
+      if (parameters_.GetRemoteModality().GetManufacturer() == ModalityManufacturer_SiemensSyngoCT)
+      {
+        proposedStoreRole = DicomAssociationRole_Default; // it seems SyngoCT won't accept a C-Store/SCP only and requires both SCU and SCP roles to be proposed
+      }
+
       for (std::set<std::string>::const_iterator it = acceptedStorageSopClasses.begin(); it != acceptedStorageSopClasses.end(); ++it)
       {
-        association_->ProposePresentationContext(*it, proposedStorageTransferSyntaxes, DicomAssociationRole_Scp);
+        association_->ProposePresentationContext(*it, proposedStorageTransferSyntaxes, proposedStoreRole);
       }
     }
   }
