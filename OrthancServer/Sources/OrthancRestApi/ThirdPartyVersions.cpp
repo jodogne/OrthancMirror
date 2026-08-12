@@ -27,14 +27,20 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/version.hpp>
 #include <curl/curl.h>
-#include <png.h>
-#include <zlib.h>
-#include <sqlite3.h>
-#include <lua.h>
+#include <google/protobuf/stubs/common.h>
 #include <jpeglib.h>
+#include <json/version.h>
+#include <lua.h>
+#include <png.h>
+#include <sqlite3.h>
+#include <zlib.h>
 
 #if ORTHANC_ENABLE_CIVETWEB == 1
 #  include <civetweb.h>
+#endif
+
+#if ORTHANC_ENABLE_SSL == 1
+#  include <openssl/opensslv.h>
 #endif
 
 #if ORTHANC_ENABLE_PUGIXML == 1
@@ -61,9 +67,7 @@ namespace Orthanc
                        boost::lexical_cast<std::string>(DCMTK_VERSION_NUMBER / 10 % 10) + "." +
                        boost::lexical_cast<std::string>(DCMTK_VERSION_NUMBER % 10));
 
-    target["jsoncpp"] = (boost::lexical_cast<std::string>(JSONCPP_VERSION_MAJOR) + "." +
-                         boost::lexical_cast<std::string>(JSONCPP_VERSION_MINOR) + "." +
-                         boost::lexical_cast<std::string>(JSONCPP_VERSION_PATCH));
+    target["jsoncpp"] = JSONCPP_VERSION_STRING;
 
     target["libcurl"] = LIBCURL_VERSION;
 
@@ -78,11 +82,21 @@ namespace Orthanc
                      boost::lexical_cast<std::string>(LUA_VERSION_MINOR) + "." +
                      boost::lexical_cast<std::string>(LUA_VERSION_RELEASE));
 
+#if ORTHANC_ENABLE_SSL == 1
+    target["openssl"] = (boost::lexical_cast<std::string>(OPENSSL_VERSION_MAJOR) + "." +
+                         boost::lexical_cast<std::string>(OPENSSL_VERSION_MINOR) + "." +
+                         boost::lexical_cast<std::string>(OPENSSL_VERSION_PATCH));
+#endif
+
 #if ORTHANC_ENABLE_PUGIXML == 1
     target["pugixml"] = (boost::lexical_cast<std::string>(PUGIXML_VERSION / 1000) + "." +
                          boost::lexical_cast<std::string>(PUGIXML_VERSION / 10 % 100) + "." +
                          boost::lexical_cast<std::string>(PUGIXML_VERSION % 10));
 #endif
+
+    target["protobuf"] = (boost::lexical_cast<std::string>(GOOGLE_PROTOBUF_VERSION / 1000000) + "." +
+                          boost::lexical_cast<std::string>(GOOGLE_PROTOBUF_VERSION / 1000 % 1000) + "." +
+                          boost::lexical_cast<std::string>(GOOGLE_PROTOBUF_VERSION % 1000));
 
     target["sqlite"] = SQLITE_VERSION;
 
