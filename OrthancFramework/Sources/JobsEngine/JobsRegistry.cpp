@@ -1666,7 +1666,7 @@ namespace Orthanc
 
         case JobState_Success:
         case JobState_Failure:
-          // not counted since 1.12.11+
+          // not counted since 1.13.0
           break;
 
         default:

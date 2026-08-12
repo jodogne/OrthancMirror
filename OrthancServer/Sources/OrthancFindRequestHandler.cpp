@@ -408,8 +408,9 @@ namespace Orthanc
         continue;
       }
 
-      if (tag.IsPrivateCreator())  // new in 1.12.11+: don't try to match PrivateCreators themselves (they are not mandatory); match only the private tags
+      if (tag.IsPrivateCreator())
       {
+        // New in 1.13.0: Don't try to match PrivateCreators themselves (they are not mandatory); match only the private tags
         continue;
       }
 

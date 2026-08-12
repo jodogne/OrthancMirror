@@ -20,18 +20,18 @@
     // reading it from DB.
     // You might want to store this tag in ExtraMainDicomTags to build
     // the response faster.
-    "W001_TagsBeingReadFromStorage": true,
+    "W001_TagsBeingReadFromStorage" : true,
 
     // Retrieving a list of Main dicom tags from a resource that has been
     // saved with another "ExtraMainDicomTags" configuration which means that
     // your response might be incomplete/inconsistent.
     // You should call patients|studies|series|instances/../reconstruct to rebuild
     // the DB.  You may also check for the "Housekeeper" plugin.
-    "W002_InconsistentDicomTagsInDb": true,
+    "W002_InconsistentDicomTagsInDb" : true,
 
     // Display a warning message when Orthanc and its plugins are unable
     // to decode a frame (new in Orthanc 1.12.5).
-    "W003_DecoderFailure": true,
+    "W003_DecoderFailure" : true,
 
     // Display a warning when the MainDicomTagsSignature metadata has not been
     // found which means that the resource has been saved with a version prior
@@ -39,23 +39,23 @@
     // You should call patients|studies|series|instances/../reconstruct to rebuild
     // the DB.  You may also check for the "Housekeeper" plugin.
     // (new in Orthanc 1.12.5)
-    "W004_NoMainDicomTagsSignature": true,
+    "W004_NoMainDicomTagsSignature" : true,
 
     // Display a warning when a user performs a find request and requests a tag
     // from a lower resource level; e.g. when requesting "StudyDescription" at
     // Patient level.
     // (new in Orthanc 1.12.5)
-    "W005_RequestingTagFromLowerResourceLevel": true,
+    "W005_RequestingTagFromLowerResourceLevel" : true,
 
     // Display a warning when a user performs a find request and requests a tag
     // from the DICOM Meta Header.
     // (new in Orthanc 1.12.5)
-    "W006_RequestingTagFromMetaHeader": true,
+    "W006_RequestingTagFromMetaHeader" : true,
 
     // Display a warning when a user requests a tag that can not be read from disk
     // because "StorageAccessOnFind" is set to "Never".
     // (new in Orthanc 1.12.5)
-    "W007_MissingRequestedTagsNotReadFromDisk": true
+    "W007_MissingRequestedTagsNotReadFromDisk" : true
   },
 
   // Path to the directory where Orthanc stores its large temporary
@@ -127,7 +127,7 @@
   // Whether the REST API can write to the filesystem (e.g. in
   // /instances/../export route). Starting with Orthanc 1.12.0,
   // this URI is disabled by default for security.
-  "RestApiWriteToFileSystemEnabled": false,
+  "RestApiWriteToFileSystemEnabled" : false,
 
   // When set to "false", this option disables all "/patients" routes
   // and disables patient-level sanity checks when performing resource
@@ -136,7 +136,7 @@
   // might be assigned to different patients because there is no
   // centralized patient ID management. (new in Orthanc 1.12.11)
   // Warning: As of 1.12.11, this is an experimental configuration.
-  "PatientLevelEnabled": true,
+  "PatientLevelEnabled" : true,
 
 
   /**
