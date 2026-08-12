@@ -22,18 +22,6 @@
   // a RAM-drive or a SSD device for performance reasons.
   "IndexDirectory" : "OrthancStorage",
 
-  // Path to the directory where Orthanc stores its large temporary
-  // files. The content of this folder can be safely deleted once
-  // Orthanc is stopped. The folder must exist. The corresponding
-  // filesystem must be properly sized, given that for instance a ZIP
-  // archive of DICOM images created by a job can weight several GBs,
-  // and that there might be up to "min(JobsHistorySize,
-  // MediaArchiveSize)" archives to be stored simultaneously. If not
-  // set, Orthanc will use the default temporary folder of the
-  // operating system (such as "/tmp/" on UNIX-like systems, or
-  // "C:/Temp" on Microsoft Windows).
-  // "TemporaryDirectory" : "/tmp/Orthanc/",
-
   // Enable the transparent compression of the DICOM instances
   "StorageCompression" : false,
 
@@ -69,14 +57,6 @@
   "LuaScripts" : [
   ],
 
-  // The period (in seconds) between 2 calls of the "OnHeartBeat"
-  // lua callback.  O means the heart beat is disabled.
-  // Note: that the period is actually not the delay between
-  // the end of an execution and the triggering of the next one.
-  // Since there is only one lua context, if other lua code is being
-  // executed, the heart beat might be delayed even more.
-  "LuaHeartBeatPeriod" : 0,
-
   // List of paths to the plugins that are to be loaded into this
   // instance of Orthanc (e.g. "./libPluginTest.so" for Linux, or
   // "./PluginTest.dll" for Windows). These paths can refer to
@@ -92,13 +72,6 @@
   // this value to "1".
   "ConcurrentJobs" : 2,
 
-  // Defines the number of threads that are used to execute each type of
-  // jobs (for the jobs that can be parallelized).
-  // A value of "0" indicates to use all the available CPU logical cores.
-  // (new in Orthanc 1.11.3)
-  "JobsEngineThreadsCount" : {
-    "ResourceModification": 1     // for /anonymize, /modify
-  },
 
   /**
    * Configuration of the HTTP server
@@ -130,21 +103,8 @@
   // HTTP status code.
   //"HttpBindAddresses": ["1.2.3.4", "127.0.0.1"]
 
-  // When the following option is "true", if an error is encountered
-  // while calling the REST API, a JSON message describing the error
-  // is put in the HTTP answer. This feature can be disabled if the
-  // HTTP client does not properly handles such answers.
-  "HttpDescribeErrors" : true,
-
-  // Enable HTTP compression to improve network bandwidth utilization,
-  // at the expense of more computations on the server. Orthanc
-  // supports the "gzip" and "deflate" HTTP encodings.
-  // When working on a LAN or on localhost, you should typically set
-  // this configuration to false while when working on low-bandwidth,
-  // you should set it to true.
-  // Note in versions up to 1.12.1, the default value was "true" and is
-  // "false" since 1.12.2.
-  "HttpCompressionEnabled" : false,
+  // Number of threads that are used by the embedded HTTP server.
+  "HttpThreadsCount" : 50,
 
   // Enable the publication of the content of the Orthanc server as a
   // WebDAV share (new in Orthanc 1.8.0). On the localhost, the WebDAV
@@ -157,7 +117,6 @@
 
   // Whether to allow uploads through the WebDAV share.
   "WebDavUploadAllowed" : true,
-
 
 
   /**
@@ -246,12 +205,6 @@
   //   "1.2.840.10008.5.1.4.1.1.4"
   // ]
 
-  // Set the timeout (in seconds) after which the DICOM associations
-  // are closed by the Orthanc SCP (server) if no further DIMSE
-  // command is received from the SCU (client).
-  // A value of 0 means "no timeout".
-  "DicomScpTimeout" : 30,
-
 
 
   /**
@@ -269,28 +222,6 @@
   // certificate and the private key. This option is only meaningful
   // if "SslEnabled" is true.
   "SslCertificate" : "certificate.pem",
-
-  // Sets the minimum accepted SSL protocol version for the HTTP server
-  // (cf. "ssl_protocol_version" option of civetweb). By default,
-  // require TLS 1.2 or 1.3. This option is only meaningful if "SslEnabled"
-  // is true. (new in Orthanc 1.8.2)
-  //
-  // Value => Protocols
-  //   0      SSL2+SSL3+TLS1.0+TLS1.1+TLS1.2+TLS1.3
-  //   1      SSL3+TLS1.0+TLS1.1+TLS1.2+TLS1.3
-  //   2      TLS1.0+TLS1.1+TLS1.2+TLS1.3
-  //   3      TLS1.1+TLS1.2+TLS1.3
-  //   4      TLS1.2+TLS1.3
-  //   5      TLS1.3
-  "SslMinimumProtocolVersion" : 4,
-
-  // Set the accepted ciphers for SSL connections for the HTTP server. 
-  // The ciphers must be provided as a list of strings. If not set, 
-  // this will default to FIPS 140-2 ciphers. This option is only 
-  // meaningful if "SslEnabled" is true. (new in Orthanc 1.8.2)
-  /**
-    "SslCiphersAccepted" : [ "AES128-GCM-SHA256" ],
-  **/
 
   // Whether or not peer client certificates shall be checked. This
   // option is only meaningful if "SslEnabled" is true.
@@ -360,35 +291,6 @@
   // Once you set this configuration to true, you must provide a list of
   // trusted certificates in DicomTlsTrustedCertificates.
   "DicomTlsRemoteCertificateRequired" : true,
-
-  // Sets the minimum accepted TLS protocol version for the DICOM server
-  // By default, require TLS 1.2 or 1.3. This option is only meaningful 
-  // if "DicomTlsEnabled" is true (new in Orthanc 1.12.4).
-  // Note that, internally, Orthanc is configured to use the BCP195 profile
-  // by default.  As soon as you switch to another protocol version, you
-  // must also provide the list of supported cipher suites.
-  // This configuration applies to Orthanc acting both as SCU and SCP.
-  // Value => Protocols
-  //   0      use default BCP 195 profile and default cipher suites
-  //   1      SSL3+TLS1.0+TLS1.1+TLS1.2+TLS1.3
-  //   2      TLS1.0+TLS1.1+TLS1.2+TLS1.3
-  //   3      TLS1.1+TLS1.2+TLS1.3
-  //   4      TLS1.2+TLS1.3
-  //   5      TLS1.3
-  "DicomTlsMinimumProtocolVersion" : 0,
-
-  // Set the accepted ciphers for TLS connections for the DICOM server. 
-  // The ciphers must be provided as a list of strings. If not set, 
-  // this will default to BCP195 ciphers if DicomTlsMinimumProtocolVersion is 0
-  // or to an empty list for other values. This option is only 
-  // meaningful if "DicomTlsEnabled" is true. (new in Orthanc 1.12.4).
-  // This configuration must be provided if DicomTlsMinimumProtocolVersion != 0.
-  // The list of valid cipher names are available in 
-  // https://www.openssl.org/docs/man3.3/man1/openssl-ciphers.html
-  // The OpenSSL names are used.
-  /**
-     "DicomTlsCiphersAccepted" : []
-  **/
   
   // Whether the Orthanc SCP allows incoming C-ECHO requests, even
   // from SCU modalities it does not know about (i.e. that are not
@@ -546,12 +448,6 @@
   // (new in Orthanc 1.12.6)
   "DicomDefaultRetrieveMethod" : "C-MOVE",
 
-  // The timeout (in seconds) after which the DICOM associations are
-  // considered as closed by the Orthanc SCU (client) if the remote
-  // DICOM SCP (server) does not answer.
-  // A value of 0 means "no timeout".
-  "DicomScuTimeout" : 10,
-
   // During a C-STORE SCU request initiated by Orthanc, if the remote
   // modality doesn't support the original transfer syntax of some
   // DICOM instance, specify which transfer syntax should be preferred
@@ -655,23 +551,6 @@
    * Advanced options
    **/
 
-  // Dictionary of symbolic names for the user-defined metadata. Each
-  // entry must map an unique string to an unique number between 1024
-  // and 65535. Reserved values:
-  //  - The Orthanc whole-slide imaging plugin uses metadata 4200
-  "UserMetadata" : {
-    // "Sample" : 1024
-  },
-
-  // Dictionary of symbolic names for the user-defined types of
-  // attached files. Each entry must map an unique string to an unique
-  // number between 1024 and 65535. Optionally, a second argument can
-  // provided to specify a MIME content type for the attachment.
-  "UserContentType" : {
-    // "sample" : 1024
-    // "sample2" : [ 1025, "application/pdf" ]
-  },
-
   // Number of seconds without receiving any instance before a
   // patient, a study or a series is considered as stable.
   "StableAge" : 60,
@@ -680,12 +559,6 @@
   // case-insensitive way. Setting this option to "true" will enable
   // case-sensitive matching.
   "StrictAetComparison" : false,
-
-  // When the following option is "true", the MD5 of the DICOM files
-  // will be computed and stored in the Orthanc database. This
-  // information can be used to detect disk corruption, at the price
-  // of a small performance overhead.
-  "StoreMD5ForAttachments" : true,
 
   // The maximum number of results for a single C-FIND request at the
   // Patient, Study or Series level. Setting this option to "0" means
@@ -698,38 +571,6 @@
   // Note: This limit is also used in the "/tools/find" API route.
   "LimitFindInstances" : 0,
 
-  // If this option is set to "true" (default behavior until Orthanc
-  // 1.3.2), Orthanc will log the resources that are exported to other
-  // DICOM modalities or Orthanc peers, inside the URI
-  // "/exports". Setting this option to "false" is useful to prevent
-  // the index to grow indefinitely in auto-routing tasks (this is the
-  // default behavior since Orthanc 1.4.0).
-  "LogExportedResources" : false,
-
-  // Enable or disable HTTP Keep-Alive (persistent HTTP
-  // connections). Setting this option to "true" prevents Orthanc
-  // issue #32 ("HttpServer does not support multiple HTTP requests in
-  // the same TCP stream"), but can possibly slow down HTTP clients
-  // that do not support persistent connections. The default behavior
-  // used to be "false" in Orthanc <= 1.5.1. Setting this option to
-  // "false" is also recommended if Orthanc is compiled against
-  // Mongoose.
-  "KeepAlive" : true,
-
-  // Defines the Keep-Alive timeout in seconds.
-  // (new in Orthanc 1.11.3)
-  "KeepAliveTimeout" : 1,
-
-  // Enable or disable Nagle's algorithm. Only taken into
-  // consideration if Orthanc is compiled to use CivetWeb. Experiments
-  // show that best performance can be obtained by setting both
-  // "KeepAlive" and "TcpNoDelay" to "true". Beware however of
-  // caveats: https://eklitzke.org/the-caveats-of-tcp-nodelay
-  "TcpNoDelay" : true,
-
-  // Number of threads that are used by the embedded HTTP server.
-  "HttpThreadsCount" : 50,
-
   // If this option is set to "false", Orthanc will run in index-only
   // mode. The DICOM files will not be stored on the drive: Orthanc
   // only indexes the small subset of the so-called "main DICOM tags"
@@ -737,13 +578,6 @@
   // upgrade to newer versions of Orthanc. Also note that this
   // behavior might not be available with the storage area plugins.
   "StoreDicom" : true,
-
-  // DICOM associations initiated by Lua scripts are kept open as long
-  // as new DICOM commands are issued. This option sets the number of
-  // seconds of inactivity to wait before automatically closing a
-  // DICOM association used by Lua. If set to 0, the connection is
-  // closed immediately. This option is only used in Lua scripts.
-  "DicomAssociationCloseDelay" : 5,
 
   // Maximum number of query/retrieve DICOM requests that are
   // maintained by Orthanc. The least recently used requests get
@@ -755,17 +589,6 @@
   // (such as PatientName). By default, the search is
   // case-insensitive, which does not follow the DICOM standard.
   "CaseSensitivePN" : false,
-
-  // Configure PKCS#11 to use hardware security modules (HSM) and
-  // smart cards when carrying on HTTPS client authentication.
-  /**
-     "Pkcs11" : {
-       "Module" : "/usr/local/lib/libbeidpkcs11.so",
-       "Module" : "C:/Windows/System32/beidpkcs11.dll",
-       "Pin" : "1234",
-       "Verbose" : true
-     }
-   **/
   
   // If set to "false", Orthanc will not load its default dictionary
   // of private tags. This might be necessary if you cannot import a
@@ -877,21 +700,6 @@
   // text-based exposition format.
   "MetricsEnabled" : true,
 
-  // Whether calls to URI "/tools/execute-script" is enabled. Starting
-  // with Orthanc 1.5.8, this URI is disabled by default for security.
-  "ExecuteLuaEnabled" : false,
-
-  // Whether the REST API can write to the filesystem (e.g. in 
-  // /instances/../export route). Starting with Orthanc 1.12.0, 
-  // this URI is disabled by default for security.
-  "RestApiWriteToFileSystemEnabled": false,
-
-  // Set the timeout while serving HTTP requests by the embedded Web
-  // server, in seconds. This corresponds to option
-  // "request_timeout_ms" of Mongoose/Civetweb. It will set the socket
-  // options "SO_RCVTIMEO" and "SO_SNDTIMEO" to the specified value.
-  "HttpRequestTimeout" : 30,
-
   // Set the default private creator that is used by Orthanc when it
   // looks for a private tag in its dictionary (cf. "Dictionary"
   // option), or when it creates/modifies a DICOM file (new in Orthanc 1.6.0).
@@ -943,26 +751,6 @@
   // transcoder and is not provided to transcoding plugins.
   "DicomLossyTranscodingQuality" : 90,
 
-  // Whether "fsync()" is called after each write to the storage area
-  // (new in Orthanc 1.7.4). If this option is set to "true", Orthanc
-  // will run more slowly, but the DICOM are guaranteed to be
-  // immediately written to the disk. This option only makes sense if
-  // the builtin filesystem storage area is used or the advanced
-  // storage plugin. It defaults to "false" in Orthanc <= 1.7.3,
-  // and to "true" in Orthanc >= 1.7.4.
-  "SyncStorageArea" : true,
-
-  // If specified, on compatible systems, call "mallopt(M_ARENA_MAX,
-  // ...)" while starting Orthanc. This has the same effect at setting
-  // the environment variable "MALLOC_ARENA_MAX". This avoids large
-  // growth in RES memory if the threads of the embedded HTTP server
-  // have to allocate large chunks of memory (typically the case with
-  // large DICOM files). By setting "MallocArenaMax" to "N", these
-  // threads share "N" memory pools (known as "arenas"). Setting this
-  // option to "0" doesn't call mallopt()", which was the behavior of
-  // Orthanc <= 1.8.1.
-  "MallocArenaMax" : 5,
-
   // Deidentify/anonymize the contents of the logs (notably C-FIND,
   // C-GET, and C-MOVE queries submitted to Orthanc) according to
   // Table E.1-1 of the DICOM standard (new in Orthanc 1.8.2).
@@ -974,12 +762,6 @@
   // contents. Possible values are "2008", "2017c", "2021b" (new
   // in Orthanc 1.8.2), and "2023b" (new in Orthanc 1.12.1)
   "DeidentifyLogsDicomVersion" : "2023b",
-
-  // Maximum length of the PDU (Protocol Data Unit) in the DICOM
-  // network protocol, expressed in bytes. This value affects both
-  // Orthanc SCU and Orthanc SCP. It defaults to 16KB. The allowed
-  // range is [4096,131072]. (new in Orthanc 1.9.0)
-  "MaximumPduLength" : 16384,
 
   // Arbitrary identifier of this Orthanc server when storing its
   // global properties if a custom index plugin is used. This
@@ -1012,20 +794,6 @@
   // as soon as one DICOM file gets compressed (new in Orthanc 1.9.4)
   "SynchronousZipStream" : true,
 
-  // Default number of loader threads to use in jobs that read multiple files
-  // from the storage area when executing some tasks, including:
-  // - generating archive/media,
-  // - executing a C-Store,
-  // - transmitting resources through Orthanc peering.
-  // A value of 0 and 1 are equivalent: a single thread is used.
-  // A value > 1 is meaningful only if the storage is a distributed network storage
-  // (e.g., object storage plugin).
-  // (new in Orthanc 1.12.11)
-  // Note, from 1.10.0 to 1.12.10, a "ZipLoaderThreads" configuration option
-  // was available only for the ZIP archive/media. It is still available
-  // for backward compatibility.
-  "LoaderThreads" : 1,
-
   // Extra Main Dicom tags that are stored in DB together with all default
   // Main Dicom tags that are already stored.
   // see https://orthanc.uclouvain.be/book/faq/main-dicom-tags.html 
@@ -1051,64 +819,11 @@
   },
   */
 
-  // Enables/disables warnings in the logs.
-  // "true" enables a warning.  All warnings are enabled by default
-  // see https://orthanc.uclouvain.be/book/faq/main-dicom-tags.html#warnings
-  // (new in Orthanc 1.11.0)
-  "Warnings" : {
-    // A "RequestedTags" has been read from storage which is slower than
-    // reading it from DB.
-    // You might want to store this tag in ExtraMainDicomTags to build
-    // the response faster.
-    "W001_TagsBeingReadFromStorage": true,
-    
-    // Retrieving a list of Main dicom tags from a resource that has been
-    // saved with another "ExtraMainDicomTags" configuration which means that
-    // your response might be incomplete/inconsistent.
-    // You should call patients|studies|series|instances/../reconstruct to rebuild
-    // the DB.  You may also check for the "Housekeeper" plugin.
-    "W002_InconsistentDicomTagsInDb": true,
-
-    // Display a warning message when Orthanc and its plugins are unable
-    // to decode a frame (new in Orthanc 1.12.5).
-    "W003_DecoderFailure": true,
-
-    // Display a warning when the MainDicomTagsSignature metadata has not been
-    // found which means that the resource has been saved with a version prior
-    // to 1.11.0.
-    // You should call patients|studies|series|instances/../reconstruct to rebuild
-    // the DB.  You may also check for the "Housekeeper" plugin.
-    // (new in Orthanc 1.12.5)
-    "W004_NoMainDicomTagsSignature": true,
-
-    // Display a warning when a user performs a find request and requests a tag
-    // from a lower resource level; e.g. when requesting "StudyDescription" at
-    // Patient level.
-    // (new in Orthanc 1.12.5)
-    "W005_RequestingTagFromLowerResourceLevel": true,
-
-    // Display a warning when a user performs a find request and requests a tag
-    // from the DICOM Meta Header.
-    // (new in Orthanc 1.12.5)
-    "W006_RequestingTagFromMetaHeader": true,
-
-    // Display a warning when a user requests a tag that can not be read from disk
-    // because "StorageAccessOnFind" is set to "Never".
-    // (new in Orthanc 1.12.5)
-    "W007_MissingRequestedTagsNotReadFromDisk": true
-  },
-
   // Configure Orthanc in read only mode.
   // In this mode, many Orthanc features that requires a write access to the 
   // Index DB or the disk storage won't be available at all.
   // (new in Orthanc 1.12.5)
   "ReadOnly" : false,
-
-  // Maximum number of DCMTK transcoders that are simultaneously running
-  // at any given time. A value of "0" indicates to use all the
-  // available CPU logical cores. Prior to Orthanc 1.12.6, there was no limit.
-  // (new in Orthanc 1.12.6)
-  "MaximumConcurrentDcmtkTranscoders" : 0,
 
   // Whether to use UTF-8 filenames in the ZIP archives generated by
   // Orthanc. By default, it is set to "false" and only ASCII
@@ -1116,25 +831,5 @@
   // Orthanc <= 1.12.10. This default value can be overwritten per archive,
   // by providing the "Utf8" field to the "{...}/archive" and
   // "/tools/create-archives" routes. (new in Orthanc 1.12.11)
-  "ZipUseUtf8" : false,
-
-  // Maximum allowed size (in MB) of the body of an HTTP request (POST
-  // or PUT), to prevent resource exhaustion. A value of "0" means no
-  // limit (default in Orthanc <= 1.12.10). (new in Orthanc 1.12.11)
-  "MaximumRequestBodySizeMB" : 8192,
-
-  // Maximum allowed size (in MB) of a single file after decompression
-  // when it is contained in a ZIP or gzip archive, to prevent resource
-  // exhaustion by ZIP/gzip bombs. A value of "0" means no limit (this
-  // was the default in Orthanc <= 1.12.10). (new in Orthanc 1.12.11)
-  "MaximumFileSizeInArchiveMB" : 4096,
-
-  // When set to "false", this option disables all "/patients" routes
-  // and disables patient-level sanity checks when performing resource
-  // modification. This is notably useful if your Orthanc stores DICOM
-  // resources from multiple sources, in which the same PatientID
-  // might be assigned to different patients because there is no
-  // centralized patient ID management. (new in Orthanc 1.12.11)
-  // Warning: As of 1.12.11, this is an experimental configuration.
-  "PatientLevelEnabled": true
+  "ZipUseUtf8" : false
 }

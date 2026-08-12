@@ -2531,7 +2531,14 @@ int main(int argc, char* argv[])
 
   LOG(WARNING) << "Orthanc has stopped";
 
-  OrthancFinalize();
+  try
+  {
+    OrthancFinalize();
+  }
+  catch (const OrthancException& e)
+  {
+    LOG(ERROR) << "Exception while finalizing: " << e.What();
+  }
 
   return status;
 }

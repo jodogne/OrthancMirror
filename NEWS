@@ -5,6 +5,7 @@ General
 -------
 
 * Multiple paths to configuration files can now be provided, instead of a single file or a single folder
+* Split the configuration into a main file and a second file for advanced settings
 * Orthanc will now refuse to start if you have "AuthenticationEnabled" and "RemoteAccessAllowed"
   set to true and have not defined any users in "RegisteredUsers".
 * New values for "OverwriteInstances" configuration. In previous versions, this configuration
