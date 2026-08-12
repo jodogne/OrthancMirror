@@ -729,7 +729,7 @@ namespace Orthanc
       Uint16*  content_;
 
     public:
-      ValueRepresentationReader_AT(DcmElement& element) :
+      explicit ValueRepresentationReader_AT(DcmElement& element) :
         valid_(false)
       {
         DcmAttributeTag& e = dynamic_cast<DcmAttributeTag&>(element);
@@ -813,7 +813,7 @@ namespace Orthanc
       Float32*  content_;
 
     public:
-      ValueRepresentationReader_OF(DcmElement& element) :
+      explicit ValueRepresentationReader_OF(DcmElement& element) :
         valid_(false)
       {
         /**
@@ -889,7 +889,7 @@ namespace Orthanc
       Float64*  content_;
 
     public:
-      ValueRepresentationReader_OD(DcmElement& element) :
+      explicit ValueRepresentationReader_OD(DcmElement& element) :
         valid_(false)
       {
         /**
@@ -967,7 +967,7 @@ namespace Orthanc
       Uint16*   content_;
 
     public:
-      ValueRepresentationReader_OW(DcmElement& element) :
+      explicit ValueRepresentationReader_OW(DcmElement& element) :
         valid_(false)
       {
         DcmOtherByteOtherWord& e = dynamic_cast<DcmOtherByteOtherWord&>(element);
@@ -1036,7 +1036,7 @@ namespace Orthanc
       Uint32*   content_;
 
     public:
-      ValueRepresentationReader_OL(DcmElement& element) :
+      explicit ValueRepresentationReader_OL(DcmElement& element) :
         valid_(false)
       {
         /**
@@ -1112,7 +1112,7 @@ namespace Orthanc
       Uint64*   content_;
 
     public:
-      ValueRepresentationReader_OV(DcmElement& element) :
+      explicit ValueRepresentationReader_OV(DcmElement& element) :
         valid_(false)
       {
         DcmUnsigned64bitVeryLong& e = dynamic_cast<DcmOther64bitVeryLong&>(element);

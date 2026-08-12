@@ -45,7 +45,7 @@ namespace Orthanc
     BuiltinDecoderTranscoderOrder      builtinDecoderTranscoderOrder_;
 
   public:
-    ServerTranscoder(unsigned int maxConcurrentDcmtkTranscoder);
+    explicit ServerTranscoder(unsigned int maxConcurrentDcmtkTranscoder);
 
 #if ORTHANC_ENABLE_PLUGINS == 1
     void SetPlugins(OrthancPlugins& plugins);

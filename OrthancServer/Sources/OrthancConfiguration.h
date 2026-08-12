@@ -199,8 +199,7 @@ namespace Orthanc
     bool LookupIntegerParameter(int& target,
                                 const std::string& parameter) const;
 
-    bool GetIntegerParameter(int& target,
-                             const std::string& parameter) const;
+    int GetIntegerParameter(const std::string& parameter) const;
 
     bool LookupUnsignedIntegerParameter(unsigned int& target,
                                         const std::string& parameter) const;
