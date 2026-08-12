@@ -2153,6 +2153,7 @@ int main(int argc, char* argv[])
   static const char* const OPTION_LOGFILE = "logfile";
   static const char* const OPTION_VERBOSE = "verbose";
   static const char* const OPTION_TRACE = "trace";
+  static const char* const OPTION_LOGS_NO_THREAD = "logs-no-thread";
 
   boost::program_options::options_description allWithoutHidden;
   std::vector<std::string> orderSensitiveArguments;
@@ -2184,7 +2185,10 @@ int main(int argc, char* argv[])
       (OPTION_LOGFILE, boost::program_options::value<std::string>()->value_name("file"),
        "file where to store the log of Orthanc (by default, the log is dumped to stderr)")
       (OPTION_VERBOSE, "be verbose in logs")
-      (OPTION_TRACE, "highest verbosity in logs (for debug)");
+      (OPTION_TRACE, "highest verbosity in logs (for debug)")
+
+      // New in Orthanc 1.12.12
+      (OPTION_LOGS_NO_THREAD, "remove thread names from logs");
 
     boost::program_options::options_description finetuning("Fine-tuning of log categories");
 
@@ -2397,6 +2401,11 @@ int main(int argc, char* argv[])
   {
     const std::string file = options[OPTION_CHEATSHEET].as<std::string>();
     return ExportCheatSheet(file);
+  }
+
+  if (options.count(OPTION_LOGS_NO_THREAD) == 1)
+  {
+    Logging::SetThreadNamesEnabled(false);
   }
 
   if (options.count(OPTION_INPUTS) != 0)
