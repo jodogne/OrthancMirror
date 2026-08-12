@@ -2187,7 +2187,7 @@ int main(int argc, char* argv[])
       (OPTION_VERBOSE, "be verbose in logs")
       (OPTION_TRACE, "highest verbosity in logs (for debug)")
 
-      // New in Orthanc 1.12.12
+      // New in Orthanc 1.12.2
       (OPTION_LOGS_NO_THREAD, "remove thread names from logs");
 
     boost::program_options::options_description finetuning("Fine-tuning of log categories");
