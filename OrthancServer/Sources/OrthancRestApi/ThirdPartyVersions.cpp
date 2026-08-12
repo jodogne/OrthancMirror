@@ -24,6 +24,8 @@
 #include "../PrecompiledHeadersServer.h"
 #include "ThirdPartyVersions.h"
 
+#include "../../../OrthancFramework/Sources/Toolbox.h"
+
 #include <boost/lexical_cast.hpp>
 #include <boost/version.hpp>
 #include <curl/curl.h>
@@ -78,14 +80,35 @@ namespace Orthanc
                         boost::lexical_cast<std::string>(PNG_LIBPNG_VER_MINOR) + "." +
                         boost::lexical_cast<std::string>(PNG_LIBPNG_VER_RELEASE));
 
+#if defined(LUA_VERSION_MAJOR)
     target["lua"] = (boost::lexical_cast<std::string>(LUA_VERSION_MAJOR) + "." +
                      boost::lexical_cast<std::string>(LUA_VERSION_MINOR) + "." +
                      boost::lexical_cast<std::string>(LUA_VERSION_RELEASE));
+#else
+    target["lua"] = (boost::lexical_cast<std::string>(LUA_VERSION_NUM / 100) + "." +
+                     boost::lexical_cast<std::string>(LUA_VERSION_NUM % 100));
+#endif
 
 #if ORTHANC_ENABLE_SSL == 1
+#  if defined(OPENSSL_VERSION_MAJOR)
     target["openssl"] = (boost::lexical_cast<std::string>(OPENSSL_VERSION_MAJOR) + "." +
                          boost::lexical_cast<std::string>(OPENSSL_VERSION_MINOR) + "." +
                          boost::lexical_cast<std::string>(OPENSSL_VERSION_PATCH));
+#  else
+    {
+      // Backward compatibility for OpenSSL 1.x
+      std::vector<std::string> v;
+      Toolbox::TokenizeString(v, OPENSSL_VERSION_TEXT, ' ' );
+      if (v.size() >= 2)
+      {
+        target["openssl"] = v[1];
+      }
+      else
+      {
+        target["openssl"] = "unknown";
+      }
+    }
+#  endif
 #endif
 
 #if ORTHANC_ENABLE_PUGIXML == 1
