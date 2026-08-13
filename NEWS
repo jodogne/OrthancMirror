@@ -43,9 +43,7 @@ General
 REST API
 --------
 
-* API version upgraded to 34 (34 in streaming branch, 33 in default and 1.12.11 was 30 ! 
-  TODO: for the release, we may go backward to 31 but we need to change the conditional 
-  tests - see this commit: https://orthanc.uclouvain.be/hg/orthanc-tests/rev/3a440ee47213)
+* API version upgraded to 31
 * New fields reported in the "/system" route:
   - "OverwriteInstancesMode" (Boolean field "OverwriteInstances" is kept for backward compatibility)
   - "Performance" reports configuration options that may affect performance of Orthanc
