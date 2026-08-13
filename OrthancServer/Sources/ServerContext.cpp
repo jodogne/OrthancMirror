@@ -87,42 +87,44 @@ static const char* const ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_CAPACITY 
 
 // Those metrics correspond to those found in StorageAccessor in Orthanc <= 1.12.11
 static const char* const METRICS_STORAGE_AREA_CREATE_DURATION = "orthanc_storage_create_duration_ms";
-static const char* const METRICS_STORAGE_AREA_READ_BYTES = "orthanc_storage_read_bytes";
-static const char* const METRICS_STORAGE_AREA_READ_DURATION = "orthanc_storage_read_duration_ms";
+static const char* const METRICS_STORAGE_AREA_READ_BYTES      = "orthanc_storage_read_bytes";
+static const char* const METRICS_STORAGE_AREA_READ_DURATION   = "orthanc_storage_read_duration_ms";
 static const char* const METRICS_STORAGE_AREA_REMOVE_DURATION = "orthanc_storage_remove_duration_ms";
-static const char* const METRICS_STORAGE_AREA_WRITTEN_BYTES = "orthanc_storage_written_bytes";
+static const char* const METRICS_STORAGE_AREA_WRITTEN_BYTES   = "orthanc_storage_written_bytes";
 
-static const char* const METRICS_STORAGE_AREA_CACHE_COUNT = "orthanc_storage_cache_count";
-static const char* const METRICS_STORAGE_AREA_CACHE_HIT_COUNT = "orthanc_storage_cache_hit_count";
-static const char* const METRICS_STORAGE_AREA_CACHE_MISS_COUNT = "orthanc_storage_cache_miss_count";
-static const char* const METRICS_STORAGE_AREA_CACHE_SIZE_MB = "orthanc_storage_cache_size_mb";
-static const char* const METRICS_STORAGE_AREA_MEMORY_CAPACITY_MB = "orthanc_storage_memory_capacity_mb";
-static const char* const METRICS_STORAGE_AREA_MEMORY_USAGE_MB = "orthanc_storage_memory_usage_mb";
-static const char* const METRICS_STORAGE_AREA_MEMORY_MAX_USAGE_MB = "orthanc_storage_memory_max_usage_mb";
-static const char* const METRICS_STORAGE_AREA_MEMORY_COUNT = "orthanc_storage_memory_count";
-static const char* const METRICS_STORAGE_THREAD_POOL_AVAILABLE_THREADS = "orthanc_storage_available_threads";
 
-static const char* const METRICS_DICOM_PARSER_CACHE_COUNT = "orthanc_dicom_parser_cache_count";
-static const char* const METRICS_DICOM_PARSER_CACHE_HIT_COUNT = "orthanc_dicom_parser_cache_hit_count";
-static const char* const METRICS_DICOM_PARSER_CACHE_MISS_COUNT = "orthanc_dicom_parser_cache_miss_count";
-static const char* const METRICS_DICOM_PARSER_CACHE_SIZE_MB = "orthanc_dicom_parser_cache_size_mb";
-static const char* const METRICS_DICOM_PARSER_MEMORY_CAPACITY_MB = "orthanc_dicom_parser_memory_capacity_mb";
-static const char* const METRICS_DICOM_PARSER_MEMORY_USAGE_MB = "orthanc_dicom_parser_memory_usage_mb";
-static const char* const METRICS_DICOM_PARSER_MEMORY_MAX_USAGE_MB = "orthanc_dicom_parser_memory_max_usage_mb";
-static const char* const METRICS_DICOM_PARSER_MEMORY_COUNT = "orthanc_dicom_parser_memory_count";
+// New metrics in Orthanc 1.13.0
+static const char* const METRICS_STORAGE_AREA_CACHE_COUNT                   = "orthanc_storage_cache_count";
+static const char* const METRICS_STORAGE_AREA_CACHE_HIT_COUNT               = "orthanc_storage_cache_hit_count";
+static const char* const METRICS_STORAGE_AREA_CACHE_MISS_COUNT              = "orthanc_storage_cache_miss_count";
+static const char* const METRICS_STORAGE_AREA_CACHE_SIZE_MB                 = "orthanc_storage_cache_size_mb";
+static const char* const METRICS_STORAGE_AREA_MEMORY_CAPACITY_MB            = "orthanc_storage_memory_capacity_mb";
+static const char* const METRICS_STORAGE_AREA_MEMORY_COUNT                  = "orthanc_storage_memory_count";
+static const char* const METRICS_STORAGE_AREA_MEMORY_MAX_USAGE_MB           = "orthanc_storage_memory_max_usage_mb";
+static const char* const METRICS_STORAGE_AREA_MEMORY_USAGE_MB               = "orthanc_storage_memory_usage_mb";
+static const char* const METRICS_STORAGE_THREAD_POOL_AVAILABLE_THREADS      = "orthanc_storage_available_threads";
+
+static const char* const METRICS_DICOM_PARSER_CACHE_COUNT                   = "orthanc_dicom_parser_cache_count";
+static const char* const METRICS_DICOM_PARSER_CACHE_HIT_COUNT               = "orthanc_dicom_parser_cache_hit_count";
+static const char* const METRICS_DICOM_PARSER_CACHE_MISS_COUNT              = "orthanc_dicom_parser_cache_miss_count";
+static const char* const METRICS_DICOM_PARSER_CACHE_SIZE_MB                 = "orthanc_dicom_parser_cache_size_mb";
+static const char* const METRICS_DICOM_PARSER_MEMORY_CAPACITY_MB            = "orthanc_dicom_parser_memory_capacity_mb";
+static const char* const METRICS_DICOM_PARSER_MEMORY_COUNT                  = "orthanc_dicom_parser_memory_count";
+static const char* const METRICS_DICOM_PARSER_MEMORY_MAX_USAGE_MB           = "orthanc_dicom_parser_memory_max_usage_mb";
+static const char* const METRICS_DICOM_PARSER_MEMORY_USAGE_MB               = "orthanc_dicom_parser_memory_usage_mb";
 static const char* const METRICS_DICOM_PARSER_THREAD_POOL_AVAILABLE_THREADS = "orthanc_dicom_parser_available_threads";
 
-static const char* const METRICS_TRANSCODER_CACHE_COUNT = "orthanc_transcoder_cache_count";
-static const char* const METRICS_TRANSCODER_CACHE_HIT_COUNT = "orthanc_transcoder_cache_hit_count";
-static const char* const METRICS_TRANSCODER_CACHE_MISS_COUNT = "orthanc_transcoder_cache_miss_count";
-static const char* const METRICS_TRANSCODER_CACHE_SIZE_MB = "orthanc_transcoder_cache_size_mb";
-static const char* const METRICS_TRANSCODER_MEMORY_CAPACITY_MB = "orthanc_transcoder_memory_capacity_mb";
-static const char* const METRICS_TRANSCODER_MEMORY_USAGE_MB = "orthanc_transcoder_memory_usage_mb";
-static const char* const METRICS_TRANSCODER_MEMORY_MAX_USAGE_MB = "orthanc_transcoder_memory_max_usage_mb";
-static const char* const METRICS_TRANSCODER_MEMORY_COUNT = "orthanc_transcoder_memory_count";
-static const char* const METRICS_TRANSCODER_THREAD_POOL_AVAILABLE_THREADS = "orthanc_transcoder_available_threads";
+static const char* const METRICS_TRANSCODER_CACHE_COUNT                     = "orthanc_transcoder_cache_count";
+static const char* const METRICS_TRANSCODER_CACHE_HIT_COUNT                 = "orthanc_transcoder_cache_hit_count";
+static const char* const METRICS_TRANSCODER_CACHE_MISS_COUNT                = "orthanc_transcoder_cache_miss_count";
+static const char* const METRICS_TRANSCODER_CACHE_SIZE_MB                   = "orthanc_transcoder_cache_size_mb";
+static const char* const METRICS_TRANSCODER_MEMORY_CAPACITY_MB              = "orthanc_transcoder_memory_capacity_mb";
+static const char* const METRICS_TRANSCODER_MEMORY_COUNT                    = "orthanc_transcoder_memory_count";
+static const char* const METRICS_TRANSCODER_MEMORY_MAX_USAGE_MB             = "orthanc_transcoder_memory_max_usage_mb";
+static const char* const METRICS_TRANSCODER_MEMORY_USAGE_MB                 = "orthanc_transcoder_memory_usage_mb";
+static const char* const METRICS_TRANSCODER_THREAD_POOL_AVAILABLE_THREADS   = "orthanc_transcoder_available_threads";
 
-static const char* const METRICS_SEQ_READER_THREAD_POOL_AVAILABLE_THREADS = "orthanc_seq_reader_available_threads";
+static const char* const METRICS_SEQUENTIAL_READER_THREAD_POOL_AVAILABLE_THREADS = "orthanc_sequential_reader_available_threads";
 
 
 
@@ -895,7 +897,7 @@ namespace Orthanc
         pool->SetThreadsCount(sequentialReaderThreads);
         pool->SetLoggingThreadName("SEQ-READER");
         pool->SetDequeueTimeout(100);
-        pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_SEQ_READER_THREAD_POOL_AVAILABLE_THREADS);
+        pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_SEQUENTIAL_READER_THREAD_POOL_AVAILABLE_THREADS);
         pool->Start();
 
         boost::shared_ptr<IExecutorService> executor(pool.release());

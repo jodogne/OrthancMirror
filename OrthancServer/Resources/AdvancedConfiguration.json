@@ -380,7 +380,7 @@
   // large before the calling thread consumes the instances. By
   // default, this option has the same value as
   // "StorageLoaderThreadsCount". You should monitor the
-  // "orthanc_seq_reader_available_threads" metrics to determine the
+  // "orthanc_sequential_reader_available_threads" metrics to determine the
   // optimal value for your setup and usage. (new in Orthanc 1.13.0)
   // "SequentialDicomReaderThreadsCount" : 4,
 
