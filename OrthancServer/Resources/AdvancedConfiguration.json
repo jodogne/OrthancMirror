@@ -352,8 +352,8 @@
   "DicomParserThreadsCount" : 2,
 
   // Peak amount of RAM (in MB) that can be allocated by the threads
-  // parsing the DICOM files.  Note that this limit can be overpassed
-  // when a single file exceeds this size.  You should monitor the
+  // parsing the DICOM files. Note that this limit can be overpassed
+  // when a single file exceeds this size. You should monitor the
   // "orthanc_dicom_parser_memory_usage_mb" and
   // "orthanc_dicom_parser_memory_max_usage_mb" metrics to determine
   // the optimal value for your setup. (new in Orthanc 1.13.0)
@@ -361,39 +361,38 @@
 
   // Maximum size of the DICOM parser cache in MB.  This cache is
   // stored in RAM and contains a parsed version of recently read
-  // DIOCM files. A value of "0" indicates the cache is disabled.
+  // DICOM files. A value of "0" indicates the cache is disabled.
   // (new in Orthanc 1.13.0)
-  "DicomParserCacheSize" : 128,
+  "DicomParserCacheSize" : 256,
 
-  // Number of threads that are used to parse transcode DICOM files.
-  // (new in Orthanc 1.13.0)
-  // You should monitor the "orthanc_transcoder_available_threads"
-  // metrics to determine the optimal value for your setup.
+  // Number of threads that are used to transcode DICOM files. You
+  // should monitor the "orthanc_transcoder_available_threads" metrics
+  // to determine the optimal value for your setup. (new in Orthanc 1.13.0)
   "TranscoderThreadsCount" : 4,
 
   // Peak amount of RAM (in MB) that can be allocated by the threads
-  // transcoding DICOM instances.  Note that this limit can be
-  // overpassed when a single instance exceeds this size.  You should
+  // transcoding DICOM instances. Note that this limit can be
+  // overpassed when a single instance exceeds this size. You should
   // monitor the "orthanc_transcoder_memory_usage_mb" and
   // "orthanc_transcoder_memory_max_usage_mb" metrics to determine the
   // optimal value for your setup. (new in Orthanc 1.13.0)
   "TranscoderMemoryCapacity" : 256,
 
-  // Maximum size of the transcoder cache in MB.  This cache
-  // is stored in RAM and contains transcoded versions of recently read
-  // DIOCM files.  A value of "0" indicates the cache
-  // is disabled.  (new in Orthanc 1.13.0)
-  "TranscoderCacheSize" : 128,
+  // Maximum size of the transcoder cache in MB. This cache is stored
+  // in RAM and contains transcoded versions of recently read DICOM
+  // files. A value of "0" indicates the cache is disabled. (new in
+  // Orthanc 1.13.0)
+  "TranscoderCacheSize" : 256,
 
-  // Total number of threads that are used to provide DICOM files sequentially
-  // (currently used in Archive jobs, C-Store and C-Get).
-  // Each time such a job needs to get a DICOM file content, it requests it from
-  // a sequential DICOM reader that will itself use a s torage loader thread.
-  // Therefore, by default, the value of this configuration is identical to
-  // "StorageLoaderThreadsCount".
-  // (new in Orthanc 1.13.0)
-  // You should monitor the "orthanc_seq_reader_available_threads"
-  // metrics to determine the optimal value for your setup and usage.
+  // Total number of threads that are used to provide DICOM files
+  // sequentially (currently used in Archive jobs, C-Store and C-Get).
+  // Each time such a job needs to get a DICOM file content, it
+  // requests it from a sequential DICOM reader that will itself use a
+  // s torage loader thread.  Therefore, by default, the value of this
+  // configuration is identical to "StorageLoaderThreadsCount".  You
+  // should monitor the "orthanc_seq_reader_available_threads" metrics
+  // to determine the optimal value for your setup and usage. (new in
+  // Orthanc 1.13.0)
   // "SequentialDicomReaderThreadsCount" : 4,
 
   // Number of files each sequential DICOM reader is allowed to buffer
@@ -404,15 +403,14 @@
   // "StorageLoaderThreadsCount" should be larger than "ConcurrentJobs" * "SequentialDicomReaderWindowSize"
   // Together with "SequentialDicomReaderWindowCapacity", this also defines the amount of memory that is
   // used by each job that required a SequentialDicomReader.
-  // By default, the value of this configuration is the same as "LoaderThreadsCount".
+  // By default, the value of this configuration is the same as "LoaderThreadsCount". (new in Orthanc 1.13.0)
   // "SequentialDicomReaderWindowSize" : 4,
 
-  // Amount of RAM (in MB) that are allocated to each sequential DICOM
-  // Reader.  The sequential DICOM reader stops pauses buffering as soon
-  // as one of the "SequentialDicomReaderWindowSize" or
-  // "SequentialDicomReaderWindowCapacity" limit is reached.
-  // Note that this limit can be overpassed when a single file
-  // exceeds this size.
-  // (new in Orthanc 1.13.0)
+  // Peak amount of RAM (in MB) that can be allocated by each
+  // sequential DICOM reader. The sequential DICOM reader stops pauses
+  // buffering as soon as one of the "SequentialDicomReaderWindowSize"
+  // or "SequentialDicomReaderWindowCapacity" limit is reached. Note
+  // that this limit can be overpassed when a single file exceeds this
+  // size. (new in Orthanc 1.13.0)
   "SequentialDicomReaderWindowCapacity" : 64
 }

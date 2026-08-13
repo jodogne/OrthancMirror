@@ -511,7 +511,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(WARNING) << "Performance option \"" << parameter << "\" is set to " << mb << "MB";
+      LOG(INFO) << "Performance option \"" << parameter << "\" is set to " << mb << "MB";
     }
 
     result = static_cast<uint64_t>(mb) * MEGABYTE;
@@ -705,8 +705,6 @@ namespace Orthanc
       
       {
         OrthancConfiguration::ReaderLock lock;
-        unsigned int loaderThreads = lock.GetConfiguration().GetLoaderThreads();
-        unsigned int concurrentJobs = lock.GetConfiguration().GetConcurrentJobs();
 
         GetMemorySizeConfiguration(storageCacheSize, lock, ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE);
 
@@ -717,6 +715,9 @@ namespace Orthanc
 
         if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(storageLoaderThreads, ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT))
         {
+          const unsigned int loaderThreads = lock.GetConfiguration().GetLoaderThreads();
+          const unsigned int concurrentJobs = lock.GetConfiguration().GetConcurrentJobs();
+
           storageLoaderThreads = loaderThreads * concurrentJobs;
           if (storageLoaderThreads < 4)
           {
@@ -736,14 +737,14 @@ namespace Orthanc
         }
         else
         {
-          LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT << "\" is set to " << storageLoaderThreads;
+          LOG(INFO) << "Performance option \"" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT << "\" is set to " << storageLoaderThreads;
         }
 
         transcoderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_TRANSCODER_THREADS_COUNT);
-        LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_TRANSCODER_THREADS_COUNT << "\" is set to " << transcoderThreads;
+        LOG(INFO) << "Performance option \"" << ORTHANC_CONFIG_TRANSCODER_THREADS_COUNT << "\" is set to " << transcoderThreads;
 
         dicomParserThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS_COUNT);
-        LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS_COUNT << "\" is set to " << dicomParserThreads;
+        LOG(INFO) << "Performance option \"" << ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS_COUNT << "\" is set to " << dicomParserThreads;
 
         GetMemorySizeConfiguration(storageMemoryCapacity, lock, ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY);
         GetMemorySizeConfiguration(dicomParserMemoryCapacity, lock, ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY);
@@ -761,12 +762,13 @@ namespace Orthanc
         }
         else
         {
-          LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS_COUNT
-                       << "\" is set to " << sequentialReaderThreads;
+          LOG(INFO) << "Performance option \"" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS_COUNT
+                    << "\" is set to " << sequentialReaderThreads;
         }
 
         if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(sequentialReaderWindowSize, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE))
         {
+          const unsigned int loaderThreads = lock.GetConfiguration().GetLoaderThreads();
           LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE
                        << "\" is not defined in your configuration, setting it to the same value as \""
                        << ORTHANC_CONFIG_LOADER_THREADS << "\": " << loaderThreads;
@@ -774,8 +776,8 @@ namespace Orthanc
         }
         else
         {
-          LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE
-                       << "\" is set to " << sequentialReaderWindowSize;
+          LOG(INFO) << "Performance option \"" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE
+                    << "\" is set to " << sequentialReaderWindowSize;
         }
       }
 
