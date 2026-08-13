@@ -188,7 +188,12 @@ with open(os.path.join(BASE, 'OrthancFramework', 'Sources', 'DicomParsing', 'Fro
 
     func = re.search(r'ApplyVisitorToLeaf.*?boost::bad_lexical_cast', content, re.DOTALL).group(0)
     for vr in vrs:
-        if not ('case EVR_%s' % vr) in func and not ('== EVR_%s' % vr) in func:
+        if vr == 'OB':
+            ok = 'IsBinaryTag(' in func
+        else:
+            ok = ('case EVR_%s' % vr) in func or ('== EVR_%s' % vr) in func
+
+        if not ok:
             print('  - Value representation not handled:', vr)
 
 
