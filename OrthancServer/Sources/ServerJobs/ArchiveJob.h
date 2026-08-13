@@ -72,9 +72,6 @@ namespace Orthanc
     bool                 hasLossyQuality_;
     unsigned int         lossyQuality_;
 
-    // New in Orthanc 1.10.0
-    unsigned int         loaderThreads_;
-
     // New in Orthanc 1.12.11
     bool                 allowUtf8_;
 
@@ -111,8 +108,6 @@ namespace Orthanc
     void SetTranscode(DicomTransferSyntax transferSyntax);
 
     void SetLossyQuality(unsigned int lossyQuality);
-
-    void SetLoaderThreads(unsigned int loaderThreads);
 
     void SetAllowUtf8(bool allowUtf8);
 

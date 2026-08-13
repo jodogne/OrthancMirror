@@ -1044,7 +1044,6 @@ namespace Orthanc
     transferSyntax_(DicomTransferSyntax_LittleEndianImplicit),
     hasLossyQuality_(false),
     lossyQuality_(100),
-    loaderThreads_(1),
     allowUtf8_(false)
   {
   }
@@ -1155,19 +1154,6 @@ namespace Orthanc
     {
       hasLossyQuality_ = true;
       lossyQuality_ = lossyQuality;
-    }
-  }
-
-
-  void ArchiveJob::SetLoaderThreads(unsigned int loaderThreads)
-  {
-    if (writer_.get() != NULL)   // Already started
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      loaderThreads_ = std::max(1u, loaderThreads);
     }
   }
 
