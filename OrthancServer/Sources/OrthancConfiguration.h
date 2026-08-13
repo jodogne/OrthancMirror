@@ -318,11 +318,6 @@ namespace Orthanc
 
     std::string GetOrthancAET() const;
 
-    std::string GetOrthancName() const
-    {
-      return GetStringParameter(ORTHANC_CONFIG_NAME);
-    }
-
     std::string GetMaximumStorageMode() const
     {
       return GetStringParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE);
@@ -331,10 +326,6 @@ namespace Orthanc
     std::string GetDicomDefaultRetrieveMethod() const
     {
       return GetStringParameter(ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD);
-    }
-    unsigned int GetMaximumStorageCacheSize() const
-    {
-      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE);
     }
 
     unsigned int GetMaximumStorageSize() const

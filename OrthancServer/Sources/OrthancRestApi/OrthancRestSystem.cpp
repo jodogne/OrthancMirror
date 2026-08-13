@@ -176,7 +176,7 @@ namespace Orthanc
     {
       OrthancConfiguration::ReaderLock lock;
 
-      result[ORTHANC_CONFIG_NAME] = lock.GetConfiguration().GetOrthancName();
+      result[ORTHANC_CONFIG_NAME] = lock.GetConfiguration().GetStringParameter(ORTHANC_CONFIG_NAME);
       result[ORTHANC_CONFIG_DICOM_AET] = lock.GetConfiguration().GetOrthancAET();
       result[ORTHANC_CONFIG_DICOM_PORT] = lock.GetConfiguration().GetDicomPort();
       result[ORTHANC_CONFIG_HTTP_PORT] = lock.GetConfiguration().GetHttpPort();
