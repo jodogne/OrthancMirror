@@ -728,27 +728,35 @@ namespace Orthanc
           LOG(WARNING) << "Storage cache is disabled";
         }
 
+        unsigned int compatibilityLoaderThreadsCount;
+        std::string compatibilityLoaderThreadsOption;
+        bool hasCompatibilityLoaderThreads = lock.GetConfiguration().LookupCompatibilityLoaderThreads(
+          compatibilityLoaderThreadsCount, compatibilityLoaderThreadsOption);
+
         if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(storageLoaderThreads, ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT))
         {
-          const unsigned int loaderThreads = lock.GetConfiguration().GetLoaderThreads();
           const unsigned int concurrentJobs = lock.GetConfiguration().GetConcurrentJobs();
 
-          storageLoaderThreads = loaderThreads * concurrentJobs;
-          if (storageLoaderThreads < 4)
+          if (hasCompatibilityLoaderThreads)
           {
-            storageLoaderThreads = 4;
-            LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT
-                         << "\" is not defined in your configuration, setting it to " << storageLoaderThreads;
+            storageLoaderThreads = concurrentJobs * compatibilityLoaderThreadsCount;
           }
           else
           {
-            static const unsigned int CAP = 50;
-            storageLoaderThreads = std::min(CAP, storageLoaderThreads);
-            LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT
-                         << "\" is not defined in your configuration, setting it to " << storageLoaderThreads
-                         << ", based on the \"" << ORTHANC_CONFIG_CONCURRENT_JOBS << "\" and the \""
-                         << ORTHANC_CONFIG_LOADER_THREADS << "\" options capped at " << CAP;
+            storageLoaderThreads = concurrentJobs;
           }
+
+          static const unsigned int CAP_LOW = 4;
+          static const unsigned int CAP_HIGH = 50;
+
+          storageLoaderThreads = std::max(storageLoaderThreads, CAP_LOW);
+          storageLoaderThreads = std::min(storageLoaderThreads, CAP_HIGH);
+
+          LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT
+                       << "\" is not defined in your configuration, setting it to " << storageLoaderThreads
+                       << ", based on the \"" << ORTHANC_CONFIG_CONCURRENT_JOBS << "\" "
+                       << (hasCompatibilityLoaderThreads ? "and the \"" + compatibilityLoaderThreadsOption + "\" options" : "option")
+                       << " capped to the range [" << CAP_LOW << "," << CAP_HIGH << "]";
         }
         else
         {
@@ -783,11 +791,19 @@ namespace Orthanc
 
         if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(sequentialReaderWindowSize, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE))
         {
-          const unsigned int loaderThreads = lock.GetConfiguration().GetLoaderThreads();
-          LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE
-                       << "\" is not defined in your configuration, setting it to the same value as \""
-                       << ORTHANC_CONFIG_LOADER_THREADS << "\": " << loaderThreads;
-          sequentialReaderWindowSize = loaderThreads;
+          if (hasCompatibilityLoaderThreads)
+          {
+            LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE
+                         << "\" is not defined in your configuration, setting it to the same value as \""
+                         << compatibilityLoaderThreadsOption << "\": " << compatibilityLoaderThreadsCount;
+            sequentialReaderWindowSize = compatibilityLoaderThreadsCount;
+          }
+          else
+          {
+            sequentialReaderWindowSize = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE);
+            LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE
+                         << "\" is not defined in your configuration, setting it to " << sequentialReaderWindowSize;
+          }
         }
         else
         {
@@ -2495,6 +2511,11 @@ namespace Orthanc
     {
       boost::shared_ptr<IExecutorService> service = transcoderReader_->GetExecutorService();
       target[ORTHANC_CONFIG_TRANSCODER_THREADS_COUNT] = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
+    }
+
+    {
+      boost::shared_ptr<IExecutorService> service = dicomSequentialReaderFactory_->GetExecutorService();
+      target[ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS_COUNT] = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
     }
 
     {

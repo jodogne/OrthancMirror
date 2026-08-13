@@ -58,9 +58,6 @@ class DcmDataset;
 #define ORTHANC_CONFIG_DICOM_THREADS_COUNT "DicomThreadsCount"
 #define ORTHANC_CONFIG_STORAGE_DIRECTORY "StorageDirectory"
 
-#define ORTHANC_CONFIG_LOADER_THREADS "LoaderThreads"
-#define ORTHANC_CONFIG_ZIP_LOADER_THREADS "ZipLoaderThreads"   // for backward compatibility only
-
 
 
 namespace Orthanc
@@ -269,8 +266,6 @@ namespace Orthanc
 
     void RemovePeer(const std::string& symbolicName);
 
-    unsigned int GetLoaderThreads() const;
-
     unsigned int GetConcurrentJobs() const
     {
       return GetUnsignedIntegerParameter(ORTHANC_CONFIG_CONCURRENT_JOBS);
@@ -385,5 +380,9 @@ namespace Orthanc
 
     static void ParseAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target,
                                               const Json::Value& source);
+
+    // This method provides backward compatibility against old configuration options
+    bool LookupCompatibilityLoaderThreads(unsigned int& threadsCount,
+                                          std::string& fromOption) const;
   };
 }

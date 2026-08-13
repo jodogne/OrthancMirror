@@ -404,7 +404,7 @@
   // Together with "SequentialDicomReaderWindowCapacity", this also defines the amount of memory that is
   // used by each job that required a SequentialDicomReader.
   // By default, the value of this configuration is the same as "LoaderThreadsCount". (new in Orthanc 1.13.0)
-  // "SequentialDicomReaderWindowSize" : 4,
+  "SequentialDicomReaderWindowSize" : 4,
 
   // Peak amount of RAM (in MB) that can be allocated by each
   // sequential DICOM reader. The sequential DICOM reader pauses

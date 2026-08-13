@@ -120,6 +120,11 @@ namespace Orthanc
               unsigned int windowSize,
               uint64_t windowCapacity);
 
+      const boost::shared_ptr<IExecutorService>& GetExecutorService() const
+      {
+        return executor_;
+      }
+
       /**
        * Methods below prioritize the downloading of the raw DICOM
        * files (and avoid DICOM parsing if possible).

@@ -48,6 +48,10 @@ static const char* const WARNINGS = "Warnings";
 static const char* const JOBS_ENGINE_THREADS_COUNT = "JobsEngineThreadsCount";
 static const char* const DICOM_LOSSY_TRANSCODING_QUALITY = "DicomLossyTranscodingQuality";
 
+static const char* const ORTHANC_CONFIG_LOADER_THREADS = "LoaderThreads";         // for backward compatibility only
+static const char* const ORTHANC_CONFIG_ZIP_LOADER_THREADS = "ZipLoaderThreads";  // for backward compatibility only
+
+
 namespace Orthanc
 {
   static void ReadConfigurationFromString(Json::Value& target,
@@ -1482,23 +1486,44 @@ namespace Orthanc
     }
   }
 
-  unsigned int OrthancConfiguration::GetLoaderThreads() const
+
+  bool OrthancConfiguration::LookupCompatibilityLoaderThreads(unsigned int& threadsCount,
+                                                              std::string& fromOption) const
   {
-    // from 1.10.0 to 1.12.10, only CONFIG_ZIP_LOADER_THREADS was available -> read from it if CONFIG_LOADER_THREADS is not specified.
-    unsigned int loaderThreads = 1; // old ZipLoaderThreads default value
+    // This method corresponds to OrthancConfiguration::GetLoaderThreads() in Orthanc <= 1.12.11
+    bool found;
 
-    if (!LookupUnsignedIntegerParameter(loaderThreads, ORTHANC_CONFIG_LOADER_THREADS))
+    if (LookupUnsignedIntegerParameter(threadsCount, ORTHANC_CONFIG_LOADER_THREADS))
     {
-      LookupUnsignedIntegerParameter(loaderThreads, ORTHANC_CONFIG_ZIP_LOADER_THREADS); // we cannot use GetUnsignedIntegerParameter() because there is no default value for this old configuration
+      found = true;
+      fromOption = ORTHANC_CONFIG_LOADER_THREADS;
     }
-
-    if (loaderThreads <= 1)
+    else if (LookupUnsignedIntegerParameter(threadsCount, ORTHANC_CONFIG_ZIP_LOADER_THREADS))
     {
-      return 1; // 0 is not a valid internal value anymore
+      // from 1.10.0 to 1.12.10, only CONFIG_ZIP_LOADER_THREADS was available
+      // => read from it if CONFIG_LOADER_THREADS is not specified.
+      found = true;
+      fromOption = ORTHANC_CONFIG_ZIP_LOADER_THREADS;
     }
     else
     {
-      return loaderThreads;
+      // In Orthanc <= 1.12.11, the returned number of threads was 1 in this case,
+      // corresponding to the old ZipLoaderThreads default value
+      found = false;
+    }
+
+    if (found)
+    {
+      if (threadsCount < 1)
+      {
+        threadsCount = 1;  // 0 is not a valid internal value anymore
+      }
+
+      return true;
+    }
+    else
+    {
+      return false;
     }
   }
 }
