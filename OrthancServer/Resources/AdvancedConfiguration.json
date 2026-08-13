@@ -321,20 +321,6 @@
   // Orthanc <= 1.8.1.
   "MallocArenaMax" : 5,
 
-  // Default number of loader threads to use in jobs that read multiple files
-  // from the storage area when executing some tasks, including:
-  // - generating archive/media,
-  // - executing a C-STORE,
-  // - transmitting resources through Orthanc peering.
-  // A value of 0 and 1 are equivalent: a single thread is used.
-  // A value > 1 is meaningful only if the storage is a distributed network storage
-  // (e.g., object storage plugin).
-  // (new in Orthanc 1.12.11)
-  // Note, from 1.10.0 to 1.12.10, a "ZipLoaderThreads" configuration option
-  // was available only for the ZIP archive/media. It is still available
-  // for backward compatibility.
-  "LoaderThreads" : 1,
-
   // Maximum number of DCMTK transcoders that are simultaneously running
   // at any given time. A value of "0" indicates to use all the
   // available CPU logical cores. Prior to Orthanc 1.12.6, there was no limit.

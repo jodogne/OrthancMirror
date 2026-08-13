@@ -56,6 +56,7 @@ class DcmDataset;
 #define ORTHANC_CONFIG_CONCURRENT_JOBS "ConcurrentJobs"
 #define ORTHANC_CONFIG_HTTP_THREADS_COUNT "HttpThreadsCount"
 #define ORTHANC_CONFIG_DICOM_THREADS_COUNT "DicomThreadsCount"
+#define ORTHANC_CONFIG_INDEX_DIRECTORY "IndexDirectory"
 #define ORTHANC_CONFIG_STORAGE_DIRECTORY "StorageDirectory"
 
 

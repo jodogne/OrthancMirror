@@ -18,9 +18,9 @@
   "StorageDirectory" : "OrthancStorage",
 
   // Path to the directory that holds the SQLite index (if unset, the
-  // value of StorageDirectory is used). This index could be stored on
+  // value of "StorageDirectory" is used). This index could be stored on
   // a RAM-drive or a SSD device for performance reasons.
-  "IndexDirectory" : "OrthancStorage",
+  // "IndexDirectory" : "OrthancStorage",
 
   // Enable the transparent compression of the DICOM instances
   "StorageCompression" : false,
