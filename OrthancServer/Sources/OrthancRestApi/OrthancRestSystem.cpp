@@ -207,13 +207,13 @@ namespace Orthanc
 
       performance[ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE] = BytesToMegabytes(dicomParserMemoryCache);
       performance[ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY] = BytesToMegabytes(dicomParserMemoryCapacity);
-      performance[ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS] = dicomParserThreadsCount;
+      performance[ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS_COUNT] = dicomParserThreadsCount;
       performance[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = BytesToMegabytes(storageMemoryCache);
-      performance[ORTHANC_CONFIG_STORAGE_LOADER_THREADS] = storageReaderThreadsCount;
+      performance[ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT] = storageReaderThreadsCount;
       performance[ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY] = BytesToMegabytes(storageMemoryCapacity);
       performance[ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE] = BytesToMegabytes(transcoderMemoryCache);
       performance[ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY] = BytesToMegabytes(transcoderMemoryCapacity);
-      performance[ORTHANC_CONFIG_TRANSCODER_THREADS] = transcoderReaderThreadsCount;
+      performance[ORTHANC_CONFIG_TRANSCODER_THREADS_COUNT] = transcoderReaderThreadsCount;
     }
 
     result[PERFORMANCE] = performance;

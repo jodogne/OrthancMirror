@@ -58,7 +58,7 @@
   // can typically increase it to 20 and you should then monitor the
   // "orthanc_storage_available_threads" metrics to determine the
   // optimal value for your setup. (new in Orthanc 1.13.0)
-  "StorageLoaderThreads" : 4,
+  "StorageLoaderThreadsCount" : 4,
 
   // Peak amount of RAM (in MB) that can be allocated by the threads
   // loading from the storage area. Note that this limit can be

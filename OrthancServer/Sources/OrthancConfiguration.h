@@ -62,16 +62,16 @@ class DcmDataset;
 #define ORTHANC_CONFIG_ZIP_LOADER_THREADS "ZipLoaderThreads"   // for backward compatibility only
 
 
-#define ORTHANC_CONFIG_STORAGE_LOADER_THREADS "StorageLoaderThreads"
+#define ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT "StorageLoaderThreadsCount"
 #define ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY "StorageMemoryCapacity"
 #define ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE "MaximumStorageCacheSize"
-#define ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS "DicomParserThreads"
+#define ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS_COUNT "DicomParserThreadsCount"
 #define ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY "DicomParserMemoryCapacity"
 #define ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE "DicomParserCacheSize"
-#define ORTHANC_CONFIG_TRANSCODER_THREADS "TranscoderThreads"
+#define ORTHANC_CONFIG_TRANSCODER_THREADS_COUNT "TranscoderThreadsCount"
 #define ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY "TranscoderMemoryCapacity"
 #define ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE "TranscoderCacheSize"
-#define ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS "SequentialDicomReaderThreads"
+#define ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS_COUNT "SequentialDicomReaderThreadsCount"
 #define ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE "SequentialDicomReaderWindowSize"
 #define ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_CAPACITY "SequentialDicomReaderWindowCapacity"
 

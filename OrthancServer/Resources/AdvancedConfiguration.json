@@ -349,7 +349,7 @@
   // You should monitor the "orthanc_dicom_parser_available_threads"
   // metrics to determine the optimal value for your setup. (new in
   // Orthanc 1.13.0)
-  "DicomParserThreads" : 2,
+  "DicomParserThreadsCount" : 2,
 
   // Peak amount of RAM (in MB) that can be allocated by the threads
   // parsing the DICOM files.  Note that this limit can be overpassed
@@ -369,7 +369,7 @@
   // (new in Orthanc 1.13.0)
   // You should monitor the "orthanc_transcoder_available_threads"
   // metrics to determine the optimal value for your setup.
-  "TranscoderThreads" : 4,
+  "TranscoderThreadsCount" : 4,
 
   // Peak amount of RAM (in MB) that can be allocated by the threads
   // transcoding DICOM instances.  Note that this limit can be
@@ -390,21 +390,21 @@
   // Each time such a job needs to get a DICOM file content, it requests it from
   // a sequential DICOM reader that will itself use a s torage loader thread.
   // Therefore, by default, the value of this configuration is identical to
-  // "StorageLoaderThreads".
+  // "StorageLoaderThreadsCount".
   // (new in Orthanc 1.13.0)
   // You should monitor the "orthanc_seq_reader_available_threads"
   // metrics to determine the optimal value for your setup and usage.
-  // "SequentialDicomReaderThreads" : 4,
+  // "SequentialDicomReaderThreadsCount" : 4,
 
   // Number of files each sequential DICOM reader is allowed to buffer
   // in advance before it is consumed by the related job.
   // This is kind of equivalent to the older "LoaderThreads" configuration
-  // but, furthermore, you must make sure that there are enough "StorageLoaderThreads"
-  // and "SequentialDicomReaderThreads" for each job ->
-  // "StorageLoaderThreads" should be larger than "ConcurrentJobs" * "SequentialDicomReaderWindowSize"
+  // but, furthermore, you must make sure that there are enough "StorageLoaderThreadsCount"
+  // and "SequentialDicomReaderThreadsCount" for each job ->
+  // "StorageLoaderThreadsCount" should be larger than "ConcurrentJobs" * "SequentialDicomReaderWindowSize"
   // Together with "SequentialDicomReaderWindowCapacity", this also defines the amount of memory that is
   // used by each job that required a SequentialDicomReader.
-  // By default, the value of this configuration is the same as "LoaderThreads".
+  // By default, the value of this configuration is the same as "LoaderThreadsCount".
   // "SequentialDicomReaderWindowSize" : 4,
 
   // Amount of RAM (in MB) that are allocated to each sequential DICOM
