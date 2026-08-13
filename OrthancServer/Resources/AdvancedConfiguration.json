@@ -344,41 +344,39 @@
   // (new in Orthanc 1.12.6)
   "MaximumConcurrentDcmtkTranscoders" : 0,
 
-  // Number of threads that are used to parse DICOM files (when you need
-  // to access the value of DICOM tags that are not store in DB).
-  // (new in Orthanc 1.13.0)
+  // Number of threads that are used to parse DICOM files (when you
+  // need to access the value of DICOM tags that are not store in DB).
   // You should monitor the "orthanc_dicom_parser_available_threads"
-  // metrics to determine the optimal value for your setup and usage.
+  // metrics to determine the optimal value for your setup. (new in
+  // Orthanc 1.13.0)
   "DicomParserThreads" : 2,
 
-  // Amount of RAM (in MB) that are allocated to the DICOM parser threads.
-  // Note that this limit can be overpassed when a single file
-  // exceeds this size.
-  // (new in Orthanc 1.13.0).
-  // You should monitor the "orthanc_dicom_parser_memory_usage_mb" and
-  // "orthanc_dicom_parser_memory_max_usage_mb" metrics to determine the
-  // optimal value for your setup and usage.
+  // Peak amount of RAM (in MB) that can be allocated by the threads
+  // parsing the DICOM files.  Note that this limit can be overpassed
+  // when a single file exceeds this size.  You should monitor the
+  // "orthanc_dicom_parser_memory_usage_mb" and
+  // "orthanc_dicom_parser_memory_max_usage_mb" metrics to determine
+  // the optimal value for your setup. (new in Orthanc 1.13.0)
   "DicomParserMemoryCapacity" : 256,
 
-  // Maximum size of the DICOM parser cache in MB.  This cache
-  // is stored in RAM and contains a parsed version of recently read
-  // DIOCM files.  A value of "0" indicates the cache
-  // is disabled.  (new in Orthanc 1.13.0)
+  // Maximum size of the DICOM parser cache in MB.  This cache is
+  // stored in RAM and contains a parsed version of recently read
+  // DIOCM files. A value of "0" indicates the cache is disabled.
+  // (new in Orthanc 1.13.0)
   "DicomParserCacheSize" : 128,
 
   // Number of threads that are used to parse transcode DICOM files.
   // (new in Orthanc 1.13.0)
   // You should monitor the "orthanc_transcoder_available_threads"
-  // metrics to determine the optimal value for your setup and usage.
+  // metrics to determine the optimal value for your setup.
   "TranscoderThreads" : 4,
 
-  // Amount of RAM (in MB) that are allocated to the transcoder threads.
-  // Note that this limit can be overpassed when a single file
-  // exceeds this size.
-  // (new in Orthanc 1.13.0).
-  // You should monitor the "orthanc_transcoder_memory_usage_mb" and
+  // Peak amount of RAM (in MB) that can be allocated by the threads
+  // transcoding DICOM instances.  Note that this limit can be
+  // overpassed when a single instance exceeds this size.  You should
+  // monitor the "orthanc_transcoder_memory_usage_mb" and
   // "orthanc_transcoder_memory_max_usage_mb" metrics to determine the
-  // optimal value for your setup and usage.
+  // optimal value for your setup. (new in Orthanc 1.13.0)
   "TranscoderMemoryCapacity" : 256,
 
   // Maximum size of the transcoder cache in MB.  This cache
@@ -415,6 +413,6 @@
   // "SequentialDicomReaderWindowCapacity" limit is reached.
   // Note that this limit can be overpassed when a single file
   // exceeds this size.
-  // (new in Orthanc 1.13.0).
+  // (new in Orthanc 1.13.0)
   "SequentialDicomReaderWindowCapacity" : 64
 }
