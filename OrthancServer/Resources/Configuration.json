@@ -62,8 +62,8 @@
 
   // Peak amount of RAM (in MB) that can be allocated by the threads
   // loading from the storage area. Note that this limit can be
-  // overpassed when a single file exceeds this size. You should
-  // monitor the "orthanc_storage_memory_usage_mb" and
+  // exceeded when a single file is larger than this option. You
+  // should monitor the "orthanc_storage_memory_usage_mb" and
   // "orthanc_storage_memory_max_usage_mb" metrics to determine the
   // optimal value for your setup. (new in Orthanc 1.13.0)
   "StorageMemoryCapacity" : 512,

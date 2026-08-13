@@ -1501,19 +1501,4 @@ namespace Orthanc
       return loaderThreads;
     }
   }
-
-  unsigned int OrthancConfiguration::GetConcurrentJobs() const
-  {
-    return GetUnsignedIntegerParameter(ORTHANC_CONFIG_CONCURRENT_JOBS);
-  }
-
-  unsigned int OrthancConfiguration::GetHttpThreadsCount() const
-  {
-    return GetUnsignedIntegerParameter(ORTHANC_CONFIG_HTTP_THREADS_COUNT);
-  }
-
-  unsigned int OrthancConfiguration::GetDicomThreadsCount() const
-  {
-    return GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_THREADS_COUNT);
-  }
 }

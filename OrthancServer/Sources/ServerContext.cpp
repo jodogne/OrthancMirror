@@ -70,6 +70,21 @@
 #endif
 
 
+// Symbolic name for configuration options
+static const char* const ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT = "StorageLoaderThreadsCount";
+static const char* const ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY = "StorageMemoryCapacity";
+static const char* const ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE = "MaximumStorageCacheSize";
+static const char* const ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS_COUNT = "DicomParserThreadsCount";
+static const char* const ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY = "DicomParserMemoryCapacity";
+static const char* const ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE = "DicomParserCacheSize";
+static const char* const ORTHANC_CONFIG_TRANSCODER_THREADS_COUNT = "TranscoderThreadsCount";
+static const char* const ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY = "TranscoderMemoryCapacity";
+static const char* const ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE = "TranscoderCacheSize";
+static const char* const ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS_COUNT = "SequentialDicomReaderThreadsCount";
+static const char* const ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE = "SequentialDicomReaderWindowSize";
+static const char* const ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_CAPACITY = "SequentialDicomReaderWindowCapacity";
+
+
 // Those metrics correspond to those found in StorageAccessor in Orthanc <= 1.12.11
 static const char* const METRICS_STORAGE_AREA_CREATE_DURATION = "orthanc_storage_create_duration_ms";
 static const char* const METRICS_STORAGE_AREA_READ_BYTES = "orthanc_storage_read_bytes";
@@ -2454,36 +2469,39 @@ namespace Orthanc
     return *dicomSequentialReaderFactory_;
   }
 
-  void ServerContext::GetDataSourcesConfigurations(uint64_t& storageMemoryCapacity,
-                                                   size_t& storageMemoryCache,
-                                                   unsigned int& storageReaderThreadsCount,
-                                                   uint64_t& transcoderMemoryCapacity,
-                                                   size_t& transcoderMemoryCache,
-                                                   unsigned int& transcoderReaderThreadsCount,
-                                                   uint64_t& dicomParserMemoryCapacity,
-                                                   size_t& dicomParserMemoryCache,
-                                                   unsigned int& dicomParserThreadsCount)
+  void ServerContext::ExportPerformanceParameters(Json::Value& target)
   {
-    storageMemoryCapacity = storageAreaReader_->GetCapacity();
-    storageMemoryCache = storageAreaReader_->GetCacheCapacity();
-    transcoderMemoryCapacity = transcoderReader_->GetCapacity();
-    transcoderMemoryCache = transcoderReader_->GetCacheCapacity();
-    dicomParserMemoryCapacity = dicomReader_->GetCapacity();
-    dicomParserMemoryCache = dicomReader_->GetCacheCapacity();
+    target = Json::objectValue;
+
+    target[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = BytesToMegabytes(storageAreaReader_->GetCacheCapacity());
+    target[ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY] = BytesToMegabytes(storageAreaReader_->GetCapacity());
+
+    target[ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE] = BytesToMegabytes(dicomReader_->GetCacheCapacity());
+    target[ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY] = BytesToMegabytes(dicomReader_->GetCapacity());
+
+    target[ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE] = BytesToMegabytes(transcoderReader_->GetCacheCapacity());
+    target[ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY] = BytesToMegabytes(transcoderReader_->GetCapacity());
 
     {
       boost::shared_ptr<IExecutorService> service = storageAreaReader_->GetExecutorService();
-      storageReaderThreadsCount = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
-    }
-
-    {
-      boost::shared_ptr<IExecutorService> service = transcoderReader_->GetExecutorService();
-      transcoderReaderThreadsCount = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
+      target[ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT] = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
     }
 
     {
       boost::shared_ptr<IExecutorService> service = dicomReader_->GetExecutorService();
-      dicomParserThreadsCount = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
+      target[ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS_COUNT] = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
+    }
+
+    {
+      boost::shared_ptr<IExecutorService> service = transcoderReader_->GetExecutorService();
+      target[ORTHANC_CONFIG_TRANSCODER_THREADS_COUNT] = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
+    }
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      target[ORTHANC_CONFIG_HTTP_THREADS_COUNT] = lock.GetConfiguration().GetHttpThreadsCount();
+      target[ORTHANC_CONFIG_DICOM_THREADS_COUNT] = lock.GetConfiguration().GetDicomThreadsCount();
+      target[ORTHANC_CONFIG_CONCURRENT_JOBS] = lock.GetConfiguration().GetConcurrentJobs();
     }
   }
 }

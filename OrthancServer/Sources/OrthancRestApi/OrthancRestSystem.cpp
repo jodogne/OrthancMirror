@@ -166,7 +166,6 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value result = Json::objectValue;
-    Json::Value performance = Json::objectValue;
 
     result[API_VERSION] = ORTHANC_API_VERSION;
     result[VERSION] = ORTHANC_VERSION;
@@ -188,35 +187,9 @@ namespace Orthanc
       result[ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT] = lock.GetConfiguration().GetMaximumPatientCount(); // New in Orthanc 1.12.4
       result[ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE] = lock.GetConfiguration().GetMaximumStorageMode(); // New in Orthanc 1.11.3
       result[ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD] = lock.GetConfiguration().GetDicomDefaultRetrieveMethod();
-
-      performance[ORTHANC_CONFIG_HTTP_THREADS_COUNT] = lock.GetConfiguration().GetHttpThreadsCount();
-      performance[ORTHANC_CONFIG_DICOM_THREADS_COUNT] = lock.GetConfiguration().GetDicomThreadsCount();
-      performance[ORTHANC_CONFIG_CONCURRENT_JOBS] = lock.GetConfiguration().GetConcurrentJobs();
     }
 
-    {
-      // New in Orthanc 1.13.0
-
-      uint64_t storageMemoryCapacity, transcoderMemoryCapacity, dicomParserMemoryCapacity;
-      size_t storageMemoryCache, transcoderMemoryCache, dicomParserMemoryCache;
-      unsigned int storageReaderThreadsCount, transcoderReaderThreadsCount, dicomParserThreadsCount;
-
-      context.GetDataSourcesConfigurations(storageMemoryCapacity, storageMemoryCache, storageReaderThreadsCount,
-                                          transcoderMemoryCapacity, transcoderMemoryCache, transcoderReaderThreadsCount,
-                                          dicomParserMemoryCapacity, dicomParserMemoryCache, dicomParserThreadsCount);
-
-      performance[ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE] = BytesToMegabytes(dicomParserMemoryCache);
-      performance[ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY] = BytesToMegabytes(dicomParserMemoryCapacity);
-      performance[ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS_COUNT] = dicomParserThreadsCount;
-      performance[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = BytesToMegabytes(storageMemoryCache);
-      performance[ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT] = storageReaderThreadsCount;
-      performance[ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY] = BytesToMegabytes(storageMemoryCapacity);
-      performance[ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE] = BytesToMegabytes(transcoderMemoryCache);
-      performance[ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY] = BytesToMegabytes(transcoderMemoryCapacity);
-      performance[ORTHANC_CONFIG_TRANSCODER_THREADS_COUNT] = transcoderReaderThreadsCount;
-    }
-
-    result[PERFORMANCE] = performance;
+    context.ExportPerformanceParameters(result[PERFORMANCE]);
 
     DicomTransferSyntax ingestTransferSyntax;
     if (context.LookupIngestTranscoding(ingestTransferSyntax))
