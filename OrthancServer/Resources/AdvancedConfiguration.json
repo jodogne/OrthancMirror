@@ -345,7 +345,7 @@
   // Maximum size of the cache of parsed DICOM files (in MB). This
   // cache is stored in RAM and contains a parsed version of recently
   // read DICOM files. A value of "0" disables this cache. (new in
-  // Orthanc 1.13.0)
+  // Orthanc 1.13.0 - in prior versions, this value was hardcoded to 128MB)
   "DicomParserCacheSize" : 256,
 
   // Number of threads that are used to transcode DICOM files. You
