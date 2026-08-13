@@ -46,10 +46,10 @@
   // (new in Orthanc 1.11.2)
   "MaximumStorageMode" : "Recycle",
 
-  // Maximum size of the storage cache in MB. The storage cache
-  // is stored in RAM and contains a copy of recently accessed
-  // files (written or read).  A value of "0" indicates the cache
-  // is disabled.  (new in Orthanc 1.10.0)
+  // Maximum size of the storage cache in MB. The storage cache is
+  // stored in RAM and contains a copy of recently accessed files
+  // (written or read). A value of "0" disables this cache. (new in
+  // Orthanc 1.10.0)
   "MaximumStorageCacheSize" : 128,
 
   // Number of threads that are used to read files from the storage.

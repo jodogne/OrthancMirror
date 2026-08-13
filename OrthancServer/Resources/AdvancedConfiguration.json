@@ -352,17 +352,17 @@
   "DicomParserThreadsCount" : 2,
 
   // Peak amount of RAM (in MB) that can be allocated by the threads
-  // parsing the DICOM files. Note that this limit can be overpassed
-  // when a single file exceeds this size. You should monitor the
-  // "orthanc_dicom_parser_memory_usage_mb" and
+  // that parse the DICOM files. Note that this limit can be
+  // overpassed when a single file exceeds this size. You should
+  // monitor the "orthanc_dicom_parser_memory_usage_mb" and
   // "orthanc_dicom_parser_memory_max_usage_mb" metrics to determine
   // the optimal value for your setup. (new in Orthanc 1.13.0)
   "DicomParserMemoryCapacity" : 256,
 
-  // Maximum size of the DICOM parser cache in MB.  This cache is
-  // stored in RAM and contains a parsed version of recently read
-  // DICOM files. A value of "0" indicates the cache is disabled.
-  // (new in Orthanc 1.13.0)
+  // Maximum size of the cache of parsed DICOM files (in MB). This
+  // cache is stored in RAM and contains a parsed version of recently
+  // read DICOM files. A value of "0" disables this cache. (new in
+  // Orthanc 1.13.0)
   "DicomParserCacheSize" : 256,
 
   // Number of threads that are used to transcode DICOM files. You
@@ -371,17 +371,17 @@
   "TranscoderThreadsCount" : 4,
 
   // Peak amount of RAM (in MB) that can be allocated by the threads
-  // transcoding DICOM instances. Note that this limit can be
+  // that transcode DICOM instances. Note that this limit can be
   // overpassed when a single instance exceeds this size. You should
   // monitor the "orthanc_transcoder_memory_usage_mb" and
   // "orthanc_transcoder_memory_max_usage_mb" metrics to determine the
   // optimal value for your setup. (new in Orthanc 1.13.0)
   "TranscoderMemoryCapacity" : 256,
 
-  // Maximum size of the transcoder cache in MB. This cache is stored
-  // in RAM and contains transcoded versions of recently read DICOM
-  // files. A value of "0" indicates the cache is disabled. (new in
-  // Orthanc 1.13.0)
+  // Maximum size of the cache of transcoded DICOM files (in MB). This
+  // cache is stored in RAM and contains transcoded versions of
+  // recently read DICOM files. A value of "0" disables this
+  // cache. (new in Orthanc 1.13.0)
   "TranscoderCacheSize" : 256,
 
   // Total number of threads that are used to provide DICOM files
