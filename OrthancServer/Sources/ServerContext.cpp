@@ -756,7 +756,7 @@ namespace Orthanc
                        << "\" is not defined in your configuration, setting it to " << storageLoaderThreads
                        << ", based on the \"" << ORTHANC_CONFIG_CONCURRENT_JOBS << "\" "
                        << (hasCompatibilityLoaderThreads ? "and the \"" + compatibilityLoaderThreadsOption + "\" options" : "option")
-                       << " capped to the range [" << CAP_LOW << "," << CAP_HIGH << "]";
+                       << " clamped to the range [" << CAP_LOW << "," << CAP_HIGH << "]";
         }
         else
         {
