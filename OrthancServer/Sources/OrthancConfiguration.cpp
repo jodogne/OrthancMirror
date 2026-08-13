@@ -1135,6 +1135,21 @@ namespace Orthanc
   }
 
 
+  unsigned int OrthancConfiguration::GetConcurrentJobs() const
+  {
+    unsigned int jobs = GetUnsignedIntegerParameter(ORTHANC_CONFIG_CONCURRENT_JOBS);
+
+    if (jobs == 0)
+    {
+      return SystemToolbox::GetHardwareConcurrency();
+    }
+    else
+    {
+      return jobs;
+    }
+  }
+
+
   void OrthancConfiguration::Format(std::string& result) const
   {
     Toolbox::WriteStyledJson(result, userConfiguration_);

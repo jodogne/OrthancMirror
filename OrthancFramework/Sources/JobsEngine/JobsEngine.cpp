@@ -219,15 +219,22 @@ namespace Orthanc
 
   void JobsEngine::SetWorkersCount(size_t count)
   {
-    boost::mutex::scoped_lock lock(stateMutex_);
-      
-    if (state_ != State_Setup)
+    if (count == 0)
     {
-      // Can only be invoked before calling "Start()"
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    workers_.resize(count);
+    {
+      boost::mutex::scoped_lock lock(stateMutex_);
+
+      if (state_ != State_Setup)
+      {
+        // Can only be invoked before calling "Start()"
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+
+      workers_.resize(count);
+    }
   }
 
 
@@ -256,18 +263,7 @@ namespace Orthanc
 
     retryHandler_ = boost::thread(RetryHandler, this);
 
-    if (workers_.size() == 0)
-    {
-      // Use all the available CPUs
-      size_t n = boost::thread::hardware_concurrency();
-      
-      if (n == 0)
-      {
-        n = 1;
-      }
-
-      workers_.resize(n);
-    }      
+    assert(!workers_.empty());
 
     for (size_t i = 0; i < workers_.size(); i++)
     {

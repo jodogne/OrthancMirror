@@ -1665,7 +1665,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     maxDcmtkConcurrentTranscoders = lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_CONCURRENT_DCMTK_TRANSCODERS);
     if (maxDcmtkConcurrentTranscoders == 0)
     {
-      maxDcmtkConcurrentTranscoders = static_cast<unsigned int>(boost::thread::hardware_concurrency());
+      maxDcmtkConcurrentTranscoders = SystemToolbox::GetHardwareConcurrency();
     }
 
     // Configuration of DICOM TLS for Orthanc SCU (since Orthanc 1.9.0)

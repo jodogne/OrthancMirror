@@ -266,10 +266,7 @@ namespace Orthanc
 
     void RemovePeer(const std::string& symbolicName);
 
-    unsigned int GetConcurrentJobs() const
-    {
-      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_CONCURRENT_JOBS);
-    }
+    unsigned int GetConcurrentJobs() const;
 
     unsigned int GetHttpThreadsCount() const
     {
