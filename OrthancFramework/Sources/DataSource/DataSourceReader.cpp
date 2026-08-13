@@ -368,7 +368,7 @@ namespace Orthanc
   }
 
 
-  size_t DataSourceReader::GetCacheCapacity() const
+  size_t DataSourceReader::GetCacheSize() const
   {
     boost::shared_ptr<SharedObjectCache> lock(cache_);
 

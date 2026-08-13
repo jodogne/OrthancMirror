@@ -612,7 +612,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    const size_t capacity = reader.GetCacheCapacity();
+    const size_t capacity = reader.GetCacheSize();
 
     if (capacity != 0 &&
         size <= capacity)

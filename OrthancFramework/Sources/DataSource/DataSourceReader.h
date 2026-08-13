@@ -135,7 +135,7 @@ namespace Orthanc
                        uint64_t& tasksCurrentMemory,
                        unsigned int& tasksReservations) const;
 
-    size_t GetCacheCapacity() const;
+    size_t GetCacheSize() const;
 
     void StoreIntoCache(const std::string& key,
                         IDynamicObject* value /* takes ownership */);

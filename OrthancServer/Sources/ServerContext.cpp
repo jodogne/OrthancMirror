@@ -70,7 +70,7 @@
 #endif
 
 
-// Symbolic name for configuration options
+// Symbolic name for performance-related configuration options
 static const char* const ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT = "StorageLoaderThreadsCount";
 static const char* const ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY = "StorageMemoryCapacity";
 static const char* const ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE = "MaximumStorageCacheSize";
@@ -2473,13 +2473,13 @@ namespace Orthanc
   {
     target = Json::objectValue;
 
-    target[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = BytesToMegabytes(storageAreaReader_->GetCacheCapacity());
+    target[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = BytesToMegabytes(storageAreaReader_->GetCacheSize());
     target[ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY] = BytesToMegabytes(storageAreaReader_->GetCapacity());
 
-    target[ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE] = BytesToMegabytes(dicomReader_->GetCacheCapacity());
+    target[ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE] = BytesToMegabytes(dicomReader_->GetCacheSize());
     target[ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY] = BytesToMegabytes(dicomReader_->GetCapacity());
 
-    target[ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE] = BytesToMegabytes(transcoderReader_->GetCacheCapacity());
+    target[ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE] = BytesToMegabytes(transcoderReader_->GetCacheSize());
     target[ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY] = BytesToMegabytes(transcoderReader_->GetCapacity());
 
     {
