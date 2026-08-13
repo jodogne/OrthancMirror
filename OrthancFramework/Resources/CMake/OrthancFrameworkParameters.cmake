@@ -39,7 +39,7 @@ set(ORTHANC_DATABASE_VERSION 6)
 # Version of the Orthanc API, can be retrieved from "/system" URI in
 # order to check whether new URI endpoints are available even if using
 # the mainline version of Orthanc
-set(ORTHANC_API_VERSION "33")
+set(ORTHANC_API_VERSION "34")
 
 
 #####################################################################
@@ -109,6 +109,10 @@ mark_as_advanced(SYSTEM_MONGOOSE_USE_CALLBACKS)
 mark_as_advanced(USE_DCMTK_362_PRIVATE_DIC)
 mark_as_advanced(USE_GOOGLE_TEST_DEBIAN_PACKAGE)
 mark_as_advanced(USE_PUGIXML)
+
+
+# Must be filled with the list of patches applied to system-wide libraries (new in Orthanc 1.13.0)
+set(ORTHANC_PATCHES_LIST)
 
 
 #####################################################################

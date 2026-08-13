@@ -46,8 +46,6 @@ namespace Orthanc
 {
   namespace Logging
   {
-    static bool logCallerThreadNameInContext = false; // add a "from THREADNAME" in the context everytime the context is copied from a thread to the other to help track the runnable/callable journey
-
     static const uint32_t ALL_CATEGORIES_MASK = 0xffffffff;
     
     static uint32_t infoCategoriesMask_ = 0;
@@ -953,6 +951,7 @@ static bool                                     hasClearThreadName_ = false;  //
 static ThreadsInformations                      threadsInformations_;
 static bool                                     enableThreadNames_ = true;
 static bool                                     enableThreadContexts_ = true;
+static bool                                     logCallerThreadNameInContext_ = false; // add a "from THREADNAME" in the context everytime the context is copied from a thread to the other to help track the runnable/callable journey
 static std::list<Orthanc::Logging::ILoggingListener*> loggingListeners_;
 static boost::shared_mutex                            loggingListenersMutex_;
 
@@ -969,6 +968,11 @@ namespace Orthanc
     void SetThreadContextsEnabled(bool enabled)
     {
       enableThreadContexts_ = enabled;
+    }
+
+    void SetThreadNamesInContextsEnabled(bool enabled)
+    {
+      logCallerThreadNameInContext_ = enabled;
     }
 
     static void GetLogPath(boost::filesystem::path& log,
@@ -1129,7 +1133,7 @@ namespace Orthanc
     ThreadContextMemento::ScopedSetter::ScopedSetter(const ThreadContextMemento& memento) :
       count_(0)
     {
-      if (logCallerThreadNameInContext && enableThreadNames_ && !memento.pimpl_->threadName_.empty())
+      if (logCallerThreadNameInContext_ && enableThreadNames_ && !memento.pimpl_->threadName_.empty())
       {
         PushCurrentThreadContext("from " + memento.pimpl_->threadName_);
         count_++;

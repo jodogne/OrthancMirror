@@ -24,10 +24,12 @@
 #include "../PrecompiledHeadersServer.h"
 #include "ResourceModificationJob.h"
 
+#include "../../../OrthancFramework/Sources/DicomParsing/IDicomTranscoder.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../DicomInstanceToStore.h"
 #include "../ServerContext.h"
+#include "../ServerTranscoder.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcdeftag.h>
@@ -185,8 +187,10 @@ namespace Orthanc
     {
       for (std::set<std::string>::const_iterator it = instancesToReconstruct_.begin(); it != instancesToReconstruct_.end(); ++it)
       {
-        ServerContext::DicomCacheLocker locker(GetContext(), *it);
-        const ParsedDicomFile& modifiedDicom = locker.GetDicom();
+        std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(*it));
+        DicomDataSource::Dicom::Lock dicomLock(*dicom);
+
+        const ParsedDicomFile& modifiedDicom = dicomLock.GetContent();
 
         GetContext().GetIndex().ReconstructInstance(modifiedDicom, false, ResourceType_Instance /* dummy */);
       }
@@ -219,8 +223,10 @@ namespace Orthanc
  
     try
     {
-      ServerContext::DicomCacheLocker locker(GetContext(), instance);
-      const ParsedDicomFile& original = locker.GetDicom();
+      std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(instance));
+      DicomDataSource::Dicom::Lock lock(*dicom);
+
+      const ParsedDicomFile& original = lock.GetContent();
 
       originalHasher.reset(new DicomInstanceHasher(original.GetHasher()));
       modified.reset(original.Clone(true));
@@ -262,7 +268,7 @@ namespace Orthanc
       source.AcquireParsed(*modified);  // "modified" is invalid below this point
       
       IDicomTranscoder::DicomImage transcoded;
-      if (GetContext().GetTranscoder().Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew))
+      if (GetContext().GetTranscoder()->Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew))
       {
         modified.reset(transcoded.ReleaseAsParsedDicomFile());
 

@@ -23,29 +23,28 @@
 #pragma once
 
 #include "../../OrthancFramework/Sources/Compatibility.h"  // For ORTHANC_OVERRIDE
+#include "../../OrthancFramework/Sources/DataSource/DicomSequentialReader.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/IGetRequestHandler.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.h"
 
-#include <dcmtk/dcmnet/dimse.h>
-
 #include <list>
-
-class DcmFileFormat;
 
 namespace Orthanc
 {
+  class ParsedDicomFile;
   class ServerContext;
-  class ThreadedInstancesLoader;
   
   class OrthancGetRequestHandler : public IGetRequestHandler
   {
   private:
+    class ReaderUserData;
+
     ServerContext& context_;
     std::string localAet_;
     std::vector<std::string> instancesIds_;
     size_t position_;
     std::string originatorAet_;
-    std::unique_ptr<ThreadedInstancesLoader> instancesLoader_;
+    std::unique_ptr<DicomSequentialReader> instancesLoader_;
 
     unsigned int completedCount_;
     unsigned int warningCount_;
@@ -63,7 +62,7 @@ namespace Orthanc
     bool PerformGetSubOp(T_ASC_Association *assoc,
                          const std::string& sopClassUid,
                          const std::string& sopInstanceUid,
-                         DcmFileFormat* datasetRaw);
+                         ParsedDicomFile& dicom);
     
     void AddFailedUIDInstance(const std::string& sopInstance);
 

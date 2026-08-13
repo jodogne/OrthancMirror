@@ -40,6 +40,8 @@ namespace Orthanc
     {
     }
 
+    virtual void CopyToString(std::string& target) const = 0;
+
     // The content of the memory buffer will emptied after this call
     virtual void MoveToString(std::string& target) = 0;
 

@@ -321,23 +321,91 @@
   // Orthanc <= 1.8.1.
   "MallocArenaMax" : 5,
 
-  // Default number of loader threads to use in jobs that read multiple files
-  // from the storage area when executing some tasks, including:
-  // - generating archive/media,
-  // - executing a C-Store,
-  // - transmitting resources through Orthanc peering.
-  // A value of 0 and 1 are equivalent: a single thread is used.
-  // A value > 1 is meaningful only if the storage is a distributed network storage
-  // (e.g., object storage plugin).
-  // (new in Orthanc 1.12.11)
-  // Note, from 1.10.0 to 1.12.10, a "ZipLoaderThreads" configuration option
-  // was available only for the ZIP archive/media. It is still available
-  // for backward compatibility.
-  "LoaderThreads" : 1,
-
   // Maximum number of DCMTK transcoders that are simultaneously running
   // at any given time. A value of "0" indicates to use all the
   // available CPU logical cores. Prior to Orthanc 1.12.6, there was no limit.
   // (new in Orthanc 1.12.6)
-  "MaximumConcurrentDcmtkTranscoders" : 0
+  "MaximumConcurrentDcmtkTranscoders" : 0,
+
+  // Number of threads that are used to parse DICOM files (e.g., to
+  // access the value of DICOM tags that are not indexed in the
+  // Orthanc database). You should monitor the
+  // "orthanc_dicom_parser_available_threads" metrics to determine the
+  // optimal value for your setup. (new in Orthanc 1.13.0)
+  "DicomParserThreadsCount" : 2,
+
+  // Peak amount of RAM (in MB) that can be allocated by the threads
+  // that parse the DICOM files. Note that this limit can be exceeded
+  // when a single DICOM instance is larger than this option. You
+  // should monitor the "orthanc_dicom_parser_memory_usage_mb" and
+  // "orthanc_dicom_parser_memory_max_usage_mb" metrics to determine
+  // the optimal value for your setup. (new in Orthanc 1.13.0)
+  "DicomParserMemoryCapacity" : 256,
+
+  // Maximum size of the cache of parsed DICOM files (in MB). This
+  // cache is stored in RAM and contains a parsed version of recently
+  // read DICOM files. A value of "0" disables this cache. (new in
+  // Orthanc 1.13.0 - in prior versions, this value was hardcoded to 128MB)
+  "DicomParserCacheSize" : 256,
+
+  // Number of threads that are used to transcode DICOM files. You
+  // should monitor the "orthanc_transcoder_available_threads" metrics
+  // to determine the optimal value for your setup. (new in Orthanc 1.13.0)
+  "TranscoderThreadsCount" : 4,
+
+  // Peak amount of RAM (in MB) that can be allocated by the threads
+  // that transcode DICOM instances. Note that this limit can be
+  // exceeded when a single transcoded instance is larger than this
+  // option. You should monitor the "orthanc_transcoder_memory_usage_mb"
+  // and "orthanc_transcoder_memory_max_usage_mb" metrics to determine
+  // the optimal value for your setup. (new in Orthanc 1.13.0)
+  "TranscoderMemoryCapacity" : 256,
+
+  // Maximum size of the cache of transcoded DICOM files (in MB). This
+  // cache is stored in RAM and contains transcoded versions of
+  // recently read DICOM files. A value of "0" disables this
+  // cache. (new in Orthanc 1.13.0)
+  "TranscoderCacheSize" : 256,
+
+  // Number of threads for the sequential access to DICOM
+  // instances. When a thread in Orthanc needs a set of DICOM
+  // instances in a predefined order, it cannot rely directly on
+  // loader threads, which may provide the instances out of
+  // order. This is notably the case for archive jobs, C-STORE SCU
+  // connections, and C-GET SCP and C-MOVE SCP handlers. In such
+  // situations, Orthanc uses a sliding-window buffer that is
+  // populated by a set of threads calling the out-of-order loader
+  // threads. These preloading threads are part of a pool that is
+  // global to Orthanc. The threads are paused if the buffer grows too
+  // large before the calling thread consumes the instances. By
+  // default, this option has the same value as
+  // "StorageLoaderThreadsCount". You should monitor the
+  // "orthanc_sequential_reader_available_threads" metrics to determine the
+  // optimal value for your setup and usage. (new in Orthanc 1.13.0)
+  // "SequentialDicomReaderThreadsCount" : 4,
+
+  // Each thread that accesses DICOM instances in sequential order
+  // creates a local sliding-window buffer that is preloaded by the
+  // global thread pool (cf. "SequentialDicomReaderThreadsCount").
+  // This configuration option specifies the maximum number of DICOM
+  // instances that can be preloaded before they are consumed by the
+  // calling thread. Together with
+  // "SequentialDicomReaderWindowCapacity", this option determines the
+  // amount of memory used by each calling thread that requires
+  // sequential access to DICOM instances. This is roughly equivalent
+  // to the older "LoaderThreads" configuration: By default, this
+  // option is therefore set to the same value as "LoaderThreads", if
+  // the latter is available. (new in Orthanc 1.13.0)
+  "SequentialDicomReaderWindowSize" : 4,
+
+  // Maximum amount of RAM (in MB) allocated to each local
+  // sliding-window buffer for each thread accessing a set of DICOM
+  // instances in sequential order (see
+  // "SequentialDicomReaderThreadsCount"). The global thread pool
+  // pauses preloading as soon as either the
+  // "SequentialDicomReaderWindowSize" or
+  // "SequentialDicomReaderWindowCapacity" limit is reached. Note that
+  // this limit can be exceeded when a single file is larger than the
+  // value specified by this option. (new in Orthanc 1.13.0)
+  "SequentialDicomReaderWindowCapacity" : 128
 }

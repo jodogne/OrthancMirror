@@ -28,13 +28,15 @@
 #include "OrthancHttpHandler.h"
 #include "ServerIndex.h"
 #include "ServerJobs/IStorageCommitmentFactory.h"
-#include "ServerTranscoder.h"
 
+#include "../../OrthancFramework/Sources/DataSource/DicomDataSource.h"
+#include "../../OrthancFramework/Sources/DataSource/DicomSequentialReader.h"
+#include "../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
+#include "../../OrthancFramework/Sources/DataSource/TranscoderDataSource.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
-#include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomCache.h"
-#include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
-#include "../../OrthancFramework/Sources/FileStorage/StorageCache.h"
 #include "../../OrthancFramework/Sources/JobsEngine/JobsEngine.h"
+#include "../../OrthancFramework/Sources/MetricsRegistry.h"
+#include "../../OrthancFramework/Sources/MultiThreading/Future.h"
 #include "../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 
 
@@ -42,11 +44,13 @@ namespace Orthanc
 {
   class DicomElement;
   class DicomStoreUserConnection;
+  class IExecutorService;
   class OrthancPlugins;
+  class ServerTranscoder;
   class SharedArchive;
   class StorageCommitmentReports;
   
-  
+
   /**
    * This class is responsible for maintaining the storage area on the
    * filesystem (including compression), as well as the index of the
@@ -192,13 +196,11 @@ namespace Orthanc
 
     ServerIndex index_;
     IPluginStorageArea& area_;
-    StorageCache storageCache_;
 
     bool compressionEnabled_;
     bool storeMD5_;
 
     Semaphore largeDicomThrottler_;  // New in Orthanc 1.9.0 (notably for very large DICOM files in WSI)
-    ParsedDicomCache  dicomCache_;
 
     LuaScripting mainLua_;
     LuaScripting filterLua_;
@@ -238,7 +240,7 @@ namespace Orthanc
     unsigned int limitFindInstances_;
     unsigned int limitFindResults_;
 
-    std::unique_ptr<MetricsRegistry>  metricsRegistry_;
+    boost::shared_ptr<MetricsRegistry>  metricsRegistry_;
     bool isHttpServerSecure_;
     bool isExecuteLuaEnabled_;
     bool isRestApiWriteToFileSystemEnabled_;
@@ -246,7 +248,7 @@ namespace Orthanc
 
     std::unique_ptr<StorageCommitmentReports>  storageCommitmentReports_;
 
-    std::unique_ptr<ServerTranscoder> transcoder_;
+    boost::shared_ptr<ServerTranscoder> transcoder_;
     bool transcodeDicomProtocol_;
     bool isIngestTranscoding_;
     DicomTransferSyntax ingestTransferSyntax_;
@@ -277,6 +279,19 @@ namespace Orthanc
                     FileContentType type,
                     const std::string& customData);
 
+    void RemoveFile(const FileInfo& attachment);
+
+    // This method corresponds to StorageAccessor::Write() in Orthanc
+    // <= 1.12.11. Don't name this method "CreateFile()", otherwise it
+    // could be renamed "CreateFileA()" by Microsoft Windows SDK macros.
+    void StoreFile(FileInfo& info,
+                   const void* data,
+                   size_t size,
+                   FileContentType type,
+                   CompressionType compression,
+                   const std::string& precomputedMd5,
+                   const DicomInstanceToStore* instance);
+
     // This DicomModification object is intended to be used as a
     // "rules engine" when de-identifying logs for C-Find, C-Get, and
     // C-Move queries (new in Orthanc 1.8.2)
@@ -285,31 +300,16 @@ namespace Orthanc
 
     boost::posix_time::ptime serverStartTimeUtc_;
 
+    // For streaming
+    boost::shared_ptr<DataSourceReader>                storageAreaReader_;
+    boost::shared_ptr<DataSourceReader>                dicomReader_;
+    boost::shared_ptr<DataSourceReader>                transcoderReader_;
+    boost::shared_ptr<DicomSequentialReader::Factory>  dicomSequentialReaderFactory_;
+
   public:
-    class DicomCacheLocker : public boost::noncopyable
-    {
-    private:
-      ServerContext&                               context_;
-      std::string                                  instancePublicId_;
-      std::unique_ptr<ParsedDicomCache::Accessor>  accessor_;
-      std::unique_ptr<ParsedDicomFile>             dicom_;
-      size_t                                       dicomSize_;
-      std::unique_ptr<Semaphore::Locker>           largeDicomLocker_;
-      std::string                                  buffer_;
-
-    public:
-      DicomCacheLocker(ServerContext& context,
-                       const std::string& instancePublicId);
-
-      ~DicomCacheLocker();
-
-      ParsedDicomFile& GetDicom() const;
-
-      const std::string& GetBuffer();
-    };
-
     ServerContext(IDatabaseWrapper& database,
                   IPluginStorageArea& area,
+                  ServerTranscoder* transcoder /* takes ownership */,
                   bool unitTesting,
                   size_t maxCompletedJobs,
                   bool readOnly);
@@ -322,11 +322,6 @@ namespace Orthanc
     ServerIndex& GetIndex()
     {
       return index_;
-    }
-
-    void SetMaximumStorageCacheSize(size_t size)
-    {
-      return storageCache_.SetMaximumSize(size);
     }
 
     void SetPatientLevelEnabled(bool enabled);
@@ -397,42 +392,26 @@ namespace Orthanc
     void ReadDicomAsJson(Json::Value& result,
                          const std::string& instancePublicId);  // TODO-FIND: Can this be removed?
 
-private:
-    void ReadDicomInternal(std::string& dicom,
-                           const std::string& instancePublicId,
-                           std::unique_ptr<Semaphore::Locker>& largeDicomLocker,
-                           std::size_t largeDicomThreshold);
+    FileInfo LookupDicomForInstance(const std::string& instancePublicId);
 
-    void ReadDicomInternal(std::string& dicom,
-                           std::string& attachmentId,
-                           const std::string& instancePublicId,
-                           std::unique_ptr<Semaphore::Locker>& largeDicomLocker,
-                           std::size_t largeDicomThreshold);
+    StorageAreaDataSource::Range* ReadAttachment(const FileInfo& attachment,
+                                                 bool uncompress);
 
-public:
-    void ReadDicom(std::string& dicom,
-                   const std::string& instancePublicId);
+    StorageAreaDataSource::Range* ReadAttachment(const FileInfo& attachment,
+                                                 const StorageRange& range,
+                                                 bool uncompress);
 
-    void ReadDicom(std::string& dicom,
-                   std::string& attachmentId,
-                   const std::string& instancePublicId);
+    StorageAreaDataSource::Range* ReadRawDicom(const std::string& instancePublicId);
 
-    void ReadDicomForHeader(std::string& dicom,
-                            const std::string& instancePublicId);
+    DicomDataSource::Dicom* ReadParsedDicom(const std::string& instancePublicId);
 
-    bool ReadDicomUntilPixelData(std::string& dicom,
-                                 const std::string& instancePublicId);
+    DicomDataSource::Dicom* ReadDicomUntilPixelData(const std::string& instancePublicId);
 
-    // This method is for low-level operations on "/instances/.../attachments/..."
-    void ReadAttachment(std::string& result,
-                        const FileInfo& attachment,
-                        bool uncompressIfNeeded,
-                        bool skipCache = false);
-
-    void ReadAttachmentRange(std::string& result,
-                             const FileInfo& attachment,
-                             const StorageRange& range,
-                             bool uncompressIfNeeded);
+    TranscoderDataSource::Transcoded* ReadTranscodedDicom(const std::string& instancePublicId,
+                                                          DicomTransferSyntax targetSyntax,
+                                                          TranscodingSopInstanceUidMode mode,
+                                                          bool hasLossyQuality,
+                                                          unsigned int lossyQuality);
 
     void SetStoreMD5ForAttachments(bool storeMD5);
 
@@ -585,26 +564,14 @@ public:
     ImageAccessor* DecodeDicomFrame(const std::string& publicId,
                                     unsigned int frameIndex);
 
-    ImageAccessor* DecodeDicomFrame(const DicomInstanceToStore& dicom,
-                                    unsigned int frameIndex);
-
-    ImageAccessor* DecodeDicomFrame(const void* dicom,
-                                    size_t size,
-                                    unsigned int frameIndex);
-
     void PerformCStoreWithTranscoding(std::string& sopClassUid,
                                       std::string& sopInstanceUid,
                                       DicomStoreUserConnection& connection,
-                                      const std::string& dicom,
+                                      const void* dicomData,
+                                      size_t dicomSize,
                                       bool hasMoveOriginator,
                                       const std::string& moveOriginatorAet,
                                       uint16_t moveOriginatorId);
-
-    virtual bool TranscodeWithCache(std::string& target,
-                                    const std::string& source,
-                                    const std::string& sourceInstanceId,
-                                    const std::string& attachmentId, // for the storage cache
-                                    DicomTransferSyntax targetSyntax);
 
     bool IsTranscodeDicomProtocol() const
     {
@@ -635,12 +602,15 @@ public:
 
     int64_t GetServerUpTime() const;
 
-    void PublishCacheMetrics();
+    /**
+     * The method "GetTranscoder()" should only be used when
+     * necessary. The use of "TranscoderDataSource::Execute()" is
+     * preferred to benefit from cache and from backpressure.
+     **/
+    const boost::shared_ptr<ServerTranscoder>& GetTranscoder() const;
 
-    void SetTranscoder(ServerTranscoder* transcoder /* takes ownership */);
+    DicomSequentialReader::Factory& GetDicomSequentialReaderFactory();
 
-    ServerTranscoder& GetTranscoder() const;
-
-    void ResetTranscoder();
+    void ExportPerformanceParameters(Json::Value& target);
   };
 }

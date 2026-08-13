@@ -25,32 +25,37 @@
 #include "ServerContext.h"
 
 #include "../../OrthancFramework/Sources/Cache/SharedArchive.h"
+#include "../../OrthancFramework/Sources/Compression/ZlibCompressor.h"
+#include "../../OrthancFramework/Sources/Constants.h"
+#include "../../OrthancFramework/Sources/DataSource/DataSourceReader.h"
+#include "../../OrthancFramework/Sources/DataSource/DicomSequentialReader.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomImageInformation.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomStreamReader.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
-#include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
 #include "../../OrthancFramework/Sources/HttpServer/FilesystemHttpSender.h"
 #include "../../OrthancFramework/Sources/HttpServer/HttpStreamTranscoder.h"
 #include "../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/MallocMemoryBuffer.h"
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
+#include "../../OrthancFramework/Sources/MultiThreading/ThreadPool.h"
 #include "../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 
 #include "DicomInstanceToStore.h"
 #include "OrthancConfiguration.h"
 #include "OrthancRestApi/OrthancRestApi.h"
+#include "OutgoingDicomInstance.h"
 #include "ResourceFinder.h"
 #include "Search/DatabaseLookup.h"
 #include "ServerJobs/OrthancJobUnserializer.h"
 #include "ServerToolbox.h"
-#include "StorageCommitmentReports.h"
-#include "OutgoingDicomInstance.h"
+#include "ServerTranscoder.h"
 #include "SimpleInstanceOrdering.h"
+#include "StorageCommitmentReports.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmnet/dimse.h>
@@ -58,12 +63,70 @@
 #include <dcmtk/dcmdata/dcuid.h>        /* for variable dcmAllStorageSOPClassUIDs */
 
 #include <boost/regex.hpp>
+#include <math.h>
 
 #if HAVE_MALLOC_TRIM == 1
 #  include <malloc.h>
 #endif
 
-static size_t DICOM_CACHE_SIZE = static_cast<size_t>(128) * 1024 * 1024;  // 128 MB
+
+// Symbolic name for performance-related configuration options
+static const char* const ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT = "StorageLoaderThreadsCount";
+static const char* const ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY = "StorageMemoryCapacity";
+static const char* const ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE = "MaximumStorageCacheSize";
+static const char* const ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS_COUNT = "DicomParserThreadsCount";
+static const char* const ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY = "DicomParserMemoryCapacity";
+static const char* const ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE = "DicomParserCacheSize";
+static const char* const ORTHANC_CONFIG_TRANSCODER_THREADS_COUNT = "TranscoderThreadsCount";
+static const char* const ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY = "TranscoderMemoryCapacity";
+static const char* const ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE = "TranscoderCacheSize";
+static const char* const ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS_COUNT = "SequentialDicomReaderThreadsCount";
+static const char* const ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE = "SequentialDicomReaderWindowSize";
+static const char* const ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_CAPACITY = "SequentialDicomReaderWindowCapacity";
+
+
+// Those metrics correspond to those found in StorageAccessor in Orthanc <= 1.12.11
+static const char* const METRICS_STORAGE_AREA_CREATE_DURATION = "orthanc_storage_create_duration_ms";
+static const char* const METRICS_STORAGE_AREA_READ_BYTES      = "orthanc_storage_read_bytes";
+static const char* const METRICS_STORAGE_AREA_READ_DURATION   = "orthanc_storage_read_duration_ms";
+static const char* const METRICS_STORAGE_AREA_REMOVE_DURATION = "orthanc_storage_remove_duration_ms";
+static const char* const METRICS_STORAGE_AREA_WRITTEN_BYTES   = "orthanc_storage_written_bytes";
+
+
+// New metrics in Orthanc 1.13.0
+static const char* const METRICS_STORAGE_AREA_CACHE_COUNT                   = "orthanc_storage_cache_count";
+static const char* const METRICS_STORAGE_AREA_CACHE_HIT_COUNT               = "orthanc_storage_cache_hit_count";
+static const char* const METRICS_STORAGE_AREA_CACHE_MISS_COUNT              = "orthanc_storage_cache_miss_count";
+static const char* const METRICS_STORAGE_AREA_CACHE_SIZE_MB                 = "orthanc_storage_cache_size_mb";
+static const char* const METRICS_STORAGE_AREA_MEMORY_CAPACITY_MB            = "orthanc_storage_memory_capacity_mb";
+static const char* const METRICS_STORAGE_AREA_MEMORY_COUNT                  = "orthanc_storage_memory_count";
+static const char* const METRICS_STORAGE_AREA_MEMORY_MAX_USAGE_MB           = "orthanc_storage_memory_max_usage_mb";
+static const char* const METRICS_STORAGE_AREA_MEMORY_USAGE_MB               = "orthanc_storage_memory_usage_mb";
+static const char* const METRICS_STORAGE_THREAD_POOL_AVAILABLE_THREADS      = "orthanc_storage_available_threads";
+
+static const char* const METRICS_DICOM_PARSER_CACHE_COUNT                   = "orthanc_dicom_parser_cache_count";
+static const char* const METRICS_DICOM_PARSER_CACHE_HIT_COUNT               = "orthanc_dicom_parser_cache_hit_count";
+static const char* const METRICS_DICOM_PARSER_CACHE_MISS_COUNT              = "orthanc_dicom_parser_cache_miss_count";
+static const char* const METRICS_DICOM_PARSER_CACHE_SIZE_MB                 = "orthanc_dicom_parser_cache_size_mb";
+static const char* const METRICS_DICOM_PARSER_MEMORY_CAPACITY_MB            = "orthanc_dicom_parser_memory_capacity_mb";
+static const char* const METRICS_DICOM_PARSER_MEMORY_COUNT                  = "orthanc_dicom_parser_memory_count";
+static const char* const METRICS_DICOM_PARSER_MEMORY_MAX_USAGE_MB           = "orthanc_dicom_parser_memory_max_usage_mb";
+static const char* const METRICS_DICOM_PARSER_MEMORY_USAGE_MB               = "orthanc_dicom_parser_memory_usage_mb";
+static const char* const METRICS_DICOM_PARSER_THREAD_POOL_AVAILABLE_THREADS = "orthanc_dicom_parser_available_threads";
+
+static const char* const METRICS_TRANSCODER_CACHE_COUNT                     = "orthanc_transcoder_cache_count";
+static const char* const METRICS_TRANSCODER_CACHE_HIT_COUNT                 = "orthanc_transcoder_cache_hit_count";
+static const char* const METRICS_TRANSCODER_CACHE_MISS_COUNT                = "orthanc_transcoder_cache_miss_count";
+static const char* const METRICS_TRANSCODER_CACHE_SIZE_MB                   = "orthanc_transcoder_cache_size_mb";
+static const char* const METRICS_TRANSCODER_MEMORY_CAPACITY_MB              = "orthanc_transcoder_memory_capacity_mb";
+static const char* const METRICS_TRANSCODER_MEMORY_COUNT                    = "orthanc_transcoder_memory_count";
+static const char* const METRICS_TRANSCODER_MEMORY_MAX_USAGE_MB             = "orthanc_transcoder_memory_max_usage_mb";
+static const char* const METRICS_TRANSCODER_MEMORY_USAGE_MB                 = "orthanc_transcoder_memory_usage_mb";
+static const char* const METRICS_TRANSCODER_THREAD_POOL_AVAILABLE_THREADS   = "orthanc_transcoder_available_threads";
+
+static const char* const METRICS_SEQUENTIAL_READER_THREAD_POOL_AVAILABLE_THREADS = "orthanc_sequential_reader_available_threads";
+
+
 
 
 /**
@@ -102,6 +165,97 @@ namespace Orthanc
       // Do not try to transcode special transfer syntaxes
       transferSyntax != DicomTransferSyntax_RFC2557MimeEncapsulation &&
       transferSyntax != DicomTransferSyntax_XML);
+  }
+
+
+  void ServerContext::StoreFile(FileInfo& info,
+                                const void* data,
+                                size_t size,
+                                FileContentType type,
+                                CompressionType compression,
+                                const std::string& precomputedMd5,
+                                const DicomInstanceToStore* instance)
+  {
+    assert(metricsRegistry_.get() != NULL);
+    const std::string uuid = Toolbox::GenerateUuid();
+
+    std::string md5 = precomputedMd5;
+
+    if (storeMD5_ &&
+        md5.empty()) // if it has not been precomputed, compute it now
+    {
+      Toolbox::ComputeMD5(md5, data, size);
+    }
+
+    std::string customData;
+
+    switch (compression)
+    {
+      case CompressionType_None:
+      {
+        {
+          MetricsRegistry::Timer timer(*metricsRegistry_, METRICS_STORAGE_AREA_CREATE_DURATION);
+          area_.Create(customData, uuid, data, size, type, compression, instance);
+        }
+
+        metricsRegistry_->IncrementIntegerValue(METRICS_STORAGE_AREA_WRITTEN_BYTES, static_cast<int64_t>(size));
+
+        info = FileInfo(uuid, type, size, md5);
+        info.SetCustomData(customData);
+
+        try
+        {
+          StorageAreaDataSource::StoreIntoCache(*storageAreaReader_, info, data, size);
+        }
+        catch (OrthancException& e)
+        {
+          LOG(WARNING) << "Unable to store a new attachment into the cache: " << e.What();
+        }
+
+        return;
+      }
+
+      case CompressionType_ZlibWithSize:
+      {
+        ZlibCompressor zlib;
+
+        std::string compressed;
+        zlib.Compress(compressed, data, size);
+
+        const void* compressedData = compressed.empty() ? NULL : compressed.c_str();
+
+        std::string compressedMD5;
+
+        if (storeMD5_)
+        {
+          Toolbox::ComputeMD5(compressedMD5, compressed);
+        }
+
+        {
+          MetricsRegistry::Timer timer(*metricsRegistry_, METRICS_STORAGE_AREA_CREATE_DURATION);
+          area_.Create(customData, uuid, compressedData, compressed.size(), type, compression, instance);
+        }
+
+        metricsRegistry_->IncrementIntegerValue(METRICS_STORAGE_AREA_WRITTEN_BYTES, static_cast<int64_t>(compressed.size()));
+
+        info = FileInfo(uuid, type, size, md5, CompressionType_ZlibWithSize, compressed.size(), compressedMD5);
+        info.SetCustomData(customData);
+
+        try
+        {
+          StorageAreaDataSource::StoreIntoCache(*storageAreaReader_, info, compressedData, compressed.size());
+        }
+        catch (OrthancException& e)
+        {
+          LOG(WARNING) << "Unable to store a new attachment into the cache: " << e.What();
+        }
+
+        return;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
   }
 
 
@@ -361,21 +515,29 @@ namespace Orthanc
   }
 
 
-  void ServerContext::PublishCacheMetrics()
+  static void GetMemorySizeConfiguration(uint64_t& result,
+                                         const OrthancConfiguration::ReaderLock& lock,
+                                         const char* parameter)
   {
-    metricsRegistry_->SetFloatValue("orthanc_dicom_cache_size_mb",
-                                    static_cast<float>(dicomCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
-    metricsRegistry_->SetIntegerValue("orthanc_dicom_cache_count", 
-                                    static_cast<int64_t>(dicomCache_.GetNumberOfItems()));
-    metricsRegistry_->SetFloatValue("orthanc_storage_cache_size_mb",
-                                    static_cast<float>(storageCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
-    metricsRegistry_->SetIntegerValue("orthanc_storage_cache_count", 
-                                    static_cast<int64_t>(storageCache_.GetNumberOfItems()));
+    unsigned int mb;
+    if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(mb, parameter))
+    {
+      mb = lock.GetConfiguration().GetUnsignedIntegerParameter(parameter);
+      LOG(WARNING) << "Performance option \"" << parameter << "\" is not defined in your configuration, setting it to "
+                   << mb << "MB. Depending on the available memory on the system, you may want to adapt this value.";
+    }
+    else
+    {
+      LOG(INFO) << "Performance option \"" << parameter << "\" is set to " << mb << "MB";
+    }
+
+    result = static_cast<uint64_t>(mb) * MEGABYTE;
   }
 
 
   ServerContext::ServerContext(IDatabaseWrapper& database,
                                IPluginStorageArea& area,
+                               ServerTranscoder* transcoder /* takes ownership */,
                                bool unitTesting,
                                size_t maxCompletedJobs,
                                bool readOnly) :
@@ -384,7 +546,6 @@ namespace Orthanc
     compressionEnabled_(false),
     storeMD5_(true),
     largeDicomThrottler_(1),
-    dicomCache_(DICOM_CACHE_SIZE),
     mainLua_(*this),
     filterLua_(*this),
     luaListener_(*this),
@@ -400,6 +561,8 @@ namespace Orthanc
     isExecuteLuaEnabled_(false),
     isRestApiWriteToFileSystemEnabled_(false),
     overwriteInstances_(OverwriteInstancesMode_Never),
+    transcoder_(transcoder),
+    transcodeDicomProtocol_(true),
     isIngestTranscoding_(false),
     ingestTranscodingOfUncompressed_(true),
     ingestTranscodingOfCompressed_(true),
@@ -419,7 +582,7 @@ namespace Orthanc
         mediaArchive_.reset(
           new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("MediaArchiveSize")));
         defaultLocalAet_ = lock.GetConfiguration().GetOrthancAET();
-        jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs"));
+        jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetConcurrentJobs());
 
         saveJobs_ = lock.GetConfiguration().GetBooleanParameter("SaveJobs");
         if (readOnly_ && saveJobs_)
@@ -550,6 +713,199 @@ namespace Orthanc
 #else
       LOG(INFO) << "Your platform does not support malloc_trim(), not starting the memory trimming thread";
 #endif
+
+      unsigned int storageLoaderThreads, transcoderThreads, dicomParserThreads;
+      unsigned int sequentialReaderThreads, sequentialReaderWindowSize;
+
+      uint64_t storageCacheSize, storageMemoryCapacity, dicomParserMemoryCapacity;
+      uint64_t dicomParserCacheSize, transcoderMemoryCapacity, transcoderCacheSize, sequentialReaderWindowCapacity;
+      
+      {
+        OrthancConfiguration::ReaderLock lock;
+
+        GetMemorySizeConfiguration(storageCacheSize, lock, ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE);
+
+        if (storageCacheSize == 0)
+        {
+          LOG(WARNING) << "Storage cache is disabled";
+        }
+
+        unsigned int compatibilityLoaderThreadsCount;
+        std::string compatibilityLoaderThreadsOption;
+        bool hasCompatibilityLoaderThreads = lock.GetConfiguration().LookupCompatibilityLoaderThreads(
+          compatibilityLoaderThreadsCount, compatibilityLoaderThreadsOption);
+
+        if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(storageLoaderThreads, ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT))
+        {
+          const unsigned int concurrentJobs = lock.GetConfiguration().GetConcurrentJobs();
+
+          if (hasCompatibilityLoaderThreads)
+          {
+            storageLoaderThreads = concurrentJobs * compatibilityLoaderThreadsCount;
+          }
+          else
+          {
+            storageLoaderThreads = concurrentJobs;
+          }
+
+          static const unsigned int CAP_LOW = 4;
+          static const unsigned int CAP_HIGH = 50;
+
+          storageLoaderThreads = std::max(storageLoaderThreads, CAP_LOW);
+          storageLoaderThreads = std::min(storageLoaderThreads, CAP_HIGH);
+
+          LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT
+                       << "\" is not defined in your configuration, setting it to " << storageLoaderThreads
+                       << ", based on the \"" << ORTHANC_CONFIG_CONCURRENT_JOBS << "\" "
+                       << (hasCompatibilityLoaderThreads ? "and the \"" + compatibilityLoaderThreadsOption + "\" options" : "option")
+                       << " clamped to the range [" << CAP_LOW << "," << CAP_HIGH << "]";
+        }
+        else
+        {
+          LOG(INFO) << "Performance option \"" << ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT << "\" is set to " << storageLoaderThreads;
+        }
+
+        transcoderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_TRANSCODER_THREADS_COUNT);
+        LOG(INFO) << "Performance option \"" << ORTHANC_CONFIG_TRANSCODER_THREADS_COUNT << "\" is set to " << transcoderThreads;
+
+        dicomParserThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS_COUNT);
+        LOG(INFO) << "Performance option \"" << ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS_COUNT << "\" is set to " << dicomParserThreads;
+
+        GetMemorySizeConfiguration(storageMemoryCapacity, lock, ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY);
+        GetMemorySizeConfiguration(dicomParserMemoryCapacity, lock, ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY);
+        GetMemorySizeConfiguration(dicomParserCacheSize, lock, ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE);
+        GetMemorySizeConfiguration(transcoderMemoryCapacity, lock, ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY);
+        GetMemorySizeConfiguration(transcoderCacheSize, lock, ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE);
+        GetMemorySizeConfiguration(sequentialReaderWindowCapacity, lock, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_CAPACITY);
+
+        if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(sequentialReaderThreads, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS_COUNT))
+        {
+          LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS_COUNT
+                       << "\" is not defined in your configuration, setting it to the same value as \""
+                       << ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT << "\": " << storageLoaderThreads;
+          sequentialReaderThreads = storageLoaderThreads;
+        }
+        else
+        {
+          LOG(INFO) << "Performance option \"" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS_COUNT
+                    << "\" is set to " << sequentialReaderThreads;
+        }
+
+        if (!lock.GetConfiguration().LookupUnsignedIntegerParameter(sequentialReaderWindowSize, ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE))
+        {
+          if (hasCompatibilityLoaderThreads)
+          {
+            LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE
+                         << "\" is not defined in your configuration, setting it to the same value as \""
+                         << compatibilityLoaderThreadsOption << "\": " << compatibilityLoaderThreadsCount;
+            sequentialReaderWindowSize = compatibilityLoaderThreadsCount;
+          }
+          else
+          {
+            sequentialReaderWindowSize = lock.GetConfiguration().GetUnsignedIntegerParameter(ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE);
+            LOG(WARNING) << "Performance option \"" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE
+                         << "\" is not defined in your configuration, setting it to " << sequentialReaderWindowSize;
+          }
+        }
+        else
+        {
+          LOG(INFO) << "Performance option \"" << ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_WINDOW_SIZE
+                    << "\" is set to " << sequentialReaderWindowSize;
+        }
+      }
+
+      // For streaming
+      {
+        boost::shared_ptr<ThreadPool> pool(new ThreadPool);
+        pool->SetThreadsCount(storageLoaderThreads);
+        pool->SetLoggingThreadName("STORAGE-SRC");
+        pool->SetDequeueTimeout(100);
+        pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_STORAGE_THREAD_POOL_AVAILABLE_THREADS);
+        pool->Start();
+
+        std::unique_ptr<StorageAreaDataSource> source(new StorageAreaDataSource(area_, IsStoreMD5ForAttachments()));
+        source->SetMetricsRegistry(metricsRegistry_,
+                                   METRICS_STORAGE_AREA_READ_BYTES, METRICS_STORAGE_AREA_READ_DURATION);
+
+        storageAreaReader_.reset(new DataSourceReader(pool, source.release()));
+        storageAreaReader_->SetMetricsConfiguration(
+          DataSourceReader::MetricsConfiguration(metricsRegistry_,
+                                                 METRICS_STORAGE_AREA_CACHE_SIZE_MB,
+                                                 METRICS_STORAGE_AREA_CACHE_COUNT,
+                                                 METRICS_STORAGE_AREA_CACHE_HIT_COUNT,
+                                                 METRICS_STORAGE_AREA_CACHE_MISS_COUNT,
+                                                 METRICS_STORAGE_AREA_MEMORY_CAPACITY_MB,
+                                                 METRICS_STORAGE_AREA_MEMORY_USAGE_MB,
+                                                 METRICS_STORAGE_AREA_MEMORY_COUNT,
+                                                 METRICS_STORAGE_AREA_MEMORY_MAX_USAGE_MB));
+
+        storageAreaReader_->SetCapacity(storageMemoryCapacity);
+        storageAreaReader_->CreateCache(storageCacheSize);
+      }
+
+      {
+        boost::shared_ptr<ThreadPool> pool(new ThreadPool);
+        pool->SetThreadsCount(dicomParserThreads);
+        pool->SetLoggingThreadName("DICOM-SRC");
+        pool->SetDequeueTimeout(100);
+        pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_DICOM_PARSER_THREAD_POOL_AVAILABLE_THREADS);
+        pool->Start();
+
+        dicomReader_.reset(new DataSourceReader(pool, new DicomDataSource(storageAreaReader_)));
+        dicomReader_->SetMetricsConfiguration(
+          DataSourceReader::MetricsConfiguration(metricsRegistry_,
+                                                 METRICS_DICOM_PARSER_CACHE_SIZE_MB,
+                                                 METRICS_DICOM_PARSER_CACHE_COUNT,
+                                                 METRICS_DICOM_PARSER_CACHE_HIT_COUNT,
+                                                 METRICS_DICOM_PARSER_CACHE_MISS_COUNT,
+                                                 METRICS_DICOM_PARSER_MEMORY_CAPACITY_MB,
+                                                 METRICS_DICOM_PARSER_MEMORY_USAGE_MB,
+                                                 METRICS_DICOM_PARSER_MEMORY_COUNT,
+                                                 METRICS_DICOM_PARSER_MEMORY_MAX_USAGE_MB));
+
+        dicomReader_->SetCapacity(dicomParserMemoryCapacity);
+        dicomReader_->CreateCache(dicomParserCacheSize);
+      }
+
+      if (transcoder_.get() != NULL)
+      {
+        boost::shared_ptr<ThreadPool> pool(new ThreadPool);
+        pool->SetThreadsCount(transcoderThreads);
+        pool->SetLoggingThreadName("TRANSCODER");
+        pool->SetDequeueTimeout(100);
+        pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_TRANSCODER_THREAD_POOL_AVAILABLE_THREADS);
+        pool->Start();
+
+        transcoderReader_.reset(new DataSourceReader(pool, new TranscoderDataSource(transcoder_, storageAreaReader_)));
+        transcoderReader_->SetMetricsConfiguration(
+          DataSourceReader::MetricsConfiguration(metricsRegistry_,
+                                                 METRICS_TRANSCODER_CACHE_SIZE_MB,
+                                                 METRICS_TRANSCODER_CACHE_COUNT,
+                                                 METRICS_TRANSCODER_CACHE_HIT_COUNT,
+                                                 METRICS_TRANSCODER_CACHE_MISS_COUNT,
+                                                 METRICS_TRANSCODER_MEMORY_CAPACITY_MB,
+                                                 METRICS_TRANSCODER_MEMORY_USAGE_MB,
+                                                 METRICS_TRANSCODER_MEMORY_COUNT,
+                                                 METRICS_TRANSCODER_MEMORY_MAX_USAGE_MB));
+
+        transcoderReader_->SetCapacity(transcoderMemoryCapacity);
+        transcoderReader_->CreateCache(transcoderCacheSize);
+      }
+
+      {
+        std::unique_ptr<ThreadPool> pool(new ThreadPool);
+        pool->SetThreadsCount(sequentialReaderThreads);
+        pool->SetLoggingThreadName("SEQ-READER");
+        pool->SetDequeueTimeout(100);
+        pool->SetMetricsConfiguration(*metricsRegistry_, METRICS_SEQUENTIAL_READER_THREAD_POOL_AVAILABLE_THREADS);
+        pool->Start();
+
+        boost::shared_ptr<IExecutorService> executor(pool.release());
+        dicomSequentialReaderFactory_.reset(new DicomSequentialReader::Factory(
+                                              executor, storageAreaReader_, dicomReader_, transcoderReader_,
+                                              sequentialReaderWindowSize,
+                                              sequentialReaderWindowCapacity));
+      }
     }
     catch (OrthancException&)
     {
@@ -656,8 +1012,22 @@ namespace Orthanc
                                  FileContentType type,
                                  const std::string& customData)
   {
-    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-    accessor.Remove(fileUuid, type, customData);
+    /**
+     * Note that it is not necessary to explicitly invalidate the
+     * cache after the removal of an attachment, as each attachment
+     * receives a unique UUID in ServerContext::StoreFile(), even if
+     * the DICOM instance is overwritten. The key of the removed
+     * attachment will thus never be seen again as new files are added.
+     **/
+
+    MetricsRegistry::Timer timer(*metricsRegistry_, METRICS_STORAGE_AREA_REMOVE_DURATION);
+    area_.Remove(fileUuid, type, customData);
+  }
+
+
+  void ServerContext::RemoveFile(const FileInfo& attachment)
+  {
+    RemoveFile(attachment.GetUuid(), attachment.GetContentType(), attachment.GetCustomData());
   }
 
 
@@ -718,7 +1088,6 @@ namespace Orthanc
     try
     {
       MetricsRegistry::Timer timer(GetMetricsRegistry(), "orthanc_store_dicom_duration_ms");
-      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
 
       DicomInstanceHasher hasher(summary);
       resultPublicId = hasher.HashInstance();
@@ -809,12 +1178,6 @@ namespace Orthanc
         return result;
       }
 
-      // Remove the file from the DicomCache
-      // If this is a new instance, this is a no-op
-      // If overwriteMode == OverwriteInstancesMode_IfChanged and the file has not changed, we won't reach this point
-      // If overwriteMode == OverwriteInstancesMode_Always, then, let's always invalidate even if it is meaningful only if the file has changed (note: there is a TODO about cache and MD5)
-      dicomCache_.Invalidate(resultPublicId);
-
       // TODO Should we use "gzip" instead?
       CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
@@ -823,7 +1186,9 @@ namespace Orthanc
 
       if (!isAdoption)
       {
-        accessor.Write(dicomInfo, dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom, compression, dicomMd5, storeMD5_, &dicom);
+        StoreFile(dicomInfo, dicom.GetBufferData(), dicom.GetBufferSize(),
+                  FileContentType_Dicom, compression, dicomMd5, &dicom);
+
         attachments.push_back(dicomInfo);
       }
       else
@@ -836,7 +1201,9 @@ namespace Orthanc
           (!area_.HasEfficientReadRange() ||
            compressionEnabled_))
       {
-        accessor.Write(dicomUntilPixelData, dicom.GetBufferData(), pixelDataOffset, FileContentType_DicomUntilPixelData, compression, storeMD5_, NULL);
+        StoreFile(dicomUntilPixelData, dicom.GetBufferData(), pixelDataOffset, FileContentType_DicomUntilPixelData,
+                  compression, "" /* MD5 will be computed if needed */, NULL);
+
         attachments.push_back(dicomUntilPixelData);
       }
 
@@ -860,11 +1227,11 @@ namespace Orthanc
           LOG(ERROR) << "Unexpected error while storing an instance in DB, cancelling and deleting the attachments: " << ex.GetDetails();
         }
 
-        accessor.Remove(dicomInfo);
+        RemoveFile(dicomInfo);
 
         if (dicomUntilPixelData.IsValid())
         {
-          accessor.Remove(dicomUntilPixelData);
+          RemoveFile(dicomUntilPixelData);
         }
         
         throw;
@@ -883,12 +1250,12 @@ namespace Orthanc
       {
         if (!isAdoption)
         {
-          accessor.Remove(dicomInfo);
+          RemoveFile(dicomInfo);
         }
 
         if (dicomUntilPixelData.IsValid())
         {
-          accessor.Remove(dicomUntilPixelData);
+          RemoveFile(dicomUntilPixelData);
         }
       }
 
@@ -1092,7 +1459,7 @@ namespace Orthanc
           imageInfo.ThrowIfInvalidFrameSize();
         }
 
-        if (GetTranscoder().Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew /* allow new SOP instance UID */))
+        if (GetTranscoder()->Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew /* allow new SOP instance UID */))
         {
           std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
 
@@ -1128,8 +1495,15 @@ namespace Orthanc
                                        const FileInfo& attachment,
                                        const std::string& filename)
   {
-    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-    accessor.AnswerFile(output, attachment, GetFileContentMime(attachment.GetContentType()), filename);
+    std::unique_ptr<StorageAreaDataSource::Range> range(ReadAttachment(attachment, true /* uncompress */));
+
+    BufferHttpSender sender;
+    sender.SetBuffer(range->GetData(), range->GetSize());
+    sender.SetContentType(GetFileContentMime(attachment.GetContentType()));
+    sender.SetContentFilename(filename);
+
+    HttpStreamTranscoder transcoder(sender, CompressionType_None);
+    output.AnswerStream(transcoder);
   }
 
 
@@ -1156,13 +1530,15 @@ namespace Orthanc
       return;
     }
 
-    std::string content;
-
-    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-    accessor.Read(content, attachment);
 
     FileInfo modified;
-    accessor.Write(modified, content.empty() ? NULL : content.c_str(), content.size(), attachmentType, compression, storeMD5_, NULL);
+
+    {
+      std::unique_ptr<StorageAreaDataSource::Range> range(ReadAttachment(attachment, true /* uncompress */));
+
+      StoreFile(modified, range->GetData(), range->GetSize(), attachmentType, compression,
+                "" /* MD5 will be computed if needed */, NULL);
+    }
 
     try
     {
@@ -1171,13 +1547,13 @@ namespace Orthanc
                                                 true, revision, modified.GetUncompressedMD5());
       if (status != StoreStatus_Success)
       {
-        accessor.Remove(modified);
+        RemoveFile(modified);
         throw OrthancException(ErrorCode_Database);
       }
     }
     catch (OrthancException&)
     {
-      accessor.Remove(modified);
+      RemoveFile(modified);
       throw;
     }    
   }
@@ -1290,15 +1666,14 @@ namespace Orthanc
 
     if (LookupAttachment(attachment, FileContentType_DicomUntilPixelData, instanceAttachments))
     {
-      std::string dicom;
+      std::unique_ptr<DicomDataSource::Dicom> dicom(
+        DicomDataSource::Execute(*dicomReader_, DicomDataSource::CreateWholeRequest(attachment)));
 
       {
-        StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-        accessor.Read(dicom, attachment);
+        DicomDataSource::Dicom::Lock lock(*dicom);
+        OrthancConfiguration::DefaultDicomDatasetToJson(result, lock.GetContent(), ignoreTagLength);
       }
 
-      ParsedDicomFile parsed(dicom);
-      OrthancConfiguration::DefaultDicomDatasetToJson(result, parsed, ignoreTagLength);
       InjectEmptyPixelData(result);
     }
     else
@@ -1339,17 +1714,15 @@ namespace Orthanc
          * this case cannot be used if "StorageCompression" option is
          * "true".
          **/
-      
-        std::string dicom;
-        
+
+        std::unique_ptr<DicomDataSource::Dicom> dicom(
+          DicomDataSource::Execute(*dicomReader_, DicomDataSource::CreateUntilPixelDataRequest(attachment, pixelDataOffset)));
+
         {
-          StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-          accessor.ReadStartRange(dicom, attachment, pixelDataOffset);
+          DicomDataSource::Dicom::Lock lock(*dicom);
+          OrthancConfiguration::DefaultDicomDatasetToJson(result, lock.GetContent(), ignoreTagLength);
         }
         
-        assert(dicom.size() == pixelDataOffset);
-        ParsedDicomFile parsed(dicom);
-        OrthancConfiguration::DefaultDicomDatasetToJson(result, parsed, ignoreTagLength);
         InjectEmptyPixelData(result);
       }
       else if (ignoreTagLength.empty() &&
@@ -1362,15 +1735,10 @@ namespace Orthanc
          * "/tools/invalidate-tags" or to one flavors of
          * "/.../.../reconstruct" will disable this case.
          **/
-      
-        std::string dicomAsJson;
 
-        {
-          StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-          accessor.Read(dicomAsJson, attachment);
-        }
+        std::unique_ptr<StorageAreaDataSource::Range> dicomAsJson(ReadAttachment(attachment, true /* uncompress */));
 
-        if (!Toolbox::ReadJson(result, dicomAsJson))
+        if (!Toolbox::ReadJson(result, dicomAsJson->GetData(), dicomAsJson->GetSize()))
         {
           throw OrthancException(ErrorCode_CorruptedFile,
                                  "Corrupted DICOM-as-JSON attachment of instance: " + instancePublicId);
@@ -1384,25 +1752,32 @@ namespace Orthanc
          * file from the storage area.
          **/
 
-        std::string dicom;
-        ReadDicom(dicom, instancePublicId);
+        if (!LookupAttachment(attachment, FileContentType_Dicom, instanceAttachments))
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
 
-        ParsedDicomFile parsed(dicom);
-        OrthancConfiguration::DefaultDicomDatasetToJson(result, parsed, ignoreTagLength);
+        std::unique_ptr<StorageAreaDataSource::Range> range(ReadAttachment(attachment, true /* uncompress */));
+
+        // We don't use the cache, as this would complexify the code for a rare edge case
+        ParsedDicomFile dicom(range->GetData(), range->GetSize());
+        OrthancConfiguration::DefaultDicomDatasetToJson(result, dicom, ignoreTagLength);
 
         if (!hasPixelDataOffset)
         {
           /**
-           * The pixel data offset was never computed for this
+           * (*) The pixel data offset was never computed for this
            * instance, which indicates that it was created using
            * Orthanc <= 1.9.0, or that calls to
            * "LookupPixelDataOffset()" from earlier versions of
            * Orthanc have failed. Try again this precomputation now
            * for future calls.
            **/
+
           ValueRepresentation pixelDataVR;
-          if (DicomStreamReader::LookupPixelDataOffset(pixelDataOffset, pixelDataVR, dicom) &&
-              pixelDataOffset < dicom.size())
+          if (DicomStreamReader::LookupPixelDataOffset(
+                pixelDataOffset, pixelDataVR, range->GetData(), range->GetSize()) &&
+              pixelDataOffset < range->GetSize())
           {
             index_.OverwriteMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
                                      boost::lexical_cast<std::string>(pixelDataOffset));
@@ -1412,8 +1787,8 @@ namespace Orthanc
             {
               int64_t newRevision;
               AddAttachment(newRevision, instancePublicId, ResourceType_Instance, FileContentType_DicomUntilPixelData,
-                            dicom.empty() ? NULL: dicom.c_str(), pixelDataOffset,
-                             false /* no old revision */, -1 /* dummy revision */, "" /* dummy MD5 */);
+                            range->GetData(), pixelDataOffset,
+                            false /* no old revision */, -1 /* dummy revision */, "" /* dummy MD5 */);
             }
           }
         }
@@ -1430,227 +1805,103 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ReadDicom(std::string& dicom,
-                                std::string& attachmentId,
-                                const std::string& instancePublicId)
-  {
-    std::unique_ptr<Semaphore::Locker> dummyLargeDicomLocker;  // only the DicomCacheLocker uses a real largeDicomLocker_
-    ReadDicomInternal(dicom, attachmentId, instancePublicId, dummyLargeDicomLocker, 0);
-  }
-
-  void ServerContext::ReadDicomInternal(std::string& dicom,
-                                        std::string& attachmentId,
-                                        const std::string& instancePublicId,
-                                        std::unique_ptr<Semaphore::Locker>& largeDicomLocker,
-                                        std::size_t largeDicomThreshold)
+  FileInfo ServerContext::LookupDicomForInstance(const std::string& instancePublicId)
   {
     FileInfo attachment;
     int64_t revision;
 
-    if (!index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
+    if (index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
+    {
+      return attachment;
+    }
+    else
     {
       throw OrthancException(ErrorCode_InternalError,
                              "Unable to read attachment " + EnumerationToString(FileContentType_Dicom) +
                              " of instance " + instancePublicId);
     }
-
-    assert(attachment.GetContentType() == FileContentType_Dicom);
-    attachmentId = attachment.GetUuid();
-
-    if (attachment.GetUncompressedSize() < largeDicomThreshold)  // release ASAP (before the read) if we don't plan to hold the lock (https://discourse.orthanc-server.org/t/patch-release-large-dicom-semaphore-lock-early-for-better-performance/6440)
-    {
-      largeDicomLocker.reset(NULL);
-    }
-
-    ReadAttachment(dicom, attachment, true /* uncompress */);
   }
 
 
-  void ServerContext::ReadDicom(std::string& dicom,
-                                const std::string& instancePublicId)
+  StorageAreaDataSource::Range* ServerContext::ReadAttachment(const FileInfo& attachment,
+                                                              bool uncompress)
   {
-    std::string attachmentId;
-    ReadDicom(dicom, attachmentId, instancePublicId);    
+    return StorageAreaDataSource::Execute(
+      *storageAreaReader_, StorageAreaDataSource::CreateAttachmentRequest(attachment, uncompress));
   }
 
-  void ServerContext::ReadDicomInternal(std::string& dicom,
-                                        const std::string& instancePublicId,
-                                        std::unique_ptr<Semaphore::Locker>& largeDicomLocker,
-                                        std::size_t largeDicomThreshold)
+
+  StorageAreaDataSource::Range* ServerContext::ReadAttachment(const FileInfo& attachment,
+                                                              const StorageRange& range,
+                                                              bool uncompress)
   {
-    std::string attachmentId;
-    ReadDicomInternal(dicom, attachmentId, instancePublicId, largeDicomLocker, largeDicomThreshold);
+    return StorageAreaDataSource::ReadRange(*storageAreaReader_, attachment, range, uncompress);
   }
 
-  void ServerContext::ReadDicomForHeader(std::string& dicom,
-                                         const std::string& instancePublicId)
+
+  StorageAreaDataSource::Range* ServerContext::ReadRawDicom(const std::string& instancePublicId)
   {
-    if (!ReadDicomUntilPixelData(dicom, instancePublicId))
-    {
-      ReadDicom(dicom, instancePublicId);
-    }
+    return ReadAttachment(LookupDicomForInstance(instancePublicId), true /* uncompress */);
   }
 
-  bool ServerContext::ReadDicomUntilPixelData(std::string& dicom,
-                                              const std::string& instancePublicId)
+
+  DicomDataSource::Dicom* ServerContext::ReadParsedDicom(const std::string& instancePublicId)
+  {
+    return DicomDataSource::Execute(*dicomReader_, DicomDataSource::CreateWholeRequest(LookupDicomForInstance(instancePublicId)));
+  }
+
+
+  DicomDataSource::Dicom* ServerContext::ReadDicomUntilPixelData(const std::string& instancePublicId)
   {
     FileInfo attachment;
     int64_t revision;  // Ignored
-    if (index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_DicomUntilPixelData))
+
+    if (index_.LookupAttachment(attachment, revision, ResourceType_Instance,
+                                instancePublicId, FileContentType_DicomUntilPixelData))
     {
-      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-
-      accessor.Read(dicom, attachment);
-      assert(dicom.size() == attachment.GetUncompressedSize());
-
-      return true;
-    }
-
-    if (!area_.HasEfficientReadRange())
-    {
-      return false;
-    }
-    
-    if (!index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Unable to read the DICOM file of instance " + instancePublicId);
-    }
-
-    std::string s;
-
-    if (attachment.GetCompressionType() == CompressionType_None &&
-        index_.LookupMetadata(s, instancePublicId, ResourceType_Instance,
-                              MetadataType_Instance_PixelDataOffset) &&
-        !s.empty())
-    {
-      uint64_t pixelDataOffset = 0;
-
-      if (SerializationToolbox::ParseUnsignedInteger64(pixelDataOffset, s))
-      {
-        StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-
-        accessor.ReadStartRange(dicom, attachment, pixelDataOffset);
-        assert(dicom.size() == pixelDataOffset);
-        
-        return true;   // Success
-      }
-      else
-      {
-        LOG(ERROR) << "Metadata \"PixelDataOffset\" is corrupted for instance: " << instancePublicId;
-      }
-    }
-
-    return false;
-  }
-  
-
-  void ServerContext::ReadAttachment(std::string& result,
-                                     const FileInfo& attachment,
-                                     bool uncompressIfNeeded,
-                                     bool skipCache)
-  {
-    std::unique_ptr<StorageAccessor> accessor;
-      
-    if (skipCache)
-    {
-      accessor.reset(new StorageAccessor(area_, GetMetricsRegistry()));
+      return DicomDataSource::Execute(*dicomReader_, DicomDataSource::CreateWholeRequest(attachment));
     }
     else
     {
-      accessor.reset(new StorageAccessor(area_, storageCache_, GetMetricsRegistry()));
-    }
+      attachment = LookupDicomForInstance(instancePublicId);
 
-    if (uncompressIfNeeded)
-    {
-      accessor->Read(result, attachment);
-    }
-    else
-    {
-      // Do not uncompress the content of the storage area, return the
-      // raw data
-      accessor->ReadRaw(result, attachment);
-    }
-  }
+      std::string metadata;
 
-  void ServerContext::ReadAttachmentRange(std::string &result,
-                                          const FileInfo &attachment,
-                                          const StorageRange &range,
-                                          bool uncompressIfNeeded)
-  {
-    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-    accessor.ReadRange(result, attachment, range, uncompressIfNeeded);
-  }
-
-
-  ServerContext::DicomCacheLocker::DicomCacheLocker(ServerContext& context,
-                                                    const std::string& instancePublicId) :
-    context_(context),
-    instancePublicId_(instancePublicId)
-  {
-    accessor_.reset(new ParsedDicomCache::Accessor(context_.dicomCache_, instancePublicId));
-    
-    if (!accessor_->IsValid())
-    {
-      accessor_.reset(NULL);
-
-      // Throttle to avoid loading several large DICOM files simultaneously (since the ParsedDicomCache is 128MB, loading multiple 50MB files would throw them out directly after loading)
-      largeDicomLocker_.reset(new Semaphore::Locker(context.largeDicomThrottler_));
-      
-      // Release the throttle if loading "small" DICOM files (under
-      // 50MB, which is an arbitrary value)
-      context_.ReadDicomInternal(buffer_, instancePublicId_, largeDicomLocker_, static_cast<size_t>(50) * 1024 * 1024);
-      
-      dicom_.reset(new ParsedDicomFile(buffer_));
-      dicomSize_ = buffer_.size();
-    }
-
-    assert(accessor_.get() != NULL ||
-           dicom_.get() != NULL);
-  }
-
-
-  ServerContext::DicomCacheLocker::~DicomCacheLocker()
-  {
-    if (dicom_.get() != NULL)
-    {
-      try
+      if (attachment.GetCompressionType() == CompressionType_None &&
+          index_.LookupMetadata(metadata, instancePublicId, ResourceType_Instance,
+                                MetadataType_Instance_PixelDataOffset) &&
+          !metadata.empty())
       {
-        context_.dicomCache_.Acquire(instancePublicId_, dicom_.release(), dicomSize_);
+        uint64_t pixelDataOffset = 0;
+
+        if (SerializationToolbox::ParseUnsignedInteger64(pixelDataOffset, metadata))
+        {
+          return DicomDataSource::Execute(*dicomReader_, DicomDataSource::CreateUntilPixelDataRequest(attachment, pixelDataOffset));
+        }
+        else
+        {
+          LOG(ERROR) << "Metadata \"PixelDataOffset\" is corrupted for instance: " << instancePublicId;
+        }
       }
-      catch (OrthancException&) // NOLINT(bugprone-empty-catch)
-      {
-      }
+
+      // Fallback: The pixel data offset is not present or cannot be used, the whole DICOM file must be read
+      return DicomDataSource::Execute(*dicomReader_, DicomDataSource::CreateWholeRequest(attachment));
     }
   }
 
 
-  ParsedDicomFile& ServerContext::DicomCacheLocker::GetDicom() const
+  TranscoderDataSource::Transcoded* ServerContext::ReadTranscodedDicom(const std::string& instancePublicId,
+                                                                       DicomTransferSyntax targetSyntax,
+                                                                       TranscodingSopInstanceUidMode mode,
+                                                                       bool hasLossyQuality,
+                                                                       unsigned int lossyQuality)
   {
-    if (dicom_.get() != NULL)
-    {
-      return *dicom_;
-    }
-    else
-    {
-      assert(accessor_.get() != NULL);
-      return accessor_->GetDicom();
-    }
+    const FileInfo& attachment = LookupDicomForInstance(instancePublicId);
+    return TranscoderDataSource::Execute(*transcoderReader_, TranscoderDataSource::CreateRequest(
+                                           attachment, targetSyntax, mode, hasLossyQuality, lossyQuality));
   }
 
-  const std::string& ServerContext::DicomCacheLocker::GetBuffer()
-  {
-    if (buffer_.size() > 0)
-    {
-      return buffer_;
-    }
-    else
-    {
-      context_.ReadDicom(buffer_, instancePublicId_);
-      return buffer_;
-    }
-  }
-  
+
   void ServerContext::SetStoreMD5ForAttachments(bool storeMD5)
   {
     LOG(INFO) << "Storing MD5 for attachments: " << (storeMD5 ? "yes" : "no");
@@ -1673,12 +1924,10 @@ namespace Orthanc
     // TODO Should we use "gzip" instead?
     CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-
     assert(attachmentType != FileContentType_Dicom && attachmentType != FileContentType_DicomUntilPixelData); // this method can not be used to store instances
 
     FileInfo attachment;
-    accessor.Write(attachment, data, size, attachmentType, compression, storeMD5_, NULL);
+    StoreFile(attachment, data, size, attachmentType, compression, "" /* MD5 will be computed if needed */, NULL);
 
     try
     {
@@ -1686,7 +1935,7 @@ namespace Orthanc
         newRevision, attachment, resourceId, hasOldRevision, oldRevision, oldMD5);
       if (status != StoreStatus_Success)
       {
-        accessor.Remove(attachment);
+        RemoveFile(attachment);
         return false;
       }
       else
@@ -1697,7 +1946,7 @@ namespace Orthanc
     catch (OrthancException&)
     {
       // Fixed in Orthanc 1.9.6
-      accessor.Remove(attachment);
+      RemoveFile(attachment);
       throw;
     }
   }
@@ -1707,24 +1956,12 @@ namespace Orthanc
                                      const std::string& uuid,
                                      ResourceType expectedType)
   {
-    if (expectedType == ResourceType_Instance)
-    {
-      // remove the file from the DicomCache
-      dicomCache_.Invalidate(uuid);
-    }
-
     return index_.DeleteResource(remainingAncestor, uuid, expectedType);
   }
 
 
   void ServerContext::SignalChange(const ServerIndexChange& change)
   {
-    if (change.GetResourceType() == ResourceType_Instance &&
-        change.GetChangeType() == ChangeType_Deleted)
-    {
-      dicomCache_.Invalidate(change.GetPublicId());
-    }
-    
     pendingChanges_.Enqueue(change.Clone());
   }
 
@@ -1955,65 +2192,56 @@ namespace Orthanc
   }
 
 
-
-
-
-  ImageAccessor* ServerContext::DecodeDicomFrame(const std::string& publicId,
+  ImageAccessor* ServerContext::DecodeDicomFrame(const std::string& instancePublicId,
                                                  unsigned int frameIndex)
   {
-    ServerContext::DicomCacheLocker locker(*this, publicId);
-    std::unique_ptr<ImageAccessor> decoded(GetTranscoder().DecodeFrame(locker.GetDicom(), locker.GetBuffer().c_str(), locker.GetBuffer().size(), frameIndex));
+    FileInfo attachment;
+    int64_t revision;
+
+    if (!index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Unable to read attachment " + EnumerationToString(FileContentType_Dicom) +
+                             " of instance " + instancePublicId);
+    }
+
+    std::unique_ptr<ImageAccessor> decoded;
+
+    decoded.reset(GetTranscoder()->DecodeFrame(dicomReader_, storageAreaReader_, transcoderReader_, attachment, frameIndex));
 
     if (decoded.get() == NULL)
     {
       OrthancConfiguration::ReaderLock configLock;
       if (configLock.GetConfiguration().IsWarningEnabled(Warnings_003_DecoderFailure))
       {
-        LOG(WARNING) << "W003: Unable to decode frame " << frameIndex << " from instance " << publicId;
+        LOG(WARNING) << "W003: Unable to decode frame " << frameIndex << " from instance " << instancePublicId;
       }
-      return NULL;
+
+      throw OrthancException(ErrorCode_NotImplemented);
     }
-
-    return decoded.release();
+    else
+    {
+      return decoded.release();
+    }
   }
 
-
-  ImageAccessor* ServerContext::DecodeDicomFrame(const DicomInstanceToStore& dicom,
-                                                 unsigned int frameIndex)
-  {
-    return GetTranscoder().DecodeFrame(dicom.GetParsedDicomFile(),
-                                    dicom.GetBufferData(),
-                                    dicom.GetBufferSize(),
-                                    frameIndex);
-
-  }
-
-
-  ImageAccessor* ServerContext::DecodeDicomFrame(const void* dicom,
-                                                 size_t size,
-                                                 unsigned int frameIndex)
-  {
-    std::unique_ptr<ParsedDicomFile> instance(new ParsedDicomFile(dicom, size));
-    return GetTranscoder().DecodeFrame(*instance, dicom, size, frameIndex);
-  }
-  
 
   void ServerContext::PerformCStoreWithTranscoding(std::string& sopClassUid,
                                                    std::string& sopInstanceUid,
                                                    DicomStoreUserConnection& connection,
-                                                   const std::string& dicom,
+                                                   const void* dicomData,
+                                                   size_t dicomSize,
                                                    bool hasMoveOriginator,
                                                    const std::string& moveOriginatorAet,
                                                    uint16_t moveOriginatorId)
   {
-    const void* data = dicom.empty() ? NULL : dicom.c_str();
     const RemoteModalityParameters& modality = connection.GetParameters().GetRemoteModality();
 
     // Filter out outgoing C-Store instances
     {
       boost::shared_lock<boost::shared_mutex> lock(listenersMutex_);
 
-      std::unique_ptr<OutgoingDicomInstance> outgoingInstance(OutgoingDicomInstance::CreateFromBuffer(dicom));
+      std::unique_ptr<OutgoingDicomInstance> outgoingInstance(OutgoingDicomInstance::CreateFromBuffer(dicomData, dicomSize));
       outgoingInstance->SetDestination(DicomInstanceDestination(connection.GetParameters().GetRemoteModality().GetHost(),
                                                                 connection.GetParameters().GetRemoteModality().GetApplicationEntityTitle()));
 
@@ -2042,45 +2270,14 @@ namespace Orthanc
     if (!transcodeDicomProtocol_ ||
         !modality.IsTranscodingAllowed())
     {
-      connection.Store(sopClassUid, sopInstanceUid, data, dicom.size(),
+      connection.Store(sopClassUid, sopInstanceUid, dicomData, dicomSize,
                        hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
     }
     else
     {
-      connection.Transcode(sopClassUid, sopInstanceUid, *transcoder_, data, dicom.size(), preferredTransferSyntax_,
+      connection.Transcode(sopClassUid, sopInstanceUid, *transcoder_, dicomData, dicomSize, preferredTransferSyntax_,
                            hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
     }
-  }
-
-
-  bool ServerContext::TranscodeWithCache(std::string& target,
-                                         const std::string& source,
-                                         const std::string& sourceInstanceId,
-                                         const std::string& attachmentId,
-                                         DicomTransferSyntax targetSyntax)
-  {
-    StorageCache::Accessor cacheAccessor(storageCache_);
-
-    if (!cacheAccessor.FetchTranscodedInstance(target, attachmentId, targetSyntax))
-    {
-      IDicomTranscoder::DicomImage sourceDicom;
-      sourceDicom.SetExternalBuffer(source);
-
-      IDicomTranscoder::DicomImage targetDicom;
-      std::set<DicomTransferSyntax> syntaxes;
-      syntaxes.insert(targetSyntax);
-
-      if (GetTranscoder().Transcode(targetDicom, sourceDicom, syntaxes, TranscodingSopInstanceUidMode_AllowNew))
-      {
-        cacheAccessor.AddTranscodedInstance(attachmentId, targetSyntax, reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
-        target = std::string(reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
-        return true;
-      }
-
-      return false;
-    }
-
-    return true;
   }
 
 
@@ -2272,47 +2469,62 @@ namespace Orthanc
   }
 
 
-  void ServerContext::SetTranscoder(ServerTranscoder* transcoder)
-  {
-    std::unique_ptr<ServerTranscoder> protection(transcoder);
-
-    if (transcoder == NULL)
-    {
-      throw OrthancException(ErrorCode_NullPointer);
-    }
-    else if (transcoder_.get() != NULL)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      transcoder_.reset(protection.release());
-    }
-  }
-
-
-  ServerTranscoder& ServerContext::GetTranscoder() const
+  const boost::shared_ptr<ServerTranscoder>& ServerContext::GetTranscoder() const
   {
     if (transcoder_.get() != NULL)
     {
-      return *transcoder_;
+      return transcoder_;
     }
     else
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls, "No transcoder is available");
     }
   }
 
 
-  void ServerContext::ResetTranscoder()
+  DicomSequentialReader::Factory& ServerContext::GetDicomSequentialReaderFactory()
   {
-    if (transcoder_.get() == NULL)
+    return *dicomSequentialReaderFactory_;
+  }
+
+  void ServerContext::ExportPerformanceParameters(Json::Value& target)
+  {
+    target = Json::objectValue;
+
+    target[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = BytesToMegabytes(storageAreaReader_->GetCacheSize());
+    target[ORTHANC_CONFIG_STORAGE_MEMORY_CAPACITY] = BytesToMegabytes(storageAreaReader_->GetCapacity());
+
+    target[ORTHANC_CONFIG_DICOM_PARSER_CACHE_SIZE] = BytesToMegabytes(dicomReader_->GetCacheSize());
+    target[ORTHANC_CONFIG_DICOM_PARSER_MEMORY_CAPACITY] = BytesToMegabytes(dicomReader_->GetCapacity());
+
+    target[ORTHANC_CONFIG_TRANSCODER_CACHE_SIZE] = BytesToMegabytes(transcoderReader_->GetCacheSize());
+    target[ORTHANC_CONFIG_TRANSCODER_MEMORY_CAPACITY] = BytesToMegabytes(transcoderReader_->GetCapacity());
+
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      boost::shared_ptr<IExecutorService> service = storageAreaReader_->GetExecutorService();
+      target[ORTHANC_CONFIG_STORAGE_LOADER_THREADS_COUNT] = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
     }
-    else
+
     {
-      transcoder_.reset(NULL);
+      boost::shared_ptr<IExecutorService> service = dicomReader_->GetExecutorService();
+      target[ORTHANC_CONFIG_DICOM_PARSER_SOURCE_THREADS_COUNT] = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
+    }
+
+    {
+      boost::shared_ptr<IExecutorService> service = transcoderReader_->GetExecutorService();
+      target[ORTHANC_CONFIG_TRANSCODER_THREADS_COUNT] = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
+    }
+
+    {
+      boost::shared_ptr<IExecutorService> service = dicomSequentialReaderFactory_->GetExecutorService();
+      target[ORTHANC_CONFIG_SEQUENTIAL_DICOM_READER_THREADS_COUNT] = dynamic_cast<ThreadPool&>(*service).GetThreadsCount();
+    }
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      target[ORTHANC_CONFIG_HTTP_THREADS_COUNT] = lock.GetConfiguration().GetHttpThreadsCount();
+      target[ORTHANC_CONFIG_DICOM_THREADS_COUNT] = lock.GetConfiguration().GetDicomThreadsCount();
+      target[ORTHANC_CONFIG_CONCURRENT_JOBS] = lock.GetConfiguration().GetConcurrentJobs();
     }
   }
 }

@@ -32,6 +32,9 @@
 #include "../OrthancConfiguration.h"
 #include "../OrthancInitialization.h"
 #include "../ServerContext.h"
+#include "ThirdPartyVersions.h"
+
+#include <PatchList.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -88,6 +91,9 @@ namespace Orthanc
     static const char* const HAS_QUEUES = "HasQueues";
     static const char* const HAS_EXTENDED_FIND = "HasExtendedFind";
     static const char* const HAS_RESERVE_QUEUE_VALUE = "HasReserveQueueValue";
+    static const char* const PERFORMANCE = "Performance";
+    static const char* const THIRD_PARTY_PATCHES = "ThirdPartyPatches";
+    static const char* const THIRD_PARTY_VERSIONS = "ThirdPartyVersions";
 
     if (call.IsDocumentation())
     {
@@ -122,13 +128,11 @@ namespace Orthanc
         .SetAnswerField(ORTHANC_CONFIG_STORAGE_COMPRESSION, RestApiCallDocumentation::Type_Boolean,
                         "Whether storage compression is enabled (new in Orthanc 1.11.0)")
         .SetAnswerField(ORTHANC_CONFIG_OVERWRITE_INSTANCES, RestApiCallDocumentation::Type_Boolean,
-                        "Whether instances are overwritten when re-ingested (new in Orthanc 1.11.0 and kept as a bool for backward compatibility)")
+                        "Whether instances are overwritten when re-ingested (new in Orthanc 1.11.0 and kept as a Boolean for backward compatibility)")
         .SetAnswerField(OVERWRITE_INSTANCES_MODE, RestApiCallDocumentation::Type_String,
-                        "Whether instances are overwritten when re-ingested (new in Orthanc 1.13.0)")
+                        "Overwriting mode governing how instances are re-ingested (new in Orthanc 1.13.0)")
         .SetAnswerField(ORTHANC_CONFIG_INGEST_TRANSCODING, RestApiCallDocumentation::Type_String,
                         "Whether instances are transcoded when ingested into Orthanc (`""` if no transcoding is performed) (new in Orthanc 1.11.0)")
-        .SetAnswerField(ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE, RestApiCallDocumentation::Type_Number,
-                        std::string("The configured ") + ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE + " in MB (new in Orthanc 1.13.0)")
         .SetAnswerField(ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS, RestApiCallDocumentation::Type_Boolean,
                         std::string("The configured ") + ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS + " (new in Orthanc 1.13.0)")
         .SetAnswerField(ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE, RestApiCallDocumentation::Type_Number,
@@ -149,6 +153,12 @@ namespace Orthanc
                         "Whether Orthanc is running in read only mode (new in Orthanc 1.12.5)")
         .SetAnswerField(ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED, RestApiCallDocumentation::Type_Boolean,
                         "Whether Patient level routes and sanity checks are enabled (new in Orthanc 1.12.11)")
+        .SetAnswerField(PERFORMANCE, RestApiCallDocumentation::Type_JsonObject,
+                        "The performance options from the configuration file, with sizes expressed in MB (new in Orthanc 1.13.0)")
+        .SetAnswerField(THIRD_PARTY_PATCHES, RestApiCallDocumentation::Type_JsonListOfStrings,
+                        "Patches applied to the third-party libraries included in this binary version of Orthanc (new in Orthanc 1.13.0)")
+        .SetAnswerField(THIRD_PARTY_VERSIONS, RestApiCallDocumentation::Type_JsonObject,
+                        "Versions of the third-party libraries (new in Orthanc 1.13.0)")
         .SetHttpGetSample("https://orthanc.uclouvain.be/demo/system", true);
       return;
     }
@@ -164,12 +174,12 @@ namespace Orthanc
 
     {
       OrthancConfiguration::ReaderLock lock;
-      result[ORTHANC_CONFIG_NAME] = lock.GetConfiguration().GetOrthancName();
+
+      result[ORTHANC_CONFIG_NAME] = lock.GetConfiguration().GetStringParameter(ORTHANC_CONFIG_NAME);
       result[ORTHANC_CONFIG_DICOM_AET] = lock.GetConfiguration().GetOrthancAET();
       result[ORTHANC_CONFIG_DICOM_PORT] = lock.GetConfiguration().GetDicomPort();
       result[ORTHANC_CONFIG_HTTP_PORT] = lock.GetConfiguration().GetHttpPort();
       result[ORTHANC_CONFIG_CHECK_REVISIONS] = lock.GetConfiguration().HasCheckRevisions();  // New in Orthanc 1.9.2
-      result[ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE] = lock.GetConfiguration().GetMaximumStorageCacheSize(); // New in Orthanc 1.13.0
       result[ORTHANC_CONFIG_STORE_MD5_FOR_ATTACHMENTS] = lock.GetConfiguration().HasStoreMD5ForAttachments(); // New in Orthanc 1.13.0
       result[ORTHANC_CONFIG_STORAGE_COMPRESSION] = lock.GetConfiguration().HasStorageCompression(); // New in Orthanc 1.11.0
       result[ORTHANC_CONFIG_DATABASE_SERVER_IDENTIFIER] = lock.GetConfiguration().GetDatabaseServerIdentifier();
@@ -178,6 +188,8 @@ namespace Orthanc
       result[ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE] = lock.GetConfiguration().GetMaximumStorageMode(); // New in Orthanc 1.11.3
       result[ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD] = lock.GetConfiguration().GetDicomDefaultRetrieveMethod();
     }
+
+    context.ExportPerformanceParameters(result[PERFORMANCE]);
 
     DicomTransferSyntax ingestTransferSyntax;
     if (context.LookupIngestTranscoding(ingestTransferSyntax))
@@ -227,7 +239,26 @@ namespace Orthanc
     result[CAPABILITIES][HAS_KEY_VALUE_STORES] = OrthancRestApi::GetIndex(call).HasKeyValueStoresSupport();
     result[CAPABILITIES][HAS_QUEUES] = OrthancRestApi::GetIndex(call).HasQueuesSupport();
     result[CAPABILITIES][HAS_RESERVE_QUEUE_VALUE] = OrthancRestApi::GetIndex(call).HasReserveQueueValueSupport();
-    
+
+    {
+      // New in Orthanc 1.13.0
+      Json::Value patches = Json::arrayValue;
+
+      for (unsigned int i = 0; i < ORTHANC_PATCHES_COUNT; i++)
+      {
+        patches.append(ORTHANC_PATCHES[i]);
+      }
+
+      result[THIRD_PARTY_PATCHES] = patches;
+    }
+
+    {
+      // New in Orthanc 1.13.0
+      Json::Value versions;
+      GetThirdPartyVersions(versions);
+      result[THIRD_PARTY_VERSIONS] = versions;
+    }
+
     call.GetOutput().AnswerJson(result);
   }
 
@@ -1010,8 +1041,6 @@ namespace Orthanc
     registry.SetIntegerValue("orthanc_jobs_running", jobsRunning);
     registry.SetIntegerValue("orthanc_up_time_s", serverUpTime);
     registry.SetIntegerValue("orthanc_last_change", lastChange["Last"].asInt64());
-
-    context.PublishCacheMetrics();
 
     std::string s;
     registry.ExportPrometheusText(s);

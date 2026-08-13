@@ -375,17 +375,4 @@ namespace Orthanc
 
     format_ = format;
   }
-
-
-#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
-  void* ImageAccessor::GetBuffer() const
-  {
-    return const_cast<ImageAccessor&>(*this).GetBuffer();
-  }
-
-  void* ImageAccessor::GetRow(unsigned int y) const
-  {
-    return const_cast<ImageAccessor&>(*this).GetRow(y);
-  }
-#endif
 }

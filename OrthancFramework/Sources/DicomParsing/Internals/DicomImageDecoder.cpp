@@ -1275,13 +1275,4 @@ namespace Orthanc
     IImageWriter::WriteToMemory(writer, result, *image);
   }
 #endif
-
-
-#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
-  ImageAccessor *DicomImageDecoder::Decode(ParsedDicomFile& dataset,
-                                           unsigned int frame)
-  {
-    return Decode(*dataset.GetDcmtkObject().getDataset(), frame);
-  }
-#endif
 }

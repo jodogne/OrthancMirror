@@ -124,7 +124,6 @@ namespace Orthanc
                                DicomTransferSyntax& syntax,  /* out */
                                unsigned int& lossyQuality,   /* out */
                                int& priority,                /* out */
-                               unsigned int& loaderThreads,  /* out */
                                std::string& filename,        /* out */
                                Json::Value& userData,        /* out */
                                bool& allowUtf8,              /* out (new in Orthanc 1.12.11) */
@@ -183,11 +182,6 @@ namespace Orthanc
       body.isMember(KEY_USER_DATA) && body[KEY_USER_DATA].isString())
     {
       userData = body[KEY_USER_DATA].asString();
-    }
-
-    {
-      OrthancConfiguration::ReaderLock lock;
-      loaderThreads = lock.GetConfiguration().GetLoaderThreads();
     }
 
     // New in Orthanc 1.12.11
@@ -630,14 +624,13 @@ namespace Orthanc
       bool synchronous, extended, transcode;
       DicomTransferSyntax transferSyntax;
       int priority;
-      unsigned int loaderThreads;
       std::string filename;
       unsigned int lossyQuality;
       Json::Value userData;
       bool allowUtf8;
 
       GetJobParameters(synchronous, extended, transcode, transferSyntax, lossyQuality,
-                       priority, loaderThreads, filename, userData, allowUtf8,
+                       priority, filename, userData, allowUtf8,
                        body, DEFAULT_IS_EXTENDED, "Archive.zip", defaultUtf8);
       
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, ResourceType_Patient));
@@ -649,7 +642,6 @@ namespace Orthanc
         job->SetLossyQuality(lossyQuality);
       }
       
-      job->SetLoaderThreads(loaderThreads);
       job->SetAllowUtf8(allowUtf8);
       job->SetUserData(userData);
 
@@ -785,12 +777,6 @@ namespace Orthanc
       job->SetLossyQuality(GetLossyQuality(call));
     }
 
-    {
-      OrthancConfiguration::ReaderLock lock;
-      unsigned int loaderThreads = lock.GetConfiguration().GetLoaderThreads();
-      job->SetLoaderThreads(loaderThreads);
-    }
-
     SubmitJob(call.GetOutput(), context, job, 0 /* priority */,
               true /* synchronous */, filename);
   }
@@ -832,14 +818,13 @@ namespace Orthanc
       bool synchronous, extended, transcode;
       DicomTransferSyntax transferSyntax;
       int priority;
-      unsigned int loaderThreads;
       std::string filename;
       unsigned int lossyQuality;
       Json::Value userData;
       bool allowUtf8;
 
       GetJobParameters(synchronous, extended, transcode, transferSyntax, lossyQuality,
-                       priority, loaderThreads, filename, userData, allowUtf8,
+                       priority, filename, userData, allowUtf8,
                        body, false /* by default, not extented */, id + ".zip", defaultUtf8);
       
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, LEVEL));
@@ -851,7 +836,6 @@ namespace Orthanc
         job->SetLossyQuality(lossyQuality);
       }
 
-      job->SetLoaderThreads(loaderThreads);
       job->SetAllowUtf8(allowUtf8);
       job->SetUserData(userData);
 

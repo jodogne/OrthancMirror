@@ -50,6 +50,8 @@ namespace Orthanc
       buffer_.swap(buffer);
     }
 
+    virtual void CopyToString(std::string& target) const ORTHANC_OVERRIDE;
+
     virtual void MoveToString(std::string& target) ORTHANC_OVERRIDE;
 
     virtual const void* GetData() const ORTHANC_OVERRIDE
@@ -67,5 +69,8 @@ namespace Orthanc
     static IMemoryBuffer* CreateFromCopy(const std::string& buffer);
 
     static IMemoryBuffer* CreateFromCopy(const std::string& buffer, size_t start /* inclusive */, size_t end /* exclusive */);
+
+    static IMemoryBuffer* CreateFromBuffer(const void* data,
+                                           size_t size);
   };
 }

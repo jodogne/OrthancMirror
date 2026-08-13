@@ -426,4 +426,17 @@ namespace Orthanc
       return buffer_->size();
     }
   }
+
+
+  std::string* IDicomTranscoder::DicomImage::ReleaseInternalBuffer()
+  {
+    if (buffer_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return buffer_.release();
+    }
+  }
 }

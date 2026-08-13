@@ -27,6 +27,7 @@
 #include "../../../OrthancFramework/Sources/Cache/SharedArchive.h"
 #include "../../../OrthancFramework/Sources/Compression/HierarchicalZipWriter.h"
 #include "../../../OrthancFramework/Sources/Constants.h"
+#include "../../../OrthancFramework/Sources/DataSource/DicomSequentialReader.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/DicomDirWriter.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
@@ -37,7 +38,6 @@
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 #include "../SimpleInstanceOrdering.h"
-#include "ThreadedInstancesLoader.h"
 
 #include <cassert>
 #include <stdio.h>
@@ -476,12 +476,12 @@ namespace Orthanc
     {
     }
 
-    virtual void Preload(ThreadedInstancesLoader& instancesLoader) const = 0;
+    virtual void Preload(DicomSequentialReader& instancesLoader) const = 0;
 
     // In the "archive" flavor (without DICOMDIR), dicomDir is NULL
     // In the "media" flavor (with DICOMDIR), dicomDir is not NULL
     virtual void Execute(HierarchicalZipWriter& writer,
-                         ThreadedInstancesLoader& instancesLoader,
+                         DicomSequentialReader& instancesLoader,
                          DicomDirWriter* dicomDir) const = 0;
   };
 
@@ -500,12 +500,12 @@ namespace Orthanc
       {
       }
 
-      virtual void Preload(ThreadedInstancesLoader& instancesLoader) const ORTHANC_OVERRIDE
+      virtual void Preload(DicomSequentialReader& instancesLoader) const ORTHANC_OVERRIDE
       {
       }
 
       virtual void Execute(HierarchicalZipWriter& writer,
-                           ThreadedInstancesLoader& instancesLoader,
+                           DicomSequentialReader& instancesLoader,
                            DicomDirWriter* dicomDir) const ORTHANC_OVERRIDE
       {
         writer.OpenDirectory(filename_);
@@ -516,12 +516,12 @@ namespace Orthanc
     class CloseDirectoryCommand : public IZipCommand
     {
     public:
-      virtual void Preload(ThreadedInstancesLoader& instancesLoader) const ORTHANC_OVERRIDE
+      virtual void Preload(DicomSequentialReader& instancesLoader) const ORTHANC_OVERRIDE
       {
       }
 
       virtual void Execute(HierarchicalZipWriter& writer,
-                           ThreadedInstancesLoader& instancesLoader,
+                           DicomSequentialReader& instancesLoader,
                            DicomDirWriter* dicomDir) const ORTHANC_OVERRIDE
       {
         writer.CloseDirectory();
@@ -551,36 +551,43 @@ namespace Orthanc
                dicomDirFolder == MEDIA_IMAGES_FOLDER);
       }
 
-      virtual void Preload(ThreadedInstancesLoader& instancesLoader) const ORTHANC_OVERRIDE
+      virtual void Preload(DicomSequentialReader& instancesLoader) const ORTHANC_OVERRIDE
       {
-        instancesLoader.PreloadDicomInstance(instanceId_, fileInfo_);
+        instancesLoader.Submit(fileInfo_);
       }
 
       virtual void Execute(HierarchicalZipWriter& writer,
-                           ThreadedInstancesLoader& instancesLoader,
+                           DicomSequentialReader& instancesLoader,
                            DicomDirWriter* dicomDir) const ORTHANC_OVERRIDE
       {
-        std::string content;
-
-        try
+        if (!instancesLoader.HasNext())
         {
-          LOG(INFO) << "Adding instance " << instanceId_ << " in zip";
-          instancesLoader.WaitDicomInstance(content, instanceId_);
+          throw OrthancException(ErrorCode_InternalError);
         }
-        catch (OrthancException& e)
+        else
         {
-          LOG(WARNING) << "An instance was removed after the job was issued: " << instanceId_;
-          return;
-        }
+          std::unique_ptr<DicomSequentialReader::Item> next;
 
-        writer.OpenFile(filename_);
+          try
+          {
+            LOG(INFO) << "Adding instance " << instanceId_ << " in zip";
+            next.reset(instancesLoader.Next());
+          }
+          catch (OrthancException& e)
+          {
+            LOG(WARNING) << "An instance was removed after the job was issued: " << instanceId_;
+            return;
+          }
 
-        writer.Write(content);
+          const IMemoryBuffer& dicom = next->GetRawMemoryBuffer();
 
-        if (dicomDir != NULL)
-        {
-          std::unique_ptr<ParsedDicomFile> parsed(new ParsedDicomFile(content));
-          dicomDir->Add(dicomDirFolder_, filename_, *parsed);
+          writer.OpenFile(filename_);
+          writer.Write(dicom.GetData(), dicom.GetSize());
+
+          if (dicomDir != NULL)
+          {
+            dicomDir->Add(dicomDirFolder_, filename_, next->GetParsedDicomFile());
+          }
         }
       }
     };
@@ -961,7 +968,7 @@ namespace Orthanc
       return commands_.GetSize() + 1;
     }
 
-    void PreloadAllCommands(ThreadedInstancesLoader& instancesLoader)
+    void PreloadAllCommands(DicomSequentialReader& instancesLoader)
     {
       for (size_t i = 0; i < commands_.GetSize(); i++)
       {
@@ -969,7 +976,7 @@ namespace Orthanc
       }
     }
 
-    void RunStep(ThreadedInstancesLoader& instancesLoader,
+    void RunStep(DicomSequentialReader& instancesLoader,
                  size_t index)
     {
       if (index > commands_.GetSize())
@@ -1037,7 +1044,6 @@ namespace Orthanc
     transferSyntax_(DicomTransferSyntax_LittleEndianImplicit),
     hasLossyQuality_(false),
     lossyQuality_(100),
-    loaderThreads_(1),
     allowUtf8_(false)
   {
   }
@@ -1152,19 +1158,6 @@ namespace Orthanc
   }
 
 
-  void ArchiveJob::SetLoaderThreads(unsigned int loaderThreads)
-  {
-    if (writer_.get() != NULL)   // Already started
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      loaderThreads_ = std::max(1u, loaderThreads);
-    }
-  }
-
-
   void ArchiveJob::SetAllowUtf8(bool allowUtf8)
   {
     if (writer_.get() != NULL)   // Already started
@@ -1223,8 +1216,19 @@ namespace Orthanc
       instancesCount_ = writer_->GetInstancesCount();
       uncompressedSize_ = writer_->GetUncompressedSize();
 
-      instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads_, transcode_, transferSyntax_, lossyQuality_, "ARCH"));
+      if (transcode_)
+      {
+        instancesLoader_.reset(context_.GetDicomSequentialReaderFactory().CreateForTranscodedRawMemoryBuffer(
+                                 transferSyntax_, TranscodingSopInstanceUidMode_AllowNew, hasLossyQuality_, lossyQuality_));
+      }
+      else
+      {
+        instancesLoader_.reset(context_.GetDicomSequentialReaderFactory().CreateForOriginalRawMemoryBuffer());
+      }
+
       writer_->PreloadAllCommands(*instancesLoader_);
+
+      instancesLoader_->Start();
     }
   }
 
@@ -1264,10 +1268,7 @@ namespace Orthanc
       writer_.reset();
     }
 
-    if (instancesLoader_.get() != NULL)
-    {
-      instancesLoader_->Clear(false);
-    }
+    instancesLoader_.reset(NULL);
 
     if (asynchronousTarget_.get() != NULL)
     {
@@ -1336,10 +1337,7 @@ namespace Orthanc
       asynchronousTarget_.reset();
 
       // clear the loader threads
-      if (instancesLoader_.get() != NULL)
-      {
-        instancesLoader_->Clear(true);
-      }
+      instancesLoader_.reset(NULL);
     }
   }
 

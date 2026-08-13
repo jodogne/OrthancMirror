@@ -46,6 +46,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
 
   DownloadPackage(${CIVETWEB_MD5} ${CIVETWEB_URL} "${CIVETWEB_SOURCES_DIR}")
 
+  list(APPEND ORTHANC_PATCHES_LIST "civetweb-1.16.patch")  # Must be out of "FirstRun"
   if (FirstRun)
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i

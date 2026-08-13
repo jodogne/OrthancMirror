@@ -41,7 +41,6 @@ class DcmDataset;
 #define ORTHANC_CONFIG_DICOM_AET "DicomAet"
 #define ORTHANC_CONFIG_DICOM_PORT "DicomPort"
 #define ORTHANC_CONFIG_HTTP_PORT "HttpPort"
-#define ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE "MaximumStorageCacheSize"
 #define ORTHANC_CONFIG_MAXIMUM_STORAGE_SIZE "MaximumStorageSize"
 #define ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE "MaximumStorageMode"
 #define ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT "MaximumPatientCount"
@@ -54,7 +53,12 @@ class DcmDataset;
 #define ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD "DicomDefaultRetrieveMethod"
 #define ORTHANC_CONFIG_PATIENT_LEVEL_ENABLED "PatientLevelEnabled"
 #define ORTHANC_CONFIG_READ_ONLY "ReadOnly"
+#define ORTHANC_CONFIG_CONCURRENT_JOBS "ConcurrentJobs"
+#define ORTHANC_CONFIG_HTTP_THREADS_COUNT "HttpThreadsCount"
+#define ORTHANC_CONFIG_DICOM_THREADS_COUNT "DicomThreadsCount"
+#define ORTHANC_CONFIG_INDEX_DIRECTORY "IndexDirectory"
 #define ORTHANC_CONFIG_STORAGE_DIRECTORY "StorageDirectory"
+
 
 
 namespace Orthanc
@@ -194,21 +198,25 @@ namespace Orthanc
     bool LookupStringParameter(std::string& target,
                                const std::string& parameter) const;
 
+    // If the parameter is not part of the user configuration, it it retrieved from the default configuration
     std::string GetStringParameter(const std::string& parameter) const;
     
     bool LookupIntegerParameter(int& target,
                                 const std::string& parameter) const;
 
+    // If the parameter is not part of the user configuration, it it retrieved from the default configuration
     int GetIntegerParameter(const std::string& parameter) const;
 
     bool LookupUnsignedIntegerParameter(unsigned int& target,
                                         const std::string& parameter) const;
 
+    // If the parameter is not part of the user configuration, it it retrieved from the default configuration
     unsigned int GetUnsignedIntegerParameter(const std::string& parameter) const;
 
     bool LookupBooleanParameter(bool& target,
                                 const std::string& parameter) const;
 
+    // If the parameter is not part of the user configuration, it it retrieved from the default configuration
     bool GetBooleanParameter(const std::string& parameter) const;
 
     void GetDicomModalityUsingSymbolicName(RemoteModalityParameters& modality,
@@ -259,7 +267,17 @@ namespace Orthanc
 
     void RemovePeer(const std::string& symbolicName);
 
-    unsigned int GetLoaderThreads() const;
+    unsigned int GetConcurrentJobs() const;
+
+    unsigned int GetHttpThreadsCount() const
+    {
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_HTTP_THREADS_COUNT);
+    }
+
+    unsigned int GetDicomThreadsCount() const
+    {
+      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_THREADS_COUNT);
+    }
 
     void Format(std::string& result) const;
     
@@ -288,11 +306,6 @@ namespace Orthanc
 
     std::string GetOrthancAET() const;
 
-    std::string GetOrthancName() const
-    {
-      return GetStringParameter(ORTHANC_CONFIG_NAME);
-    }
-
     std::string GetMaximumStorageMode() const
     {
       return GetStringParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_MODE);
@@ -301,10 +314,6 @@ namespace Orthanc
     std::string GetDicomDefaultRetrieveMethod() const
     {
       return GetStringParameter(ORTHANC_CONFIG_DICOM_DEFAULT_RETRIEVE_METHOD);
-    }
-    unsigned int GetMaximumStorageCacheSize() const
-    {
-      return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_STORAGE_CACHE_SIZE);
     }
 
     unsigned int GetMaximumStorageSize() const
@@ -369,5 +378,9 @@ namespace Orthanc
 
     static void ParseAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target,
                                               const Json::Value& source);
+
+    // This method provides backward compatibility against old configuration options
+    bool LookupCompatibilityLoaderThreads(unsigned int& threadsCount,
+                                          std::string& fromOption) const;
   };
 }

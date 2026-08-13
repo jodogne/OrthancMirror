@@ -41,6 +41,7 @@ int main(int argc, char **argv)
 {
   Orthanc::InitializeFramework("", true);
   
+  Orthanc::Logging::SetCurrentThreadName("MAIN");
   Orthanc::Logging::EnableInfoLevel(true);
   Orthanc::Toolbox::DetectEndianness();
   Orthanc::SystemToolbox::MakeDirectory(Orthanc::SystemToolbox::PathFromUtf8("UnitTestsResults"));

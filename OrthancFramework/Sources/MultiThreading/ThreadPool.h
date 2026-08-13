@@ -27,6 +27,7 @@
 #include "../Compatibility.h"
 #include "IExecutorService.h"
 #include "SharedMessageQueue.h"
+#include "../MetricsRegistry.h"
 
 #include <boost/thread.hpp>
 
@@ -54,6 +55,8 @@ namespace Orthanc
     State                                 state_;
     unsigned int                          dequeueTimeoutMilliseconds_;
 
+    std::unique_ptr<MetricsRegistry::SharedMetrics> availableThreadsMetrics_;
+
     template <bool throws>
     void StopInternal();
 
@@ -66,13 +69,16 @@ namespace Orthanc
 
     void SetLoggingThreadName(const std::string& name);
 
-    void SetCountThreads(unsigned int count);
+    void SetThreadsCount(unsigned int count);
 
-    unsigned int GetCountThreads();
+    unsigned int GetThreadsCount();
 
     void SetDequeueTimeout(unsigned int milliseconds);
 
     unsigned int GetDequeueTimeout();
+
+    void SetMetricsConfiguration(MetricsRegistry& metrics,
+                                 const std::string& availableThreadsMetricName);
 
     void Start();
 

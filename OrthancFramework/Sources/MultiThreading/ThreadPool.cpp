@@ -27,6 +27,8 @@
 
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "../MetricsRegistry.h"
+#include "../Toolbox.h"
 #include "FutureState.h"
 
 #include <boost/lexical_cast.hpp>
@@ -38,6 +40,15 @@ static const unsigned int DEFAULT_DEQUEUE_TIMEOUT_MS = 100;
 
 namespace Orthanc
 {
+  void ThreadPool::SetMetricsConfiguration(MetricsRegistry& metrics,
+                                           const std::string& availableThreadsMetricName)
+  {
+    availableThreadsMetrics_.reset(new MetricsRegistry::SharedMetrics(metrics,
+                                                                      availableThreadsMetricName,
+                                                                      MetricsUpdatePolicy_MinOver10Seconds));
+    availableThreadsMetrics_->SetInitialValue(countThreads_);
+  }
+
   class ThreadPool::ITask : public IDynamicObject
   {
   public:
@@ -54,24 +65,28 @@ namespace Orthanc
   class ThreadPool::CallableTask : public ITask
   {
   private:
-    std::unique_ptr<ICallable>               callable_;
-    boost::weak_ptr<Internals::FutureState>  state_;
+    std::unique_ptr<ICallable>                      callable_;
+    boost::weak_ptr<Internals::FutureState>         state_;
+    std::unique_ptr<Logging::ThreadContextMemento>  callerMemento_;
 
   public:
     CallableTask(ICallable* callable,
                  boost::shared_ptr<Internals::FutureState>& state) :
       callable_(callable),
-      state_(state)
+      state_(state),
+      callerMemento_(Logging::CreateCurrentThreadContextMemento())
     {
       assert(callable != NULL);
     }
 
-    void Execute() ORTHANC_OVERRIDE
+    virtual void Execute() ORTHANC_OVERRIDE
     {
       boost::shared_ptr<Internals::FutureState> locked = state_.lock();
 
       if (locked)
       {
+        Logging::ThreadContextMemento::ScopedSetter setter(*callerMemento_);
+
         try
         {
           locked->AcquireResult(callable_->Call());
@@ -91,7 +106,7 @@ namespace Orthanc
       }
     }
 
-    void Cancel() ORTHANC_OVERRIDE
+    virtual void Cancel() ORTHANC_OVERRIDE
     {
       boost::shared_ptr<Internals::FutureState> locked = state_.lock();
 
@@ -110,21 +125,24 @@ namespace Orthanc
   class ThreadPool::RunnableTask : public ITask
   {
   private:
-    std::unique_ptr<IRunnable>  runnable_;
+    std::unique_ptr<IRunnable>                      runnable_;
+    std::unique_ptr<Logging::ThreadContextMemento>  callerMemento_;
 
   public:
     explicit RunnableTask(IRunnable* runnable) :
-      runnable_(runnable)
+      runnable_(runnable),
+      callerMemento_(Logging::CreateCurrentThreadContextMemento())
     {
       assert(runnable != NULL);
     }
 
-    void Execute() ORTHANC_OVERRIDE
+    virtual void Execute() ORTHANC_OVERRIDE
     {
+      Logging::ThreadContextMemento::ScopedSetter setter(*callerMemento_);
       runnable_->Run();
     }
 
-    void Cancel() ORTHANC_OVERRIDE
+    virtual void Cancel() ORTHANC_OVERRIDE
     {
     }
   };
@@ -233,9 +251,16 @@ namespace Orthanc
 
       if (task.get() != NULL)
       {
+        std::unique_ptr<MetricsRegistry::AvailableResourcesDecounter> decounter; // mark this thread as being used in the metrics
+        if (availableThreadsMetrics_.get())
+        {
+          decounter.reset(new MetricsRegistry::AvailableResourcesDecounter(*availableThreadsMetrics_));
+        }
+
         try
         {
-          dynamic_cast<ITask&>(*task).Execute();
+          ITask& iTask = dynamic_cast<ITask&>(*task);
+          iTask.Execute();
         }
         catch (const OrthancException& e)
         {
@@ -280,7 +305,7 @@ namespace Orthanc
   }
 
 
-  void ThreadPool::SetCountThreads(unsigned int count)
+  void ThreadPool::SetThreadsCount(unsigned int count)
   {
     if (count < 1)
     {
@@ -302,7 +327,7 @@ namespace Orthanc
   }
 
 
-  unsigned int ThreadPool::GetCountThreads()
+  unsigned int ThreadPool::GetThreadsCount()
   {
     boost::mutex::scoped_lock lock(mutex_);
     return countThreads_;

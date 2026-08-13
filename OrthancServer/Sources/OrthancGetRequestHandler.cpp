@@ -30,7 +30,7 @@
 #include "OrthancConfiguration.h"
 #include "ServerContext.h"
 #include "ServerJobs/DicomModalityStoreJob.h"
-#include "ServerJobs/ThreadedInstancesLoader.h"
+#include "ServerTranscoder.h"
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
@@ -44,6 +44,24 @@
 
 namespace Orthanc
 {
+  class OrthancGetRequestHandler::ReaderUserData : public IDynamicObject
+  {
+  private:
+    std::string instanceId_;
+
+  public:
+    explicit ReaderUserData(const std::string& instanceId) :
+      instanceId_(instanceId)
+    {
+    }
+
+    const std::string& GetInstanceId() const
+    {
+      return instanceId_;
+    }
+  };
+
+
   static void ProgressCallback(void *callbackData,
                                T_DIMSE_StoreProgress *progress,
                                T_DIMSE_C_StoreRQ *req)
@@ -65,45 +83,55 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
     
-    if (instancesLoader_.get() == NULL)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-
-    const std::string& id = instancesIds_[position_++];
-
-    std::string dicom;
-    instancesLoader_->WaitDicomInstance(dicom, id);
-    
-    if (dicom.empty())
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    std::unique_ptr<DcmFileFormat> parsed(
-      FromDcmtkBridge::LoadFromMemoryBuffer(dicom.c_str(), dicom.size()));
-
-    if (parsed.get() == NULL ||
-        parsed->getDataset() == NULL)
+    if (instancesLoader_.get() == NULL ||
+        !instancesLoader_->HasNext())
     {
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
-    
-    DcmDataset& dataset = *parsed->getDataset();
-    
-    OFString a, b;
-    if (!dataset.findAndGetOFString(DCM_SOPClassUID, a).good() ||
-        !dataset.findAndGetOFString(DCM_SOPInstanceUID, b).good())
-    {
-      throw OrthancException(ErrorCode_NoSopClassOrInstance,
-                             "Unable to determine the SOP class/instance for C-STORE with AET " +
-                             originatorAet_);
-    }
 
-    std::string sopClassUid(a.c_str());
-    std::string sopInstanceUid(b.c_str());
+    {
+      /**
+       * It is OK to modify the content of "dicom", as
+       * "DicomSequentialReader" returns copies of the cached objects
+       * (cf. "DataSourceSequentialReader::IValueDisconnector"). (*)
+       **/
+      std::unique_ptr<DicomSequentialReader::Item> next(instancesLoader_->Next());
+      assert(next.get() != NULL &&
+             next->HasUserData());
+
+      {
+        const std::string& expectedId = instancesIds_[position_];
+        position_++;
+
+        // This is just a sanity check, the class "ReaderUserData" could be removed
+        const ReaderUserData& userData = dynamic_cast<const ReaderUserData&>(next->GetUserData());
+        if (userData.GetInstanceId() != expectedId)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+
+      ParsedDicomFile& dicom = next->GetParsedDicomFile();
+
+      if (dicom.GetDcmtkObject().getDataset() == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
     
-    return PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, parsed.release());
+      OFString a, b;
+      if (!dicom.GetDcmtkObject().getDataset()->findAndGetOFString(DCM_SOPClassUID, a).good() ||
+          !dicom.GetDcmtkObject().getDataset()->findAndGetOFString(DCM_SOPInstanceUID, b).good())
+      {
+        throw OrthancException(ErrorCode_NoSopClassOrInstance,
+                               "Unable to determine the SOP class/instance for C-STORE with AET " +
+                               originatorAet_);
+      }
+
+      std::string sopClassUid(a.c_str());
+      std::string sopInstanceUid(b.c_str());
+
+      return PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, dicom);
+    }
   }
 
   
@@ -233,13 +261,10 @@ namespace Orthanc
   bool OrthancGetRequestHandler::PerformGetSubOp(T_ASC_Association* assoc,
                                                  const std::string& sopClassUid,
                                                  const std::string& sopInstanceUid,
-                                                 DcmFileFormat* dicomRaw)
+                                                 ParsedDicomFile& dicom)
   {
-    assert(dicomRaw != NULL);
-    std::unique_ptr<DcmFileFormat> dicom(dicomRaw);
-    
     DicomTransferSyntax sourceSyntax;
-    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, *dicom))
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, dicom.GetDcmtkObject()))
     {
       failedCount_++;
       AddFailedUIDInstance(sopInstanceUid);
@@ -316,7 +341,7 @@ namespace Orthanc
       // No transcoding is required
       DcmDataset *stDetailTmp = NULL;
       cond = DIMSE_storeUser(
-        assoc, presId, &req, NULL /* imageFileName */, dicom->getDataset(),
+        assoc, presId, &req, NULL /* imageFileName */, dicom.GetDcmtkObject().getDataset(),
         ProgressCallback, NULL /* callbackData */,
         (timeout_ > 0 ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), static_cast<int>(timeout_),
         &rsp, &stDetailTmp, &cancelParameters);
@@ -326,12 +351,19 @@ namespace Orthanc
     {
       // Transcoding to the selected uncompressed transfer syntax
       IDicomTranscoder::DicomImage source, transcoded;
-      source.AcquireParsed(dicom.release());
+      source.AcquireParsed(dicom);  // This invalidates the "dicom" object, cf. (*)
+
+      /**
+       * It doesn't seem possible to uniformly trancode upfront
+       * using "DicomSequentialReader::CreateForTranscoded()", as the
+       * selected transfer syntax is not constant, but varies upon
+       * each individual instance given the presentation context.
+       **/
 
       std::set<DicomTransferSyntax> ts;
       ts.insert(selectedSyntax);
       
-      if (context_.GetTranscoder().Transcode(transcoded, source, ts, TranscodingSopInstanceUidMode_AllowNew))
+      if (context_.GetTranscoder()->Transcode(transcoded, source, ts, TranscodingSopInstanceUidMode_AllowNew))
       {
         // Transcoding has succeeded
         DcmDataset *stDetailTmp = NULL;
@@ -550,7 +582,6 @@ namespace Orthanc
     localAet_ = context_.GetDefaultLocalApplicationEntityTitle();
     position_ = 0;
     originatorAet_ = originatorAet;
-    unsigned int loaderThreads = 1;
 
     {
       OrthancConfiguration::ReaderLock lock;
@@ -574,11 +605,8 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InexistentItem,
                                "C-GET: Rejecting SCU request from unknown modality with AET: " + originatorAet);
       }
-
-      loaderThreads = lock.GetConfiguration().GetLoaderThreads();
     }
 
-    instancesLoader_.reset(new ThreadedInstancesLoader(context_, loaderThreads, false, DicomTransferSyntax_BigEndianExplicit /* dummy unused value */, 0, "CGET"));
     std::vector<FileInfo> filesInfo;
 
     for (std::list<std::string>::const_iterator
@@ -590,10 +618,15 @@ namespace Orthanc
       context_.GetOrderedChildInstances(instancesIds_, filesInfo, *resourceId, level);
     }
 
+
+    instancesLoader_.reset(context_.GetDicomSequentialReaderFactory().CreateForOriginalParsedDicomFile());
+
     for (size_t i = 0; i < instancesIds_.size(); ++i)
     {
-      instancesLoader_->PreloadDicomInstance(instancesIds_[i], filesInfo[i]);
+      instancesLoader_->Submit(filesInfo[i], new ReaderUserData(instancesIds_[i]));
     }
+
+    instancesLoader_->Start();
 
     failedUIDs_.clear();
 

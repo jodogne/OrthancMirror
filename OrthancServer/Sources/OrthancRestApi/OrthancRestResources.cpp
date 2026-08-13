@@ -29,6 +29,7 @@
 #include "../../../OrthancFramework/Sources/CompatibilityMath.h"
 #include "../../../OrthancFramework/Sources/Compression/GzipCompressor.h"
 #include "../../../OrthancFramework/Sources/Constants.h"
+#include "../../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomImageInformation.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/DicomWebJsonVisitor.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
@@ -38,7 +39,6 @@
 #include "../../../OrthancFramework/Sources/Images/ImageProcessing.h"
 #include "../../../OrthancFramework/Sources/Images/NumpyWriter.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
-#include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 
 #include "../OrthancConfiguration.h"
@@ -50,15 +50,6 @@
 
 // This "include" is mandatory for Release builds using Linux Standard Base
 #include <boost/shared_ptr.hpp>
-
-#include "../../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
-
-/**
- * This semaphore is used to limit the number of concurrent HTTP
- * requests on CPU-intensive routes of the REST API, in order to
- * prevent exhaustion of resources (new in Orthanc 1.7.0).
- **/
-static Orthanc::Semaphore throttlingSemaphore_(4);  // TODO => PARAMETER?
 
 
 static const char* const IGNORE_LENGTH = "ignore-length";
@@ -382,8 +373,9 @@ namespace Orthanc
           DicomWebJsonVisitor visitor;
           
           {
-            ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), publicId);
-            locker.GetDicom().Apply(visitor);
+            std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId));
+            DicomDataSource::Dicom::Lock lock(*dicom);
+            lock.GetContent().Apply(visitor);
           }
 
           if (mime == MimeType_DicomWebJson)
@@ -411,38 +403,25 @@ namespace Orthanc
 
     if (call.HasArgument(GET_TRANSCODE))
     {
+      const DicomTransferSyntax transferSyntax = GetTransferSyntax(call.GetArgument(GET_TRANSCODE, ""));
+
       unsigned int lossyQuality;
       unsigned int defaultLossyQuality;
+
       {
         OrthancConfiguration::ReaderLock lock;
         defaultLossyQuality = lock.GetConfiguration().GetDicomLossyTranscodingQuality();
       }
+
       lossyQuality = call.GetUnsignedInteger32Argument(GET_LOSSY_QUALITY, defaultLossyQuality);
 
-      std::string source;
-      std::string attachmentId;
-      std::string transcoded;
-      context.ReadDicom(source, attachmentId, publicId);
+      std::unique_ptr<TranscoderDataSource::Transcoded> transcoded2(
+        context.ReadTranscodedDicom(publicId, transferSyntax, TranscodingSopInstanceUidMode_AllowNew, true, lossyQuality));
 
-      if (lossyQuality != defaultLossyQuality) // we can't use the cache if the lossy quality is not the default one
-      {
-        IDicomTranscoder::DicomImage targetImage;
-        IDicomTranscoder::DicomImage sourceImage;
-        sourceImage.SetExternalBuffer(source);
-        std::set<DicomTransferSyntax> allowedSyntaxes;
-        allowedSyntaxes.insert(GetTransferSyntax(call.GetArgument(GET_TRANSCODE, "")));
+      TranscoderDataSource::Transcoded::LockAsBuffer lock(*transcoded2);
 
-        if (context.GetTranscoder().Transcode(targetImage, sourceImage, allowedSyntaxes, TranscodingSopInstanceUidMode_AllowNew, lossyQuality))
-        {
-          call.GetOutput().SetContentFilename(filename.c_str());
-          call.GetOutput().AnswerBuffer(targetImage.GetBufferData(), targetImage.GetBufferSize(), MimeType_Dicom);
-        }
-      }
-      else if (context.TranscodeWithCache(transcoded, source, publicId, attachmentId, GetTransferSyntax(call.GetArgument(GET_TRANSCODE, ""))))
-      {
-        call.GetOutput().SetContentFilename(filename.c_str());
-        call.GetOutput().AnswerBuffer(transcoded, MimeType_Dicom);
-      }
+      call.GetOutput().SetContentFilename(filename.c_str());
+      call.GetOutput().AnswerBuffer(lock.GetContent(), MimeType_Dicom);
     }
     else
     {
@@ -489,12 +468,14 @@ namespace Orthanc
 
     std::string publicId = call.GetUriComponent("id", "");
 
-    std::string dicom;
-    context.ReadDicom(dicom, publicId);
-
     std::string target;
     call.BodyToString(target);
-    SystemToolbox::WriteFile(dicom, SystemToolbox::PathFromUtf8(target));
+
+    {
+      std::unique_ptr<StorageAreaDataSource::Range> raw(context.ReadRawDicom(publicId));
+      SystemToolbox::WriteFile(raw->GetData(), raw->GetSize(),
+                               SystemToolbox::PathFromUtf8(target), false /* don't automatically call fsync */);
+    }
 
     call.GetOutput().AnswerBuffer("{}", MimeType_Json);
   }
@@ -520,8 +501,9 @@ namespace Orthanc
       Json::Value answer;
 
       {
-        ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), publicId);
-        locker.GetDicom().DatasetToJson(answer, format, flags,
+        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId));
+        DicomDataSource::Dicom::Lock lock(*dicom);
+        lock.GetContent().DatasetToJson(answer, format, flags,
                                         ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
       }
 
@@ -634,13 +616,16 @@ namespace Orthanc
       return;
     }
 
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     std::string publicId = call.GetUriComponent("id", "");
 
     unsigned int numberOfFrames;
       
     {
-      ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), publicId);
-      numberOfFrames = locker.GetDicom().GetFramesCount();
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId));
+      DicomDataSource::Dicom::Lock lock(*dicom);
+      numberOfFrames = lock.GetContent().GetFramesCount();
     }
     
     Json::Value result = Json::arrayValue;
@@ -923,9 +908,11 @@ namespace Orthanc
              * Retrieve a summary of the DICOM tags, which is
              * necessary to deal with MONOCHROME1 photometric
              * interpretation, and with windowing parameters.
-             **/ 
-            ServerContext::DicomCacheLocker locker(context, publicId);
-            handler.Handle(call, decoded, &locker.GetDicom(), frame);
+             **/
+
+            std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId));
+            DicomDataSource::Dicom::Lock lock(*dicom);
+            handler.Handle(call, decoded, &lock.GetContent(), frame);
           }
           else
           {
@@ -1252,8 +1239,6 @@ namespace Orthanc
   template <enum ImageExtractionMode mode>
   static void GetImage(RestApiGetCall& call)
   {
-    Semaphore::Locker locker(throttlingSemaphore_);
-        
     GetImageHandler handler(mode);
     IDecodedFrameHandler::Apply(call, handler, mode, false /* not rendered */);
   }
@@ -1261,8 +1246,6 @@ namespace Orthanc
 
   static void GetRenderedFrame(RestApiGetCall& call)
   {
-    Semaphore::Locker locker(throttlingSemaphore_);
-        
     RenderedFrameHandler handler;
     IDecodedFrameHandler::Apply(call, handler, ImageExtractionMode_Preview /* arbitrary value */, true);
   }
@@ -1393,6 +1376,8 @@ namespace Orthanc
     }
     else
     {
+      ServerContext& context = OrthancRestApi::GetContext(call);
+
       const std::string instanceId = call.GetUriComponent("id", "");
       const bool compress = call.GetBooleanArgument("compress", false);
       const bool rescale = call.GetBooleanArgument("rescale", true);
@@ -1406,10 +1391,9 @@ namespace Orthanc
       NumpyVisitor visitor(0 /* no depth, 2D frame */, rescale);
 
       {
-        Semaphore::Locker throttling(throttlingSemaphore_);
-        ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), instanceId);
-        
-        visitor.WriteFrame(locker.GetDicom(), frame);
+        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(instanceId));
+        DicomDataSource::Dicom::Lock lock(*dicom);
+        visitor.WriteFrame(lock.GetContent(), frame);
       }
 
       visitor.Answer(call.GetOutput(), compress);
@@ -1430,15 +1414,17 @@ namespace Orthanc
     }
     else
     {
+      ServerContext& context = OrthancRestApi::GetContext(call);
+
       const std::string instanceId = call.GetUriComponent("id", "");
       const bool compress = call.GetBooleanArgument("compress", false);
       const bool rescale = call.GetBooleanArgument("rescale", true);
 
       {
-        Semaphore::Locker throttling(throttlingSemaphore_);
-        ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), instanceId);
+        std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(instanceId));
+        DicomDataSource::Dicom::Lock lock(*dicom);
 
-        const unsigned int depth = locker.GetDicom().GetFramesCount();
+        const unsigned int depth = lock.GetContent().GetFramesCount();
         if (depth == 0)
         {
           throw OrthancException(ErrorCode_BadFileFormat, "Empty DICOM instance");
@@ -1448,7 +1434,7 @@ namespace Orthanc
 
         for (unsigned int frame = 0; frame < depth; frame++)
         {
-          visitor.WriteFrame(locker.GetDicom(), frame);
+          visitor.WriteFrame(lock.GetContent(), frame);
         }
 
         visitor.Answer(call.GetOutput(), compress);
@@ -1474,8 +1460,6 @@ namespace Orthanc
       const bool compress = call.GetBooleanArgument("compress", false);
       const bool rescale = call.GetBooleanArgument("rescale", true);
 
-      Semaphore::Locker throttling(throttlingSemaphore_);
-
       ServerIndex& index = OrthancRestApi::GetIndex(call);
       SliceOrdering ordering(index, seriesId);
 
@@ -1495,11 +1479,12 @@ namespace Orthanc
         unsigned int framesCount = ordering.GetFramesCount(i);
 
         {
-          ServerContext::DicomCacheLocker locker(context, instanceId);
+          std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(instanceId));
+          DicomDataSource::Dicom::Lock lock(*dicom);
 
           for (unsigned int frame = 0; frame < framesCount; frame++)
           {
-            visitor.WriteFrame(locker.GetDicom(), frame);
+            visitor.WriteFrame(lock.GetContent(), frame);
           }
         }
       }
@@ -1536,8 +1521,6 @@ namespace Orthanc
       return;
     }
 
-    Semaphore::Locker locker(throttlingSemaphore_);
-        
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string frameId = call.GetUriComponent("frame", "0");
@@ -1594,7 +1577,9 @@ namespace Orthanc
       }
       return;
     }
-    
+
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     std::string frameId = call.GetUriComponent("frame", "0");
 
     unsigned int frame;
@@ -1612,8 +1597,9 @@ namespace Orthanc
     MimeType mime;
 
     {
-      ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), publicId);
-      locker.GetDicom().GetRawFrame(raw, mime, frame);
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(publicId));
+      DicomDataSource::Dicom::Lock lock(*dicom);
+      lock.GetContent().GetRawFrame(raw, mime, frame);
     }
 
     if (GzipCompression)
@@ -2341,7 +2327,7 @@ namespace Orthanc
         .AddAnswerType(MimeType_Binary, "The attachment")
         .SetAnswerHeader("ETag", "Revision of the attachment, to be used in further `PUT` or `DELETE` operations")
         .SetHttpHeader("If-None-Match", "Optional revision of the attachment, to check if its content has changed")
-        .SetHttpHeader("Content-Range", "Optional content range to access part of the attachment (new in Orthanc 1.12.5)");
+        .SetHttpHeader("Range", "Optional content range to access part of the attachment (new in Orthanc 1.12.5)");
     
         return;
     }
@@ -2378,13 +2364,12 @@ namespace Orthanc
 
       if (hasRangeHeader)
       {
-        std::string fragment;
-        context.ReadAttachmentRange(fragment, info, range, uncompress);
+        std::unique_ptr<StorageAreaDataSource::Range> fragment(context.ReadAttachment(info, range, uncompress));
 
         uint64_t fullSize = (uncompress ? info.GetUncompressedSize() : info.GetCompressedSize());
         call.GetOutput().GetLowLevelOutput().SetContentType(MimeType_Binary);
         call.GetOutput().GetLowLevelOutput().AddHeader("Content-Range", range.FormatHttpContentRange(fullSize));
-        call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_206_PartialContent, fragment);
+        call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_206_PartialContent, fragment->GetData(), fragment->GetSize());
       }
       else if (uncompress ||
                info.GetCompressionType() == CompressionType_None)
@@ -2394,9 +2379,8 @@ namespace Orthanc
       else
       {
         // Access to the raw attachment (which is compressed)
-        std::string content;
-        context.ReadAttachment(content, info, false /* don't uncompress */, true /* skip cache */);
-        call.GetOutput().AnswerBuffer(content, MimeType_Binary);
+        std::unique_ptr<StorageAreaDataSource::Range> content(context.ReadAttachment(info, false /* don't uncompress */));
+        call.GetOutput().AnswerBuffer(content->GetData(), content->GetSize(), MimeType_Binary);
       }
     }
   }
@@ -2574,13 +2558,14 @@ namespace Orthanc
     bool ok = false;
 
     // First check whether the compressed data is correctly stored in the disk
-    std::string data;
-    context.ReadAttachment(data, info, false, true /* skipCache when you absolutely need the compressed data */);
+    std::string compressedMD5;
 
-    std::string actualMD5;
-    Toolbox::ComputeMD5(actualMD5, data);
+    {
+      std::unique_ptr<StorageAreaDataSource::Range> compressed(context.ReadAttachment(info, false /* don't uncompress */));
+      Toolbox::ComputeMD5(compressedMD5, compressed->GetData(), compressed->GetSize());
+    }
     
-    if (actualMD5 == info.GetCompressedMD5())
+    if (compressedMD5 == info.GetCompressedMD5())
     {
       // The compressed data is OK. If a compression algorithm was
       // applied to it, now check the MD5 of the uncompressed data.
@@ -2590,9 +2575,14 @@ namespace Orthanc
       }
       else
       {
-        context.ReadAttachment(data, info, true, true /* skipCache when you absolutely need the compressed data */);
-        Toolbox::ComputeMD5(actualMD5, data);
-        ok = (actualMD5 == info.GetUncompressedMD5());
+        std::string uncompressedMD5;
+
+        {
+          std::unique_ptr<StorageAreaDataSource::Range> uncompressed(context.ReadAttachment(info, true /* uncompress */));
+          Toolbox::ComputeMD5(uncompressedMD5, uncompressed->GetData(), uncompressed->GetSize());
+        }
+
+        ok = (uncompressedMD5 == info.GetUncompressedMD5());
       }
     }
 
@@ -2827,11 +2817,15 @@ namespace Orthanc
       return;
     }
 
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     std::string id = call.GetUriComponent("id", "");
 
-    ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
-
-    locker.GetDicom().SendPathValue(call.GetOutput(), call.GetTrailingUri());
+    {
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
+      DicomDataSource::Dicom::Lock lock(*dicom);
+      lock.GetContent().SendPathValue(call.GetOutput(), call.GetTrailingUri());
+    }
   }
 
 
@@ -3794,14 +3788,20 @@ namespace Orthanc
       return;
     }
 
-    const std::string id = call.GetUriComponent("id", "");
-    std::string pdf;
-    ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
-    if (locker.GetDicom().ExtractPdf(pdf))
+    const std::string id = call.GetUriComponent("id", "");
+
     {
-      call.GetOutput().AnswerBuffer(pdf, MimeType_Pdf);
-      return;
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
+      DicomDataSource::Dicom::Lock lock(*dicom);
+
+      std::string pdf;
+      if (lock.GetContent().ExtractPdf(pdf))
+      {
+        call.GetOutput().AnswerBuffer(pdf, MimeType_Pdf);
+        return;
+      }
     }
   }
 
@@ -3861,16 +3861,16 @@ namespace Orthanc
 
     std::string publicId = call.GetUriComponent("id", "");
 
-    std::string dicomContent;
-    context.ReadDicomForHeader(dicomContent, publicId);
-
-    // TODO Consider using "DicomMap::ParseDicomMetaInformation()" to
-    // speed up things here
-
-    ParsedDicomFile dicom(dicomContent);
-
     Json::Value header;
-    OrthancConfiguration::DefaultDicomHeaderToJson(header, dicom);
+
+    {
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadDicomUntilPixelData(publicId));
+      DicomDataSource::Dicom::Lock lock(*dicom);
+
+      // TODO Consider using "DicomMap::ParseDicomMetaInformation()" to
+      // speed up things here
+      OrthancConfiguration::DefaultDicomHeaderToJson(header, lock.GetContent());
+    }
 
     AnswerDicomAsJson(call, header, OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full));
   }

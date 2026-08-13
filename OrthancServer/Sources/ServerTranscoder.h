@@ -24,12 +24,18 @@
 #pragma once
 
 #include "../../OrthancFramework/Sources/DicomParsing/IDicomTranscoder.h"
+#include "../../OrthancFramework/Sources/FileStorage/FileInfo.h"
 #include "../../OrthancFramework/Sources/Images/ImageAccessor.h"
 #include "ServerEnumerations.h"
+
+#include <boost/shared_ptr.hpp>
 
 
 namespace Orthanc
 {
+  class DataSourceReader;
+  class DicomInstanceToStore;
+
 #if ORTHANC_ENABLE_PLUGINS == 1
   class OrthancPlugins;
 #endif
@@ -37,12 +43,38 @@ namespace Orthanc
   class ServerTranscoder : public IDicomTranscoder
   {
   private:
+    class PImpl;
+
 #if ORTHANC_ENABLE_PLUGINS == 1
     OrthancPlugins* plugins_;
 #endif
 
+    boost::shared_ptr<PImpl>           pimpl_;
     std::unique_ptr<IDicomTranscoder>  dcmtkTranscoder_;
     BuiltinDecoderTranscoderOrder      builtinDecoderTranscoderOrder_;
+
+    ImageAccessor* DecodeFrameBuiltin(const ParsedDicomFile& dicom,
+                                      unsigned int frameIndex);
+
+    ImageAccessor* DecodeFrameUsingPluginsDecoder(const void* buffer,
+                                                  size_t size,
+                                                  unsigned int frameIndex);
+
+    ImageAccessor* DecodeFrameUsingPluginsTranscoder(const void* buffer,
+                                                     size_t size,
+                                                     unsigned int frameIndex);
+
+    ImageAccessor* DecodeFrameBuiltin(const boost::shared_ptr<DataSourceReader>& dicomReader,
+                                      const FileInfo& attachment,
+                                      unsigned int frameIndex);
+
+    ImageAccessor* DecodeFrameUsingPluginsDecoder(const boost::shared_ptr<DataSourceReader>& storageAreaReader,
+                                                  const FileInfo& attachment,
+                                                  unsigned int frameIndex);
+
+    ImageAccessor* DecodeFrameUsingPluginsTranscoder(const boost::shared_ptr<DataSourceReader>& transcoderReader,
+                                                     const FileInfo& attachment,
+                                                     unsigned int frameIndex);
 
   public:
     explicit ServerTranscoder(unsigned int maxConcurrentDcmtkTranscoder);
@@ -51,9 +83,18 @@ namespace Orthanc
     void SetPlugins(OrthancPlugins& plugins);
 #endif
 
-    ImageAccessor* DecodeFrame(const ParsedDicomFile& parsedDicom,
-                               const void* buffer,  // buffer that is the source of the ParsedDicomFile
-                               size_t size,
+    bool HasPluginsDecoder() const;
+
+    bool HasPluginsTranscoder() const;
+
+    // This version should only be used by plugins
+    ImageAccessor* DecodeFrame(const DicomInstanceToStore& image,
+                               unsigned int frameIndex);
+
+    ImageAccessor* DecodeFrame(const boost::shared_ptr<DataSourceReader>& dicomReader,        // For built-in decoding
+                               const boost::shared_ptr<DataSourceReader>& storageAreaReader,  // For plugin-based decoding
+                               const boost::shared_ptr<DataSourceReader>& transcoderReader,   // For transcoding-based decoding
+                               const FileInfo& attachment,
                                unsigned int frameIndex);
 
     // This method can be used even if the global option

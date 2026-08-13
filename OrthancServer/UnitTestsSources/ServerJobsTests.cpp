@@ -566,7 +566,7 @@ namespace
       storage_(new MemoryStorageArea)
     {
       db_.Open();
-      context_.reset(new ServerContext(db_, storage_, true /* running unit tests */, 10, false /* readonly */));
+      context_.reset(new ServerContext(db_, storage_, NULL /* no transcoder */, true /* running unit tests */, 10, false /* readonly */));
       context_->SetupJobsEngine(true, false);
     }
 
@@ -1021,9 +1021,11 @@ TEST_F(OrthancJobsSerialization, Jobs)
   std::string study, series;
 
   {
-    ServerContext::DicomCacheLocker lock(GetContext(), instance);
-    study = lock.GetDicom().GetHasher().HashStudy();
-    series = lock.GetDicom().GetHasher().HashSeries();
+    std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(instance));
+    DicomDataSource::Dicom::Lock lock(*dicom);
+
+    study = lock.GetContent().GetHasher().HashStudy();
+    series = lock.GetContent().GetHasher().HashSeries();
   }
 
   {

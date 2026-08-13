@@ -33,14 +33,6 @@
 
 namespace Orthanc
 {
-#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
-  void JobOperationValues::Append(JobOperationValue* value)
-  {
-    throw OrthancException(ErrorCode_DiscontinuedAbi, "Removed in 1.8.1");
-  }
-#endif
-    
-
   void JobOperationValues::Append(JobOperationValues& target,
                                   bool clear)
   {

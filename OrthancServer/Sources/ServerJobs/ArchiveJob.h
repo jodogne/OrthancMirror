@@ -33,9 +33,9 @@
 
 namespace Orthanc
 {
+  class DicomSequentialReader;
   class ServerContext;
-  class ThreadedInstancesLoader;
-  
+
   class ArchiveJob : public IJob
   {
   private:
@@ -51,7 +51,7 @@ namespace Orthanc
     std::unique_ptr<ZipWriter::IOutputStream>  synchronousTarget_;  // Only valid before "Start()"
     std::unique_ptr<TemporaryFile>        asynchronousTarget_;
     ServerContext&                        context_;
-    std::unique_ptr<ThreadedInstancesLoader>  instancesLoader_;
+    std::unique_ptr<DicomSequentialReader>  instancesLoader_;
     boost::shared_ptr<ArchiveIndex>       archive_;
     bool                                  isMedia_;
     bool                                  enableExtendedSopClass_;
@@ -71,9 +71,6 @@ namespace Orthanc
     DicomTransferSyntax  transferSyntax_;
     bool                 hasLossyQuality_;
     unsigned int         lossyQuality_;
-
-    // New in Orthanc 1.10.0
-    unsigned int         loaderThreads_;
 
     // New in Orthanc 1.12.11
     bool                 allowUtf8_;
@@ -111,8 +108,6 @@ namespace Orthanc
     void SetTranscode(DicomTransferSyntax transferSyntax);
 
     void SetLossyQuality(unsigned int lossyQuality);
-
-    void SetLoaderThreads(unsigned int loaderThreads);
 
     void SetAllowUtf8(bool allowUtf8);
 

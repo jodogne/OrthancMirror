@@ -37,6 +37,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
+
 #define INFO_SUBSEQUENCES \
   "Starting with Orthanc 1.9.4, paths to subsequences can be provided using the "\
   "same syntax as the `dcmodify` command-line tool (wildcards are supported as well)."
@@ -216,39 +217,22 @@ namespace Orthanc
 
     std::unique_ptr<ParsedDicomFile> modified;
 
-    {
-      ServerContext::DicomCacheLocker locker(context, id);
-      modified.reset(locker.GetDicom().Clone(true));
-    }
-    
-    modification.Apply(modified);
-
     if (transcode)
     {
-      IDicomTranscoder::DicomImage source;
-      source.AcquireParsed(*modified);  // "modified" is invalid below this point
-      
-      IDicomTranscoder::DicomImage transcoded;
+      std::unique_ptr<TranscoderDataSource::Transcoded> transcoded(
+        context.ReadTranscodedDicom(id, targetSyntax, TranscodingSopInstanceUidMode_AllowNew, true, lossyQuality));
 
-      std::set<DicomTransferSyntax> s;
-      s.insert(targetSyntax);
-      
-      if (context.GetTranscoder().Transcode(transcoded, source, s, TranscodingSopInstanceUidMode_AllowNew, lossyQuality))
-      {      
-        call.GetOutput().AnswerBuffer(transcoded.GetBufferData(),
-                                      transcoded.GetBufferSize(), MimeType_Dicom);
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_InternalError,
-                               "Cannot transcode to transfer syntax: " +
-                               std::string(GetTransferSyntaxUid(targetSyntax)));
-      }
+      TranscoderDataSource::Transcoded::LockAsParsed lock(*transcoded);
+      modified.reset(lock.GetContent().Clone(true));
     }
     else
     {
-      modified->Answer(call.GetOutput());
+      std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
+      modified.reset(dicom->Clone());
     }
+    
+    modification.Apply(modified);
+    modified->Answer(call.GetOutput());
   }
 
 

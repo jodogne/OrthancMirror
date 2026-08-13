@@ -29,6 +29,10 @@
 
 #include <gtest/gtest.h>
 
+#if defined(__GNUC__) || defined(__clang__)
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include "../Sources/Cache/MemoryCache.h"
 #include "../Sources/Cache/MemoryStringCache.h"
 #include "../Sources/Cache/SharedArchive.h"
@@ -399,6 +403,8 @@ static Orthanc::MemoryStringCache ThreadingScenarioHappyCache;
 
 void ThreadingScenarioHappyThread1()
 {
+  Orthanc::Logging::ScopedCurrentThreadNameSetter setter("MEM-TEST-1");
+
   // the first thread to call Fetch (will be in charge of adding)
   Orthanc::MemoryStringCache::Accessor a(ThreadingScenarioHappyCache);
   std::string v;
@@ -426,6 +432,8 @@ void ThreadingScenarioHappyThread1()
 
 void ThreadingScenarioHappyThread2()
 {
+  Orthanc::Logging::ScopedCurrentThreadNameSetter setter("MEM-TEST-2");
+
   Orthanc::MemoryStringCache::Accessor a(ThreadingScenarioHappyCache);
   std::string v;
 
@@ -468,6 +476,8 @@ static Orthanc::MemoryStringCache ThreadingScenarioFailureCache;
 
 void ThreadingScenarioFailureThread1()
 {
+  Orthanc::Logging::ScopedCurrentThreadNameSetter setter("MEM-TEST-1");
+
   // the first thread to call Fetch (will be in charge of adding)
   Orthanc::MemoryStringCache::Accessor a(ThreadingScenarioFailureCache);
   std::string v;
@@ -491,6 +501,8 @@ void ThreadingScenarioFailureThread1()
 
 void ThreadingScenarioFailureThread2()
 {
+  Orthanc::Logging::ScopedCurrentThreadNameSetter setter("MEM-TEST-2");
+
   Orthanc::MemoryStringCache::Accessor a(ThreadingScenarioFailureCache);
   std::string v;
 
@@ -527,6 +539,8 @@ static Orthanc::MemoryStringCache ThreadingScenarioInvalidateCache;
 
 void ThreadingScenarioInvalidateThread1()
 {
+  Orthanc::Logging::ScopedCurrentThreadNameSetter setter("MEM-TEST-1");
+
   // the first thread to call Fetch (will be in charge of adding)
   Orthanc::MemoryStringCache::Accessor a(ThreadingScenarioInvalidateCache);
   std::string v;
@@ -551,6 +565,8 @@ void ThreadingScenarioInvalidateThread1()
 
 void ThreadingScenarioInvalidateThread2()
 {
+  Orthanc::Logging::ScopedCurrentThreadNameSetter setter("MEM-TEST-2");
+
   Orthanc::MemoryStringCache::Accessor a(ThreadingScenarioInvalidateCache);
   std::string v;
 

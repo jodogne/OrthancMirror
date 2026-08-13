@@ -33,6 +33,16 @@ namespace Orthanc
   static const uint64_t MEGABYTE = 1024ull * 1024ull;
   static const uint64_t GIGABYTE = 1024ull * 1024ull * 1024ull;
 
+  inline float BytesToFloatMegabytes(uint64_t size)
+  {
+    return static_cast<float>(size) / static_cast<float>(MEGABYTE);
+  }
+
+  inline unsigned int BytesToMegabytes(uint64_t size)
+  {
+    return size / MEGABYTE;
+  }
+
   static const uint64_t MAX_IMAGE_FRAME_SIZE = (sizeof(void*) == 4
                                                 ? 1 * Orthanc::GIGABYTE   // 1 GB on 32 bits system
                                                 : 4 * Orthanc::GIGABYTE); // 4 GB on 64 bits system

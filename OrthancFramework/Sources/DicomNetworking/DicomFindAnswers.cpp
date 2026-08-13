@@ -229,28 +229,4 @@ namespace Orthanc
   {
     complete_ = isComplete;
   }
-
-
-#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
-  void DicomFindAnswers::Add(ParsedDicomFile& dicom)
-  {
-    return Add(const_cast<const ParsedDicomFile&>(dicom));
-  }
-
-  void DicomFindAnswers::ToJson(Json::Value& target,
-                                size_t index,
-                                bool simplify) const
-  {
-    DicomToJsonFormat format = (simplify ? DicomToJsonFormat_Human : DicomToJsonFormat_Full);
-    ToJson(target, index, format);
-  }
-
-
-  void DicomFindAnswers::ToJson(Json::Value& target,
-                                bool simplify) const
-  {
-    DicomToJsonFormat format = (simplify ? DicomToJsonFormat_Human : DicomToJsonFormat_Full);
-    ToJson(target, format);
-  }
-#endif
 }

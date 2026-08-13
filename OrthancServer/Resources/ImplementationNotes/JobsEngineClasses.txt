@@ -22,6 +22,6 @@ class SetOfInstancesJob : SetOfCommandsJob
     virtual bool HandleTrailingStep() = 0;
 
 
-class StoreJob : SetOfInstancesJob   (contains a ThreadedInstancesLoader)
+class StoreJob : SetOfInstancesJob   (contains a DicomSequentialReader)
 
 Class ModalityStoreJob : StoreJob

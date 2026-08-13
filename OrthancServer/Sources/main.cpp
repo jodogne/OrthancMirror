@@ -53,10 +53,15 @@
 #include "ServerJobs/DicomRetrieveScuBaseJob.h"
 #include "ServerJobs/StorageCommitmentScpJob.h"
 #include "ServerToolbox.h"
+#include "ServerTranscoder.h"
 #include "StorageCommitmentReports.h"
+
+#include <PatchList.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/program_options.hpp>
+
+#include <dcmtk/dcmnet/dimse.h>  // For STATUS_STORE_Error_CannotUnderstand
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
@@ -1087,7 +1092,7 @@ static bool StartHttpServer(ServerContext& context,
       httpDescribeErrors = lock.GetConfiguration().GetBooleanParameter("HttpDescribeErrors");
   
       // HTTP server
-      httpServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpThreadsCount"));
+      httpServer.SetThreadsCount(lock.GetConfiguration().GetHttpThreadsCount());
       httpServer.SetPortNumber(lock.GetConfiguration().GetHttpPort());
       std::set<std::string> httpBindAddresses;
       lock.GetConfiguration().GetSetOfStringsParameter(httpBindAddresses, "HttpBindAddresses");
@@ -1360,7 +1365,7 @@ static bool StartDicomServer(ServerContext& context,
       dicomServer.SetCalledApplicationEntityTitleCheck(lock.GetConfiguration().GetBooleanParameter("DicomCheckCalledAet"));
       dicomServer.SetAssociationTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScpTimeout"));
       dicomServer.SetPortNumber(lock.GetConfiguration().GetDicomPort());
-      dicomServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomThreadsCount"));
+      dicomServer.SetThreadsCount(lock.GetConfiguration().GetDicomThreadsCount());
       dicomServer.SetApplicationEntityTitle(lock.GetConfiguration().GetOrthancAET());
 
       // Configuration of DICOM TLS for Orthanc SCP (since Orthanc 1.9.0)
@@ -1582,19 +1587,14 @@ namespace
         lock.GetConfiguration().SetServerIndex(context.GetIndex());
       }
 
-      std::unique_ptr<ServerTranscoder> transcoder(new ServerTranscoder(maxDcmtkConcurrentTranscoders));
-
 #if ORTHANC_ENABLE_PLUGINS == 1
       if (plugins_ != NULL)
       {
         plugins_->SetServerContext(context_);
         context_.SetPlugins(*plugins_);
         context_.GetIndex().SetMaxDatabaseRetries(plugins_->GetMaxDatabaseRetries());
-        transcoder->SetPlugins(*plugins_);
       }
 #endif
-
-      context.SetTranscoder(transcoder.release());
     }
 
     ~ServerContextConfigurator()
@@ -1611,8 +1611,6 @@ namespace
         context_.ResetPlugins();
       }
 #endif
-
-      context_.ResetTranscoder();
     }
   };
 }
@@ -1667,7 +1665,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     maxDcmtkConcurrentTranscoders = lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_CONCURRENT_DCMTK_TRANSCODERS);
     if (maxDcmtkConcurrentTranscoders == 0)
     {
-      maxDcmtkConcurrentTranscoders = static_cast<unsigned int>(boost::thread::hardware_concurrency());
+      maxDcmtkConcurrentTranscoders = SystemToolbox::GetHardwareConcurrency();
     }
 
     // Configuration of DICOM TLS for Orthanc SCU (since Orthanc 1.9.0)
@@ -1688,8 +1686,14 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     DicomAssociationParameters::SetDefaultRemoteCertificateRequired(
       lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED));
   }
+
+  std::unique_ptr<ServerTranscoder> transcoder(new ServerTranscoder(maxDcmtkConcurrentTranscoders));
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+  transcoder->SetPlugins(*plugins);
+#endif
   
-  ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs, readOnly);
+  ServerContext context(database, storageArea, transcoder.release(), false /* not running unit tests */, maxCompletedJobs, readOnly);
 
   {
     OrthancConfiguration::ReaderLock lock;
@@ -1774,26 +1778,6 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       {
         context.GetIndex().SetMaximumStorageMode(MaxStorageMode_Recycle);
       }
-    }
-
-    // note: this config is valid in ReadOnlyMode
-    try
-    {
-      uint64_t size = lock.GetConfiguration().GetMaximumStorageCacheSize();
-      if (size == 0)
-      {
-        LOG(WARNING) << "Storage cache is disabled";
-      }
-      else
-      {
-        LOG(WARNING) << "Storage cache size is " << size << " MB";
-      }
-      
-      context.SetMaximumStorageCacheSize(size * 1024 * 1024);
-    }
-    catch (...)
-    {
-      context.SetMaximumStorageCacheSize(128);
     }
   }
 
@@ -2009,7 +1993,8 @@ static int ExportOpenApi(const std::string& target)
     SQLiteDatabaseWrapper inMemoryDatabase;
     inMemoryDatabase.Open();
     PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
-    ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
+    ServerContext context(inMemoryDatabase, inMemoryStorage, NULL /* no transcoder */,
+                          true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
     OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
     restApi.GenerateOpenApiDocumentation(openapi);
     context.Stop();
@@ -2044,7 +2029,8 @@ static int ExportCheatSheet(const std::string& target)
     SQLiteDatabaseWrapper inMemoryDatabase;
     inMemoryDatabase.Open();
     PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
-    ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
+    ServerContext context(inMemoryDatabase, inMemoryStorage, NULL /* no transcoder */,
+                          true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
     OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
     restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
     context.Stop();
@@ -2145,6 +2131,8 @@ int main(int argc, char* argv[])
   static const char* const OPTION_VERBOSE = "verbose";
   static const char* const OPTION_TRACE = "trace";
   static const char* const OPTION_LOGS_NO_THREAD = "logs-no-thread";
+  static const char* const OPTION_LOGS_NO_CONTEXT = "logs-no-context";
+  static const char* const OPTION_LOGS_THREAD_NAMES_IN_CONTEXT = "logs-thread-names-in-context";
 
   boost::program_options::options_description allWithoutHidden;
   std::vector<std::string> orderSensitiveArguments;
@@ -2179,7 +2167,11 @@ int main(int argc, char* argv[])
       (OPTION_TRACE, "highest verbosity in logs (for debug)")
 
       // New in Orthanc 1.12.2
-      (OPTION_LOGS_NO_THREAD, "remove thread names from logs");
+      (OPTION_LOGS_NO_THREAD, "remove thread names from logs")
+
+      // New in Orthanc 1.13.0
+      (OPTION_LOGS_NO_CONTEXT, "remove contexts from logs")
+      (OPTION_LOGS_THREAD_NAMES_IN_CONTEXT, "include caller thread names in log contexts");
 
     boost::program_options::options_description finetuning("Fine-tuning of log categories");
 
@@ -2409,6 +2401,16 @@ int main(int argc, char* argv[])
     Logging::SetThreadNamesEnabled(false);
   }
 
+  if (options.count(OPTION_LOGS_NO_CONTEXT) == 1)
+  {
+    Logging::SetThreadContextsEnabled(false);
+  }
+
+  if (options.count(OPTION_LOGS_THREAD_NAMES_IN_CONTEXT) == 1)
+  {
+    Logging::SetThreadNamesInContextsEnabled(true);
+  }
+
   if (options.count(OPTION_INPUTS) != 0)
   {
     const std::vector<std::string>& inputs = options[OPTION_INPUTS].as<std::vector<std::string> >();
@@ -2443,6 +2445,11 @@ int main(int argc, char* argv[])
 
     LOG(WARNING) << "Orthanc version: " << version;
     assert(DisplayPerformanceWarning());
+
+    for (unsigned int i = 0; i < ORTHANC_PATCHES_COUNT; i++)
+    {
+      LOG(WARNING) << "This binary includes the following patch to a third-party library: " << ORTHANC_PATCHES[i];
+    }
 
     std::string s = "Architecture: ";
     if (sizeof(void*) == 4)

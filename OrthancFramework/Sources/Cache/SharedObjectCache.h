@@ -43,13 +43,13 @@ namespace Orthanc
     Mutex                                mutex_;
     LeastRecentlyUsedIndex<std::string>  lru_;
     Content                              content_;
-    size_t                               capacity_;
+    const size_t                         capacity_;
     size_t                               currentSize_;
 
     void MakeRoom(size_t newObjectSize);
 
   public:
-    explicit SharedObjectCache(size_t capacity);
+    explicit SharedObjectCache(uint64_t capacity);
 
     ~SharedObjectCache();
 
@@ -69,5 +69,13 @@ namespace Orthanc
                size_t size);
 
     void Invalidate(const std::string& id);
+
+    size_t GetCapacity() const
+    {
+      return capacity_;  // This is a constant value, it can be read without the mutex
+    }
+
+    void GetStatistics(size_t& currentCount,
+                       size_t& currentSize);
   };
 }

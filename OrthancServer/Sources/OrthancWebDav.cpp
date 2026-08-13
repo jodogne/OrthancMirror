@@ -226,7 +226,11 @@ namespace Orthanc
           time_ = GetNow();
         }
 
-        context_.ReadDicom(target_, resource.GetIdentifier());
+        {
+          std::unique_ptr<StorageAreaDataSource::Range> raw(context_.ReadRawDicom(resource.GetIdentifier()));
+          raw->Copy(target_);
+        }
+
         success_ = true;
       }
     }
@@ -482,7 +486,12 @@ namespace Orthanc
         try
         {
           mime = MimeType_Dicom;
-          context_.ReadDicom(content, instanceId);
+
+          {
+            std::unique_ptr<StorageAreaDataSource::Range> raw(context_.ReadRawDicom(instanceId));
+            raw->Copy(content);
+          }
+
           LookupTime(time, context_, instanceId, ResourceType_Instance, MetadataType_Instance_ReceptionDate);
           return true;
         }

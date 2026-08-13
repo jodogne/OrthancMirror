@@ -432,14 +432,13 @@ namespace Orthanc
       lock.GetConfiguration().GetStringParameter(ORTHANC_CONFIG_STORAGE_DIRECTORY);
 
     std::string indexDirectoryStr;
-    if (!lock.GetConfiguration().LookupStringParameter(indexDirectoryStr, "IndexDirectory"))
+    if (!lock.GetConfiguration().LookupStringParameter(indexDirectoryStr, ORTHANC_CONFIG_INDEX_DIRECTORY))
     {
       indexDirectoryStr = storageDirectoryStr;
     }
 
     // Open the database
-    boost::filesystem::path indexDirectory = lock.GetConfiguration().InterpretStringParameterAsPath(
-      indexDirectoryStr);
+    boost::filesystem::path indexDirectory = lock.GetConfiguration().InterpretStringParameterAsPath(indexDirectoryStr);
 
     LOG(WARNING) << "SQLite index directory: " << SystemToolbox::PathToUtf8(indexDirectory);
 

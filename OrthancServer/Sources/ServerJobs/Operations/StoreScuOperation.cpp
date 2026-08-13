@@ -55,7 +55,8 @@ namespace Orthanc
       instance.ReadDicom(dicom);
 
       std::string sopClassUid, sopInstanceUid;  // Unused
-      context_.PerformCStoreWithTranscoding(sopClassUid, sopInstanceUid, lock.GetConnection(), dicom,
+      context_.PerformCStoreWithTranscoding(sopClassUid, sopInstanceUid, lock.GetConnection(),
+                                            dicom.empty() ? NULL : dicom.c_str(), dicom.size(),
                                             false /* Not a C-MOVE */, "", 0);
     }
     catch (OrthancException& e)

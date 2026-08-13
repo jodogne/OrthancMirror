@@ -49,6 +49,8 @@ namespace Orthanc
       Clear();
     }
 
+    virtual void CopyToString(std::string& target) const ORTHANC_OVERRIDE;
+
     virtual void MoveToString(std::string& target) ORTHANC_OVERRIDE;
 
     virtual const void* GetData() const ORTHANC_OVERRIDE;

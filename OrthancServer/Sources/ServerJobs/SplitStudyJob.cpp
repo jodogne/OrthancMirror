@@ -72,8 +72,8 @@ namespace Orthanc
 
     try
     {
-      ServerContext::DicomCacheLocker locker(GetContext(), instance);
-      modified.reset(locker.GetDicom().Clone(true));
+      std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(instance));
+      modified.reset(dicom->Clone());
     }
     catch (OrthancException&)
     {

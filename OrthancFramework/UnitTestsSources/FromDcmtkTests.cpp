@@ -37,6 +37,10 @@
 
 #include <gtest/gtest.h>
 
+#if defined(__GNUC__) || defined(__clang__)
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include "../Sources/Compatibility.h"
 #include "../Sources/DicomFormat/DicomImageInformation.h"
 #include "../Sources/DicomFormat/DicomPath.h"

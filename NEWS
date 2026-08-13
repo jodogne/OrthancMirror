@@ -4,13 +4,26 @@ Pending changes in the mainline
 General
 -------
 
-* Multiple paths to configuration files can now be provided, instead of a single file or a single folder
-* Split the configuration into a main file and a second file for advanced settings
-* Orthanc will now refuse to start if you have "AuthenticationEnabled" and "RemoteAccessAllowed"
-  set to true and have not defined any users in "RegisteredUsers".
+* Complete rewrite of access to storage area and to DICOM parsing/transcoding to improve caching
+  and reduce memory usage. This change introduces the following new configuration options:
+  - "DicomParserCacheSize"
+  - "DicomParserMemoryCapacity"
+  - "DicomParserThreadsCount"
+  - "SequentialDicomReaderThreadsCount"
+  - "SequentialDicomReaderWindowCapacity"
+  - "SequentialDicomReaderWindowSize"
+  - "StorageLoaderThreadsCount"
+  - "StorageMemoryCapacity"
+  - "TranscoderCacheSize"
+  - "TranscoderMemoryCapacity"
+  - "TranscoderThreadsCount"
+* Split the configuration into a main file and a separate file for advanced settings.
+* Multiple paths to configuration files can now be provided, instead of a single file or a single folder.
+* Orthanc will now refuse to start if both options "AuthenticationEnabled" and "RemoteAccessAllowed"
+  are set to true, but no user is defined in "RegisteredUsers".
 * New values for "OverwriteInstances" configuration. In previous versions, this configuration
-  was a Boolean and it is now a string whose allowed values are "Never", "Always",
-  and "IfChanged". For backward compatibility, you may still provide a Boolean value
+  was a Boolean. It is now a string whose allowed values are "Never", "Always",
+  and "IfChanged". For backward compatibility, a Boolean value can still be provided
   (true = "Always" and false = "Never").
   Compared to previous versions, in the "Never" and "IfChanged" mode, the number of disks and 
   DB operations are reduced when uploading the same instance again.
@@ -18,57 +31,63 @@ General
 * When the "IngestTranscoding" configuration is set to a compressed transfer syntax, Orthanc
   no longer transcodes DICOM files that do not have any pixel data (e.g. DICOM-SR, RTSTRUCT,
   Encapsulated PDF,...). Such files are sometimes poorly handled by other software.
-* In Lua, added new functions to manage key-value stores in the Orthanc DB (provided that
-  the DB backend supports it: currently, PostgreSQL and SQLite):
-  - StoreKeyValue(storeId, key, value)
-  - value = GetKeyValue(storeId, key)
-  - DeleteKeyValue(storeId, key)
-* C-Find SCP: 
-  - When Orthanc was requested a sequence in a C-Find query, Orthanc was actually not returning 
-    any sequences in the C-Find answer if the matched resource did contain the requested sequence and
-    was returning an empty sequence if the matched resource did not contain the requested sequence.
-    Orthanc now returns the full sequence content when the matched resource contains the requested sequence.
-  - When Orthanc was requested to return a private tag in a C-Find query, Orthanc was actually not returning 
-    the resources that did not contain the private tag although it was not used as a filter in the query.
-* Fix mismatches between the configuration default values and the documentation:
-  - "HttpTimeout" was documented as 60 while its default value is 0 (no timeout).
-  - "Name" was documented as "MyOrthanc" while its default value is "ORTHANC".
-* Orthanc no longer accepts DICOM association from modalities whose AET contains invalid characters.
-* Orthanc now ignores leading/trailing spaces in AET.
-* Experimental: New "Manufacturer" "SiemensSyngoCT" to propose both the SCU and SCP C-Store roles when
-  performing a C-Get SCU.
+* Logs:
+  - Lines of log can now contain additional contextual information like the job ID they relate to.
+  - A new "--logs-no-context" command-line option restores the previous behavior for backward
+    compatibility and to reduce log line length.
+  - A new "--logs-thread-names-in-context" command-line option adds information about the thread that
+    requested a service to the log context. This option is mainly intended for developers.
+* Experimental: New manufacturer "SiemensSyngoCT" available in "DicomModalities" to propose
+  both the SCU and SCP C-STORE roles when performing a C-GET SCU.
 
 REST API
 --------
 
-* API version upgraded to 33
+* API version upgraded to 34 (34 in streaming branch, 33 in default and 1.12.11 was 30 ! 
+  TODO: for the release, we may go backward to 31 but we need to change the conditional 
+  tests - see this commit: https://orthanc.uclouvain.be/hg/orthanc-tests/rev/3a440ee47213)
 * New fields reported in the "/system" route:
-  - "OverwriteInstancesMode" (Boolean field "OverwriteInstances" is kept for backward
-    compatibility)
-  - "MaximumStorageCacheSize"
+  - "OverwriteInstancesMode" (Boolean field "OverwriteInstances" is kept for backward compatibility)
+  - "Performance" reports configuration options that may affect performance of Orthanc
   - "StoreMD5ForAttachments"
+  - "ThirdPartyPatches" lists the patches applied to the third-party libraries
+  - "ThirdPartyVersions" lists the versions of the main third-party libraries
 * The "LocalAet" field of the payload to "/modalities/../move", "/modalities/../store", 
   "/modalities/../get", "queries/../answers/../retrieve" now always overwrites the "DicomAet"
   and the "DicomModalities.LocalAet" configurations.
-* Optimized the "/patients|studies|series|instances/../statistics" routes.
-* Updated the naming structure of the zip downloaded from "/../../archive" routes.  Notably added
-  SeriesNumber at the series level and now using " - " instead of " " to separate DICOM tags used
-  in folder names.
+* Optimized the "/{patients|studies|series|instances}/../statistics" routes.
+* Updated the naming structure of ZIP archives downloaded from "/../../archive" routes.
+  Notably added "SeriesNumber" at the series level and now using " - " instead of " " to
+  separate DICOM tags used in folder names.
 * In "/tools/metrics-prometheus":
-  - Removed "orthanc_jobs_completed", "orthanc_jobs_success" and "orthanc_jobs_failed" that were 
+  - Removed "orthanc_jobs_completed", "orthanc_jobs_success" and "orthanc_jobs_failed" that were
     only considering the jobs currently stored in the JobsHistory and that were not suitable for
-    monitoring.  These metrics have been replaced by "orthanc_jobs_total_completed", 
-    "orthanc_jobs_total_success" and "orthanc_jobs_total_failed" that are now considering all the 
+    monitoring. These metrics have been replaced by "orthanc_jobs_total_completed",
+    "orthanc_jobs_total_success" and "orthanc_jobs_total_failed" that are now considering all the
     jobs that have run since Orthanc started.
+  - New metrics related to the refactored architecture to access the storage area and DICOM
+    parsing/transcoding: "{orthanc_storage|orthanc_dicom_parser|orthanc_transcoder}_
+    {cache_count|cache_hit_count|cache_miss_count|cache_size_mb|memory_capacity_mb|
+    memory_count|memory_max_usage_mb|memory_usage_mb|available_threads}",
+    as well as "orthanc_sequential_reader_available_threads"
 * The "/tools/bulk-delete" route now also accepts a payload of this type:
-  {"Resources": [{"Level": "Study", "ID": "..."}]}.  This payload reduces the number
+  {"Resources": [{"Level": "Study", "ID": "..."}]}. This payload reduces the number
   of calls to the SQL DB and is more suitable for the authorization plugin.
+
+Lua
+---
+
+* Added new functions to manage key-value stores in the Orthanc database (provided that the
+  database backend supports them; currently, only PostgreSQL and SQLite):
+  - StoreKeyValue(storeId, key, value)
+  - value = GetKeyValue(storeId, key)
+  - DeleteKeyValue(storeId, key)
 
 Plugin SDK
 ----------
 
 * Added OrthancPluginClearCurrentThreadName() to avoid storing many thread
-  names when dynamically creating/killing threads in a plugin.
+  names when dynamically creating/killing threads in a plugin
 * Added OD, OL, UC, UR, OV, SV, and UV values to the OrthancPluginValueRepresentation enumeration
 * Added OrthancPluginDicomWebBinaryMode_ArrayOfValues to generate DICOMweb
   representations with OW, OL, OV, OF, and OD value representations as array of values
@@ -79,11 +98,25 @@ Maintenance
 * Added support for OV, SV, and UV value representations
 * Added support for multiple values in AT value representation
 * Improved support of OW, OL, OV, OF, and OD value representations in DICOMweb JSON
+* C-FIND SCP:
+  - When Orthanc was requested to return a sequence in a C-FIND query, it did not return
+    any sequence in the C-FIND answer if the matched resource *did* contain the requested sequence, and
+    it returned an empty sequence if the matched resource *did not* contain the requested sequence.
+    Orthanc now returns the full sequence content when the matched resource contains the requested sequence.
+  - When Orthanc was requested to return a private tag in a C-FIND query, it did not return resources that
+    did not contain the private tag, even though the tag was not used as a filter in the query. Resources
+    without the private tag are now correctly returned in the response.
+* Fix mismatches between the configuration default values and the documentation:
+  - "HttpTimeout" was documented as 60 while its default value is 0 (no timeout)
+  - "Name" was documented as "MyOrthanc" while its default value is "ORTHANC"
+* Orthanc no longer accepts DICOM association from modalities whose AET contains invalid characters
+* Orthanc now ignores leading/trailing spaces in AET
+* The configuration options "LoaderThreads" and "ZipLoaderThreads" have been removed from
+  the default configuration file and are only used for backward compatibility with new options
 * Fix resubmit/pause/cancel and reloading of OrthancPeerStore and DicomModalityStore jobs 
   (bug introduced in 1.12.10)
-* Fix OrthancPeerStore jobs that was using the loader threads only if transcoding
-  was required.
-* Fix usage of "LocalAet" in C-Find and "queries/../answers/../retrieve".
+* Fix OrthancPeerStore jobs that was using the loader threads only if transcoding was required
+* Fix usage of "LocalAet" in C-FIND and "queries/../answers/../retrieve"
 * Fix Orthanc::ImageAccessor that was broken in Orthanc Framework 1.12.11
 * Fix a memory leak in C-GET:
   https://github.com/orthanc-server/orthanc-builder/issues/36
@@ -91,12 +124,11 @@ Maintenance
   https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448)
 * Fix a Denial of Service via Deeply Nested DICOM Sequences (CVE-2026-10528):
   https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=258
-  Security issue reported by Jose Lopez Martinez (aka elpe_pinillo) from Deloitte.
+  Security issue reported by Jose Lopez Martinez (aka elpe_pinillo) from Deloitte
 * Fixed various OOB read/write (TODO: still waiting for CVE ID)
 * Improved preview and rendering of multiframe instances a with a Color Lookup Table; 
-  notably, some cardiac US instances.
-* Lua: Fix the "ReceivedCStoreInstanceFilter" Lua callback whose return value was
-  not taken into account.
+  notably, some cardiac US instances
+* Lua: Fix the "ReceivedCStoreInstanceFilter()" callback whose return value was not taken into account
 * Upgraded dependencies for static builds:
   - dcmtk 3.7.0 hot-fix for CVE-2026-10528:
     https://github.com/DCMTK/dcmtk/commit/885ff0f10372bd589b5f44cea974f28a3964cb0f

@@ -1843,10 +1843,10 @@ namespace
 TEST(ThreadPool, Basic)
 {
   ThreadPool pool;
-  ASSERT_THROW(pool.SetCountThreads(0), OrthancException);
+  ASSERT_THROW(pool.SetThreadsCount(0), OrthancException);
   ASSERT_THROW(pool.SetDequeueTimeout(0), OrthancException);
   pool.SetDequeueTimeout(1);  // Ensure fast shutdown in unit tests
-  ASSERT_EQ(1u, pool.GetCountThreads());
+  ASSERT_EQ(1u, pool.GetThreadsCount());
   ASSERT_EQ(1u, pool.GetDequeueTimeout());
 
   pool.Start();

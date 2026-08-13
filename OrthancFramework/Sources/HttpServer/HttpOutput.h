@@ -158,7 +158,7 @@ namespace Orthanc
     }
 
     void SendStatus(HttpStatus status,
-		    const char* message,
+		    const void* message,
 		    size_t messageSize);
 
     void SendStatus(HttpStatus status);

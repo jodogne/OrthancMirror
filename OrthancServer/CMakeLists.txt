@@ -129,6 +129,7 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestModalities.cpp
   ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestResources.cpp
   ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestSystem.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/ThirdPartyVersions.cpp
   ${CMAKE_SOURCE_DIR}/Sources/OrthancWebDav.cpp
   ${CMAKE_SOURCE_DIR}/Sources/OutgoingDicomInstance.cpp
   ${CMAKE_SOURCE_DIR}/Sources/QueryRetrieveHandler.cpp
@@ -164,7 +165,6 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/SplitStudyJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/StorageCommitmentScpJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/StoreJob.cpp
-  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ThreadedInstancesLoader.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ThreadedSetOfInstancesJob.cpp  
   ${CMAKE_SOURCE_DIR}/Sources/ServerToolbox.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerTranscoder.cpp
@@ -202,7 +202,6 @@ if (BUILD_UNIT_TESTS)
     ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerConfigTests.cpp
     ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerIndexTests.cpp
     ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerJobsTests.cpp
-    ${CMAKE_SOURCE_DIR}/UnitTestsSources/SizeOfTests.cpp
     ${CMAKE_SOURCE_DIR}/UnitTestsSources/UnitTestsMain.cpp
     ${CMAKE_SOURCE_DIR}/UnitTestsSources/VersionsTests.cpp
     )

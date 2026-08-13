@@ -128,9 +128,6 @@ namespace Orthanc
                              "Cannot determine the transfer syntax");
     }
 
-    uint16_t bitsStored;
-    bool hasBitsStored = GetBitsStored(bitsStored, *dicom.getDataset());
-    
     if (allowedSyntaxes.find(syntax) != allowedSyntaxes.end())
     {
       // No transcoding is needed
@@ -163,6 +160,11 @@ namespace Orthanc
 
     const bool allowNewSopInstanceUid = (mode == TranscodingSopInstanceUidMode_AllowNew ||
                                          mode == TranscodingSopInstanceUidMode_Preserve);
+
+#if ORTHANC_ENABLE_DCMTK_JPEG == 1
+    uint16_t bitsStored;
+    bool hasBitsStored = GetBitsStored(bitsStored, *dicom.getDataset());
+#endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess1) != allowedSyntaxes.end())

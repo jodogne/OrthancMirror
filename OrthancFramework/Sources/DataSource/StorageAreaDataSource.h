@@ -32,6 +32,8 @@
 #include "../FileStorage/FileInfo.h"
 #include "../FileStorage/IStorageArea.h"
 #include "../FileStorage/StorageRange.h"
+#include "../IMemoryBuffer.h"
+#include "DataSourceAnswer.h"
 #include "IDataSource.h"
 
 #include <boost/shared_ptr.hpp>
@@ -40,65 +42,88 @@
 namespace Orthanc
 {
   class DataSourceReader;
+  class MetricsRegistry;
 
   class ORTHANC_PUBLIC StorageAreaDataSource : public IDataSource
   {
   private:
     class Value;
     class Identifier;
+    class IPostProcessing;
+    class AttachmentPostProcessing;
 
   private:
-    IPluginStorageArea&  area_;
+    IPluginStorageArea&                 area_;
+    bool                                checkMD5_;
+    boost::shared_ptr<MetricsRegistry>  metrics_;
+    std::string                         metricsReadBytesName_;
+    std::string                         metricsReadDurationName_;
 
   public:
-    explicit StorageAreaDataSource(IPluginStorageArea& area) :
-      area_(area)
-    {
-    }
+    explicit StorageAreaDataSource(IPluginStorageArea& area,
+                                   bool checkMD5);
+
+    void SetMetricsRegistry(const boost::shared_ptr<MetricsRegistry>& metrics,
+                            const std::string& metricsReadBytesName,
+                            const std::string& metricsReadDurationName);
 
     virtual size_t GetValueSize(const IDynamicObject& value) const ORTHANC_OVERRIDE;
 
-    virtual IDynamicObject* Load(const IDataIdentifier& identifier) ORTHANC_OVERRIDE;
+    virtual IDynamicObject* Load(const IDataIdentifier& identifier,
+                                 const boost::shared_ptr<SharedObjectCache>& readerCache /* could be NULL */) ORTHANC_OVERRIDE;
 
-    class Range : public boost::noncopyable
+    class ORTHANC_PUBLIC Range : public boost::noncopyable
     {
     private:
-      boost::shared_ptr<IDynamicObject>  value_;
-
-      const Value& GetValue() const;
+      std::unique_ptr<DataSourceAnswer::Item>  item_;   // Holding item puts backpressure on the data source (can be NULL)
+      boost::shared_ptr<IMemoryBuffer>         buffer_;  // To be used if "item_ == NULL"
 
     public:
-      explicit Range(const boost::shared_ptr<IDynamicObject>& value);
+      explicit Range(DataSourceAnswer::Item* item /* takes ownership */);
 
-      const void* GetData() const;
+      explicit Range(IMemoryBuffer* buffer /* takes ownership */);
 
-      size_t GetSize() const;
+      const boost::shared_ptr<IMemoryBuffer>& GetBuffer() const;
 
-      void Copy(std::string& to) const;
+      const void* GetData() const
+      {
+        return GetBuffer()->GetData();
+      }
 
-      static Range* CreateFromSwap(std::string& content);
+      const size_t GetSize() const
+      {
+        return GetBuffer()->GetSize();
+      }
+
+      void Copy(std::string& target) const
+      {
+        GetBuffer()->CopyToString(target);
+      }
     };
 
-    static Range* ReadRange(DataSourceReader& reader,
-                            const std::string& uuid,
-                            FileContentType type,
-                            uint64_t start /* inclusive */,
-                            uint64_t end /* exclusive */,
-                            const std::string& customData);
+    static IDataIdentifier* CreateRangeRequest(const std::string& uuid,
+                                               FileContentType type,
+                                               uint64_t start /* inclusive */,
+                                               uint64_t end /* exclusive */,
+                                               const std::string& pluginCustomData);
 
-    static Range* ReadAttachment(DataSourceReader& reader,
-                                 const FileInfo& attachment,
-                                 bool uncompress,
-                                 bool checkMD5);
+    static IDataIdentifier* CreateAttachmentRequest(const FileInfo& attachment,
+                                                    bool uncompress);
 
-    static Range* ReadBeginning(DataSourceReader& reader,
-                                const FileInfo& attachment,
-                                uint64_t untilPosition /* exclusive */);
+    static IDataIdentifier* CreateBeginningRequest(const FileInfo& attachment,
+                                                   uint64_t untilPosition /* exclusive */);
+
+    static Range* Execute(DataSourceReader& reader,
+                          IDataIdentifier* request /* takes ownership */);
 
     static Range* ReadRange(DataSourceReader& reader,
                             const FileInfo& attachment,
                             const StorageRange& range,
-                            bool uncompress,
-                            bool checkMD5);
+                            bool uncompress);
+
+    static void StoreIntoCache(DataSourceReader& reader,
+                               const FileInfo& attachment,
+                               const void* data,
+                               size_t size);
   };
 }

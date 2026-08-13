@@ -2,8 +2,11 @@ syntax: glob
 ThirdPartyDownloads/
 CMakeLists.txt.user
 *.cpp.orig
+*.cpp.rej
 *.h.orig
+*.h.rej
 *.patch.orig
+*.patch.rej
 .vs/
 .vscode/
 *~

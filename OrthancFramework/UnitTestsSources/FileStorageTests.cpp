@@ -29,10 +29,13 @@
 
 #include <gtest/gtest.h>
 
+#if defined(__GNUC__) || defined(__clang__)
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include "../Sources/FileStorage/FilesystemStorage.h"
 #include "../Sources/FileStorage/PluginStorageAreaAdapter.h"
 #include "../Sources/FileStorage/StorageAccessor.h"
-#include "../Sources/FileStorage/StorageCache.h"
 #include "../Sources/Logging.h"
 #include "../Sources/OrthancException.h"
 #include "../Sources/Toolbox.h"
@@ -196,8 +199,7 @@ TEST(FilesystemStorage, EndToEnd)
 TEST(StorageAccessor, NoCompression)
 {
   PluginStorageAreaAdapter s(new FilesystemStorage("UnitTestsStorage"));
-  StorageCache cache;
-  StorageAccessor accessor(s, cache);
+  StorageAccessor accessor(s);
 
   const std::string data = "Hello world";
   FileInfo info;
@@ -219,8 +221,7 @@ TEST(StorageAccessor, NoCompression)
 TEST(StorageAccessor, Compression)
 {
   PluginStorageAreaAdapter s(new FilesystemStorage("UnitTestsStorage"));
-  StorageCache cache;
-  StorageAccessor accessor(s, cache);
+  StorageAccessor accessor(s);
 
   const std::string data = "Hello world";
   FileInfo info;
@@ -241,8 +242,7 @@ TEST(StorageAccessor, Compression)
 TEST(StorageAccessor, Mix)
 {
   PluginStorageAreaAdapter s(new FilesystemStorage("UnitTestsStorage"));
-  StorageCache cache;
-  StorageAccessor accessor(s, cache);
+  StorageAccessor accessor(s);
 
   const std::string compressedData = "Hello";
   const std::string uncompressedData = "HelloWorld";

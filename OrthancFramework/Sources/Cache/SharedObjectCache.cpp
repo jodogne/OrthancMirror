@@ -81,10 +81,14 @@ namespace Orthanc
   }
 
 
-  SharedObjectCache::SharedObjectCache(size_t capacity) :
+  SharedObjectCache::SharedObjectCache(uint64_t capacity) :
     capacity_(capacity),
     currentSize_(0)
   {
+    if (static_cast<uint64_t>(static_cast<size_t>(capacity)) != capacity)
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
   }
 
 
@@ -188,5 +192,14 @@ namespace Orthanc
     }
 
     assert(!lru_.Contains(id));
+  }
+
+
+  void SharedObjectCache::GetStatistics(size_t& currentCount,
+                                        size_t& currentSize)
+  {
+    Mutex::ScopedLock lock(mutex_);
+    currentCount = lru_.GetSize();
+    currentSize = currentSize_;
   }
 }

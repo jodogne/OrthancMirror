@@ -34,6 +34,7 @@
 
 namespace Orthanc
 {
+  class MetricsRegistry;
   class SharedObjectCache;
 
   namespace Internals
@@ -43,36 +44,100 @@ namespace Orthanc
 
   class ORTHANC_PUBLIC DataSourceReader : public boost::noncopyable
   {
+  public:
+    class MetricsConfiguration
+    {
+    protected:
+      boost::shared_ptr<MetricsRegistry>  metrics_;
+      std::string                         cacheSizeMegabytesName_;
+      std::string                         cacheCountName_;
+      std::string                         cacheHitCountName_;
+      std::string                         cacheMissCountName_;
+      std::string                         capacityMaxSizeMegabytesName_;
+      std::string                         capacityCurrentSizeMegabytesName_;
+      std::string                         capacityCountName_;
+      std::string                         capacityMaxUsageSinceStartMegabytesName_;
+
+    public:
+      MetricsConfiguration()
+      {
+      }
+
+      MetricsConfiguration(const boost::shared_ptr<MetricsRegistry>& metrics,
+                           const std::string& cacheSizeMegabytesName,
+                           const std::string& cacheCountName,
+                           const std::string& cacheHitCountName,
+                           const std::string& cacheMissCountName,
+                           const std::string& capacityMaxSizeMegabytesName,
+                           const std::string& capacityCurrentSizeMegabytesName,
+                           const std::string& capacityCountName,
+                           const std::string& capacityMaxUsageSinceStartMegabytesName);
+
+      void SetCacheStatistics(SharedObjectCache& cache);
+
+      void IncrementCacheHitCount();
+
+      void IncrementCacheMissCount();
+      
+      friend DataSourceReader;
+    };
+
   private:
     class DataSourceRunnable;
 
-    std::unique_ptr<IExecutorService>                     executor_;
+    boost::shared_ptr<IExecutorService>                   executor_;
     std::unique_ptr<IDataSource>                          source_;
     boost::shared_ptr<SharedObjectCache>                  cache_;
     boost::shared_ptr<Internals::DataSourceMemoryBudget>  budget_;
+    MetricsConfiguration                                  metricsConfiguration_;
 
   public:
-    DataSourceReader(IExecutorService* executor /* takes ownership */,
+    DataSourceReader(const boost::shared_ptr<IExecutorService>& executor,
                      IDataSource* source /* takes ownership */);
 
     ~DataSourceReader();
 
-    IDataSource& GetSource() const
+    const boost::shared_ptr<IExecutorService>& GetExecutorService() const
     {
-      return *source_;
+      return executor_;
     }
 
-    void CreateCache(size_t capacity);
+    void SetMetricsConfiguration(const MetricsConfiguration& configuration);
 
-    void SetMaximumMemory(uint64_t maximumMemory);
+    void CreateCache(uint64_t capacity);
 
+    /**
+     * Apply backpressure by limiting memory for pending read
+     * tasks. Further reads block until memory is released.
+     **/
+    void SetCapacity(uint64_t maximumMemory);
+
+    uint64_t GetCapacity() const;
+
+    /**
+     * Request the data source to load a set of items. The values will
+     * be read in parallel by a thread pool (cf. "executor_") and will
+     * be answered in no specific order through a message queue
+     * (cf. class "DataSourceAnswer"). The user data stored in
+     * "IDataIdentifier" can be used to identify items. If order is
+     * important, use the class "DataSourceSequentialReader" instead.
+     **/
     boost::shared_ptr<DataSourceAnswer> Submit(DataSourceRequest* request /* takes ownership */);
 
-    boost::shared_ptr<IDynamicObject> ReadSingle(IDataIdentifier* id /* takes ownership */);
+    DataSourceAnswer::Item* ReadSingle(IDataIdentifier* id /* takes ownership */);
 
     void Stop()
     {
       executor_->Stop();
     }
+
+    void GetStatistics(uint64_t& tasksMaximumMemory,
+                       uint64_t& tasksCurrentMemory,
+                       unsigned int& tasksReservations) const;
+
+    size_t GetCacheSize() const;
+
+    void StoreIntoCache(const std::string& key,
+                        IDynamicObject* value /* takes ownership */);
   };
 }

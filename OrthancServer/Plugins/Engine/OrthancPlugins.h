@@ -53,7 +53,6 @@ namespace Orthanc
 #include "../../../OrthancFramework/Sources/JobsEngine/IJob.h"
 #include "../../../OrthancFramework/Sources/MallocMemoryBuffer.h"
 #include "../../Sources/Database/IDatabaseWrapper.h"
-#include "../../Sources/IDicomImageDecoder.h"
 #include "../../Sources/IServerListener.h"
 #include "../../Sources/ServerJobs/IStorageCommitmentFactory.h"
 #include "PluginMemoryBuffer64.h"
@@ -73,7 +72,6 @@ namespace Orthanc
     public IPluginServiceProvider, 
     public IServerListener,
     public IWorklistRequestHandlerFactory,
-    public IDicomImageDecoder,
     public IFindRequestHandlerFactory,
     public IMoveRequestHandlerFactory,
     public IStorageCommitmentFactory,
@@ -394,9 +392,9 @@ private:
 
     bool HasCustomTranscoder();
 
-    virtual ImageAccessor* Decode(const void* dicom,
-                                  size_t size,
-                                  unsigned int frame) ORTHANC_OVERRIDE;
+    ImageAccessor* Decode(const void* dicom,
+                          size_t size,
+                          unsigned int frame) const;
 
     bool IsAllowed(HttpMethod method,
                    const char* uri,

@@ -35,6 +35,7 @@
 #include "../Compatibility.h"
 #include "../FileStorage/FileInfo.h"
 #include "../MultiThreading/Mutex.h"
+#include "DataSourceAnswer.h"
 #include "IDataIdentifier.h"
 #include "IDataSource.h"
 
@@ -46,10 +47,10 @@ namespace Orthanc
   class DataSourceReader;
   class ParsedDicomFile;
 
-  class DicomDataSource : public IDataSource
+  class ORTHANC_PUBLIC DicomDataSource : public IDataSource
   {
   private:
-    class BaseIdentifier;
+    class Identifier;
     class WholeIdentifier;
     class BeginningIdentifier;
     class Value;
@@ -59,54 +60,45 @@ namespace Orthanc
   public:
     explicit DicomDataSource(const boost::shared_ptr<DataSourceReader>& storageAreaReader);
 
-    virtual IDynamicObject* Load(const IDataIdentifier& obj) ORTHANC_OVERRIDE;
+    virtual IDynamicObject* Load(const IDataIdentifier& obj,
+                                 const boost::shared_ptr<SharedObjectCache>& readerCache /* could be NULL */) ORTHANC_OVERRIDE;
 
     virtual size_t GetValueSize(const IDynamicObject& obj) const ORTHANC_OVERRIDE;
 
-    class Dicom : public boost::noncopyable
+    class ORTHANC_PUBLIC Dicom : public boost::noncopyable
     {
     private:
-      Mutex                              mutex_;
-      boost::shared_ptr<IDynamicObject>  value_;
+      std::unique_ptr<DataSourceAnswer::Item>  item_;   // Holding item puts backpressure on the data source
 
     public:
-      explicit Dicom(const boost::shared_ptr<IDynamicObject>& value);
+      explicit Dicom(DataSourceAnswer::Item* item /* takes ownership */);
+
+      ParsedDicomFile* Clone();
 
       /**
        * Access to the DICOM value must be protected by a mutex, as it
        * could be shared by multiple threads if caching is enabled in
        * the DataSourceReader.
        **/
-      class Lock : public boost::noncopyable
+      class ORTHANC_PUBLIC Lock : public boost::noncopyable
       {
       private:
-        Dicom&             that_;
-        Mutex::ScopedLock  lock_;
+        Dicom&                              that_;
+        std::unique_ptr<Mutex::ScopedLock>  lock_;
 
       public:
-        explicit Lock(Dicom& that) :
-          that_(that),
-          lock_(that.mutex_)
-        {
-        }
+        explicit Lock(Dicom& that);
 
         ParsedDicomFile& GetContent() const;
-
-        bool HasRawBuffer() const;
-
-        const void* GetRawBufferData() const;
-
-        size_t GetRawBufferSize() const;
       };
     };
 
-    static Dicom* ReadWhole(DataSourceReader& reader,
-                            const FileInfo& attachment,
-                            bool keepRawBuffer,  // Must be set to "true" for transcoding
-                            bool checkMD5);
+    static IDataIdentifier* CreateWholeRequest(const FileInfo& attachment);
 
-    static Dicom* ReadUntilPixelData(DataSourceReader& reader,
-                                     const FileInfo& attachment,
-                                     uint64_t pixelDataOffset);
+    static IDataIdentifier* CreateUntilPixelDataRequest(const FileInfo& attachment,
+                                                        uint64_t pixelDataOffset);
+
+    static Dicom* Execute(DataSourceReader& reader,
+                          IDataIdentifier* request /* takes ownership */);
   };
 }

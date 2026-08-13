@@ -102,6 +102,17 @@ namespace Orthanc
   }
 
     
+  void MallocMemoryBuffer::CopyToString(std::string& target) const
+  {
+    target.resize(size_);
+
+    if (size_ != 0)
+    {
+      memcpy(&target[0], buffer_, size_);
+    }
+  }
+
+
   void MallocMemoryBuffer::MoveToString(std::string& target)
   {
     target.resize(size_);

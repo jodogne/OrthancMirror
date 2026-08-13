@@ -24,22 +24,93 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerTranscoder.h"
 
-#include "../../OrthancFramework/Sources/DicomParsing/DcmtkTranscoder.h"
+#include "../../OrthancFramework/Sources/Cache/LeastRecentlyUsedIndex.h"
+#include "../../OrthancFramework/Sources/DataSource/DicomDataSource.h"
+#include "../../OrthancFramework/Sources/DataSource/StorageAreaDataSource.h"
+#include "../../OrthancFramework/Sources/DataSource/TranscoderDataSource.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomImageInformation.h"
+#include "../../OrthancFramework/Sources/DicomParsing/DcmtkTranscoder.h"
+#include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
+#include "DicomInstanceToStore.h"
 #include "OrthancConfiguration.h"
 
+#include <boost/thread.hpp>
 #include <dcmtk/dcmdata/dcfilefo.h>
 
 
+static const size_t MAX_CACHE_SIZE = 10000;
+
 namespace Orthanc
 {
+  namespace
+  {
+    enum WorkingSource
+    {
+      WorkingSource_Unknown,
+      WorkingSource_Builtin,
+      WorkingSource_PluginsDecoder,
+      WorkingSource_PluginsTranscoder
+    };
+  }
+
+  class ServerTranscoder::PImpl
+  {
+  private:
+    boost::mutex  mutex_;
+    LeastRecentlyUsedIndex<std::string, WorkingSource>  workingSources_;
+
+  public:
+    PImpl()
+    {
+    }
+
+    WorkingSource LookupWorkingSource(const std::string& attachmentId)
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+
+      WorkingSource source;
+      if (workingSources_.Contains(attachmentId, source))
+      {
+        return source;
+      }
+      else
+      {
+        return WorkingSource_Unknown;
+      }
+    }
+
+    void SetWorkingSource(const std::string& attachmentId,
+                          WorkingSource source)
+    {
+      if (source == WorkingSource_Unknown)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        boost::mutex::scoped_lock lock(mutex_);
+
+        assert(MAX_CACHE_SIZE > 0);
+
+        if (workingSources_.GetSize() >= MAX_CACHE_SIZE &&
+            !workingSources_.Contains(attachmentId))
+        {
+          workingSources_.RemoveOldest();
+        }
+
+        workingSources_.AddOrMakeMostRecent(attachmentId, source);
+      }
+    }
+  };
+
   ServerTranscoder::ServerTranscoder(unsigned int maxConcurrentDcmtkTranscoder) :
 #if ORTHANC_ENABLE_PLUGINS == 1
     plugins_(NULL),
 #endif
+    pimpl_(new PImpl),
     dcmtkTranscoder_(new DcmtkTranscoder(maxConcurrentDcmtkTranscoder)),
     builtinDecoderTranscoderOrder_(BuiltinDecoderTranscoderOrder_After)
   {
@@ -68,14 +139,164 @@ namespace Orthanc
 #endif
 
 
-  ImageAccessor* ServerTranscoder::DecodeFrame(const ParsedDicomFile& parsedDicom,
-                                               const void* buffer,
-                                               size_t size,
+  bool ServerTranscoder::HasPluginsDecoder() const
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    return (plugins_ != NULL &&
+            plugins_->HasCustomImageDecoder());
+#else
+    return false;
+#endif
+  }
+
+
+  bool ServerTranscoder::HasPluginsTranscoder() const
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    return (plugins_ != NULL &&
+            plugins_->HasCustomTranscoder());
+#else
+    return false;
+#endif
+  }
+
+
+  ImageAccessor* ServerTranscoder::DecodeFrameBuiltin(const ParsedDicomFile& dicom,
+                                                      unsigned int frameIndex)
+  {
+    // Use Orthanc's built-in decoder
+
+    try
+    {
+      return dicom.DecodeFrame(frameIndex);
+    }
+    catch (const OrthancException&) // NOLINT(bugprone-empty-catch)
+    {
+    }
+
+    return NULL;
+  }
+
+
+  ImageAccessor* ServerTranscoder::DecodeFrameUsingPluginsDecoder(const void* buffer,
+                                                                  size_t size,
+                                                                  unsigned int frameIndex)
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPluginsDecoder())
+    {
+      try
+      {
+        return plugins_->Decode(buffer, size, frameIndex);
+      }
+      catch (const OrthancException&) // NOLINT(bugprone-empty-catch)
+      {
+      }
+    }
+#endif
+
+    return NULL;
+  }
+
+
+  ImageAccessor* ServerTranscoder::DecodeFrameUsingPluginsTranscoder(const void* buffer,
+                                                                     size_t size,
+                                                                     unsigned int frameIndex)
+  {
+    /**
+     * Contrarily to "ServerTranscoder::Transcode()", this method
+     * doesn't use "dcmtkTranscoder_", as "DecodeFrameBuiltin()" would
+     * have succeeded in this case.
+     **/
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPluginsTranscoder())
+    {
+      DicomImage transcoded;
+      DicomImage source;
+      std::set<DicomTransferSyntax> allowedSyntaxes;
+
+      source.SetExternalBuffer(buffer, size);
+      allowedSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+
+      if (plugins_->Transcode(transcoded, source, allowedSyntaxes, TranscodingSopInstanceUidMode_AllowNew))
+      {
+        try
+        {
+          std::unique_ptr<ParsedDicomFile> dicom(transcoded.ReleaseAsParsedDicomFile());
+          return DecodeFrameBuiltin(*dicom, frameIndex);
+        }
+        catch (const OrthancException&) // NOLINT(bugprone-empty-catch)
+        {
+        }
+      }
+    }
+#endif
+
+    return NULL;
+  }
+
+
+  ImageAccessor* ServerTranscoder::DecodeFrameBuiltin(const boost::shared_ptr<DataSourceReader>& dicomReader,
+                                                      const FileInfo& attachment,
+                                                      unsigned int frameIndex)
+  {
+    std::unique_ptr<DicomDataSource::Dicom> dicom(
+      DicomDataSource::Execute(*dicomReader, DicomDataSource::CreateWholeRequest(attachment)));
+
+    DicomDataSource::Dicom::Lock lock(*dicom);
+
+    return DecodeFrameBuiltin(lock.GetContent(), frameIndex);
+  }
+
+
+  ImageAccessor* ServerTranscoder::DecodeFrameUsingPluginsDecoder(const boost::shared_ptr<DataSourceReader>& storageAreaReader,
+                                                                  const FileInfo& attachment,
+                                                                  unsigned int frameIndex)
+  {
+    if (!HasPluginsDecoder())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      std::unique_ptr<StorageAreaDataSource::Range> range(
+        StorageAreaDataSource::Execute(
+          *storageAreaReader, StorageAreaDataSource::CreateAttachmentRequest(attachment, true /* uncompress */)));
+
+      return DecodeFrameUsingPluginsDecoder(range->GetData(), range->GetSize(), frameIndex);
+    }
+  }
+
+
+  ImageAccessor* ServerTranscoder::DecodeFrameUsingPluginsTranscoder(const boost::shared_ptr<DataSourceReader>& transcoderReader,
+                                                                     const FileInfo& attachment,
+                                                                     unsigned int frameIndex)
+  {
+    if (!HasPluginsDecoder())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      std::unique_ptr<TranscoderDataSource::Transcoded> transcoded(
+        TranscoderDataSource::Execute(*transcoderReader, TranscoderDataSource::CreateRequest(
+                                        attachment, DicomTransferSyntax_LittleEndianExplicit,
+                                        TranscodingSopInstanceUidMode_AllowNew, false /* no lossy quality specified */, 0)));
+
+      TranscoderDataSource::Transcoded::LockAsParsed lock(*transcoded);
+
+      return DecodeFrameBuiltin(lock.GetContent(), frameIndex);
+    }
+  }
+
+
+  ImageAccessor* ServerTranscoder::DecodeFrame(const DicomInstanceToStore& image,
                                                unsigned int frameIndex)
   {
     { // check that the target image has a valid/reasonable size before decoding to avoid possible crash or OOB during transcoding
       DicomMap summary;
-      parsedDicom.ExtractDicomSummary(summary, 128);
+      image.GetSummary(summary);
 
       DicomImageInformation imageInfo(summary);
       imageInfo.ThrowIfInvalidFrameSize();
@@ -85,83 +306,123 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
     {
-      // Use Orthanc's built-in decoder
-
-      try
-      {
-        decoded.reset(parsedDicom.DecodeFrame(frameIndex));
-        if (decoded.get() != NULL)
-        {
-          return decoded.release();
-        }
-      }
-      catch (const OrthancException&) // NOLINT(bugprone-empty-catch)
-      { // ignore, we'll try other alternatives
-      }
-    }
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (plugins_ != NULL &&
-        plugins_->HasCustomImageDecoder())
-    {
-      try
-      {
-        decoded.reset(plugins_->Decode(buffer, size, frameIndex));
-      }
-      catch (const OrthancException&) // NOLINT(bugprone-empty-catch)
-      {
-      }
-
+      decoded.reset(DecodeFrameBuiltin(image.GetParsedDicomFile(), frameIndex));
       if (decoded.get() != NULL)
       {
         return decoded.release();
       }
-      else if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
-      {
-        LOG(INFO) << "The installed image decoding plugins cannot handle an image, "
-                  << "fallback to the built-in DCMTK decoder";
-      }
     }
-#endif
+
+    decoded.reset(DecodeFrameUsingPluginsDecoder(image.GetBufferData(), image.GetBufferSize(), frameIndex));
+    if (decoded.get() != NULL)
+    {
+      return decoded.release();
+    }
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      try
+      decoded.reset(DecodeFrameBuiltin(image.GetParsedDicomFile(), frameIndex));
+      if (decoded.get() != NULL)
       {
-        decoded.reset(parsedDicom.DecodeFrame(frameIndex));
-        if (decoded.get() != NULL)
-        {
-          return decoded.release();
-        }
-      }
-      catch (OrthancException& e)
-      {
-        LOG(INFO) << "Failed to decode a DICOM frame: " << e.GetDetails();
+        return decoded.release();
       }
     }
 
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (plugins_ != NULL &&
-        plugins_->HasCustomTranscoder())
+    decoded.reset(DecodeFrameUsingPluginsTranscoder(image.GetBufferData(), image.GetBufferSize(), frameIndex));
+    if (decoded.get() != NULL)
     {
-      LOG(INFO) << "The plugins and built-in image decoders failed to decode a frame, "
-                << "trying to transcode the file to LittleEndianExplicit using the plugins.";
-      DicomImage explicitTemporaryImage;
-      DicomImage source;
-      std::set<DicomTransferSyntax> allowedSyntaxes;
+      return decoded.release();
+    }
 
-      source.SetExternalBuffer(buffer, size);
-      allowedSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+    return NULL;
+  }
 
-      if (Transcode(explicitTemporaryImage, source, allowedSyntaxes, TranscodingSopInstanceUidMode_AllowNew))
+
+  ImageAccessor* ServerTranscoder::DecodeFrame(const boost::shared_ptr<DataSourceReader>& dicomReader,        // For built-in decoding
+                                               const boost::shared_ptr<DataSourceReader>& storageAreaReader,  // For plugin-based decoding
+                                               const boost::shared_ptr<DataSourceReader>& transcoderReader,   // For transcoding-based decoding
+                                               const FileInfo& attachment,
+                                               unsigned int frameIndex)
+  {
+    // Step 1: Try with the last decoder that successfully handled this DICOM attachment
+
+    const WorkingSource source = pimpl_->LookupWorkingSource(attachment.GetUuid());
+
+    std::unique_ptr<ImageAccessor> decoded;
+
+    switch (source)
+    {
+      case WorkingSource_Unknown:
+        break;
+
+      case WorkingSource_Builtin:
+        decoded.reset(DecodeFrameBuiltin(dicomReader, attachment, frameIndex));
+        break;
+
+      case WorkingSource_PluginsDecoder:
+        decoded.reset(DecodeFrameUsingPluginsDecoder(storageAreaReader, attachment, frameIndex));
+        break;
+
+      case WorkingSource_PluginsTranscoder:
+        decoded.reset(DecodeFrameUsingPluginsTranscoder(transcoderReader, attachment, frameIndex));
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (decoded.get() != NULL)
+    {
+      return decoded.release();
+    }
+
+    // Step 2: If this attachment is unknown, try the available decoders
+
+    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
+    {
+      decoded.reset(DecodeFrameBuiltin(dicomReader, attachment, frameIndex));
+
+      if (decoded.get() != NULL)
       {
-        std::unique_ptr<ParsedDicomFile> file(explicitTemporaryImage.ReleaseAsParsedDicomFile());
-        return file->DecodeFrame(frameIndex);
+        pimpl_->SetWorkingSource(attachment.GetUuid(), WorkingSource_Builtin);
+        return decoded.release();
       }
     }
-#endif
 
-    return NULL;  // TODO-Streaming - Throw exception here?
+    if (HasPluginsDecoder())
+    {
+      decoded.reset(DecodeFrameUsingPluginsDecoder(storageAreaReader, attachment, frameIndex));
+
+      if (decoded.get() != NULL)
+      {
+        pimpl_->SetWorkingSource(attachment.GetUuid(), WorkingSource_PluginsDecoder);
+        return decoded.release();
+      }
+    }
+
+    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
+    {
+      decoded.reset(DecodeFrameBuiltin(dicomReader, attachment, frameIndex));
+
+      if (decoded.get() != NULL)
+      {
+        pimpl_->SetWorkingSource(attachment.GetUuid(), WorkingSource_Builtin);
+        return decoded.release();
+      }
+    }
+
+    if (HasPluginsTranscoder())
+    {
+      decoded.reset(DecodeFrameUsingPluginsTranscoder(transcoderReader, attachment, frameIndex));
+
+      if (decoded.get() != NULL)
+      {
+        pimpl_->SetWorkingSource(attachment.GetUuid(), WorkingSource_PluginsTranscoder);
+        return decoded.release();
+      }
+    }
+
+    return NULL;
   }
 
 

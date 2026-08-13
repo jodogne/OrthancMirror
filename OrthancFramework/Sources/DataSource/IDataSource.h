@@ -27,8 +27,13 @@
 #include "../IDynamicObject.h"
 #include "IDataIdentifier.h"
 
+#include <boost/shared_ptr.hpp>
+
+
 namespace Orthanc
 {
+  class SharedObjectCache;
+
   class ORTHANC_PUBLIC IDataSource : public boost::noncopyable
   {
   public:
@@ -36,7 +41,8 @@ namespace Orthanc
     {
     }
 
-    virtual IDynamicObject* Load(const IDataIdentifier& identifier) = 0;
+    virtual IDynamicObject* Load(const IDataIdentifier& identifier,
+                                 const boost::shared_ptr<SharedObjectCache>& readerCache /* could be NULL */) = 0;
 
     virtual size_t GetValueSize(const IDynamicObject& value) const = 0;
   };

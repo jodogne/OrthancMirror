@@ -23,21 +23,9 @@
 
 #pragma once
 
-#include "../../OrthancFramework/Sources/Images/ImageAccessor.h"
-
-#include <boost/noncopyable.hpp>
+#include <json/value.h>
 
 namespace Orthanc
 {
-  class IDicomImageDecoder : public boost::noncopyable
-  {
-  public:
-    virtual ~IDicomImageDecoder()
-    {
-    }
-
-    virtual ImageAccessor* Decode(const void* dicom,
-                                  size_t size,
-                                  unsigned int frame) = 0;
-  };
+  void GetThirdPartyVersions(Json::Value& target);
 }
