@@ -11208,9 +11208,9 @@ extern "C"
    *
    * This function releases the resources allocated to store the name
    * of the current thread, after a call to
-   * "OrthancPluginSetCurrentThreadName()". This function must only be
-   * called from threads that the plugin has created itself when the
-   * thread is reaching its end of life.
+   * OrthancPluginSetCurrentThreadName(). This function must only be
+   * called by threads created by the plugin itself, when they are
+   * reaching the end of their lifetime.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @return 0 if success, other value if error.

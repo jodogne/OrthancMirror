@@ -467,7 +467,7 @@ namespace Orthanc
 
     GlobalParameters() : 
       httpsVerifyPeers_(true),
-      timeout_(0),
+      timeout_(DEFAULT_HTTP_TIMEOUT),
       verbose_(false)
     {
     }
@@ -851,7 +851,8 @@ namespace Orthanc
   bool HttpClient::ApplyInternal(CurlAnswer& answer)
   {
     CLOG(INFO, HTTP) << "New HTTP request to: " << url_ << " (timeout: "
-                     << boost::lexical_cast<std::string>(timeout_ <= 0 ? DEFAULT_HTTP_TIMEOUT : timeout_) << "s)";
+                     << (timeout_ <= 0 ? "no timeout" : boost::lexical_cast<std::string>(timeout_) + "s")
+                     << ")";
     
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_URL, url_.c_str()));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERDATA, &answer));
@@ -954,8 +955,9 @@ namespace Orthanc
     // Set timeouts
     if (timeout_ <= 0)
     {
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_TIMEOUT, DEFAULT_HTTP_TIMEOUT));
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CONNECTTIMEOUT, DEFAULT_HTTP_TIMEOUT));
+      // "0 (zero) which means it never times out during transfer."
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_TIMEOUT, 0));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CONNECTTIMEOUT, 0));
     }
     else
     {
