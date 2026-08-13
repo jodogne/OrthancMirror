@@ -37,9 +37,9 @@
   // Action to take when the maximum storage is reached.
   // By default, the patients are recycled ("Recycle" mode).
   // In "Reject" mode, the sender will receive a 0xA700 DIMSE status code
-  // if the instance was sent through C-Store, a 507 HTTP status code
+  // if the instance was sent through C-STORE, a 507 HTTP status code
   // if using the REST API and a 0xA700 Failure reason when using
-  // DICOMweb Stow-RS.
+  // DICOMweb STOW-RS.
   // Note: this value is taken into account only if you have set 
   // a MaximumStorageSize != 0 or a MaximumPatientCount != 0
   // Allowed values: "Recycle", "Reject"
@@ -483,9 +483,9 @@
   // be run when Orthanc is acting as SCP. 
   // Note: This is not limiting the number of concurrent connections
   // but the number of concurrent DICOM operations.
-  // For instance, with a single thread, if a C-Find request is received during
-  // e.g. the transcoding of an incoming C-Store, the C-Find will
-  // be processed only at the end of the C-Store operation but both
+  // For instance, with a single thread, if a C-FIND request is received during
+  // e.g. the transcoding of an incoming C-STORE, the C-FIND will
+  // be processed only at the end of the C-STORE operation but both
   // DICOM associations will remain active.
   // (new in Orthanc 1.10.0, before this version, the value was fixed to 4)
   "DicomThreadsCount" : 4,

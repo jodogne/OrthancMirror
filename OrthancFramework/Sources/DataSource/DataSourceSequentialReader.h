@@ -127,7 +127,7 @@ namespace Orthanc
     DataSourceSequentialReader(const boost::shared_ptr<IExecutorService>& executor,
                                const boost::shared_ptr<DataSourceReader>& reader,
                                IValueDisconnector* disconnector /* takes ownership */,
-                               unsigned int windowSize /* number of elements in the sliding window */,
+                               unsigned int windowSize /* maximum number of elements in the sliding window */,
                                uint64_t windowCapacity /* if 0, memory usage is only controlled by the size of the sliding window */);
 
     ~DataSourceSequentialReader();

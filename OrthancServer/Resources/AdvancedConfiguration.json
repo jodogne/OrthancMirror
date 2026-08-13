@@ -291,9 +291,6 @@
 
   /**
    * Performance-related options
-   *
-   * TODO-Streaming: add a page in the book: performance: fine tuning:
-   * limiting memory + increasing the number of threads
    **/
 
   // Defines the number of threads that are used to execute each type of
@@ -327,7 +324,7 @@
   // Default number of loader threads to use in jobs that read multiple files
   // from the storage area when executing some tasks, including:
   // - generating archive/media,
-  // - executing a C-Store,
+  // - executing a C-STORE,
   // - transmitting resources through Orthanc peering.
   // A value of 0 and 1 are equivalent: a single thread is used.
   // A value > 1 is meaningful only if the storage is a distributed network storage
@@ -384,33 +381,45 @@
   // cache. (new in Orthanc 1.13.0)
   "TranscoderCacheSize" : 256,
 
-  // Total number of threads that are used to provide DICOM files
-  // sequentially (currently used in Archive jobs, C-Store, and C-Get).
-  // Each time such a job needs to get a DICOM file content, it
-  // requests it from a sequential DICOM reader that will itself use a
-  // storage loader thread. Therefore, by default, the value of this
-  // configuration is identical to "StorageLoaderThreadsCount". You
-  // should monitor the "orthanc_seq_reader_available_threads" metrics
-  // to determine the optimal value for your setup and usage. (new in
-  // Orthanc 1.13.0)
+  // Number of threads for the sequential access to DICOM
+  // instances. When a thread in Orthanc needs a set of DICOM
+  // instances in a predefined order, it cannot rely directly on
+  // loader threads, which may provide the instances out of
+  // order. This is notably the case for archive jobs, C-STORE SCU
+  // connections, and C-GET SCP and C-MOVE SCP handlers. In such
+  // situations, Orthanc uses a sliding-window buffer that is
+  // populated by a set of threads calling the out-of-order loader
+  // threads. These preloading threads are part of a pool that is
+  // global to Orthanc. The threads are paused if the buffer grows too
+  // large before the calling thread consumes the instances. By
+  // default, this option has the same value as
+  // "StorageLoaderThreadsCount". You should monitor the
+  // "orthanc_seq_reader_available_threads" metrics to determine the
+  // optimal value for your setup and usage. (new in Orthanc 1.13.0)
   // "SequentialDicomReaderThreadsCount" : 4,
 
-  // Number of files each sequential DICOM reader is allowed to buffer
-  // in advance before it is consumed by the related job.
-  // This is kind of equivalent to the older "LoaderThreads" configuration
-  // but, furthermore, you must make sure that there are enough "StorageLoaderThreadsCount"
-  // and "SequentialDicomReaderThreadsCount" for each job ->
-  // "StorageLoaderThreadsCount" should be larger than "ConcurrentJobs" * "SequentialDicomReaderWindowSize"
-  // Together with "SequentialDicomReaderWindowCapacity", this also defines the amount of memory that is
-  // used by each job that required a SequentialDicomReader.
-  // By default, the value of this configuration is the same as "LoaderThreadsCount". (new in Orthanc 1.13.0)
+  // Each thread that accesses DICOM instances in sequential order
+  // creates a local sliding-window buffer that is preloaded by the
+  // global thread pool (cf. "SequentialDicomReaderThreadsCount").
+  // This configuration option specifies the maximum number of DICOM
+  // instances that can be preloaded before they are consumed by the
+  // calling thread. Together with
+  // "SequentialDicomReaderWindowCapacity", this option determines the
+  // amount of memory used by each calling thread that requires
+  // sequential access to DICOM instances. This is roughly equivalent
+  // to the older "LoaderThreads" configuration: By default, this
+  // option is therefore set to the same value as "LoaderThreads", if
+  // the latter is available. (new in Orthanc 1.13.0)
   "SequentialDicomReaderWindowSize" : 4,
 
-  // Peak amount of RAM (in MB) that can be allocated by each
-  // sequential DICOM reader. The sequential DICOM reader pauses
-  // buffering as soon as one of the "SequentialDicomReaderWindowSize"
-  // or "SequentialDicomReaderWindowCapacity" limit is reached. Note
-  // that this limit can be exceeded when a single file is larger than
-  // this option. (new in Orthanc 1.13.0)
-  "SequentialDicomReaderWindowCapacity" : 64
+  // Maximum amount of RAM (in MB) allocated to each local
+  // sliding-window buffer for each thread accessing a set of DICOM
+  // instances in sequential order (see
+  // "SequentialDicomReaderThreadsCount"). The global thread pool
+  // pauses preloading as soon as either the
+  // "SequentialDicomReaderWindowSize" or
+  // "SequentialDicomReaderWindowCapacity" limit is reached. Note that
+  // this limit can be exceeded when a single file is larger than the
+  // value specified by this option. (new in Orthanc 1.13.0)
+  "SequentialDicomReaderWindowCapacity" : 128
 }

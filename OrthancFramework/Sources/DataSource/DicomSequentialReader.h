@@ -117,8 +117,8 @@ namespace Orthanc
               const boost::shared_ptr<DataSourceReader>& storageAreaReader,
               const boost::shared_ptr<DataSourceReader>& dicomReader,
               const boost::shared_ptr<DataSourceReader>& transcoderReader,
-              unsigned int windowSize,
-              uint64_t windowCapacity);
+              unsigned int windowSize /* maximum number of elements in the sliding window */,
+              uint64_t windowCapacity /* if 0, memory usage is only controlled by the size of the sliding window */);
 
       const boost::shared_ptr<IExecutorService>& GetExecutorService() const
       {
