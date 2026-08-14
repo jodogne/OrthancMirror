@@ -26,9 +26,17 @@
 
 #include "../OrthancFramework.h"
 
+#if !defined(ORTHANC_ENABLE_THREADS)
+#  error The macro ORTHANC_ENABLE_THREADS must be defined
+#endif
+
+#if (ORTHANC_ENABLE_THREADS != 0) && (ORTHANC_ENABLE_THREADS != 1)
+#  error The macro ORTHANC_ENABLE_THREADS must set to 0 or 1
+#endif
+
 #include <boost/noncopyable.hpp>
 
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
 #  include <boost/thread/mutex.hpp>
 #endif
 
@@ -36,7 +44,7 @@ namespace Orthanc
 {
   // Wrapper class for compatibility with Emscripten
 
-#if defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 0
 
   class ORTHANC_PUBLIC Mutex : public boost::noncopyable
   {
@@ -54,7 +62,7 @@ namespace Orthanc
     };
   };
 
-#else
+#elif ORTHANC_ENABLE_THREADS == 1
 
   class ORTHANC_PUBLIC Mutex : public boost::noncopyable
   {
@@ -79,5 +87,8 @@ namespace Orthanc
       }
     };
   };
+
+#else
+#  error Internal error
 #endif
 }

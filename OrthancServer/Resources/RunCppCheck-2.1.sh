@@ -81,6 +81,7 @@ ${CPPCHECK} -j8 --enable=all --quiet --std=c++11 \
             -DORTHANC_ENABLE_PUGIXML=1 \
             -DORTHANC_ENABLE_SQLITE=1 \
             -DORTHANC_ENABLE_SSL=1 \
+            -DORTHANC_ENABLE_THREADS=1 \
             -DORTHANC_ENABLE_ZLIB=1 \
             -DORTHANC_SANDBOXED=0 \
             -DORTHANC_SQLITE_VERSION=3027001 \

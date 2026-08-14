@@ -181,6 +181,8 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/StringMatcher.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Logging.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MallocMemoryBuffer.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MetricsRegistry.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/CallableGroup.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/SequentialExecutorService.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancException.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancFramework.cpp
@@ -633,6 +635,44 @@ else()
 endif()
 
 
+if (ORTHANC_ENABLE_THREADS)
+  list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryStringCache.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/SharedArchive.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/BaseDataIdentifier.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceAnswer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceMemoryBudget.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceReader.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceRequest.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceSequentialReader.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/StorageAreaDataSource.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/BlockingSharedMessageQueue.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/Internals/FutureState.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/Internals/ThreadPoolFuture.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/RunnableWorkersPool.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/Semaphore.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/SharedMessageQueue.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/ThreadPool.cpp
+    )
+
+  if (ENABLE_DCMTK)
+    list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DicomDataSource.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DicomSequentialReader.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/TranscoderDataSource.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/IDicomTranscoder.cpp
+      )
+  endif()
+
+  if (ENABLE_MODULE_JOBS)
+    list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/JobsEngine.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/JobsRegistry.cpp
+      )
+  endif()
+endif()
+
+
 if (ORTHANC_SANDBOXED)
   add_definitions(
     -DORTHANC_SANDBOXED=1
@@ -654,48 +694,20 @@ else()
     )
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryStringCache.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/SharedArchive.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/BaseDataIdentifier.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceAnswer.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceMemoryBudget.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceReader.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceRequest.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceSequentialReader.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/StorageAreaDataSource.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileBuffer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/FilesystemStorage.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MetricsRegistry.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/BlockingSharedMessageQueue.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/CallableGroup.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/Internals/FutureState.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/Internals/ThreadPoolFuture.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/RunnableWorkersPool.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/Semaphore.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/SharedMessageQueue.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/ThreadPool.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SharedLibrary.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SystemToolbox.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/TemporaryFile.cpp
     )
-
-  if (ENABLE_DCMTK)
-    list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DicomDataSource.cpp
-      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DicomSequentialReader.cpp
-      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/TranscoderDataSource.cpp
-      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/IDicomTranscoder.cpp
-      )
-  endif()
-
-  if (ENABLE_MODULE_JOBS)
-    list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/JobsEngine.cpp
-      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/JobsRegistry.cpp
-      )
-  endif()
 endif()
 
+
+if (ORTHANC_ENABLE_THREADS)
+  add_definitions(-DORTHANC_ENABLE_THREADS=1)
+else()
+  add_definitions(-DORTHANC_ENABLE_THREADS=0)
+endif()
 
 
 if (ORTHANC_ENABLE_LOGGING)

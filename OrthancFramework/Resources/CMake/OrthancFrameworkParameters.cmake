@@ -144,7 +144,10 @@ set(ENABLE_OPENSSL_ENGINES OFF CACHE INTERNAL "Enable support of engines in Open
 set(ENABLE_BOOST_PROGRAM_OPTIONS OFF CACHE BOOL "Enable support for the boost::program_options library")  # New in Orthanc 1.13.0
 
 set(ORTHANC_SANDBOXED OFF CACHE INTERNAL
-  "Whether Orthanc runs inside a sandboxed environment (such as Google NaCl or WebAssembly)")
+  "Whether Orthanc runs inside a sandboxed environment, notably without access to files (such as Google NaCl or WebAssembly)")
+
+set(ORTHANC_ENABLE_THREADS ON CACHE INTERNAL
+  "Whether support for threads is available (must be set to OFF for WebAssembly)")
 
 set(ORTHANC_BUILDING_FRAMEWORK_LIBRARY OFF CACHE INTERNAL
   "Whether we are in the process of building the Orthanc Framework shared library")
