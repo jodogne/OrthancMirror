@@ -367,26 +367,25 @@ namespace Orthanc
     return workersThread;
   }
 
-  void OrthancConfiguration::LoadOrthancAET()
-  {
-    std::string dicomAet = GetStringParameter(ORTHANC_CONFIG_DICOM_AET);
-    
-    if (!Toolbox::IsValidAet(dicomAet))
-    {
-      throw OrthancException(ErrorCode_BadFileFormat, std::string("The ") + ORTHANC_CONFIG_DICOM_AET + " contains characters that are not valid for an AET");
-    }
-
-    orthancDicomAet_ = Toolbox::NormalizeAet(dicomAet);
-  }
-
   std::string OrthancConfiguration::GetOrthancAET() const
   {
-    if (orthancDicomAet_.empty())
+    std::string aet = GetStringParameter(ORTHANC_CONFIG_DICOM_AET);
+    
+    if (!Toolbox::IsValidAet(aet))
     {
-      throw Orthanc::OrthancException(ErrorCode_BadSequenceOfCalls);
+      throw OrthancException(ErrorCode_BadFileFormat, std::string("Option \"") + ORTHANC_CONFIG_DICOM_AET +
+                             "\" contains characters that are not valid for an AET");
     }
 
-    return orthancDicomAet_;    
+    aet = Toolbox::NormalizeAet(aet);
+
+    if (aet.empty())
+    {
+      throw Orthanc::OrthancException(ErrorCode_ParameterOutOfRange, std::string("Option \"") + ORTHANC_CONFIG_DICOM_AET +
+                                      "\" is empty after normalization");
+    }
+
+    return aet;
   }
 
   void OrthancConfiguration::LoadPeers()

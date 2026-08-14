@@ -97,7 +97,6 @@ namespace Orthanc
     JobsEngineThreadsCount              jobsEngineThreadsCount_;
     ServerIndex*                        serverIndex_;
     std::set<Warnings>                  disabledWarnings_;
-    std::string                         orthancDicomAet_;
 
     OrthancConfiguration();
 
@@ -301,8 +300,6 @@ namespace Orthanc
     {
       return disabledWarnings_.count(warning) == 0;
     }
-
-    void LoadOrthancAET();
 
     std::string GetOrthancAET() const;
 
