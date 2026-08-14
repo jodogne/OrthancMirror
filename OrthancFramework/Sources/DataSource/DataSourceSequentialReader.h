@@ -27,6 +27,8 @@
 #include "../MultiThreading/IExecutorService.h"
 #include "DataSourceAnswer.h"
 
+#include <stdint.h>
+
 
 namespace Orthanc
 {
