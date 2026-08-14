@@ -193,8 +193,6 @@ TEST(DataSource, ParallelReader)
   }
 
   {
-    DataSourceReader reader(service, new IntegerDataSource);
-
     boost::shared_ptr<DataSourceAnswer> answer;
 
     std::unique_ptr<DataSourceRequest> request(new DataSourceRequest);
@@ -232,8 +230,6 @@ TEST(DataSource, ParallelReader)
   }
 
   {
-    DataSourceReader reader(service, new IntegerDataSource);
-
     boost::shared_ptr<DataSourceAnswer> answer;
 
     std::unique_ptr<DataSourceRequest> request(new DataSourceRequest);
@@ -305,6 +301,8 @@ TEST(DataSource, SequentialReader)
   serviceSource->SetDequeueTimeout(5);  // Stop the test fast
   serviceSource->Start();
 
+  boost::shared_ptr<DataSourceReader> reader(new DataSourceReader(serviceSource, new IntegerDataSource));
+
   boost::shared_ptr<ThreadPool> serviceSequential(new ThreadPool);
   serviceSequential->SetLoggingThreadName("SEQ");
   serviceSequential->SetThreadsCount(1);
@@ -312,8 +310,6 @@ TEST(DataSource, SequentialReader)
   serviceSequential->Start();
 
   {
-    boost::shared_ptr<DataSourceReader> reader(new DataSourceReader(serviceSource, new IntegerDataSource));
-
     DataSourceSequentialReader seq(serviceSequential, reader, new IntegerDisconnector, 4, 0);
 
     for (int i = 0; i < 10; i++)
@@ -340,8 +336,6 @@ TEST(DataSource, SequentialReader)
   }
 
   {
-    boost::shared_ptr<DataSourceReader> reader(new DataSourceReader(serviceSource, new IntegerDataSource));
-
     DataSourceSequentialReader seq(serviceSequential, reader, new IntegerDisconnector, 4, 0);
 
     for (int i = 0; i < 100; i++)
