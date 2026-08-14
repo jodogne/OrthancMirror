@@ -30,12 +30,9 @@
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif
 
-#if ORTHANC_SANDBOXED == 1
-#  error The class MetricsRegistry cannot be used in sandboxed environments
-#endif
+#include "MultiThreading/Mutex.h"
 
 #include <boost/noncopyable.hpp>
-#include <boost/thread/mutex.hpp>
 #include <map>
 #include <stdint.h>
 
@@ -67,7 +64,7 @@ namespace Orthanc
     typedef std::map<std::string, Item*>   Content;
 
     bool          enabled_;
-    boost::mutex  mutex_;
+    Mutex         mutex_;
     Content       content_;
 
     // The mutex must be locked
@@ -125,7 +122,7 @@ namespace Orthanc
     class ORTHANC_PUBLIC SharedMetrics : public boost::noncopyable
     {
     private:
-      boost::mutex      mutex_;
+      Mutex             mutex_;
       MetricsRegistry&  registry_;
       std::string       name_;
       int64_t           value_;

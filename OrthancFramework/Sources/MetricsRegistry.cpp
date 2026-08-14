@@ -403,7 +403,7 @@ namespace Orthanc
 
   void MetricsRegistry::SetEnabled(bool enabled)
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    Mutex::ScopedLock lock(mutex_);
     enabled_ = enabled;
   }
 
@@ -412,7 +412,7 @@ namespace Orthanc
                                  MetricsUpdatePolicy policy,
                                  MetricsDataType type)
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    Mutex::ScopedLock lock(mutex_);
 
     if (content_.find(name) != content_.end())
     {
@@ -472,7 +472,7 @@ namespace Orthanc
     // Inlining to avoid loosing time if metrics are disabled
     if (enabled_)
     {
-      boost::mutex::scoped_lock lock(mutex_);
+      Mutex::ScopedLock lock(mutex_);
       GetItemInternal(name, policy, MetricsDataType_Float).UpdateFloat(value);
     }
   }
@@ -485,7 +485,7 @@ namespace Orthanc
     // Inlining to avoid loosing time if metrics are disabled
     if (enabled_)
     {
-      boost::mutex::scoped_lock lock(mutex_);
+      Mutex::ScopedLock lock(mutex_);
       GetItemInternal(name, policy, MetricsDataType_Integer).UpdateInteger(value);
     }
   }
@@ -497,7 +497,7 @@ namespace Orthanc
     // Inlining to avoid loosing time if metrics are disabled
     if (enabled_)
     {
-      boost::mutex::scoped_lock lock(mutex_);
+      Mutex::ScopedLock lock(mutex_);
       GetItemInternal(name, MetricsUpdatePolicy_Directly, MetricsDataType_Integer).IncrementInteger(delta);
     }
   }
@@ -507,7 +507,7 @@ namespace Orthanc
   {
     if (enabled_)
     {
-      boost::mutex::scoped_lock lock(mutex_);
+      Mutex::ScopedLock lock(mutex_);
       GetItemInternal(name, MetricsUpdatePolicy_Directly, MetricsDataType_Integer).SetInitialValue(value);
     }
   }
@@ -515,7 +515,7 @@ namespace Orthanc
 
   MetricsUpdatePolicy MetricsRegistry::GetUpdatePolicy(const std::string& metrics)
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    Mutex::ScopedLock lock(mutex_);
 
     Content::const_iterator found = content_.find(metrics);
 
@@ -533,7 +533,7 @@ namespace Orthanc
 
   MetricsDataType MetricsRegistry::GetDataType(const std::string& metrics)
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    Mutex::ScopedLock lock(mutex_);
 
     Content::const_iterator found = content_.find(metrics);
 
@@ -554,7 +554,7 @@ namespace Orthanc
     // https://www.boost.org/doc/libs/1_69_0/doc/html/date_time/examples.html#date_time.examples.seconds_since_epoch
     static const boost::posix_time::ptime EPOCH(boost::gregorian::date(1970, 1, 1));
 
-    boost::mutex::scoped_lock lock(mutex_);
+    Mutex::ScopedLock lock(mutex_);
 
     s.clear();
 
@@ -600,14 +600,14 @@ namespace Orthanc
 
   void MetricsRegistry::SharedMetrics::Add(int64_t delta)
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    Mutex::ScopedLock lock(mutex_);
     value_ += delta;
     registry_.SetIntegerValue(name_, value_);
   }
 
   void MetricsRegistry::SharedMetrics::SetInitialValue(int64_t value)
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    Mutex::ScopedLock lock(mutex_);
     value_ = value;
     registry_.SetInitialValue(name_, value_);
   }
