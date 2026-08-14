@@ -879,11 +879,14 @@ namespace Orthanc
   }
 
 
-  OrthancConfiguration::RegisteredUsersStatus OrthancConfiguration::SetupRegisteredUsers(HttpServer& httpServer) const
+  OrthancConfiguration::RegisteredUsersStatus OrthancConfiguration::SetupRegisteredUsers(HttpServer& httpServer,
+                                                                                         bool& hasInsecureUser) const
   {
     static const char* const REGISTERED_USERS = "RegisteredUsers";
 
     httpServer.ClearUsers();
+
+    hasInsecureUser = false;
 
     if (!userConfiguration_.isMember(REGISTERED_USERS))
     {
@@ -912,6 +915,14 @@ namespace Orthanc
           std::string password = users[username].asString();
           httpServer.RegisterUser(username.c_str(), password.c_str());
           hasUser = true;
+
+          if ((username == "orthanc" && password == "orthanc") ||
+              (username == "alice" && password == "orthanctest"))
+          {
+            LOG(WARNING) << "====> Your configuration contains a well-known user-password pair, "
+                         << "your setup is POSSIBLY INSECURE <====";
+            hasInsecureUser = true;
+          }
         }
       }
 

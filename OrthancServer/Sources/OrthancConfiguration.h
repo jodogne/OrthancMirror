@@ -230,7 +230,8 @@ namespace Orthanc
 
     unsigned int GetDicomLossyTranscodingQuality() const;
 
-    RegisteredUsersStatus SetupRegisteredUsers(HttpServer& httpServer) const;
+    RegisteredUsersStatus SetupRegisteredUsers(HttpServer& httpServer,
+                                               bool& hasInsecureUser) const;
 
     boost::filesystem::path InterpretStringParameterAsPath(const std::string& parameter) const;
     

@@ -1164,10 +1164,16 @@ static bool StartHttpServer(ServerContext& context,
         httpServer.SetAuthenticationEnabled(false);
       }
 
-      OrthancConfiguration::RegisteredUsersStatus status = lock.GetConfiguration().SetupRegisteredUsers(httpServer);
+      bool hasInsecureUser;
+      OrthancConfiguration::RegisteredUsersStatus status = lock.GetConfiguration().SetupRegisteredUsers(httpServer, hasInsecureUser);
       assert(status == OrthancConfiguration::RegisteredUsersStatus_NoConfiguration ||
              status == OrthancConfiguration::RegisteredUsersStatus_NoUser ||
              status == OrthancConfiguration::RegisteredUsersStatus_HasUser);
+
+      if (hasInsecureUser)
+      {
+        context.SetHttpServerSecure(false);
+      }
 
       if (httpServer.IsAuthenticationEnabled() &&
           status != OrthancConfiguration::RegisteredUsersStatus_HasUser)
