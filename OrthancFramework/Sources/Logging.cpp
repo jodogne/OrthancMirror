@@ -662,10 +662,9 @@ namespace
 #if !defined(NDEBUG)
       if (hasName_)
       {
-        throw Orthanc::OrthancException(
-          Orthanc::ErrorCode_InternalError, "This thread already has a name or another thread is re-using "
-          "the same threadId and you have not called 'ClearCurrentThreadName()': " + name,
-          false /* don't log to avoid deadlock */);
+        std::cerr << "This thread already has a name or another thread is re-using "
+                  << "the same threadId and you have not called \"ClearCurrentThreadName()\": " << name << std::endl;
+        assert(0);
       }
 #endif
 
@@ -703,8 +702,8 @@ namespace
       if (context_.empty())
       {
 #if !defined(NDEBUG)
-        throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError, "Cannot pop from an empty context",
-                                        false /* don't log to avoid deadlock */);
+        std::cerr << "Cannot pop from an empty context" << std::endl;
+        assert(0);
 #endif
       }
       else
@@ -892,9 +891,8 @@ namespace
               it->second->HasThreadName() &&
               it->second->GetThreadName() == formattedName)
           {
-            throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError,
-                                            "Another thread already uses this thread name: " + name,
-                                            false /* don't log to avoid deadlock */);
+            std::cerr << "Another thread already uses this thread name: " << name << std::endl;
+            assert(0);
           }
         }
 #endif
