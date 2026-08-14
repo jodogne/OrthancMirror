@@ -19,22 +19,22 @@ General
   - "TranscoderThreadsCount"
 * Split the configuration into a main file and a separate file for advanced settings.
 * Multiple paths to configuration files can now be provided, instead of a single file or a single folder.
-* Orthanc will now refuse to start if both options "AuthenticationEnabled" and "RemoteAccessAllowed"
-  are set to true, but no user is defined in "RegisteredUsers".
+* For security, Orthanc will now refuse to start if both options "AuthenticationEnabled" and
+  "RemoteAccessAllowed" are set to true, but no user is defined in "RegisteredUsers".
 * New values for "OverwriteInstances" configuration. In previous versions, this configuration
   was a Boolean. It is now a string whose allowed values are "Never", "Always",
   and "IfChanged". For backward compatibility, a Boolean value can still be provided
   (true = "Always" and false = "Never").
   Compared to previous versions, in the "Never" and "IfChanged" mode, the number of disks and 
-  DB operations are reduced when uploading the same instance again.
-  However, there is one additional DB operation when uploading a new instance.
+  DB operations are reduced when uploading the same instance again. However, there is one
+  additional DB operation when uploading a new instance.
 * When the "IngestTranscoding" configuration is set to a compressed transfer syntax, Orthanc
   no longer transcodes DICOM files that do not have any pixel data (e.g. DICOM-SR, RTSTRUCT,
   Encapsulated PDF,...). Such files are sometimes poorly handled by other software.
 * Logs:
   - Lines of log can now contain additional contextual information like the job ID they relate to.
   - A new "--logs-no-context" command-line option restores the previous behavior for backward
-    compatibility and to reduce log line length.
+    compatibility in the format of the log files and to reduce log line length.
   - A new "--logs-thread-names-in-context" command-line option adds information about the thread that
     requested a service to the log context. This option is mainly intended for developers.
 * Experimental: New manufacturer "SiemensSyngoCT" available in "DicomModalities" to propose
@@ -48,13 +48,13 @@ REST API
   - "OverwriteInstancesMode" (Boolean field "OverwriteInstances" is kept for backward compatibility)
   - "Performance" reports configuration options that may affect performance of Orthanc
   - "StoreMD5ForAttachments"
-  - "ThirdPartyPatches" lists the patches applied to the third-party libraries
+  - "ThirdPartyPatches" lists the patches applied to the statically linked third-party libraries
   - "ThirdPartyVersions" lists the versions of the main third-party libraries
 * The "LocalAet" field of the payload to "/modalities/../move", "/modalities/../store", 
   "/modalities/../get", "queries/../answers/../retrieve" now always overwrites the "DicomAet"
   and the "DicomModalities.LocalAet" configurations.
 * Optimized the "/{patients|studies|series|instances}/../statistics" routes.
-* Updated the naming structure of ZIP archives downloaded from "/../../archive" routes.
+* Updated the naming structure of ZIP archives downloaded from "/../../archive" routes:
   Notably added "SeriesNumber" at the series level and now using " - " instead of " " to
   separate DICOM tags used in folder names.
 * In "/tools/metrics-prometheus":
@@ -80,6 +80,7 @@ Lua
   - StoreKeyValue(storeId, key, value)
   - value = GetKeyValue(storeId, key)
   - DeleteKeyValue(storeId, key)
+* Fix the "ReceivedCStoreInstanceFilter()" callback whose return value was not taken into account
 
 Plugin SDK
 ----------
@@ -118,15 +119,14 @@ Maintenance
   https://github.com/orthanc-server/orthanc-builder/issues/36
 * Fix slow ingest of files containing huge arrays of float/double values in their DICOM tags:
   https://discourse.orthanc-server.org/t/orthanc-1-12-11-performance-issues-with-deformable-registrations/6448)
-* Fix a Denial of Service via Deeply Nested DICOM Sequences (CVE-2026-10528):
+* Fix a Denial of Service via deeply nested DICOM sequences (CVE-2026-10528):
   https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=258
   Security issue reported by Jose Lopez Martinez (aka elpe_pinillo) from Deloitte
 * Fixed various OOB read/write, currently without CVE ID, but derived from older vulnerabilities
   (CVE-2026-5437, CVE-2026-5438, CVE-2026-5439, CVE-2026-5440, CVE-2026-5441, CVE-2026-5442,
   CVE-2026-5443, CVE-2026-5444, CVE-2026-5445)
-* Improved preview and rendering of multiframe instances a with a Color Lookup Table; 
-  notably, some cardiac US instances
-* Lua: Fix the "ReceivedCStoreInstanceFilter()" callback whose return value was not taken into account
+* Improved preview and rendering of multiframe instances a with a Color Lookup Table
+  (notably, for specific cardiac US instances)
 * Upgraded dependencies for static builds:
   - dcmtk 3.7.0 hot-fix for CVE-2026-10528:
     https://github.com/DCMTK/dcmtk/commit/885ff0f10372bd589b5f44cea974f28a3964cb0f

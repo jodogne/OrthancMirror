@@ -1932,7 +1932,7 @@
             ]
         },
         {
-            "documentation": "The available modes to export a binary DICOM tag into a DICOMweb JSON or XML document.",
+            "documentation": "The available modes to export a binary DICOM tag into a DICOMweb JSON or XML document. Binary DICOM tags correspond to the tags whose value representation is \"other\" (OB, OD, OF, OL, OV, or OW).",
             "name": "OrthancPluginDicomWebBinaryMode",
             "since_sdk": [
                 1,
@@ -1954,6 +1954,16 @@
                     "documentation": "Use a bulk data URI field",
                     "key": "BulkDataUri",
                     "value": 2
+                },
+                {
+                    "documentation": "Encode the values as an array (not available for OB, new in Orthanc 1.13.0)",
+                    "key": "ArrayOfValues",
+                    "since_sdk": [
+                        1,
+                        13,
+                        0
+                    ],
+                    "value": 3
                 }
             ]
         },
@@ -3095,7 +3105,7 @@
                     "value": 0
                 },
                 {
-                    "documentation": "The file has already been stored/adopted (only if OverwriteInstances is set to false)",
+                    "documentation": "The file has already been stored/adopted (only if OverwriteInstances is set to \"Never\" or false)",
                     "key": "AlreadyStored",
                     "value": 1
                 },
@@ -3117,7 +3127,7 @@
             ]
         },
         {
-            "documentation": "The value representations present in the DICOM standard (version 2013).",
+            "documentation": "The value representations present in the DICOM standard.",
             "name": "OrthancPluginValueRepresentation",
             "values": [
                 {
@@ -3254,6 +3264,41 @@
                     "documentation": "Unlimited Text",
                     "key": "UT",
                     "value": 27
+                },
+                {
+                    "documentation": "Other Double           (new in Orthanc 1.13.0)",
+                    "key": "OD",
+                    "value": 28
+                },
+                {
+                    "documentation": "Other Long             (new in Orthanc 1.13.0)",
+                    "key": "OL",
+                    "value": 29
+                },
+                {
+                    "documentation": "Unlimited Characters   (new in Orthanc 1.13.0)",
+                    "key": "UC",
+                    "value": 30
+                },
+                {
+                    "documentation": "URI / URL              (new in Orthanc 1.13.0)",
+                    "key": "UR",
+                    "value": 31
+                },
+                {
+                    "documentation": "Other Very Long        (new in Orthanc 1.13.0)",
+                    "key": "OV",
+                    "value": 32
+                },
+                {
+                    "documentation": "Signed Very Long       (new in Orthanc 1.13.0)",
+                    "key": "SV",
+                    "value": 33
+                },
+                {
+                    "documentation": "Unsigned Very Long     (new in Orthanc 1.13.0)",
+                    "key": "UV",
+                    "value": 34
                 }
             ]
         }
@@ -5238,7 +5283,8 @@
                     "threadName": "The name of the current thread. A thread name cannot be longer than 16 characters."
                 },
                 "description": [
-                    "This function gives a name to the thread that is calling this function. This name is used in the Orthanc logs. This function must only be called from threads that the plugin has created itself."
+                    "This function gives a name to the thread that is calling this function. This name is used in the Orthanc logs. This function must only be called from threads that the plugin has created itself.",
+                    "At the end of the lifetime of the thread, OrthancPluginClearCurrentThreadName() must be called to release the allocated resources."
                 ],
                 "return": "0 if success, other value if error.",
                 "summary": "Set the name of the current thread."
@@ -5584,6 +5630,25 @@
                 1,
                 12,
                 10
+            ]
+        },
+        {
+            "args": [],
+            "c_function": "OrthancPluginClearCurrentThreadName",
+            "documentation": {
+                "args": {},
+                "description": [
+                    "This function releases the resources allocated to store the name of the current thread, after a call to OrthancPluginSetCurrentThreadName(). This function must only be called by threads created by the plugin itself, when they are reaching the end of their lifetime."
+                ],
+                "return": "0 if success, other value if error.",
+                "summary": "Clear the name of the current thread."
+            },
+            "return_sdk_enumeration": "OrthancPluginErrorCode",
+            "return_sdk_type": "enumeration",
+            "since_sdk": [
+                1,
+                13,
+                0
             ]
         }
     ],
