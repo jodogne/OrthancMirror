@@ -28,6 +28,7 @@
 #endif
 
 #include "../Sources/DataSource/DataSourceReader.h"
+#include "../Sources/DataSource/DataSourceSequentialReader.h"
 #include "../Sources/MultiThreading/SequentialExecutorService.h"
 #include "../Sources/MultiThreading/ThreadPool.h"
 #include "../Sources/OrthancException.h"
@@ -128,10 +129,32 @@ namespace
       return 10;
     }
   };
+
+
+  class IntegerDisconnector : public DataSourceSequentialReader::IValueDisconnector
+  {
+  public:
+    virtual IDynamicObject* Apply(DataSourceAnswer::Item* source) ORTHANC_OVERRIDE
+    {
+      std::unique_ptr<DataSourceAnswer::Item> protection(source);
+
+      const IntegerIdentifier& id = dynamic_cast<const IntegerIdentifier&>(source->GetId());
+      const SingleValueObject<int>& value = dynamic_cast<const SingleValueObject<int>&>(*source->GetValue());
+
+      if (id.GetValue() != value.GetValue())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+      else
+      {
+        return new SingleValueObject<int>(value.GetValue());
+      }
+    }
+  };
 }
 
 
-TEST(DataSource, Test)
+TEST(DataSource, ParallelReader)
 {
   boost::shared_ptr<ThreadPool> service(new ThreadPool);
   service->SetThreadsCount(4);
@@ -208,5 +231,49 @@ TEST(DataSource, Test)
         ASSERT_TRUE(values.find(10 + i) != values.end());
       }
     }
+  }
+}
+
+
+TEST(DataSource, SequentialReader)
+{
+  boost::shared_ptr<ThreadPool> serviceSource(new ThreadPool);
+  serviceSource->SetLoggingThreadName("SOURCE");
+  serviceSource->SetThreadsCount(4);
+  serviceSource->SetDequeueTimeout(5);  // Stop the test fast
+  serviceSource->Start();
+
+  boost::shared_ptr<ThreadPool> serviceSequential(new ThreadPool);
+  serviceSequential->SetLoggingThreadName("SEQ");
+  serviceSequential->SetThreadsCount(1);
+  serviceSequential->SetDequeueTimeout(5);  // Stop the test fast
+  serviceSequential->Start();
+
+  {
+    boost::shared_ptr<DataSourceReader> reader(new DataSourceReader(serviceSource, new IntegerDataSource));
+
+    DataSourceSequentialReader seq(serviceSequential, reader, new IntegerDisconnector, 4, 0);
+
+    for (int i = 0; i < 10; i++)
+    {
+      seq.Submit(new IntegerIdentifier(false, 10 + i, 10 - i));  // Produces out-of-order values
+    }
+
+    seq.Start();
+    ASSERT_THROW(seq.Submit(new IntegerIdentifier(false, 42, 0)), OrthancException);
+
+    for (int i = 0; i < 10; i++)
+    {
+      ASSERT_TRUE(seq.HasNext());
+
+      std::unique_ptr<DataSourceSequentialReader::Item> item(seq.Next());
+      ASSERT_TRUE(item.get() != NULL);
+
+      const SingleValueObject<int>& value = dynamic_cast<const SingleValueObject<int>&>(item->GetValue());
+      ASSERT_EQ(10 + i, value.GetValue());
+    }
+
+    ASSERT_FALSE(seq.HasNext());
+    ASSERT_THROW(seq.Next(), OrthancException);
   }
 }

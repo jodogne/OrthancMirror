@@ -101,8 +101,10 @@ namespace Orthanc
       {
       }
 
-      // Note that "source" will never contain user data, those are handled at the level above
-      virtual IDynamicObject* Apply(DataSourceAnswer::Item* source) = 0;
+      // IMPORTANT: The disconnector is in charge of deleting the "source" object.
+      // If "source" is not properly destructed, deadlock will occur.
+      // Note that "source" will never contain user data, those are handled at the level above.
+      virtual IDynamicObject* Apply(DataSourceAnswer::Item* source /* takes ownership */) = 0;
     };
 
 
@@ -126,6 +128,7 @@ namespace Orthanc
     void FillWindow();
 
   public:
+    // IMPORTANT: The "executor" must not be the same as that of "reader", otherwise deadlock will occur
     DataSourceSequentialReader(const boost::shared_ptr<IExecutorService>& executor,
                                const boost::shared_ptr<DataSourceReader>& reader,
                                IValueDisconnector* disconnector /* takes ownership */,
