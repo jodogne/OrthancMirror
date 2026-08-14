@@ -22,30 +22,28 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
-#include "Future.h"
+#pragma once
 
+#include "../IFuture.h"
 #include "FutureState.h"
-#include "../OrthancException.h"
+
+#include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  Future::Future(boost::shared_ptr<Internals::FutureState>& state) :
-    state_(state)
+  namespace Internals
   {
-    if (state.get() == NULL)
+    class ORTHANC_PUBLIC ThreadPoolFuture : public IFuture
     {
-      throw OrthancException(ErrorCode_NullPointer);
-    }
-  }
+    private:
+      boost::shared_ptr<FutureState>  state_;
 
-  Future::~Future()
-  {
-    state_->Cancel();
-  }
+    public:
+      explicit ThreadPoolFuture(boost::shared_ptr<FutureState>& state);
 
-  IDynamicObject* Future::ReleaseResult()
-  {
-    return state_->ReleaseResult();
+      virtual ~ThreadPoolFuture();
+
+      IDynamicObject* ReleaseResult() ORTHANC_OVERRIDE;
+    };
   }
 }

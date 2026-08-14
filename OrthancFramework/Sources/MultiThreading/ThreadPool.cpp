@@ -26,10 +26,11 @@
 #include "ThreadPool.h"
 
 #include "../Logging.h"
-#include "../OrthancException.h"
 #include "../MetricsRegistry.h"
+#include "../OrthancException.h"
 #include "../Toolbox.h"
-#include "FutureState.h"
+#include "Internals/FutureState.h"
+#include "Internals/ThreadPoolFuture.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/weak_ptr.hpp>
@@ -389,7 +390,7 @@ namespace Orthanc
   }
 
 
-  Future* ThreadPool::Submit(ICallable* callable)
+  IFuture* ThreadPool::Submit(ICallable* callable)
   {
     std::unique_ptr<ICallable> protection(callable);
 
@@ -411,7 +412,7 @@ namespace Orthanc
 
     queue_.Enqueue(new CallableTask(protection.release(), state));
 
-    return new Future(state);
+    return new Internals::ThreadPoolFuture(state);
   }
 
 

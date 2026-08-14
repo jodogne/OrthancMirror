@@ -82,7 +82,7 @@ namespace Orthanc
 
     void Start();
 
-    virtual Future* Submit(ICallable* callable /* takes ownership */) ORTHANC_OVERRIDE;
+    virtual IFuture* Submit(ICallable* callable /* takes ownership */) ORTHANC_OVERRIDE;
 
     virtual void Submit(IRunnable* runnable /* takes ownership */) ORTHANC_OVERRIDE;
 

@@ -24,9 +24,9 @@
 
 #pragma once
 
-#include "../Compatibility.h"
-#include "../IDynamicObject.h"
-#include "../OrthancException.h"
+#include "../../Compatibility.h"
+#include "../../IDynamicObject.h"
+#include "../../OrthancException.h"
 
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>

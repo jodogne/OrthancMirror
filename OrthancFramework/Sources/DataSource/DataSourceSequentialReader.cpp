@@ -322,7 +322,7 @@ namespace Orthanc
     }
     else
     {
-      std::unique_ptr<Future> future(runningRequests_.front());
+      std::unique_ptr<IFuture> future(runningRequests_.front());
       runningRequests_.pop_front();
 
       std::unique_ptr<Item> item(dynamic_cast<Item*>(future->ReleaseResult()));

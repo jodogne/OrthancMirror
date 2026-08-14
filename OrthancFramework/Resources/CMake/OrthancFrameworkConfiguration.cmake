@@ -181,6 +181,7 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/StringMatcher.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Logging.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MallocMemoryBuffer.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/SequentialExecutorService.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancException.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancFramework.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiHierarchy.cpp
@@ -667,8 +668,8 @@ else()
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MetricsRegistry.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/BlockingSharedMessageQueue.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/CallableGroup.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/Future.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/FutureState.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/Internals/FutureState.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/Internals/ThreadPoolFuture.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/RunnableWorkersPool.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/Semaphore.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/SharedMessageQueue.cpp

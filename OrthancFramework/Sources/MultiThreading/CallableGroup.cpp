@@ -65,7 +65,7 @@ namespace Orthanc
       delete *it;
     }
 
-    for (std::list<Future*>::iterator it = futures_.begin(); it != futures_.end(); ++it)
+    for (std::list<IFuture*>::iterator it = futures_.begin(); it != futures_.end(); ++it)
     {
       assert(*it != NULL);
       delete *it;
@@ -119,7 +119,7 @@ namespace Orthanc
       std::unique_ptr<IDynamicObject> result;
 
       {
-        std::unique_ptr<Future> future(that_.futures_.front());
+        std::unique_ptr<IFuture> future(that_.futures_.front());
         assert(future.get() != NULL);
 
         result.reset(future->ReleaseResult());

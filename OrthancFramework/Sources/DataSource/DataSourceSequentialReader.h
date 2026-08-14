@@ -110,7 +110,7 @@ namespace Orthanc
     class Callable;
 
     typedef std::list<IDataIdentifier*>  PendingRequests;
-    typedef std::list<Future*>           RunningRequests;
+    typedef std::list<IFuture*>          RunningRequests;
 
     boost::shared_ptr<IExecutorService>    executor_;
     boost::shared_ptr<DataSourceReader>    reader_;

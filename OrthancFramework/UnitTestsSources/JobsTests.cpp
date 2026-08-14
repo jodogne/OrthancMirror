@@ -1860,8 +1860,8 @@ TEST(ThreadPool, Basic)
   pool.Start();
 
   {
-    std::unique_ptr<Future> future1(pool.Submit(new CountCallable));
-    std::unique_ptr<Future> future2(pool.Submit(new ExceptionCallable));
+    std::unique_ptr<IFuture> future1(pool.Submit(new CountCallable));
+    std::unique_ptr<IFuture> future2(pool.Submit(new ExceptionCallable));
 
     {
       std::unique_ptr<IDynamicObject> result(future1->ReleaseResult());

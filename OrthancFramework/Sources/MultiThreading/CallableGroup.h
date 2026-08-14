@@ -26,6 +26,7 @@
 
 #include "IExecutorService.h"
 
+#include <boost/shared_ptr.hpp>
 #include <list>
 
 
@@ -38,7 +39,7 @@ namespace Orthanc
     boost::shared_ptr<IExecutorService>  executor_;
     unsigned int                         windowSize_;
     std::list<ICallable*>                pending_;
-    std::list<Future*>                   futures_;
+    std::list<IFuture*>                  futures_;
     bool                                 hasIterator_;
 
     void FillWindow();

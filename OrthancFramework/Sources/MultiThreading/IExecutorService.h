@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "Future.h"
+#include "IFuture.h"
 #include "ICallable.h"
 #include "IRunnable.h"
 
@@ -38,7 +38,7 @@ namespace Orthanc
     {
     }
 
-    virtual Future* Submit(ICallable* callable /* takes ownership */) = 0;
+    virtual IFuture* Submit(ICallable* callable /* takes ownership */) = 0;
 
     virtual void Submit(IRunnable* runnable /* takes ownership */) = 0;
 

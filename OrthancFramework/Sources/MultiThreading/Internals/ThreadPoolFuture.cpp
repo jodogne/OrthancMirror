@@ -22,21 +22,33 @@
  **/
 
 
-#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
-// Must be the first to be sure to use the Orthanc framework shared library
-#  include <OrthancFramework.h>
-#endif
+#include "../../PrecompiledHeaders.h"
+#include "ThreadPoolFuture.h"
 
-#include <gtest/gtest.h>
+#include "FutureState.h"
+#include "../../OrthancException.h"
 
-#include "../Sources/DataSource/DataSourceReader.h"
-#include "../Sources/MultiThreading/SequentialExecutorService.h"
-#include "../Sources/OrthancException.h"
-
-
-using namespace Orthanc;
-
-
-TEST(DataSource, Basic)
+namespace Orthanc
 {
+  namespace Internals
+  {
+    ThreadPoolFuture::ThreadPoolFuture(boost::shared_ptr<FutureState>& state) :
+      state_(state)
+    {
+      if (state.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_NullPointer);
+      }
+    }
+
+    ThreadPoolFuture::~ThreadPoolFuture()
+    {
+      state_->Cancel();
+    }
+
+    IDynamicObject* ThreadPoolFuture::ReleaseResult()
+    {
+      return state_->ReleaseResult();
+    }
+  }
 }

@@ -24,29 +24,30 @@
 
 #pragma once
 
-#include "../IDynamicObject.h"
+#include "../Compatibility.h"
+#include "IExecutorService.h"
+#include "Mutex.h"
 
-#include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  namespace Internals
+  class SequentialExecutorService : public IExecutorService
   {
-    class FutureState;
-  }
-
-  class ORTHANC_PUBLIC Future : public boost::noncopyable
-  {
-    friend class ThreadPool;
-
   private:
-    boost::shared_ptr<Internals::FutureState>  state_;
+    class Future;
 
-    explicit Future(boost::shared_ptr<Internals::FutureState>& state);
+    Mutex  mutex_;
+    bool   working_;
 
   public:
-    ~Future();
+    SequentialExecutorService();
 
-    IDynamicObject* ReleaseResult();
+    bool IsWorking();
+
+    virtual IFuture* Submit(ICallable* callable /* takes ownership */) ORTHANC_OVERRIDE;
+
+    virtual void Submit(IRunnable* runnable /* takes ownership */) ORTHANC_OVERRIDE;
+
+    virtual void Stop() ORTHANC_OVERRIDE;
   };
 }

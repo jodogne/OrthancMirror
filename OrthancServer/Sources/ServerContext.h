@@ -36,7 +36,6 @@
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/JobsEngine/JobsEngine.h"
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
-#include "../../OrthancFramework/Sources/MultiThreading/Future.h"
 #include "../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 
 

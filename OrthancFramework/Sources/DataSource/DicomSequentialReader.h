@@ -29,6 +29,8 @@
 #include "../IMemoryBuffer.h"
 #include "../MultiThreading/IExecutorService.h"
 
+#include <boost/shared_ptr.hpp>
+
 
 namespace Orthanc
 {
