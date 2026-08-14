@@ -919,8 +919,9 @@ namespace Orthanc
           if ((username == "orthanc" && password == "orthanc") ||
               (username == "alice" && password == "orthanctest"))
           {
-            LOG(WARNING) << "====> Your configuration contains a well-known user-password pair, "
-                         << "your setup is POSSIBLY INSECURE <====";
+            LOG(WARNING) << "====> Your configuration contains a username/password pair with well-known credentials "
+                         << "(check out username \"" << username << "\" in option \"" << REGISTERED_USERS
+                         << "\"), your setup is POSSIBLY INSECURE <====";
             hasInsecureUser = true;
           }
         }
