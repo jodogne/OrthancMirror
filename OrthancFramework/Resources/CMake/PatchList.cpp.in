@@ -24,9 +24,11 @@
 
 #include "PatchList.h"
 
-const char *const ORTHANC_PATCHES[] =
+#include <string.h>
+
+const char *const ORTHANC_PATCHES[@ORTHANC_PATCHES_COUNT@ + 1] =
 {
-  @ORTHANC_PATCHES_C_BODY@
+@ORTHANC_PATCHES_C_BODY@
 };
 
 const unsigned int ORTHANC_PATCHES_COUNT = @ORTHANC_PATCHES_COUNT@;
