@@ -63,7 +63,8 @@ namespace Orthanc
         uint64_t                            maxMemoryUsageSinceStart_;
 
       public:
-        MetricsConfiguration()
+        MetricsConfiguration() :
+          maxMemoryUsageSinceStart_(0)
         {
         }
 
