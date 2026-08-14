@@ -41,7 +41,7 @@ namespace Orthanc
     public:
       explicit ThreadPoolFuture(boost::shared_ptr<FutureState>& state);
 
-      virtual ~ThreadPoolFuture();
+      virtual ~ThreadPoolFuture() ORTHANC_OVERRIDE;
 
       IDynamicObject* ReleaseResult() ORTHANC_OVERRIDE;
     };

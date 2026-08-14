@@ -164,6 +164,8 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryObjectCache.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/SharedObjectCache.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/ChunkedBuffer.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/BaseDataIdentifier.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceRequest.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomPath.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomTag.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/Window.cpp
@@ -639,11 +641,9 @@ if (ORTHANC_ENABLE_THREADS)
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryStringCache.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/SharedArchive.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/BaseDataIdentifier.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceAnswer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceMemoryBudget.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceReader.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceRequest.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/DataSourceSequentialReader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DataSource/StorageAreaDataSource.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/BlockingSharedMessageQueue.cpp

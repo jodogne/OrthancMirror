@@ -36,7 +36,7 @@ namespace Orthanc
     std::unique_ptr<IDynamicObject>  value_;
 
   public:
-    Future(IDynamicObject* value) :
+    explicit Future(IDynamicObject* value) :
       value_(value)
     {
       if (value_ == NULL)

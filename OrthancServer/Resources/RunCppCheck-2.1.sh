@@ -21,7 +21,7 @@ constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
 knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
-stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1545
+stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1514
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
 stlFindInsert:../../OrthancServer/Sources/Database/MainDicomTagsRegistry.cpp:65

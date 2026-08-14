@@ -333,7 +333,7 @@ namespace Orthanc
       LOG(INFO) << "Executing the trailing timeout in the sequence of operations";
       operationAdded_.timed_wait(lock, trailingTimeout_);
             
-      if (current_ == operations_.size())
+      if (current_ == operations_.size())  // Could have changed during the "timed_wait()"
       {
         // No operation was added during the trailing timeout: The
         // job is over
