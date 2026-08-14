@@ -87,6 +87,7 @@ add_definitions(
 add_executable(UnitTests
   ${CMAKE_SOURCE_DIR}/SharedLibraryUnitTests.cpp
 
+  ${CMAKE_SOURCE_DIR}/DataSourceTests.cpp
   ${CMAKE_SOURCE_DIR}/DicomMapTests.cpp
   ${CMAKE_SOURCE_DIR}/FileStorageTests.cpp
   ${CMAKE_SOURCE_DIR}/FrameworkTests.cpp

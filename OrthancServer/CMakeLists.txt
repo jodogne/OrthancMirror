@@ -176,6 +176,10 @@ set(ORTHANC_SERVER_SOURCES
 
 if (BUILD_UNIT_TESTS)
   set(ORTHANC_FRAMEWORK_UNIT_TESTS
+    # If adding a file to this list, don't forget to also update
+    # "../OrthancFramework/UnitTestsSources/CMakeLists.txt" and
+    # https://orthanc.uclouvain.be/hg/orthanc-stone/file/default/OrthancStone/Resources/WebAssemblyUnitTests/CMakeLists.txt
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/DataSourceTests.cpp
     ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/DicomMapTests.cpp
     ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/FileStorageTests.cpp
     ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/FrameworkTests.cpp
