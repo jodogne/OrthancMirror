@@ -27,16 +27,186 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include <gtest/gtest.h>
-
 #include "../Sources/DataSource/DataSourceReader.h"
 #include "../Sources/MultiThreading/SequentialExecutorService.h"
+#include "../Sources/MultiThreading/ThreadPool.h"
 #include "../Sources/OrthancException.h"
+#include "../Sources/SystemToolbox.h"
 
+#include <gtest/gtest.h>
+#include <boost/lexical_cast.hpp>
 
 using namespace Orthanc;
 
 
-TEST(DataSource, Basic)
+namespace
 {
+  class IntegerIdentifier : public IDataIdentifier
+  {
+  private:
+    bool fails_;
+    int  value_;
+    int  sleep_;
+
+  public:
+    IntegerIdentifier(bool fails,
+                      int value,
+                      int sleep) :
+      fails_(fails),
+      value_(value),
+      sleep_(sleep)
+    {
+    }
+
+    bool IsFails() const
+    {
+      return fails_;
+    }
+
+    int GetValue() const
+    {
+      return value_;
+    }
+
+    IDynamicObject* Create() const
+    {
+      if (sleep_ > 0)
+      {
+        SystemToolbox::USleep(1000 * sleep_);
+      }
+
+      if (fails_)
+      {
+        throw OrthancException(ErrorCode_Database /* some random error code */,
+                               "This was value " + boost::lexical_cast<std::string>(value_));
+      }
+      else
+      {
+        return new SingleValueObject<int>(value_);
+      }
+    }
+
+    virtual bool GetCacheKey(std::string& key) const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
+
+    virtual bool EstimateValueSize(size_t& target) const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
+
+    virtual bool HasUserData() const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
+
+    virtual const IDynamicObject& GetUserData() const ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    virtual IDynamicObject* ReleaseUserData() ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  };
+
+
+  class IntegerDataSource : public IDataSource
+  {
+  public:
+    virtual IDynamicObject* Load(const IDataIdentifier& identifier,
+                                 const boost::shared_ptr<SharedObjectCache>& readerCache /* could be NULL */) ORTHANC_OVERRIDE
+    {
+      const IntegerIdentifier& id = dynamic_cast<const IntegerIdentifier&>(identifier);
+      return id.Create();
+    }
+
+    virtual size_t GetValueSize(const IDynamicObject& value) const ORTHANC_OVERRIDE
+    {
+      return 10;
+    }
+  };
+}
+
+
+TEST(DataSource, Test)
+{
+  boost::shared_ptr<ThreadPool> service(new ThreadPool);
+  service->SetThreadsCount(4);
+  service->SetDequeueTimeout(5);  // Stop the test fast
+  service->Start();
+
+  DataSourceReader reader(service, new IntegerDataSource);
+
+  {
+    std::unique_ptr<DataSourceAnswer::Item> item(reader.ReadSingle(new IntegerIdentifier(false, 10, 0)));
+    ASSERT_TRUE(item.get() != NULL);
+    ASSERT_EQ(10u, dynamic_cast<const IntegerIdentifier&>(item->GetId()).GetValue());
+    ASSERT_EQ(10u, dynamic_cast<const SingleValueObject<int>&>(*item->GetValue()).GetValue());
+  }
+
+  {
+    std::unique_ptr<DataSourceAnswer::Item> item(reader.ReadSingle(new IntegerIdentifier(true, 20, 0)));
+    ASSERT_TRUE(item.get() != NULL);
+    ASSERT_EQ(20u, dynamic_cast<const IntegerIdentifier&>(item->GetId()).GetValue());
+
+    bool hasThrown = false;
+
+    try
+    {
+      dynamic_cast<const SingleValueObject<int>&>(*item->GetValue()).GetValue();
+    }
+    catch (OrthancException& e)
+    {
+      hasThrown = true;
+      ASSERT_EQ(ErrorCode_Database, e.GetErrorCode());
+      ASSERT_TRUE(e.HasDetails());
+      ASSERT_EQ("This was value 20", std::string(e.GetDetails()));
+    }
+
+    ASSERT_TRUE(hasThrown);
+  }
+
+  {
+    DataSourceReader reader(service, new IntegerDataSource);
+
+    boost::shared_ptr<DataSourceAnswer> answer;
+
+    {
+      std::unique_ptr<DataSourceRequest> request(new DataSourceRequest);
+      for (int i = 0; i < 10; i++)
+      {
+        request->Enqueue(new IntegerIdentifier(false, 10 + i, 10 - i));  // Produces out-of-order values
+      }
+
+      answer = reader.Submit(request.release());
+
+      std::set<int> values;
+
+      while (true)
+      {
+        std::unique_ptr<DataSourceAnswer::Item> item(answer->Dequeue());
+        if (item)
+        {
+          const IntegerIdentifier& id = dynamic_cast<const IntegerIdentifier&>(item->GetId());
+          const SingleValueObject<int>& value = dynamic_cast<const SingleValueObject<int>&>(*item->GetValue());
+          ASSERT_EQ(id.GetValue(), value.GetValue());
+          values.insert(value.GetValue());
+        }
+        else
+        {
+          break;
+        }
+      }
+
+      ASSERT_EQ(10u, values.size());
+
+      for (int i = 0; i < 10; i++)
+      {
+        ASSERT_TRUE(values.find(10 + i) != values.end());
+      }
+    }
+  }
 }
