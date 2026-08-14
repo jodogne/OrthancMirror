@@ -25,6 +25,7 @@
 #pragma once
 
 #include "../Cache/MemoryObjectCache.h"
+#include "../MultiThreading/Mutex.h"
 #include "ParsedDicomFile.h"
 
 namespace Orthanc
@@ -34,10 +35,7 @@ namespace Orthanc
   private:
     class Item;
 
-#if !defined(__EMSCRIPTEN__)
-    boost::mutex                        mutex_;
-#endif
-    
+    Mutex                               mutex_;
     size_t                              cacheSize_;
     std::unique_ptr<MemoryObjectCache>  cache_;
     std::unique_ptr<ParsedDicomFile>    largeDicom_;
@@ -60,13 +58,10 @@ namespace Orthanc
     class ORTHANC_PUBLIC Accessor : public boost::noncopyable
     {
     private:
-#if !defined(__EMSCRIPTEN__)
-      boost::mutex::scoped_lock  lock_;
-#endif
-      
-      std::string                id_;
-      ParsedDicomFile*           file_;
-      size_t                     fileSize_;
+      Mutex::ScopedLock  lock_;
+      std::string        id_;
+      ParsedDicomFile*   file_;
+      size_t             fileSize_;
 
       std::unique_ptr<MemoryObjectCache::Accessor>  accessor_;
       

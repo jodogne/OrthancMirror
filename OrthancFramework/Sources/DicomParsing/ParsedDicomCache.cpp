@@ -77,9 +77,7 @@ namespace Orthanc
   
   size_t ParsedDicomCache::GetNumberOfItems()
   {
-#if !defined(__EMSCRIPTEN__)
-    boost::mutex::scoped_lock lock(mutex_);
-#endif
+    Mutex::ScopedLock lock(mutex_);
 
     if (cache_.get() == NULL)
     {
@@ -96,9 +94,7 @@ namespace Orthanc
 
   size_t ParsedDicomCache::GetCurrentSize()
   {
-#if !defined(__EMSCRIPTEN__)
-    boost::mutex::scoped_lock lock(mutex_);
-#endif
+    Mutex::ScopedLock lock(mutex_);
 
     if (cache_.get() == NULL)
     {
@@ -115,9 +111,7 @@ namespace Orthanc
   
   void ParsedDicomCache::Invalidate(const std::string& id)
   {
-#if !defined(__EMSCRIPTEN__)
-    boost::mutex::scoped_lock lock(mutex_);
-#endif
+    Mutex::ScopedLock lock(mutex_);
       
     if (cache_.get() != NULL)
     {
@@ -136,9 +130,7 @@ namespace Orthanc
                                  ParsedDicomFile* dicom,  // Takes ownership
                                  size_t fileSize)
   {
-#if !defined(__EMSCRIPTEN__)
-    boost::mutex::scoped_lock lock(mutex_);
-#endif
+    Mutex::ScopedLock lock(mutex_);
       
     if (fileSize >= cacheSize_)
     {
@@ -165,9 +157,7 @@ namespace Orthanc
 
   ParsedDicomCache::Accessor::Accessor(ParsedDicomCache& that,
                                        const std::string& id) :
-#if !defined(__EMSCRIPTEN__)
     lock_(that.mutex_),
-#endif
     id_(id),
     file_(NULL),
     fileSize_(0)

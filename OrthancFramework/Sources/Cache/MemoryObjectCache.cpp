@@ -117,7 +117,7 @@ namespace Orthanc
 
   size_t MemoryObjectCache::GetNumberOfItems()
   {
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
     boost::mutex::scoped_lock lock(cacheMutex_);
 #endif
 
@@ -127,7 +127,7 @@ namespace Orthanc
 
   size_t MemoryObjectCache::GetCurrentSize()
   {
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
     boost::mutex::scoped_lock lock(cacheMutex_);
 #endif
 
@@ -137,7 +137,7 @@ namespace Orthanc
 
   size_t MemoryObjectCache::GetMaximumSize()
   {
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
     boost::mutex::scoped_lock lock(cacheMutex_);
 #endif
 
@@ -152,7 +152,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
       
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
     // Make sure no accessor is currently open (as its data may be
     // removed if recycling is needed)
     WriterLock contentLock(contentMutex_);
@@ -177,7 +177,7 @@ namespace Orthanc
     }
     else
     {
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
       // Make sure no accessor is currently open (as its data may be
       // removed if recycling is needed)
       WriterLock contentLock(contentMutex_);
@@ -211,7 +211,7 @@ namespace Orthanc
 
   void MemoryObjectCache::Invalidate(const std::string& key)
   {
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
     // Make sure no accessor is currently open (as it may correspond
     // to the key to remove)
     WriterLock contentLock(contentMutex_);
@@ -240,7 +240,7 @@ namespace Orthanc
                                         bool unique) :
     item_(NULL)
   {
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
     if (unique)
     {
       writerLock_ = WriterLock(cache.contentMutex_);
@@ -260,7 +260,7 @@ namespace Orthanc
       cache.content_.MakeMostRecent(key);
     }
     
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
     cacheLock_.unlock();
 
     if (item_ == NULL)
