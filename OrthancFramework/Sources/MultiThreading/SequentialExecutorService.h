@@ -31,7 +31,7 @@
 
 namespace Orthanc
 {
-  class SequentialExecutorService : public IExecutorService
+  class ORTHANC_PUBLIC SequentialExecutorService : public IExecutorService
   {
   private:
     class Future;
