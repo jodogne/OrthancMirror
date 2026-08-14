@@ -79,7 +79,7 @@ namespace
       if (fails_)
       {
         throw OrthancException(ErrorCode_Database /* some random error code */,
-                               "This was value " + boost::lexical_cast<std::string>(value_));
+                               "This was value " + boost::lexical_cast<std::string>(value_), false /* don't log */);
       }
       else
       {
@@ -197,38 +197,100 @@ TEST(DataSource, ParallelReader)
 
     boost::shared_ptr<DataSourceAnswer> answer;
 
+    std::unique_ptr<DataSourceRequest> request(new DataSourceRequest);
+    for (int i = 0; i < 10; i++)
     {
-      std::unique_ptr<DataSourceRequest> request(new DataSourceRequest);
-      for (int i = 0; i < 10; i++)
+      request->Enqueue(new IntegerIdentifier(false, 10 + i, 10 - i));  // Produces out-of-order values
+    }
+
+    answer = reader.Submit(request.release());
+
+    std::set<int> values;
+
+    while (true)
+    {
+      std::unique_ptr<DataSourceAnswer::Item> item(answer->Dequeue());
+      if (item)
       {
-        request->Enqueue(new IntegerIdentifier(false, 10 + i, 10 - i));  // Produces out-of-order values
+        const IntegerIdentifier& id = dynamic_cast<const IntegerIdentifier&>(item->GetId());
+        const SingleValueObject<int>& value = dynamic_cast<const SingleValueObject<int>&>(*item->GetValue());
+        ASSERT_EQ(id.GetValue(), value.GetValue());
+        values.insert(value.GetValue());
       }
-
-      answer = reader.Submit(request.release());
-
-      std::set<int> values;
-
-      while (true)
+      else
       {
-        std::unique_ptr<DataSourceAnswer::Item> item(answer->Dequeue());
-        if (item)
+        break;
+      }
+    }
+
+    ASSERT_EQ(10u, values.size());
+
+    for (int i = 0; i < 10; i++)
+    {
+      ASSERT_TRUE(values.find(10 + i) != values.end());
+    }
+  }
+
+  {
+    DataSourceReader reader(service, new IntegerDataSource);
+
+    boost::shared_ptr<DataSourceAnswer> answer;
+
+    std::unique_ptr<DataSourceRequest> request(new DataSourceRequest);
+    unsigned int countValues = 0;
+
+    for (int i = 0; i < 100; i++)
+    {
+      if (i % 3 == 1)
+      {
+        request->Enqueue(new IntegerIdentifier(true, i, 0));  // Produces exceptions
+      }
+      else
+      {
+        countValues++;
+        request->Enqueue(new IntegerIdentifier(false, i, 0));
+      }
+    }
+
+    answer = reader.Submit(request.release());
+
+    std::set<int> values;
+
+    while (true)
+    {
+      std::unique_ptr<DataSourceAnswer::Item> item(answer->Dequeue());
+      if (item)
+      {
+        const IntegerIdentifier& id = dynamic_cast<const IntegerIdentifier&>(item->GetId());
+
+        try
         {
-          const IntegerIdentifier& id = dynamic_cast<const IntegerIdentifier&>(item->GetId());
           const SingleValueObject<int>& value = dynamic_cast<const SingleValueObject<int>&>(*item->GetValue());
+          ASSERT_TRUE(id.GetValue() % 3 != 1);
           ASSERT_EQ(id.GetValue(), value.GetValue());
           values.insert(value.GetValue());
         }
-        else
+        catch (const OrthancException& e)
         {
-          break;
+          ASSERT_TRUE(id.GetValue() % 3 == 1);
+          ASSERT_EQ(ErrorCode_Database, e.GetErrorCode());
+          ASSERT_TRUE(e.HasDetails());
+          ASSERT_EQ("This was value " + boost::lexical_cast<std::string>(id.GetValue()), std::string(e.GetDetails()));
         }
       }
-
-      ASSERT_EQ(10u, values.size());
-
-      for (int i = 0; i < 10; i++)
+      else
       {
-        ASSERT_TRUE(values.find(10 + i) != values.end());
+        break;
+      }
+    }
+
+    ASSERT_EQ(countValues, values.size());
+
+    for (int i = 0; i < 100; i++)
+    {
+      if (i % 3 != 1)
+      {
+        ASSERT_TRUE(values.find(i) != values.end());
       }
     }
   }
@@ -271,6 +333,61 @@ TEST(DataSource, SequentialReader)
 
       const SingleValueObject<int>& value = dynamic_cast<const SingleValueObject<int>&>(item->GetValue());
       ASSERT_EQ(10 + i, value.GetValue());
+    }
+
+    ASSERT_FALSE(seq.HasNext());
+    ASSERT_THROW(seq.Next(), OrthancException);
+  }
+
+  {
+    boost::shared_ptr<DataSourceReader> reader(new DataSourceReader(serviceSource, new IntegerDataSource));
+
+    DataSourceSequentialReader seq(serviceSequential, reader, new IntegerDisconnector, 4, 0);
+
+    for (int i = 0; i < 100; i++)
+    {
+      if (i % 3 == 1)
+      {
+        seq.Submit(new IntegerIdentifier(true, i, 0));  // Produces exceptions
+      }
+      else
+      {
+        seq.Submit(new IntegerIdentifier(false, i, 0));
+      }
+    }
+
+    seq.Start();
+
+    for (int i = 0; i < 100; i++)
+    {
+      ASSERT_TRUE(seq.HasNext());
+
+      std::unique_ptr<DataSourceSequentialReader::Item> item(seq.Next());
+      ASSERT_TRUE(item.get() != NULL);
+
+      if (i % 3 == 1)
+      {
+        bool hasThrown = false;
+
+        try
+        {
+          item->GetValue();
+        }
+        catch (const OrthancException& e)
+        {
+          hasThrown = true;
+          ASSERT_EQ(ErrorCode_Database, e.GetErrorCode());
+          ASSERT_TRUE(e.HasDetails());
+          ASSERT_EQ("This was value " + boost::lexical_cast<std::string>(i), std::string(e.GetDetails()));
+        }
+
+        ASSERT_TRUE(hasThrown);
+      }
+      else
+      {
+        const SingleValueObject<int>& value = dynamic_cast<const SingleValueObject<int>&>(item->GetValue());
+        ASSERT_EQ(i, value.GetValue());
+      }
     }
 
     ASSERT_FALSE(seq.HasNext());
