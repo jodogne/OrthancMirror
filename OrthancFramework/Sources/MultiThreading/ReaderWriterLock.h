@@ -26,7 +26,17 @@
 
 #include "../OrthancFramework.h"
 
-#if !defined(__EMSCRIPTEN__)
+#if !defined(ORTHANC_ENABLE_THREADS)
+#  error The macro ORTHANC_ENABLE_THREADS must be defined
+#endif
+
+#if (ORTHANC_ENABLE_THREADS != 0) && (ORTHANC_ENABLE_THREADS != 1)
+#  error The macro ORTHANC_ENABLE_THREADS must set to 0 or 1
+#endif
+
+#include <boost/noncopyable.hpp>
+
+#if ORTHANC_ENABLE_THREADS == 1
 // Multithreading is not supported in WebAssembly
 #  include <boost/thread/shared_mutex.hpp>
 #  include <boost/thread/lock_types.hpp>  // For boost::unique_lock<> and boost::shared_lock<>
@@ -38,7 +48,7 @@ namespace Orthanc
   class ORTHANC_PUBLIC ReaderWriterLock : public boost::noncopyable
   {
   private:
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
     boost::shared_mutex mutex_;
 #endif
 
@@ -46,13 +56,13 @@ namespace Orthanc
     class ReadLock : public boost::noncopyable
     {
     private:
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
       boost::shared_lock<boost::shared_mutex> lock_;
 #endif
 
     public:
       explicit ReadLock(ReaderWriterLock& that)
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
         : lock_(that.mutex_)
 #endif
       {
@@ -62,13 +72,13 @@ namespace Orthanc
     class WriteLock : public boost::noncopyable
     {
     private:
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
       boost::unique_lock<boost::shared_mutex> lock_;
 #endif
 
     public:
       explicit WriteLock(ReaderWriterLock& that)
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
         : lock_(that.mutex_)
 #endif
       {

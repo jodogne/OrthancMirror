@@ -25,10 +25,15 @@
 #pragma once
 
 #include "../OrthancFramework.h"
+
+#if !defined(ORTHANC_ENABLE_THREADS)
+#  error The macro ORTHANC_ENABLE_THREADS must be defined
+#endif
+
 #include "ICacheable.h"
 #include "LeastRecentlyUsedIndex.h"
 
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
 // Multithreading is not supported in WebAssembly
 #  include <boost/thread/mutex.hpp>
 #  include <boost/thread/shared_mutex.hpp>
@@ -47,7 +52,7 @@ namespace Orthanc
   private:
     class Item;
 
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
     typedef boost::unique_lock<boost::shared_mutex> WriterLock;
     typedef boost::shared_lock<boost::shared_mutex> ReaderLock;
 
@@ -85,7 +90,7 @@ namespace Orthanc
     class ORTHANC_PUBLIC Accessor : public boost::noncopyable
     {
     private:
-#if !defined(__EMSCRIPTEN__)
+#if ORTHANC_ENABLE_THREADS == 1
       ReaderLock                 readerLock_;
       WriterLock                 writerLock_;
       boost::mutex::scoped_lock  cacheLock_;

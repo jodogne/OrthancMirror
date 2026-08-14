@@ -24,12 +24,17 @@
 
 #pragma once
 
-#if defined(__EMSCRIPTEN__)
-#  error This file is currently not available if targeting WebAssembly
+#include "../OrthancFramework.h"
+
+#if !defined(ORTHANC_ENABLE_THREADS)
+#  error The macro ORTHANC_ENABLE_THREADS must be defined
+#endif
+
+#if ORTHANC_ENABLE_THREADS != 1
+#  error This file is currently not available without support for threads
 #endif
 
 #include "../Compatibility.h"
-#include "../OrthancFramework.h"
 
 #include <boost/noncopyable.hpp>
 #include <boost/thread/condition_variable.hpp>
