@@ -916,8 +916,9 @@ namespace Orthanc
           httpServer.RegisterUser(username.c_str(), password.c_str());
           hasUser = true;
 
-          if ((username == "orthanc" && password == "orthanc") ||
-              (username == "alice" && password == "orthanctest"))
+          if ((username == "orthanc" && password == "orthanc") ||    // Used in some Docker images
+              (username == "alice" && password == "orthanctest") ||  // Used in the integration tests
+              (username == "alice" && password == "alicePassword"))  // Suggestion in the Debian packages
           {
             LOG(WARNING) << "====> Your configuration contains a username/password pair with well-known credentials "
                          << "(check out username \"" << username << "\" in option \"" << REGISTERED_USERS
