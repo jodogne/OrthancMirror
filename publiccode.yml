@@ -2,8 +2,8 @@ publiccodeYmlVersion: 0.5.0
 name: Orthanc
 url: https://orthanc.uclouvain.be/hg/orthanc/
 landingURL: https://www.orthanc-server.com/
-softwareVersion: 1.12.11
-releaseDate: 2026-04-14
+softwareVersion: 1.13.0
+releaseDate: 2026-08-15
 platforms:
   - web
   - windows
