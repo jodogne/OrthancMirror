@@ -41,6 +41,11 @@ set(ORTHANC_DATABASE_VERSION 6)
 # the mainline version of Orthanc
 set(ORTHANC_API_VERSION "31")
 
+# The version of DCMTK considered optimal for this version of
+# Orthanc. A warning is logged if the actual version contained in
+# DCMTK_VERSION_NUMBER is lower than this version.
+set(ORTHANC_DCMTK_VERSION_RECOMMENDED 370)
+
 
 #####################################################################
 ## CMake parameters tunable by the user

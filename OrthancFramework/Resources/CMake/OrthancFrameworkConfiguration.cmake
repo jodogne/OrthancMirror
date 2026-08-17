@@ -612,6 +612,9 @@ if (ENABLE_DCMTK)
   else()
     add_definitions(-DORTHANC_ENABLE_DCMTK_TRANSCODING=0)
   endif()
+
+  # New in Orthanc 1.13.1
+  add_definitions(-DORTHANC_DCMTK_VERSION_RECOMMENDED=${ORTHANC_DCMTK_VERSION_RECOMMENDED})
 endif()
 
 

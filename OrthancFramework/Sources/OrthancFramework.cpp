@@ -85,6 +85,21 @@ namespace Orthanc
     FromDcmtkBridge::InitializeCodecs();
 #endif
 
+#if ORTHANC_ENABLE_DCMTK == 1
+    // New in Orthanc 1.13.1
+    if (DCMTK_VERSION_NUMBER < ORTHANC_DCMTK_VERSION_RECOMMENDED)
+    {
+      CLOG(WARNING, DICOM) << "====> You are using a legacy version of DCMTK (" << DCMTK_VERSION_NUMBER
+                           << " vs. recommended " << ORTHANC_DCMTK_VERSION_RECOMMENDED << "), this binary "
+                           << "version of Orthanc should not be used in production, your setup is POSSIBLY INSECURE <====";
+    }
+    else
+    {
+      CLOG(INFO, DICOM) << "Your version of DCMTK (" << DCMTK_VERSION_NUMBER << ") matches or exceeds "
+                        << "the recommended version for this version of Orthanc (" << ORTHANC_DCMTK_VERSION_RECOMMENDED << ")";
+    }
+#endif
+
 #if (ORTHANC_ENABLE_DCMTK == 1 &&               \
      ORTHANC_ENABLE_DCMTK_NETWORKING == 1)
     /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
