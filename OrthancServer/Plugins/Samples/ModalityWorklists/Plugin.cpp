@@ -56,7 +56,7 @@ static bool MatchWorklist(OrthancPluginWorklistAnswers*      answers,
     if (code != OrthancPluginErrorCode_Success)
     {
       ORTHANC_PLUGINS_LOG_ERROR("Error while adding an answer to a worklist request");
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
 
     return true;

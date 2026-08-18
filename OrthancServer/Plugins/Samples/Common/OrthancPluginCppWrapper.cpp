@@ -61,6 +61,13 @@ static const OrthancPluginErrorCode OrthancPluginErrorCode_NullPointer = Orthanc
 #endif
 
 
+#ifdef _MSC_VER
+#  define ORTHANC_SCANF sscanf_s
+#else
+#  define ORTHANC_SCANF sscanf
+#endif
+
+
 namespace OrthancPlugins
 {
   static OrthancPluginContext* globalContext_ = NULL;
@@ -117,7 +124,7 @@ namespace OrthancPlugins
   }
 
 
-#if HAS_ORTHANC_PLUGIN_LOG_MESSAGE == 1
+#if HAS_ORTHANC_PLUGINS_LOG_MESSAGE == 1
   void LogMessage(OrthancPluginLogLevel level,
                   const char* file,
                   uint32_t line,
@@ -125,7 +132,7 @@ namespace OrthancPlugins
   {
     if (HasGlobalContext())
     {
-#if HAS_ORTHANC_PLUGIN_LOG_MESSAGE == 1
+#if HAS_ORTHANC_PLUGINS_LOG_MESSAGE == 1
       const char* pluginName = (pluginName_.empty() ? NULL : pluginName_.c_str());
       OrthancPluginLogMessage(GetGlobalContext(), message.c_str(), pluginName, file, line, OrthancPluginLogCategory_Generic, level);
 #else
@@ -184,7 +191,7 @@ namespace OrthancPlugins
       // Prevent using garbage information
       buffer_.data = NULL;
       buffer_.size = 0;
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
   }
 
@@ -209,7 +216,7 @@ namespace OrthancPlugins
     }
     else
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
   }
 
@@ -365,7 +372,7 @@ namespace OrthancPlugins
   }
 
 
-#if (HAS_ORTHANC_PLUGIN_PEERS == 1) || (HAS_ORTHANC_PLUGIN_HTTP_CLIENT == 1) || (HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1)
+#if (HAS_ORTHANC_PLUGINS_PEERS == 1) || (HAS_ORTHANC_PLUGINS_HTTP_CLIENT == 1) || (HAS_ORTHANC_PLUGINS_GENERIC_CALL_REST_API == 1)
   static void DecodeHttpHeaders(HttpHeaders& target,
                                 const MemoryBuffer& source)
   {
@@ -465,7 +472,7 @@ namespace OrthancPlugins
     }
   }
 
-#if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
+#if HAS_ORTHANC_PLUGINS_GENERIC_CALL_REST_API == 1
 
   bool MemoryBuffer::RestApiPost(const std::string& uri,
                                  const void* body,
@@ -839,7 +846,7 @@ namespace OrthancPlugins
     }
     else
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(error);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(error);
     }
   }
 
@@ -1481,7 +1488,7 @@ namespace OrthancPlugins
   }
 
 
-#if HAS_ORTHANC_PLUGIN_FIND_MATCHER == 1
+#if HAS_ORTHANC_PLUGINS_FIND_MATCHER == 1
   FindMatcher::FindMatcher(const OrthancPluginWorklistQuery* worklist) :
     matcher_(NULL),
     worklist_(worklist)
@@ -1550,18 +1557,18 @@ namespace OrthancPlugins
     }
   }
 
-#endif /* HAS_ORTHANC_PLUGIN_FIND_MATCHER == 1 */
+#endif /* HAS_ORTHANC_PLUGINS_FIND_MATCHER == 1 */
 
   static void CheckAnswerSizeIsLessThan4GB(const std::string& answer)
   {
     if (answer.size() > static_cast<size_t>(std::numeric_limits<uint32_t>::max()))
     {
-  #if HAS_ORTHANC_EXCEPTION == 1
+#if HAS_ORTHANC_EXCEPTION == 1
       throw Orthanc::OrthancException(Orthanc::ErrorCode_ParameterOutOfRange, "Cannot send HTTP response larger than 4GB");
-  #else
+#else
       ORTHANC_PLUGINS_LOG_ERROR("Cannot send HTTP response larger than 4GB");
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);          
-  #endif
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+#endif
     }
   }
 
@@ -1734,7 +1741,7 @@ namespace OrthancPlugins
     }
   }
 
-#if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
+#if HAS_ORTHANC_PLUGINS_GENERIC_CALL_REST_API == 1
   bool RestApiPost(Json::Value& result,
                    const std::string& uri,
                    const Json::Value& body,
@@ -1829,7 +1836,7 @@ namespace OrthancPlugins
     }
     else
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(error);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(error);
     }
   }
 
@@ -1857,12 +1864,6 @@ namespace OrthancPlugins
       // Assume compatibility with the mainline
       return true;
     }
-
-#ifdef _MSC_VER
-#define ORTHANC_SCANF sscanf_s
-#else
-#define ORTHANC_SCANF sscanf
-#endif
 
     // Parse the version
     int aa, bb, cc = 0;
@@ -1951,7 +1952,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_PEERS == 1
+#if HAS_ORTHANC_PLUGINS_PEERS == 1
   size_t OrthancPeers::GetPeerIndex(const std::string& name) const
   {
     size_t index;
@@ -1975,7 +1976,7 @@ namespace OrthancPlugins
 
     if (peers_ == NULL)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_Plugin);
     }
 
     uint32_t count = OrthancPluginGetPeersCount(GetGlobalContext(), peers_);
@@ -1986,7 +1987,7 @@ namespace OrthancPlugins
       if (name == NULL)
       {
         OrthancPluginFreePeers(GetGlobalContext(), peers_);
-        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
+        ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_Plugin);
       }
 
       index_[name] = i;
@@ -2024,14 +2025,14 @@ namespace OrthancPlugins
   {
     if (index >= index_.size())
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
     }
     else
     {
       const char* s = OrthancPluginGetPeerName(GetGlobalContext(), peers_, static_cast<uint32_t>(index));
       if (s == NULL)
       {
-        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
+        ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_Plugin);
       }
       else
       {
@@ -2045,14 +2046,14 @@ namespace OrthancPlugins
   {
     if (index >= index_.size())
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
     }
     else
     {
       const char* s = OrthancPluginGetPeerUrl(GetGlobalContext(), peers_, static_cast<uint32_t>(index));
       if (s == NULL)
       {
-        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
+        ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_Plugin);
       }
       else
       {
@@ -2074,7 +2075,7 @@ namespace OrthancPlugins
   {
     if (index >= index_.size())
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
     }
     else
     {
@@ -2107,7 +2108,7 @@ namespace OrthancPlugins
   {
     if (index >= index_.size())
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
     }
 
     OrthancPlugins::MemoryBuffer answer;
@@ -2305,7 +2306,7 @@ namespace OrthancPlugins
   {
     if (index >= index_.size())
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
     }
 
     if (body.size() > 0xffffffffu)
@@ -2345,7 +2346,7 @@ namespace OrthancPlugins
   {
     if (index >= index_.size())
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
     }
 
     if (body.size() > 0xffffffffu)
@@ -2391,7 +2392,7 @@ namespace OrthancPlugins
   {
     if (index >= index_.size())
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
     }
 
     OrthancPlugins::MemoryBuffer answer;
@@ -2432,7 +2433,7 @@ namespace OrthancPlugins
    ** JOBS
    ******************************************************************/
 
-#if HAS_ORTHANC_PLUGIN_JOB == 1
+#if HAS_ORTHANC_PLUGINS_JOB == 1
   void OrthancJob::CallbackFinalize(void* job)
   {
     if (job != NULL)
@@ -2630,7 +2631,7 @@ namespace OrthancPlugins
 
     if (content.type() != Json::objectValue)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_BadFileFormat);
     }
     else
     {
@@ -2650,7 +2651,7 @@ namespace OrthancPlugins
   {
     if (serialized.type() != Json::objectValue)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_BadFileFormat);
     }
     else
     {
@@ -2665,7 +2666,7 @@ namespace OrthancPlugins
     if (progress < 0 ||
         progress > 1)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
     }
 
     progress_ = progress;
@@ -2685,7 +2686,7 @@ namespace OrthancPlugins
   {
     if (job == NULL)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_NullPointer);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_NullPointer);
     }
 
     OrthancPluginJob* orthanc =
@@ -2700,7 +2701,7 @@ namespace OrthancPlugins
 
     if (orthanc == NULL)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_Plugin);
     }
     else
     {
@@ -2714,7 +2715,7 @@ namespace OrthancPlugins
   {
     if (job == NULL)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_NullPointer);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_NullPointer);
     }
 
     OrthancPluginJob* orthanc = Create(job);
@@ -2725,7 +2726,7 @@ namespace OrthancPlugins
     {
       ORTHANC_PLUGINS_LOG_ERROR("Plugin cannot submit job");
       OrthancPluginFreeJob(GetGlobalContext(), orthanc);
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_Plugin);
     }
     else
     {
@@ -2753,7 +2754,7 @@ namespace OrthancPlugins
           !status.isMember("State") ||
           status["State"].type() != Json::stringValue)
       {
-        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_InexistentItem);        
+        ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_InexistentItem);
       }
 
       const std::string state = status["State"].asString();
@@ -2782,30 +2783,30 @@ namespace OrthancPlugins
         if (!status.isMember("ErrorCode") ||
             status["ErrorCode"].type() != Json::intValue)
         {
-          ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_InternalError);
+          ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_InternalError);
         }
         else
         {
           if (!status.isMember("ErrorDescription") ||
               status["ErrorDescription"].type() != Json::stringValue)
           {
-            ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(status["ErrorCode"].asInt());
+            ORTHANC_PLUGINS_THROW_ERROR_CODE(status["ErrorCode"].asInt());
           }
           else
           {
-  #if HAS_ORTHANC_EXCEPTION == 1
+#if HAS_ORTHANC_EXCEPTION == 1
             throw Orthanc::OrthancException(static_cast<Orthanc::ErrorCode>(status["ErrorCode"].asInt()),
                                             status["ErrorDescription"].asString());
-  #else
+#else
             ORTHANC_PLUGINS_LOG_ERROR("Exception while executing the job: " + status["ErrorDescription"].asString());
-            ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(status["ErrorCode"].asInt());          
-  #endif
+            ORTHANC_PLUGINS_THROW_ERROR_CODE(status["ErrorCode"].asInt());
+#endif
           }
         }
       }
       else
       {
-        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_InternalError);
+        ORTHANC_PLUGINS_THROW_ERROR_CODE(OrthancPluginErrorCode_InternalError);
       }
     }
   }
@@ -2922,7 +2923,7 @@ namespace OrthancPlugins
    ** METRICS
    ******************************************************************/
 
-#if HAS_ORTHANC_PLUGIN_METRICS == 1
+#if HAS_ORTHANC_PLUGINS_METRICS == 1
   MetricsTimer::MetricsTimer(const char* name) :
     name_(name)
   {
@@ -2945,7 +2946,7 @@ namespace OrthancPlugins
    ** HTTP CLIENT
    ******************************************************************/
 
-#if HAS_ORTHANC_PLUGIN_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGINS_HTTP_CLIENT == 1
   class HttpClient::RequestBodyWrapper : public boost::noncopyable
   {
   private:
@@ -3009,7 +3010,7 @@ namespace OrthancPlugins
   };
 
 
-#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGINS_CHUNKED_HTTP_CLIENT == 1
   static OrthancPluginErrorCode AnswerAddHeaderCallback(void* answer,
                                                         const char* key,
                                                         const char* value)
@@ -3033,7 +3034,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGINS_CHUNKED_HTTP_CLIENT == 1
   static OrthancPluginErrorCode AnswerAddChunkCallback(void* answer,
                                                        const void* data,
                                                        uint32_t size)
@@ -3297,7 +3298,7 @@ namespace OrthancPlugins
     };
 
 
-#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGINS_CHUNKED_HTTP_CLIENT == 1
     class MemoryAnswer : public HttpClient::IAnswer
     {
     private:
@@ -3331,7 +3332,7 @@ namespace OrthancPlugins
   }
 
 
-#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGINS_CHUNKED_HTTP_CLIENT == 1
   void HttpClient::ExecuteWithStream(uint16_t& httpStatus,
                                      IAnswer& answer,
                                      IRequestBody& body) const
@@ -3387,7 +3388,7 @@ namespace OrthancPlugins
 
     if (error != OrthancPluginErrorCode_Success)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(error);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(error);
     }
   }
 #endif    
@@ -3429,7 +3430,7 @@ namespace OrthancPlugins
 
     if (error != OrthancPluginErrorCode_Success)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(error);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(error);
     }
 
     DecodeHttpHeaders(answerHeaders, answerHeadersBuffer);
@@ -3439,7 +3440,7 @@ namespace OrthancPlugins
 
   void HttpClient::Execute(IAnswer& answer)
   {
-#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGINS_CHUNKED_HTTP_CLIENT == 1
     if (allowChunkedTransfers_)
     {
       if (chunkedBody_ != NULL)
@@ -3480,7 +3481,7 @@ namespace OrthancPlugins
   void HttpClient::Execute(HttpHeaders& answerHeaders /* out */,
                            std::string& answerBody /* out */)
   {
-#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGINS_CHUNKED_HTTP_CLIENT == 1
     if (allowChunkedTransfers_)
     {
       MemoryAnswer answer;
@@ -3538,7 +3539,7 @@ namespace OrthancPlugins
     Execute(answerHeaders, body);
   }
 
-#endif  /* HAS_ORTHANC_PLUGIN_HTTP_CLIENT == 1 */
+#endif  /* HAS_ORTHANC_PLUGINS_HTTP_CLIENT == 1 */
 
 
 
@@ -3563,7 +3564,7 @@ namespace OrthancPlugins
     }
 
 
-#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_SERVER == 1
+#if HAS_ORTHANC_PLUGINS_CHUNKED_HTTP_SERVER == 1
 
     OrthancPluginErrorCode ChunkedRequestReaderAddChunk(
       OrthancPluginServerChunkedRequestReader* reader,
@@ -3758,7 +3759,7 @@ namespace OrthancPlugins
       }
       catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
       {
-#if HAS_ORTHANC_EXCEPTION == 1 && HAS_ORTHANC_PLUGIN_EXCEPTION_DETAILS == 1
+#if HAS_ORTHANC_EXCEPTION == 1 && HAS_ORTHANC_PLUGINS_EXCEPTION_DETAILS == 1
         if (HasGlobalContext() &&
             e.HasDetails())
         {
@@ -3785,7 +3786,7 @@ namespace OrthancPlugins
   }
 
 
-#if HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP == 1
+#if HAS_ORTHANC_PLUGINS_STORAGE_COMMITMENT_SCP == 1
   OrthancPluginErrorCode IStorageCommitmentScpHandler::Lookup(
     OrthancPluginStorageCommitmentFailureReason* target,
     void* rawHandler,
@@ -3813,7 +3814,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP == 1
+#if HAS_ORTHANC_PLUGINS_STORAGE_COMMITMENT_SCP == 1
   void IStorageCommitmentScpHandler::Destructor(void* rawHandler)
   {
     assert(rawHandler != NULL);
@@ -3937,7 +3938,7 @@ namespace OrthancPlugins
     }
     else
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
   }
 #endif
@@ -3974,7 +3975,7 @@ namespace OrthancPlugins
     }
     else
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
   }
 #endif
@@ -4023,7 +4024,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_WEBDAV == 1
+#if HAS_ORTHANC_PLUGINS_WEBDAV == 1
   static std::vector<std::string> WebDavConvertPath(uint32_t pathSize,
                                                     const char* const*  pathItems)
   {
@@ -4039,7 +4040,7 @@ namespace OrthancPlugins
 #endif
   
     
-#if HAS_ORTHANC_PLUGIN_WEBDAV == 1
+#if HAS_ORTHANC_PLUGINS_WEBDAV == 1
   static OrthancPluginErrorCode WebDavIsExistingFolder(uint8_t*            isExisting,
                                                        uint32_t            pathSize,
                                                        const char* const*  pathItems,
@@ -4064,7 +4065,7 @@ namespace OrthancPlugins
 #endif
 
   
-#if HAS_ORTHANC_PLUGIN_WEBDAV == 1
+#if HAS_ORTHANC_PLUGINS_WEBDAV == 1
   static OrthancPluginErrorCode WebDavListFolder(uint8_t*                        isExisting,
                                                  OrthancPluginWebDavCollection*  collection,
                                                  OrthancPluginWebDavAddFile      addFile,
@@ -4128,7 +4129,7 @@ namespace OrthancPlugins
 #endif    
 
 
-#if HAS_ORTHANC_PLUGIN_WEBDAV == 1
+#if HAS_ORTHANC_PLUGINS_WEBDAV == 1
   static OrthancPluginErrorCode WebDavRetrieveFile(OrthancPluginWebDavCollection*   collection,
                                                    OrthancPluginWebDavRetrieveFile  retrieveFile,
                                                    uint32_t                         pathSize,
@@ -4164,7 +4165,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_WEBDAV == 1
+#if HAS_ORTHANC_PLUGINS_WEBDAV == 1
   static OrthancPluginErrorCode WebDavStoreFileCallback(uint8_t*            isReadOnly, /* out */
                                                         uint32_t            pathSize,
                                                         const char* const*  pathItems,
@@ -4197,7 +4198,7 @@ namespace OrthancPlugins
 #endif
 
   
-#if HAS_ORTHANC_PLUGIN_WEBDAV == 1
+#if HAS_ORTHANC_PLUGINS_WEBDAV == 1
   static OrthancPluginErrorCode WebDavCreateFolderCallback(uint8_t*            isReadOnly, /* out */
                                                            uint32_t            pathSize,
                                                            const char* const*  pathItems,
@@ -4222,7 +4223,7 @@ namespace OrthancPlugins
 #endif
   
   
-#if HAS_ORTHANC_PLUGIN_WEBDAV == 1
+#if HAS_ORTHANC_PLUGINS_WEBDAV == 1
   static OrthancPluginErrorCode WebDavDeleteItemCallback(uint8_t*            isReadOnly, /* out */
                                                          uint32_t            pathSize,
                                                          const char* const*  pathItems,
@@ -4247,7 +4248,7 @@ namespace OrthancPlugins
 #endif
 
   
-#if HAS_ORTHANC_PLUGIN_WEBDAV == 1
+#if HAS_ORTHANC_PLUGINS_WEBDAV == 1
   void IWebDavCollection::Register(const std::string& uri,
                                    IWebDavCollection& collection)
   {
@@ -4257,7 +4258,7 @@ namespace OrthancPlugins
 
     if (code != OrthancPluginErrorCode_Success)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
   }
 #endif
@@ -4347,7 +4348,7 @@ namespace OrthancPlugins
   }
 
 
-#if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
+#if HAS_ORTHANC_PLUGINS_GENERIC_CALL_REST_API == 1
   RestApiClient::RestApiClient() :
     method_(OrthancPluginHttpMethod_Get),
     path_("/"),
@@ -4381,7 +4382,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
+#if HAS_ORTHANC_PLUGINS_GENERIC_CALL_REST_API == 1
   void RestApiClient::AddRequestHeader(const std::string& key,
                                        const std::string& value)
   {
@@ -4397,7 +4398,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
+#if HAS_ORTHANC_PLUGINS_GENERIC_CALL_REST_API == 1
   void RestApiClient::SetRequestHeader(const std::string& key,
                                        const std::string& value)
   {
@@ -4406,7 +4407,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
+#if HAS_ORTHANC_PLUGINS_GENERIC_CALL_REST_API == 1
   bool RestApiClient::Execute()
   {
     if (requestBody_.size() > 0xffffffffu)
@@ -4448,7 +4449,7 @@ namespace OrthancPlugins
       }
       else
       {
-        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+        ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
       }
     }
   }
@@ -4489,7 +4490,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
+#if HAS_ORTHANC_PLUGINS_GENERIC_CALL_REST_API == 1
   uint16_t RestApiClient::GetHttpStatus() const
   {
     if (httpStatus_ == 0)
@@ -4504,7 +4505,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
+#if HAS_ORTHANC_PLUGINS_GENERIC_CALL_REST_API == 1
   bool RestApiClient::LookupAnswerHeader(std::string& value,
                                          const std::string& key) const
   {
@@ -4529,7 +4530,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
+#if HAS_ORTHANC_PLUGINS_GENERIC_CALL_REST_API == 1
   const std::string& RestApiClient::GetAnswerBody() const
   {
     if (httpStatus_ == 0)
@@ -4544,7 +4545,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+#if HAS_ORTHANC_PLUGINS_KEY_VALUE_STORES == 1
   KeyValueStore::Iterator::Iterator(OrthancPluginKeysValuesIterator  *iterator) :
     iterator_(iterator)
   {
@@ -4556,7 +4557,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+#if HAS_ORTHANC_PLUGINS_KEY_VALUE_STORES == 1
   KeyValueStore::Iterator::~Iterator()
   {
     OrthancPluginFreeKeysValuesIterator(OrthancPlugins::GetGlobalContext(), iterator_);
@@ -4564,7 +4565,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+#if HAS_ORTHANC_PLUGINS_KEY_VALUE_STORES == 1
   bool KeyValueStore::Iterator::Next()
   {
     uint8_t done;
@@ -4572,7 +4573,7 @@ namespace OrthancPlugins
 
     if (code != OrthancPluginErrorCode_Success)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
     else
     {
@@ -4582,7 +4583,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+#if HAS_ORTHANC_PLUGINS_KEY_VALUE_STORES == 1
   std::string KeyValueStore::Iterator::GetKey() const
   {
     const char* s = OrthancPluginKeysValuesIteratorGetKey(OrthancPlugins::GetGlobalContext(), iterator_);
@@ -4598,7 +4599,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+#if HAS_ORTHANC_PLUGINS_KEY_VALUE_STORES == 1
   void KeyValueStore::Iterator::GetValue(std::string& value) const
   {
     OrthancPlugins::MemoryBuffer valueBuffer;
@@ -4606,7 +4607,7 @@ namespace OrthancPlugins
 
     if (code != OrthancPluginErrorCode_Success)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
     else
     {
@@ -4616,7 +4617,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+#if HAS_ORTHANC_PLUGINS_KEY_VALUE_STORES == 1
   void KeyValueStore::Store(const std::string& key,
                             const void* value,
                             size_t valueSize)
@@ -4630,13 +4631,13 @@ namespace OrthancPlugins
                                                              key.c_str(), value, static_cast<uint32_t>(valueSize));
     if (code != OrthancPluginErrorCode_Success)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
   }
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+#if HAS_ORTHANC_PLUGINS_KEY_VALUE_STORES == 1
   bool KeyValueStore::GetValue(std::string& value,
                                const std::string& key)
   {
@@ -4647,7 +4648,7 @@ namespace OrthancPlugins
 
     if (code != OrthancPluginErrorCode_Success)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
     else if (found)
     {
@@ -4662,7 +4663,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+#if HAS_ORTHANC_PLUGINS_KEY_VALUE_STORES == 1
   void KeyValueStore::DeleteKey(const std::string& key)
   {
     OrthancPluginErrorCode code = OrthancPluginDeleteKeyValue(OrthancPlugins::GetGlobalContext(),
@@ -4670,13 +4671,13 @@ namespace OrthancPlugins
 
     if (code != OrthancPluginErrorCode_Success)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
   }
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+#if HAS_ORTHANC_PLUGINS_KEY_VALUE_STORES == 1
   KeyValueStore::Iterator* KeyValueStore::CreateIterator()
   {
     return new Iterator(OrthancPluginCreateKeysValuesIterator(OrthancPlugins::GetGlobalContext(), storeId_.c_str()));
@@ -4684,7 +4685,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_QUEUES == 1
+#if HAS_ORTHANC_PLUGINS_QUEUES == 1
   void Queue::Enqueue(const void* value,
                       size_t valueSize)
   {
@@ -4698,13 +4699,13 @@ namespace OrthancPlugins
 
     if (code != OrthancPluginErrorCode_Success)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
   }
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_QUEUES == 1
+#if HAS_ORTHANC_PLUGINS_QUEUES == 1
   bool Queue::DequeueInternal(std::string& value,
                               OrthancPluginQueueOrigin origin)
   {
@@ -4719,7 +4720,7 @@ namespace OrthancPlugins
 
     if (code != OrthancPluginErrorCode_Success)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
     else if (found)
     {
@@ -4734,7 +4735,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_QUEUES == 1
+#if HAS_ORTHANC_PLUGINS_QUEUES == 1
   uint64_t Queue::GetSize()
   {
     uint64_t size = 0;
@@ -4742,7 +4743,7 @@ namespace OrthancPlugins
 
     if (code != OrthancPluginErrorCode_Success)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
     else
     {
@@ -4752,7 +4753,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
+#if HAS_ORTHANC_PLUGINS_RESERVE_QUEUE_VALUE == 1
   bool Queue::ReserveInternal(std::string& value, uint64_t& valueId, OrthancPluginQueueOrigin origin, uint32_t releaseTimeout)
   {
     uint8_t found = false;
@@ -4763,7 +4764,7 @@ namespace OrthancPlugins
 
     if (code != OrthancPluginErrorCode_Success)
     {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+      ORTHANC_PLUGINS_THROW_ERROR_CODE(code);
     }
     else if (found)
     {
@@ -4778,7 +4779,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
+#if HAS_ORTHANC_PLUGINS_RESERVE_QUEUE_VALUE == 1
   bool Queue::ReserveBack(std::string& value, uint64_t& valueId, uint32_t releaseTimeout)
   {
     return ReserveInternal(value, valueId, OrthancPluginQueueOrigin_Back, releaseTimeout);
@@ -4786,7 +4787,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
+#if HAS_ORTHANC_PLUGINS_RESERVE_QUEUE_VALUE == 1
   bool Queue::ReserveFront(std::string& value, uint64_t& valueId, uint32_t releaseTimeout)
   {
     return ReserveInternal(value, valueId, OrthancPluginQueueOrigin_Front, releaseTimeout);
@@ -4794,7 +4795,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_RESERVE_QUEUE_VALUE == 1
+#if HAS_ORTHANC_PLUGINS_RESERVE_QUEUE_VALUE == 1
   void Queue::Acknowledge(uint64_t valueId)
   {
     OrthancPluginAcknowledgeQueueValue(OrthancPlugins::GetGlobalContext(), queueId_.c_str(), valueId);
