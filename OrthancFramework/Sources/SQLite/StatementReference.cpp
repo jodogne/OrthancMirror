@@ -90,7 +90,7 @@ namespace Orthanc
         if (extended == SQLITE_IOERR_SHMSIZE  /* 4874 */)
         {
           LOG(ERROR) << "  This probably indicates that your filesystem is full";
-        }        
+        }
 #endif
 
         throw OrthancSQLiteException(ErrorCode_SQLitePrepareStatement);

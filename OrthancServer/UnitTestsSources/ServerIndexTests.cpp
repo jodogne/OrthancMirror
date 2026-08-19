@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -72,7 +72,7 @@ namespace
       const std::string fileUuid = info.GetUuid();
       deletedFiles_.push_back(fileUuid);
       LOG(INFO) << "A file must be removed: " << fileUuid;
-    }       
+    }
 
     virtual void SignalResourceDeleted(ResourceType type,
                                        const std::string& publicId) ORTHANC_OVERRIDE
@@ -108,7 +108,7 @@ namespace
     {
       transaction_->Commit(0);
       transaction_.reset();
-      
+
       index_->Close();
       index_.reset(NULL);
       listener_.reset(NULL);
@@ -155,7 +155,7 @@ namespace
       transaction_->GetChildren(j, id);
       ASSERT_EQ(2u, j.size());
       ASSERT_TRUE((expected1 == j.front() && expected2 == j.back()) ||
-                  (expected1 == j.back() && expected2 == j.front()));                    
+                  (expected1 == j.back() && expected2 == j.front()));
     }
 
     void DoLookupIdentifier(std::list<std::string>& result,
@@ -183,7 +183,7 @@ namespace
       {
         result.push_back(response.GetResourceByIndex(i).GetIdentifier());
       }
-    }    
+    }
 
     void DoLookupIdentifier2(std::list<std::string>& result,
                              ResourceType level,
@@ -197,7 +197,7 @@ namespace
       result.clear();
 
       std::vector<std::string> values1, values2;
-      
+
       values1.push_back(value1);
       std::unique_ptr<DatabaseDicomTagConstraint> lookup1(new DatabaseDicomTagConstraint(level, tag, true, type1, values1, true, true));
 
@@ -366,12 +366,12 @@ TEST_F(DatabaseWrapperTest, Simple)
   std::list<std::string> l;
   transaction_->GetChildrenPublicId(l, a[0]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("b", l.front());
   transaction_->GetChildrenPublicId(l, a[1]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("c", l.front());
-  transaction_->GetChildrenPublicId(l, a[3]); ASSERT_EQ(0u, l.size()); 
-  transaction_->GetChildrenPublicId(l, a[4]); ASSERT_EQ(0u, l.size()); 
-  transaction_->GetChildrenPublicId(l, a[5]); ASSERT_EQ(0u, l.size()); 
+  transaction_->GetChildrenPublicId(l, a[3]); ASSERT_EQ(0u, l.size());
+  transaction_->GetChildrenPublicId(l, a[4]); ASSERT_EQ(0u, l.size());
+  transaction_->GetChildrenPublicId(l, a[5]); ASSERT_EQ(0u, l.size());
   transaction_->GetChildrenPublicId(l, a[6]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("f", l.front());
 
-  transaction_->GetChildrenPublicId(l, a[2]); ASSERT_EQ(2u, l.size()); 
+  transaction_->GetChildrenPublicId(l, a[2]); ASSERT_EQ(2u, l.size());
   if (l.front() == "d")
   {
     ASSERT_EQ("e", l.back());
@@ -397,9 +397,9 @@ TEST_F(DatabaseWrapperTest, Simple)
   FileInfo attachment3("world", FileContentType_Dicom, 44, "md5_3");
   attachment3.SetCustomData("world");
   transaction_->AddAttachment(a[6], attachment3, 44);
-  
+
   transaction_->SetMetadata(a[4], MetadataType_RemoteAet, "PINNACLE", 42);
-  
+
   transaction_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(1u, md.size());
   ASSERT_EQ("PINNACLE", md[MetadataType_RemoteAet]);
@@ -494,10 +494,10 @@ TEST_F(DatabaseWrapperTest, Simple)
   transaction_->DeleteResource(a[0]);
   ASSERT_EQ(5u, listener_->deletedResources_.size());
   ASSERT_EQ(2u, listener_->deletedFiles_.size());
-  ASSERT_FALSE(std::find(listener_->deletedFiles_.begin(), 
+  ASSERT_FALSE(std::find(listener_->deletedFiles_.begin(),
                          listener_->deletedFiles_.end(),
                          "my json file") == listener_->deletedFiles_.end());
-  ASSERT_FALSE(std::find(listener_->deletedFiles_.begin(), 
+  ASSERT_FALSE(std::find(listener_->deletedFiles_.begin(),
                          listener_->deletedFiles_.end(),
                          "my dicom file") == listener_->deletedFiles_.end());
 
@@ -522,7 +522,7 @@ TEST_F(DatabaseWrapperTest, Simple)
   ASSERT_EQ("1", tmp);
 
   ASSERT_EQ(3u, listener_->deletedFiles_.size());
-  ASSERT_FALSE(std::find(listener_->deletedFiles_.begin(), 
+  ASSERT_FALSE(std::find(listener_->deletedFiles_.begin(),
                          listener_->deletedFiles_.end(),
                          "world") == listener_->deletedFiles_.end());
 }
@@ -586,7 +586,7 @@ TEST_F(DatabaseWrapperTest, PatientRecycling)
   {
     std::string p = "Patient " + boost::lexical_cast<std::string>(i);
     patients.push_back(transaction_->CreateResource(p, ResourceType_Patient));
-    transaction_->AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10, 
+    transaction_->AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10,
                                                       "md5-" + boost::lexical_cast<std::string>(i)), 42);
     ASSERT_FALSE(transaction_->IsProtectedPatient(patients[i]));
   }
@@ -819,7 +819,7 @@ TEST(ServerIndex, AttachmentRecycling)
   index.SetMaximumStorageSize(10);
 
   uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
-  index.GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+  index.GetGlobalStatistics(diskSize, uncompressedSize, countPatients,
                             countStudies, countSeries, countInstances);
 
   ASSERT_EQ(0u, countPatients);
@@ -857,7 +857,7 @@ TEST(ServerIndex, AttachmentRecycling)
                   hasTransferSyntax, transferSyntax, true /* has pixel data */, 42 /* pixel data offset */,
                   ValueRepresentation_PersonName /* pixel data VR */, false));
     }
-    
+
     ASSERT_EQ(8u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
@@ -884,7 +884,7 @@ TEST(ServerIndex, AttachmentRecycling)
     ids.push_back(hasher.HashInstance());
   }
 
-  index.GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+  index.GetGlobalStatistics(diskSize, uncompressedSize, countPatients,
                             countStudies, countSeries, countInstances);
   ASSERT_EQ(10u, countPatients);
   ASSERT_EQ(0u, diskSize);
@@ -896,7 +896,7 @@ TEST(ServerIndex, AttachmentRecycling)
     index.AddAttachment(revision, info, ids[i], false /* no previous revision */, -1, "");
     ASSERT_EQ(0, revision);
 
-    index.GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+    index.GetGlobalStatistics(diskSize, uncompressedSize, countPatients,
                               countStudies, countSeries, countInstances);
     ASSERT_GE(10u, diskSize);
   }
@@ -925,7 +925,7 @@ TEST(ServerIndex, Overwrite)
   for (unsigned int i = 0; i < 3; i++)
   {
     OverwriteInstancesMode overwriteMode;
-    if (i == 0) 
+    if (i == 0)
       overwriteMode = OverwriteInstancesMode_Always;
     else if (i == 1)
       overwriteMode = OverwriteInstancesMode_Never;
@@ -952,7 +952,7 @@ TEST(ServerIndex, Overwrite)
     context.SetOverwriteInstances(overwriteMode);
 
     uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
-    context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+    context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients,
                                            countStudies, countSeries, countInstances);
 
     ASSERT_EQ(0u, countInstances);
@@ -964,9 +964,9 @@ TEST(ServerIndex, Overwrite)
       // Add a pixel data so as to have one "FileContentType_DicomUntilPixelData"
       // (because of "context.SetCompressionEnabled(true)")
       dicom.EmbedImage(image);
-      
+
       DicomInstanceHasher hasher(instance);
-      
+
       std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(dicom));
       toStore->SetOrigin(DicomInstanceOrigin::FromPlugins());
       ASSERT_EQ(id, hasher.HashInstance());
@@ -991,7 +991,7 @@ TEST(ServerIndex, Overwrite)
     ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData1, revision, ResourceType_Instance, id, FileContentType_DicomUntilPixelData));
     ASSERT_EQ(0, revision);
 
-    context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+    context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients,
                                            countStudies, countSeries, countInstances);
     ASSERT_EQ(1u, countInstances);
     ASSERT_EQ(dicom1.GetCompressedSize() + pixelData1.GetCompressedSize(), diskSize);
@@ -1000,7 +1000,7 @@ TEST(ServerIndex, Overwrite)
     Json::Value tmp;
     context.ReadDicomAsJson(tmp, id);
     ASSERT_EQ("name", tmp["0010,0010"]["Value"].asString());
-    
+
     {
       std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
       DicomDataSource::Dicom::Lock lock(*dicom);
@@ -1042,7 +1042,7 @@ TEST(ServerIndex, Overwrite)
     ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData2, revision, ResourceType_Instance, id, FileContentType_DicomUntilPixelData));
     ASSERT_EQ(0, revision);
 
-    context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+    context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients,
                                            countStudies, countSeries, countInstances);
     ASSERT_EQ(1u, countInstances);
     ASSERT_EQ(dicom2.GetCompressedSize() + pixelData2.GetCompressedSize(), diskSize);
@@ -1054,10 +1054,10 @@ TEST(ServerIndex, Overwrite)
       ASSERT_NE(pixelData1.GetUuid(), pixelData2.GetUuid());
       ASSERT_NE(dicom1.GetUncompressedSize(), dicom2.GetUncompressedSize());
       ASSERT_NE(pixelData1.GetUncompressedSize(), pixelData2.GetUncompressedSize());
-    
+
       context.ReadDicomAsJson(tmp, id);
       ASSERT_EQ("overwritten", tmp["0010,0010"]["Value"].asString());
-    
+
       {
         std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
         DicomDataSource::Dicom::Lock lock(*dicom);
@@ -1076,7 +1076,7 @@ TEST(ServerIndex, Overwrite)
 
       context.ReadDicomAsJson(tmp, id);
       ASSERT_EQ("name", tmp["0010,0010"]["Value"].asString());
-    
+
       {
         std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
         DicomDataSource::Dicom::Lock lock(*dicom);
@@ -1102,7 +1102,7 @@ TEST(ServerIndex, DicomUntilPixelData)
   for (unsigned int i = 0; i < 2; i++)
   {
     const bool compression = (i == 0);
-    
+
     PluginStorageAreaAdapter storage(new MemoryStorageArea);
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
@@ -1115,7 +1115,7 @@ TEST(ServerIndex, DicomUntilPixelData)
       const bool withPixelData = (j == 0);
 
       ParsedDicomFile dicom(true);
-      
+
       if (withPixelData)
       {
         dicom.EmbedImage(image);
@@ -1136,7 +1136,7 @@ TEST(ServerIndex, DicomUntilPixelData)
       context.GetIndex().ListAvailableAttachments(attachments, id, ResourceType_Instance);
 
       ASSERT_TRUE(attachments.find(FileContentType_Dicom) != attachments.end());
-      
+
       if (compression &&
           withPixelData)
       {
@@ -1152,7 +1152,7 @@ TEST(ServerIndex, DicomUntilPixelData)
       int64_t revision;
       bool found = context.GetIndex().LookupMetadata(s, revision, id, ResourceType_Instance,
                                                      MetadataType_Instance_PixelDataOffset);
-      
+
       if (withPixelData)
       {
         ASSERT_TRUE(found);
@@ -1162,7 +1162,7 @@ TEST(ServerIndex, DicomUntilPixelData)
       }
       else
       {
-        ASSERT_FALSE(found);        
+        ASSERT_FALSE(found);
       }
     }
   }
@@ -1372,14 +1372,14 @@ TEST(SQLiteDatabaseWrapper, ReserveQueueValue)
 
     std::string s;
     uint64_t valueId0, valueId1, valueId2, valueId3;
-    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 100));  
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 100));
     ASSERT_EQ("c", s);
     ASSERT_EQ(3u, op.GetQueueSize("test"));  // the reserved values are still counted !
-    
-    ASSERT_TRUE(op.ReserveQueueValue(s, valueId1, "test", QueueOrigin_Back, 100));  
+
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId1, "test", QueueOrigin_Back, 100));
     ASSERT_EQ("b", s);
-    
-    ASSERT_TRUE(op.ReserveQueueValue(s, valueId2, "test", QueueOrigin_Back, 100));  
+
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId2, "test", QueueOrigin_Back, 100));
     ASSERT_EQ("a", s);
     ASSERT_EQ(3u, op.GetQueueSize("test"));
 
@@ -1399,14 +1399,14 @@ TEST(SQLiteDatabaseWrapper, ReserveQueueValue)
     op.EnqueueValue("test", "h");
 
     // reserve 2 values front and back and acknowledge only "e" & "f"
-    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Front, 1));  
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Front, 1));
     ASSERT_EQ("d", s);
-    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Front, 1));  
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Front, 1));
     ASSERT_EQ("e", s);
     op.AcknowledgeQueueValue("test", valueId0);
-    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 1));  
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 1));
     ASSERT_EQ("h", s);
-    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 1));  
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 1));
     ASSERT_EQ("g", s);
     op.AcknowledgeQueueValue("test", valueId0);
 
@@ -1417,13 +1417,13 @@ TEST(SQLiteDatabaseWrapper, ReserveQueueValue)
     SystemToolbox::USleep(2000000); // the granularity being the second, we might have to wait up to 2 seconds
 
     // "d" and "h" remain
-    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Front, 1));  
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Front, 1));
     ASSERT_EQ("d", s);
-    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 1));  
+    ASSERT_TRUE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 1));
     ASSERT_EQ("h", s);
 
     // the queue is empty at this point since "f" has been reserved already
-    ASSERT_FALSE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 1));  
+    ASSERT_FALSE(op.ReserveQueueValue(s, valueId0, "test", QueueOrigin_Back, 1));
   }
 
   db.Close();

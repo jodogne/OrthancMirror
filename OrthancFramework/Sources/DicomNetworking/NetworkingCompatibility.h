@@ -27,13 +27,13 @@
 
 #ifdef _WIN32
 /**
- * "The maximum length, in bytes, of the string returned in the buffer 
+ * "The maximum length, in bytes, of the string returned in the buffer
  * pointed to by the name parameter is dependent on the namespace provider,
  * but this string must be 256 bytes or less.
  * http://msdn.microsoft.com/en-us/library/windows/desktop/ms738527(v=vs.85).aspx
  **/
 #  define HOST_NAME_MAX 256
-#endif 
+#endif
 
 
 #if !defined(HOST_NAME_MAX) && defined(_POSIX_HOST_NAME_MAX)

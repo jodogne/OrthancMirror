@@ -9,7 +9,7 @@ extern "C"
     std::cerr << std::endl << std::endl;
     std::cerr << "/**" << std::endl;
     std::cerr << "#define SIZEOF_CHAR " << sizeof(char) << std::endl;
-    std::cerr << "#define SIZEOF_DOUBLE " << sizeof(double) << std::endl;    
+    std::cerr << "#define SIZEOF_DOUBLE " << sizeof(double) << std::endl;
     std::cerr << "#define SIZEOF_FLOAT " << sizeof(float) << std::endl;
     std::cerr << "#define SIZEOF_INT " << sizeof(int) << std::endl;
     std::cerr << "#define SIZEOF_LONG " << sizeof(long) << std::endl;

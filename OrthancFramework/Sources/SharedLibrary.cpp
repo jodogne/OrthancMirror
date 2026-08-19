@@ -41,8 +41,8 @@
 
 namespace Orthanc
 {
-  SharedLibrary::SharedLibrary(const boost::filesystem::path& path) : 
-    path_(path), 
+  SharedLibrary::SharedLibrary(const boost::filesystem::path& path) :
+    path_(path),
     handle_(NULL)
   {
 #if defined(_WIN32)
@@ -70,7 +70,7 @@ namespace Orthanc
     }
 
 #elif defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__) || defined(__OpenBSD__)
-   
+
     /**
      * "RTLD_LOCAL" is the default, and is only present to be
      * explicit. "RTLD_DEEPBIND" was added in Orthanc 1.6.0, in order
@@ -80,7 +80,7 @@ namespace Orthanc
      * BUT this had no effect, and this results in a crash if loading
      * the Python 2.7 plugin => We disabled it again in Orthanc 1.6.1.
      **/
-    
+
 #if 0 // && defined(RTLD_DEEPBIND)  // This is a GNU extension
     // Disabled in Orthanc 1.6.1
     handle_ = ::dlopen(path_.c_str(), RTLD_NOW | RTLD_LOCAL | RTLD_DEEPBIND);
@@ -88,7 +88,7 @@ namespace Orthanc
     handle_ = ::dlopen(path_.c_str(), RTLD_NOW | RTLD_LOCAL);
 #endif
 
-    if (handle_ == NULL) 
+    if (handle_ == NULL)
     {
       std::string explanation;
       const char *tmp = ::dlerror();
@@ -103,7 +103,7 @@ namespace Orthanc
 
 #else
 #error Support your platform here
-#endif   
+#endif
   }
 
   SharedLibrary::~SharedLibrary()
@@ -147,7 +147,7 @@ namespace Orthanc
   SharedLibrary::FunctionPointer SharedLibrary::GetFunction(const std::string& name)
   {
     SharedLibrary::FunctionPointer result = GetFunctionInternal(name);
-  
+
     if (result == NULL)
     {
       throw OrthancException(

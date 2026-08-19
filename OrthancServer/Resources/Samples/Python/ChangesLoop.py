@@ -11,7 +11,7 @@
 # modify it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -53,7 +53,7 @@ URL = 'http://%s:%d' % (sys.argv[1], int(sys.argv[2]))
 def NewInstanceReceived(path):
     global URL
     patientName = RestToolbox.DoGet(URL + path + '/content/PatientName')
-    
+
     # Remove the possible trailing characters due to DICOM padding
     patientName = patientName.strip()
 
@@ -63,7 +63,7 @@ def NewInstanceReceived(path):
 
 ##
 ## Main loop that listens to the changes API.
-## 
+##
 
 current = 0
 while True:

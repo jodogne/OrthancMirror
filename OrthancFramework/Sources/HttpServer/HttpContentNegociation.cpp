@@ -128,7 +128,7 @@ namespace Orthanc
     {
       handler_.Call(parameters_);
     }
-      
+
     bool operator< (const Reference& other) const
     {
       if (level_ < other.level_)
@@ -162,7 +162,7 @@ namespace Orthanc
     {
       first = Toolbox::StripSpaces(source.substr(0, pos));
       second = Toolbox::StripSpaces(source.substr(pos + 1));
-      return true;      
+      return true;
     }
   }
 
@@ -204,7 +204,7 @@ namespace Orthanc
     }
   }
 
-    
+
   bool HttpContentNegociation::Apply(const Dictionary& headers)
   {
     Dictionary::const_iterator accept = headers.find("accept");
@@ -242,7 +242,7 @@ namespace Orthanc
         for (size_t i = 1; i < tokens.size(); i++)
         {
           std::string key, value;
-          
+
           if (SplitPair(key, value, tokens[i], '='))
           {
             // Remove the enclosing quotes, if present
@@ -261,7 +261,7 @@ namespace Orthanc
 
           parameters[key] = value;
         }
-        
+
         std::string type, subtype;
         if (SplitPair(type, subtype, tokens[0], '/'))
         {

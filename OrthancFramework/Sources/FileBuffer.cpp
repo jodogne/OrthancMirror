@@ -97,7 +97,7 @@ namespace Orthanc
     }
   };
 
-    
+
   FileBuffer::FileBuffer() :
     pimpl_(new PImpl)
   {

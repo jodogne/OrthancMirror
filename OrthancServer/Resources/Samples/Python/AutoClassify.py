@@ -12,7 +12,7 @@
 # modify it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -49,7 +49,7 @@ parser.set_defaults(remove = False)
 
 def FixPath(p):
     s = p.encode('ascii', errors = 'replace').decode('ascii')
-    
+
     for c in "'\/:*?\"<>|!=":
         s = s.replace(c, '')
 
@@ -76,19 +76,19 @@ def ClassifyInstance(instanceId):
     c = '%s - %s' % (GetTag(series, 'Modality'),
                      GetTag(series, 'SeriesDescription'))
     d = '%s.dcm' % GetTag(instance, 'SOPInstanceUID')
-    
+
     p = os.path.join(args.target, FixPath(a), FixPath(b), FixPath(c))
     f = os.path.join(p, FixPath(d))
 
     # Copy the DICOM file to the target path
     print('Writing new DICOM file: %s' % f)
-    
+
     try:
         os.makedirs(p)
     except:
         # Already existing directory, ignore the error
         pass
-    
+
     dcm = RestToolbox.DoGet('%s/instances/%s/file' % (URL, instanceId))
     with open(f, 'wb') as g:
         g.write(dcm)

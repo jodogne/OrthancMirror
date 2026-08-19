@@ -168,7 +168,7 @@ namespace Orthanc
       return *commands_[index];
     }
   }
-      
+
 
   JobStepResult SetOfCommandsJob::Step(const std::string& jobId)
   {
@@ -184,7 +184,7 @@ namespace Orthanc
       position_ = 1;
       return JobStepResult::Success();
     }
-    
+
     if (position_ >= commands_.size())
     {
       // Already done
@@ -236,11 +236,11 @@ namespace Orthanc
   static const char* KEY_TYPE = "Type";
   static const char* KEY_COMMANDS = "Commands";
   static const char* KEY_USER_DATA = "UserData";
-  
+
   void SetOfCommandsJob::GetPublicContent(Json::Value& value) const
   {
     value[KEY_DESCRIPTION] = GetDescription();
-  }    
+  }
 
 
   bool SetOfCommandsJob::Serialize(Json::Value& target) const
@@ -250,7 +250,7 @@ namespace Orthanc
     std::string type;
     GetJobType(type);
     target[KEY_TYPE] = type;
-    
+
     target[KEY_PERMISSIVE] = permissive_;
     target[KEY_POSITION] = static_cast<unsigned int>(position_);
     target[KEY_DESCRIPTION] = description_;
@@ -262,7 +262,7 @@ namespace Orthanc
     for (size_t i = 0; i < commands_.size(); i++)
     {
       assert(commands_[i] != NULL);
-      
+
       Json::Value command;
       commands_[i]->Serialize(command);
       tmp.append(command);

@@ -35,11 +35,11 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 
     DownloadPackage(${E2FSPROGS_MD5} ${E2FSPROGS_URL} "${E2FSPROGS_SOURCES_DIR}")
 
-    
+
     ##
     ## Patch for OS X, in order to be compatible with Cocoa, and for
     ## WebAssembly (used in Stone)
-    ## 
+    ##
 
     if (FirstRun)
       execute_process(
@@ -114,12 +114,12 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 #cmakedefine HAVE_UNISTD_H \@HAVE_UNISTD_H\@
 ")
     endif()
-      
+
     configure_file(
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/config.h.cmake
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/config.h
       )
-      
+
     configure_file(
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid.h.in
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid.h
@@ -130,7 +130,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
         ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid_types.h
         "#include <stdint.h>\n")
     endif()
-    
+
     source_group(ThirdParty\\uuid REGULAR_EXPRESSION ${E2FSPROGS_SOURCES_DIR}/.*)
 
   else()
@@ -149,7 +149,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     if (NOT HAVE_LIBUUID)
       message(FATAL_ERROR "Unable to find the uuid library")
     endif()
-    
+
     link_libraries(${LIBUUID})
   endif()
 

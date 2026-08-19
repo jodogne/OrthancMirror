@@ -36,12 +36,12 @@ namespace Orthanc
   {
   private:
     typedef std::list<std::string*>  Chunks;
-    
+
     size_t       numBytes_;
     Chunks       chunks_;
     std::string  pendingBuffer_;   // Buffer to speed up if adding many small chunks
     size_t       pendingPos_;
-  
+
     void Clear();
 
     void AddChunkInternal(const void* chunkData,

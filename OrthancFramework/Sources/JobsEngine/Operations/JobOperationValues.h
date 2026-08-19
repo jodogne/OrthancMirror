@@ -37,7 +37,7 @@ namespace Orthanc
   {
   private:
     std::vector<IJobOperationValue*>   values_;
-    
+
     void Append(JobOperationValues& target,
                 bool clear);
 

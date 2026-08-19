@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -55,9 +55,9 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-  }      
+  }
 
-    
+
   const std::string& DatabaseDicomTagConstraint::GetValue(size_t index) const
   {
     if (index >= values_.size())
@@ -89,7 +89,7 @@ namespace Orthanc
                                                     std::vector<const char*>& tmpValues) const
   {
     memset(&constraint, 0, sizeof(constraint));
-    
+
     tmpValues.resize(values_.size());
 
     for (size_t i = 0; i < values_.size(); i++)
@@ -107,5 +107,5 @@ namespace Orthanc
     constraint.valuesCount = values_.size();
     constraint.values = (tmpValues.empty() ? NULL : &tmpValues[0]);
   }
-#endif    
+#endif
 }

@@ -112,7 +112,7 @@ namespace Orthanc
   }
 
 
-  void DicomIntegerPixelAccessor::GetExtremeValues(int32_t& min, 
+  void DicomIntegerPixelAccessor::GetExtremeValues(int32_t& min,
                                                    int32_t& max) const
   {
     if (information_.GetHeight() == 0 || information_.GetWidth() == 0)
@@ -127,7 +127,7 @@ namespace Orthanc
     const unsigned int height = information_.GetHeight();
     const unsigned int width = information_.GetWidth();
     const unsigned int channels = information_.GetChannelCount();
-    
+
     for (unsigned int y = 0; y < height; y++)
     {
       for (unsigned int x = 0; x < width; x++)
@@ -145,24 +145,24 @@ namespace Orthanc
   }
 
 
-  int32_t DicomIntegerPixelAccessor::GetValue(unsigned int x, 
+  int32_t DicomIntegerPixelAccessor::GetValue(unsigned int x,
                                               unsigned int y,
                                               unsigned int channel) const
   {
-    assert(x < information_.GetWidth() && 
-           y < information_.GetHeight() && 
+    assert(x < information_.GetWidth() &&
+           y < information_.GetHeight() &&
            channel < information_.GetChannelCount());
 
-    const uint8_t* pixel = (reinterpret_cast<const uint8_t*>(pixelData_) + 
+    const uint8_t* pixel = (reinterpret_cast<const uint8_t*>(pixelData_) +
                             y * rowOffset_ + frame_ * frameOffset_);
-    
+
     if (information_.GetBitsStored() == 1)
     {
       // New in Orthanc 1.10.0, notably for DICOM SEG
       assert(information_.GetBitsAllocated() == 1 &&
              information_.GetChannelCount() == 1 &&
              !information_.IsPlanar());
-      
+
       uint8_t b = pixel[x / 8];
 
       if (b & (1 << (x % 8)))

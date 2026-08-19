@@ -93,14 +93,14 @@ namespace Orthanc
       bool IsDone() const;
 
       void SetTrailingOperationTimeout(unsigned int timeout);
-      
+
       size_t AddOperation(IJobOperation* operation);
 
       size_t GetOperationsCount() const;
 
       void AddInput(size_t index,
                     const IJobOperationValue& value);
-      
+
       void Connect(size_t input,
                    size_t output);
     };

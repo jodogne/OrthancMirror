@@ -72,7 +72,7 @@ namespace Orthanc
     metrics_(NULL)
   {
   }
-  
+
 
   StorageAccessor::StorageAccessor(IPluginStorageArea& area,
                                    MetricsRegistry& metrics) :
@@ -127,7 +127,7 @@ namespace Orthanc
         {
           metrics_->IncrementIntegerValue(METRICS_WRITTEN_BYTES, static_cast<int64_t>(size));
         }
-        
+
         info = FileInfo(uuid, type, size, md5);
         info.SetCustomData(customData);
         return;
@@ -141,7 +141,7 @@ namespace Orthanc
         zlib.Compress(compressed, data, size);
 
         std::string compressedMD5;
-      
+
         if (storeMd5)
         {
           Toolbox::ComputeMD5(compressedMD5, compressed);
@@ -206,12 +206,12 @@ namespace Orthanc
         ZlibCompressor zlib;
 
         std::unique_ptr<IMemoryBuffer> compressed;
-        
+
         {
           MetricsTimer timer(*this, METRICS_READ_DURATION);
           compressed.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), 0, info.GetCompressedSize(), info.GetCustomData()));
         }
-        
+
         if (metrics_ != NULL)
         {
           metrics_->IncrementIntegerValue(METRICS_READ_BYTES, static_cast<int64_t>(compressed->GetSize()));
@@ -260,7 +260,7 @@ namespace Orthanc
       area_.Remove(fileUuid, type, customData);
     }
   }
-  
+
 
   void StorageAccessor::Remove(const FileInfo &info)
   {
@@ -388,7 +388,7 @@ namespace Orthanc
     BufferHttpSender sender;
     SetupSender(sender, info, mime);
     sender.SetContentFilename(contentFilename);
-  
+
     HttpStreamTranscoder transcoder(sender, CompressionType_None); // since 1.11.2, the storage accessor only returns uncompressed buffers
     output.Answer(transcoder);
   }

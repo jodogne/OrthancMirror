@@ -46,7 +46,7 @@
 namespace Orthanc
 {
   class HttpOutput;
-  
+
   class IWebDavBucket : public boost::noncopyable
   {
   public:
@@ -128,7 +128,7 @@ namespace Orthanc
         Resource(displayName)
       {
       }
-      
+
       virtual void Format(pugi::xml_node& node,
                           const std::string& parentPath) const ORTHANC_OVERRIDE;
     };
@@ -167,7 +167,7 @@ namespace Orthanc
 
     virtual bool GetFileContent(MimeType& mime,
                                 std::string& content,
-                                boost::posix_time::ptime& modificationTime, 
+                                boost::posix_time::ptime& modificationTime,
                                 const std::vector<std::string>& path) = 0;
 
     // "false" returns indicate a read-only target

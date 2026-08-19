@@ -57,12 +57,12 @@ namespace Orthanc
      * which is to look at the last four bytes of the gzip file, which
      * is the uncompressed length of that entry modulo 2^32 in little
      * endian order.
-     * 
+     *
      * It is unreliable because a) the uncompressed data may be longer
      * than 2^32 bytes, and b) the gzip file may consist of multiple
      * gzip streams, in which case you would find the length of only
      * the last of those streams.
-     * 
+     *
      * If you are in control of the source of the gzip files, you know
      * that they consist of single gzip streams, and you know that
      * they are less than 2^32 bytes uncompressed, then and only then
@@ -81,7 +81,7 @@ namespace Orthanc
     return ((static_cast<uint32_t>(p[0]) << 0) +
             (static_cast<uint32_t>(p[1]) << 8) +
             (static_cast<uint32_t>(p[2]) << 16) +
-            (static_cast<uint32_t>(p[3]) << 24));            
+            (static_cast<uint32_t>(p[3]) << 24));
   }
 
 
@@ -97,7 +97,7 @@ namespace Orthanc
   {
     uLongf compressedSize = compressBound(static_cast<uLong>(uncompressedSize))
       + 1024 /* security margin */;
-    
+
     if (compressedSize == 0)
     {
       compressedSize = 1;
@@ -130,10 +130,10 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
-    
+
     // Initialize the compression engine
-    int error = deflateInit2(&stream, 
-                             GetCompressionLevel(), 
+    int error = deflateInit2(&stream,
+                             GetCompressionLevel(),
                              Z_DEFLATED,
                              MAX_WBITS + 16,      // ask for gzip output
                              8,                   // default memory level
@@ -161,7 +161,7 @@ namespace Orthanc
 
       default:
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
-      }  
+      }
     }
 
     size_t size = stream.total_out;

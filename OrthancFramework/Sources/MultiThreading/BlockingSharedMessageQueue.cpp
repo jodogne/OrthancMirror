@@ -60,7 +60,7 @@ namespace Orthanc
 
     queue_.push_back(message.release());  // take ownership only when pushed into the queue
     elementAvailable_.notify_one();
-    
+
     return true;
   }
 
@@ -114,7 +114,7 @@ namespace Orthanc
   bool BlockingSharedMessageQueue::WaitEmpty(int32_t millisecondsTimeout)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    
+
     // Wait for the queue to become empty
     while (!queue_.empty())
     {
@@ -150,7 +150,7 @@ namespace Orthanc
       {
         std::unique_ptr<IDynamicObject> message(queue_.front());
         queue_.pop_front();
-        
+
         roomAvailable_.notify_one();
       }
     }

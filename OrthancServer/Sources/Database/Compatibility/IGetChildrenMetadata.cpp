@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -38,11 +38,11 @@ namespace Orthanc
       // Loop over the instances of this series
 
       target.clear();
-      
+
       std::list<int64_t> children;
       database.GetChildrenInternalId(children, resourceId);
 
-      for (std::list<int64_t>::const_iterator 
+      for (std::list<int64_t>::const_iterator
              it = children.begin(); it != children.end(); ++it)
       {
         std::string value;

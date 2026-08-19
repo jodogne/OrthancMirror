@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -45,7 +45,7 @@ namespace Orthanc
       State_Running,
       State_Done
     };
-    
+
     class ExecuteEvent;
     class IEvent;
     class OnStoredInstanceEvent;
@@ -64,7 +64,7 @@ namespace Orthanc
     static int RestApiDelete(lua_State *state);
     static int GetOrthancConfiguration(lua_State *state);
     static int SetStableStatus(lua_State* state);
-    
+
     static int StoreKeyValue(lua_State* state);
     static int GetKeyValue(lua_State* state);
     static int DeleteKeyValue(lua_State* state);
@@ -99,8 +99,8 @@ namespace Orthanc
       boost::recursive_mutex::scoped_lock  lock_;
 
     public:
-      explicit Lock(LuaScripting& that) : 
-        that_(that), 
+      explicit Lock(LuaScripting& that) :
+        that_(that),
         lock_(that.mutex_)
       {
       }
@@ -118,7 +118,7 @@ namespace Orthanc
     void Start();
 
     void Stop();
-    
+
     void SignalStoredInstance(const std::string& publicId,
                               const DicomInstanceToStore& instance,
                               const Json::Value& simplifiedTags);

@@ -63,7 +63,7 @@ namespace Orthanc
       {
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
-        
+
       free_(buffer_);
       buffer_ = NULL;
       size_ = 0;
@@ -71,7 +71,7 @@ namespace Orthanc
     }
   }
 
-    
+
   void MallocMemoryBuffer::Assign(void* buffer,
                                   uint64_t size,
                                   FreeFunction freeFunction)
@@ -101,7 +101,7 @@ namespace Orthanc
     }
   }
 
-    
+
   void MallocMemoryBuffer::CopyToString(std::string& target) const
   {
     target.resize(size_);

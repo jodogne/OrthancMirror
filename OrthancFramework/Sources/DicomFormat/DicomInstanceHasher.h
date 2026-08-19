@@ -32,7 +32,7 @@ namespace Orthanc
    * This class implements the hashing mechanism that is used to
    * convert DICOM unique identifiers to Orthanc identifiers. Any
    * Orthanc identifier for a DICOM resource corresponds to the SHA-1
-   * hash of the DICOM identifiers. 
+   * hash of the DICOM identifiers.
 
    * \note SHA-1 hash is used because it is less sensitive to
    * collision attacks than MD5. <a

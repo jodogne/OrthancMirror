@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -98,10 +98,10 @@ public:
                           const std::string& remoteAet,
                           const std::string& calledAet,
                           uint16_t originatorMessageId,
-                          const std::string& originatorAet) ORTHANC_OVERRIDE 
+                          const std::string& originatorAet) ORTHANC_OVERRIDE
   {
     std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromDcmDataset(dicom));
-    
+
     if (toStore->GetBufferSize() > 0)
     {
       toStore->SetOrigin(DicomInstanceOrigin::FromDicomProtocol
@@ -129,7 +129,7 @@ class OrthancStorageCommitmentRequestHandler : public IStorageCommitmentRequestH
 {
 private:
   ServerContext& context_;
-  
+
 public:
   explicit OrthancStorageCommitmentRequestHandler(ServerContext& context) :
     context_(context)
@@ -145,7 +145,7 @@ public:
     {
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
-    
+
     std::unique_ptr<StorageCommitmentScpJob> job(
       new StorageCommitmentScpJob(context_, transactionUid, connection));
 
@@ -173,7 +173,7 @@ public:
     {
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
-    
+
     std::unique_ptr<StorageCommitmentReports::Report> report(
       new StorageCommitmentReports::Report(connection.GetRemoteAet()));
 
@@ -214,9 +214,9 @@ public:
 };
 
 
-class MyDicomServerFactory : 
+class MyDicomServerFactory :
   public IStoreRequestHandlerFactory,
-  public IFindRequestHandlerFactory, 
+  public IFindRequestHandlerFactory,
   public IMoveRequestHandlerFactory,
   public IGetRequestHandlerFactory,
   public IStorageCommitmentRequestHandlerFactory
@@ -250,7 +250,7 @@ public:
     }
     else
     {
-      LOG(INFO) << "Maximum " << result->GetMaxResults() 
+      LOG(INFO) << "Maximum " << result->GetMaxResults()
                 << " results for C-FIND queries at the Patient, Study and Series levels";
     }
 
@@ -260,7 +260,7 @@ public:
     }
     else
     {
-      LOG(INFO) << "Maximum " << result->GetMaxInstances() 
+      LOG(INFO) << "Maximum " << result->GetMaxInstances()
                 << " instances will be returned for C-FIND queries at the Instance level";
     }
 
@@ -271,17 +271,17 @@ public:
   {
     return new OrthancMoveRequestHandler(context_);
   }
-  
+
   virtual IGetRequestHandler* ConstructGetRequestHandler() ORTHANC_OVERRIDE
   {
     return new OrthancGetRequestHandler(context_);
   }
-  
+
   virtual IStorageCommitmentRequestHandler* ConstructStorageCommitmentRequestHandler() ORTHANC_OVERRIDE
   {
     return new OrthancStorageCommitmentRequestHandler(context_);
   }
-  
+
 
   void Done()
   {
@@ -367,7 +367,7 @@ public:
                  << EnumerationToString(type) << " is not allowed for this modality "
                  << "according to configuration option \"DicomModalities\"";
   }
-  
+
 
   virtual bool IsAllowedRequest(const std::string& remoteIp,
                                 const std::string& remoteAet,
@@ -376,7 +376,7 @@ public:
   {
     LOG(INFO) << "Incoming " << EnumerationToString(type) << " request from AET "
               << remoteAet << " on IP " << remoteIp << ", calling AET " << calledAet;
-    
+
     if (type == DicomRequestType_Echo &&
         alwaysAllowEcho_)
     {
@@ -423,7 +423,7 @@ public:
         lock.GetConfiguration().LookupDicomModalitiesUsingAETitle(modalities, remoteAet);
         checkIp = lock.GetConfiguration().GetBooleanParameter("DicomCheckModalityHost");
       }
-      
+
       if (modalities.empty())
       {
         LOG(WARNING) << "DICOM authorization rejected  for AET " << remoteAet
@@ -455,7 +455,7 @@ public:
       }
       else
       {
-        // If there are multiple modalities with the same AET, consider the one matching this IP 
+        // If there are multiple modalities with the same AET, consider the one matching this IP
         // or check if the operation is allowed for all modalities
         bool allowedForAllModalities = true;
 
@@ -522,7 +522,7 @@ public:
   {
     context_.GetProposedStorageTransferSyntaxes(target);
   }
-  
+
   virtual bool IsUnknownSopClassAccepted(const std::string& remoteIp,
                                          const std::string& remoteAet,
                                          const std::string& calledAet) ORTHANC_OVERRIDE
@@ -546,7 +546,7 @@ private:
 
 public:
   MyIncomingHttpRequestFilter(ServerContext& context,
-                              OrthancPlugins* plugins) : 
+                              OrthancPlugins* plugins) :
     context_(context),
     plugins_(plugins)
   {
@@ -559,9 +559,9 @@ public:
             plugins_->IsValidAuthorizationToken(token));
 #else
     return false;
-#endif    
+#endif
   }
-  
+
   virtual bool IsAllowed(HttpMethod method,
                          const char* uri,
                          const char* ip,
@@ -677,7 +677,7 @@ public:
       {
         LOG(ERROR) << "Exception in the HTTP handler: " << exception.What();
       }
-    }      
+    }
 
     Json::Value message = Json::objectValue;
     ErrorCode errorCode = exception.GetErrorCode();
@@ -734,7 +734,7 @@ public:
 static void PrintHelp(const boost::filesystem::path& path,
                       const boost::program_options::options_description& all)
 {
-  std::cout 
+  std::cout
     << "Usage: " << SystemToolbox::PathToUtf8(path) << " [OPTION]... [CONFIGURATION]" << std::endl
     << "Orthanc, lightweight, RESTful DICOM server for healthcare and medical research." << std::endl
     << std::endl
@@ -752,7 +752,7 @@ static void PrintHelp(const boost::filesystem::path& path,
     << "\"--verbose --trace-dicom --logfile=dicom.log\"" << std::endl;
 
   std::cout << all;
-  
+
   std::cout
     << std::endl
     << "Exit status:" << std::endl
@@ -784,8 +784,8 @@ static void PrintVersion(const boost::filesystem::path &path)
 
 static void PrintErrorCode(ErrorCode code, const char* description)
 {
-  std::cout 
-    << std::right << std::setw(16) 
+  std::cout
+    << std::right << std::setw(16)
     << static_cast<int>(code)
     << "   " << description << std::endl;
 }
@@ -795,9 +795,9 @@ static void PrintErrors(const boost::filesystem::path& path)
 {
   std::cout
     << SystemToolbox::PathToUtf8(path) << " " << ORTHANC_VERSION << std::endl
-    << "Orthanc, lightweight, RESTful DICOM server for healthcare and medical research." 
+    << "Orthanc, lightweight, RESTful DICOM server for healthcare and medical research."
     << std::endl << std::endl
-    << "List of error codes that could be returned by Orthanc:" 
+    << "List of error codes that could be returned by Orthanc:"
     << std::endl << std::endl;
 
   // The content of the following brackets is automatically generated
@@ -944,7 +944,7 @@ static void LoadPlugins(OrthancPlugins& plugins)
 
     LOG(WARNING) << "Loading plugin(s) from: " << path;
     plugins.GetManager().RegisterPlugin(path);
-  }  
+  }
 }
 #endif
 
@@ -973,7 +973,7 @@ static bool WaitForExit(ServerContext& context,
     ServerBarrierEvent event = SystemToolbox::ServerBarrier(restApi.LeaveBarrierFlag());
     restart = restApi.IsResetRequestReceived();
 
-    if (!restart && 
+    if (!restart &&
         event == ServerBarrierEvent_Reload)
     {
       // Handling of SIGHUP
@@ -1083,14 +1083,14 @@ static bool StartHttpServer(ServerContext& context,
 #else
 #  error "Either Mongoose or Civetweb must be enabled to compile this file"
 #endif
-  
+
     httpServer.SetMetricsRegistry(context.GetMetricsRegistry());
 
     {
       OrthancConfiguration::ReaderLock lock;
-      
+
       httpDescribeErrors = lock.GetConfiguration().GetBooleanParameter("HttpDescribeErrors");
-  
+
       // HTTP server
       httpServer.SetThreadsCount(lock.GetConfiguration().GetHttpThreadsCount());
       httpServer.SetPortNumber(lock.GetConfiguration().GetHttpPort());
@@ -1098,7 +1098,7 @@ static bool StartHttpServer(ServerContext& context,
       lock.GetConfiguration().GetSetOfStringsParameter(httpBindAddresses, "HttpBindAddresses");
       httpServer.SetBindAddresses(httpBindAddresses);
       httpServer.SetRemoteAccessAllowed(lock.GetConfiguration().GetBooleanParameter("RemoteAccessAllowed"));
-      
+
       lock.GetConfiguration().LookupBooleanParameter(keepAlive, "KeepAlive"); // we cannot use GetBooleanParameter because the default value depends on the HttpServer lib that is used
       httpServer.SetKeepAliveEnabled(keepAlive);
       httpServer.SetKeepAliveTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("KeepAliveTimeout"));
@@ -1154,7 +1154,7 @@ static bool StartHttpServer(ServerContext& context,
         // remote access without having explicitly disabled user
         // authentication.
         LOG(WARNING) << "Remote access is allowed but \"AuthenticationEnabled\" is not in the configuration, "
-                     << "automatically enabling HTTP authentication for security";          
+                     << "automatically enabling HTTP authentication for security";
         httpServer.SetAuthenticationEnabled(true);
       }
       else
@@ -1199,14 +1199,14 @@ static bool StartHttpServer(ServerContext& context,
                        << "if you cannot access Orthanc as expected";
         }
       }
-      
+
       if (lock.GetConfiguration().GetBooleanParameter("SslEnabled"))
       {
         boost::filesystem::path certificate = lock.GetConfiguration().InterpretStringParameterAsPath(
           lock.GetConfiguration().GetStringParameter("SslCertificate"));
         httpServer.SetSslEnabled(true);
         httpServer.SetSslCertificate(certificate.c_str());
-        
+
         // Default to TLS 1.2+1.3 as SSL minimum
         // See https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md "ssl_protocol_version" for mapping
         unsigned int minimumVersion = lock.GetConfiguration().GetUnsignedIntegerParameter("SslMinimumProtocolVersion");
@@ -1223,7 +1223,7 @@ static bool StartHttpServer(ServerContext& context,
         }
         else
         {
-          // Defaults to FIPS 140-2 ciphers 
+          // Defaults to FIPS 140-2 ciphers
           CLOG(INFO, HTTP) << "No configuration option \"" << SSL_CIPHERS_ACCEPTED
                            << "\", will accept the FIPS 140-2 ciphers";
 
@@ -1240,7 +1240,7 @@ static bool StartHttpServer(ServerContext& context,
           ciphers.push_back("AES256-SHA");
           ciphers.push_back("AES128-SHA");
         }
-        
+
         httpServer.SetSslCiphers(ciphers);
       }
       else
@@ -1290,7 +1290,7 @@ static bool StartHttpServer(ServerContext& context,
       {
         const bool allowDelete = lock.GetConfiguration().GetBooleanParameter("WebDavDeleteAllowed");
         const bool allowUpload = lock.GetConfiguration().GetBooleanParameter("WebDavUploadAllowed");
-        
+
         UriComponents root;
         root.push_back("webdav");
         httpServer.Register(root, new OrthancWebDav(context, allowDelete, allowUpload));
@@ -1305,20 +1305,20 @@ static bool StartHttpServer(ServerContext& context,
 #endif
 
     MyHttpExceptionFormatter exceptionFormatter(httpDescribeErrors, plugins);
-        
+
     httpServer.SetIncomingHttpRequestFilter(httpFilter);
     httpServer.SetHttpExceptionFormatter(exceptionFormatter);
     httpServer.Register(context.GetHttpHandler());
 
     if (httpServer.GetPortNumber() < 1024)
     {
-      LOG(WARNING) << "The HTTP port is privileged (" 
+      LOG(WARNING) << "The HTTP port is privileged ("
                    << httpServer.GetPortNumber() << " is below 1024), "
                    << "make sure you run Orthanc as root/administrator";
     }
 
     httpServer.Start();
-  
+
     MetricsLoggingListener loggingMetrics(context.GetMetricsRegistry());
     Logging::AddLoggingListener(&loggingMetrics);
 
@@ -1355,8 +1355,8 @@ static bool StartDicomServer(ServerContext& context,
     MyDicomServerFactory serverFactory(context);
     OrthancApplicationEntityFilter dicomFilter(context);
     ModalitiesFromConfiguration modalities;
-  
-    // Setup the DICOM server  
+
+    // Setup the DICOM server
     DicomServer dicomServer("DICOM-SERVER", "DICOM");
     dicomServer.SetMetricsRegistry(context.GetMetricsRegistry());
     dicomServer.SetRemoteModalities(modalities);
@@ -1392,7 +1392,7 @@ static bool StartDicomServer(ServerContext& context,
         }
         dicomServer.SetMinimumTlsVersion(
           lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_DICOM_TLS_MINIMUM_PROTOCOL_VERSION));
-        
+
         std::set<std::string> acceptedCiphers;
         lock.GetConfiguration().GetSetOfStringsParameter(acceptedCiphers, KEY_DICOM_TLS_ACCEPTED_CIPHERS);
         dicomServer.SetAcceptedCiphers(acceptedCiphers);
@@ -1429,13 +1429,13 @@ static bool StartDicomServer(ServerContext& context,
 
     if (dicomServer.GetPortNumber() < 1024)
     {
-      LOG(WARNING) << "The DICOM port is privileged (" 
+      LOG(WARNING) << "The DICOM port is privileged ("
                    << dicomServer.GetPortNumber() << " is below 1024), "
                    << "make sure you run Orthanc as root/administrator";
     }
 
     dicomServer.Start();
-    LOG(WARNING) << "DICOM server listening with AET " << dicomServer.GetApplicationEntityTitle() 
+    LOG(WARNING) << "DICOM server listening with AET " << dicomServer.GetApplicationEntityTitle()
                  << " on port: " << dicomServer.GetPortNumber();
 
     bool restart = false;
@@ -1480,7 +1480,7 @@ static bool ConfigureHttpHandler(ServerContext& context,
     context.GetHttpHandler().Register(*plugins, false);
   }
 #endif
-  
+
   // Secondly, apply the "static resources" layer
 #if ORTHANC_STANDALONE == 1
   EmbeddedResourceHttpHandler staticResources("/app", ServerResources::ORTHANC_EXPLORER);
@@ -1527,7 +1527,7 @@ static void UpgradeDatabase(IDatabaseWrapper& database,
   LOG(WARNING) << "Starting the upgrade of the database schema";
   LOG(WARNING) << "Current database version: " << currentVersion;
   LOG(WARNING) << "Database version expected by Orthanc: " << ORTHANC_DATABASE_VERSION;
-  
+
   if (currentVersion == ORTHANC_DATABASE_VERSION)
   {
     LOG(WARNING) << "No upgrade is needed, start Orthanc without the \"--upgrade\" argument";
@@ -1555,7 +1555,7 @@ static void UpgradeDatabase(IDatabaseWrapper& database,
                << "https://orthanc.uclouvain.be/book/users/replication.html";
     throw;
   }
-    
+
   // Sanity check
   currentVersion = database.GetDatabaseVersion();
   if (ORTHANC_DATABASE_VERSION != currentVersion)
@@ -1652,9 +1652,9 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     // The value "0" below makes the class HttpClient use its default
     // value (DEFAULT_HTTP_TIMEOUT = 60 seconds in Orthanc 1.5.7)
     HttpClient::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpTimeout"));
-    
+
     HttpClient::SetDefaultProxy(lock.GetConfiguration().GetStringParameter("HttpProxy"));
-    
+
     DicomAssociationParameters::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScuTimeout"));
 
     maxCompletedJobs = lock.GetConfiguration().GetUnsignedIntegerParameter("JobsHistorySize");
@@ -1666,7 +1666,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
     // New option in Orthanc 1.12.5
     readOnly = lock.GetConfiguration().GetBooleanParameter(ORTHANC_CONFIG_READ_ONLY);
-    
+
     // New option in Orthanc 1.12.6
     maxDcmtkConcurrentTranscoders = lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_CONCURRENT_DCMTK_TRANSCODERS);
     if (maxDcmtkConcurrentTranscoders == 0)
@@ -1698,7 +1698,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 #if ORTHANC_ENABLE_PLUGINS == 1
   transcoder->SetPlugins(*plugins);
 #endif
-  
+
   ServerContext context(database, storageArea, transcoder.release(), false /* not running unit tests */, maxCompletedJobs, readOnly);
 
   {
@@ -1827,7 +1827,7 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
 
   {
     OrthancConfiguration::ReaderLock lock;
-    
+
     if (lock.GetConfiguration().HasCheckRevisions())
     {
       if (database.GetDatabaseCapabilities().HasRevisionsSupport())
@@ -1840,7 +1840,7 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
         LOG(WARNING) << "The custom database back-end has *no* support for revisions of metadata and attachments, "
                      << "but configuration option \"" << ORTHANC_CONFIG_CHECK_REVISIONS << "\" is set to \"true\"";
       }
-      
+
       if (!lock.GetConfiguration().HasStoreMD5ForAttachments())
       {
         throw OrthancException(
@@ -1884,7 +1884,7 @@ static bool ConfigurePlugins(const std::vector<std::string> arguments,
     OrthancConfiguration::ReaderLock lock;
     databaseServerIdentifier = lock.GetConfiguration().GetDatabaseServerIdentifier();
   }
-  
+
   OrthancPlugins plugins(databaseServerIdentifier);
   plugins.SetCommandLineArguments(arguments);
   LoadPlugins(plugins);
@@ -2476,16 +2476,16 @@ int main(int argc, char* argv[])
       case Endianness_Little:
         s += "little endian";
         break;
-      
+
       case Endianness_Big:
         s += "big endian";
         break;
-      
+
       default:
         s += "unsupported endianness";
         break;
     }
-    
+
     LOG(INFO) << s;
   }
 
@@ -2526,12 +2526,12 @@ int main(int argc, char* argv[])
     status = -1;
 #endif
   }
-  catch (const std::exception& e) 
+  catch (const std::exception& e)
   {
     LOG(ERROR) << "Uncaught exception, stopping now: [" << e.what() << "]";
     status = -1;
   }
-  catch (const std::string& s) 
+  catch (const std::string& s)
   {
     LOG(ERROR) << "Uncaught exception, stopping now: [" << s << "]";
     status = -1;

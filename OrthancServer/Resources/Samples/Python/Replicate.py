@@ -11,7 +11,7 @@
 # modify it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -79,7 +79,7 @@ def DoGetString(url):
         return content
     else:
         raise Exception('Unable to contact Orthanc at: ' + url)
-    
+
 
 def DoPostDicom(url, body):
     global URL_REGEX
@@ -94,7 +94,7 @@ def DoPostDicom(url, body):
 
     if resp.status != 200:
         raise Exception('Unable to contact Orthanc at: ' + url)
-    
+
 
 def _DecodeJson(s):
     if (sys.version_info >= (3, 0)):

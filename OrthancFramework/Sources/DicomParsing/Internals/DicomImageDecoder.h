@@ -54,7 +54,7 @@ class DcmRepresentationParameter;
 namespace Orthanc
 {
   class ParsedDicomFile;
-  
+
   class ORTHANC_PUBLIC DicomImageDecoder : public boost::noncopyable
   {
   private:

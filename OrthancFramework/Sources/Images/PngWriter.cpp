@@ -111,7 +111,7 @@ namespace Orthanc
       }
     }
 
-    
+
     ~Context()
     {
       if (info_)
@@ -124,14 +124,14 @@ namespace Orthanc
         png_destroy_write_struct(&png_, NULL);
       }
     }
-    
+
 
     png_structp GetObject() const
     {
       return png_;
     }
 
-    
+
     void Prepare(unsigned int width,
                  unsigned int height,
                  unsigned int pitch,
@@ -166,7 +166,7 @@ namespace Orthanc
           bitDepth_ = 16;
           colorType_ = PNG_COLOR_TYPE_GRAY;
           break;
-        
+
         case PixelFormat_RGBA64:
           bitDepth_ = 16;
           colorType_ = PNG_COLOR_TYPE_RGBA;
@@ -177,7 +177,7 @@ namespace Orthanc
       }
     }
 
-    
+
     void Compress(unsigned int width,
                   unsigned int height,
                   unsigned int pitch,
@@ -228,21 +228,21 @@ namespace Orthanc
                                       const void* buffer)
   {
     Context context;
-    
+
     context.Prepare(width, height, pitch, format, buffer);
 
     FILE* fp = SystemToolbox::OpenFile(filename, FileMode_WriteBinary);
     if (!fp)
     {
       throw OrthancException(ErrorCode_CannotWriteFile);
-    }    
+    }
 
     png_init_io(context.GetObject(), fp);
 
     if (setjmp(png_jmpbuf(context.GetObject())))
     {
       // Error during writing PNG
-      throw OrthancException(ErrorCode_CannotWriteFile);      
+      throw OrthancException(ErrorCode_CannotWriteFile);
     }
 
     context.Compress(width, height, pitch, format);
@@ -252,8 +252,8 @@ namespace Orthanc
 #endif
 
 
-  static void MemoryCallback(png_structp png_ptr, 
-                             png_bytep data, 
+  static void MemoryCallback(png_structp png_ptr,
+                             png_bytep data,
                              png_size_t size)
   {
     ChunkedBuffer* buffer = reinterpret_cast<ChunkedBuffer*>(png_get_io_ptr(png_ptr));
@@ -269,7 +269,7 @@ namespace Orthanc
                                         const void* buffer)
   {
     Context context;
-    
+
     ChunkedBuffer chunks;
 
     context.Prepare(width, height, pitch, format, buffer);
@@ -277,7 +277,7 @@ namespace Orthanc
     if (setjmp(png_jmpbuf(context.GetObject())))
     {
       // Error during writing PNG
-      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);      
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
     png_set_write_fn(context.GetObject(), &chunks, MemoryCallback, NULL);

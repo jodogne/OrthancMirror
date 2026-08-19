@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -33,7 +33,7 @@ namespace Orthanc
   {
     THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
   }
-      
+
   void VoidDatabaseListener::SignalAttachmentDeleted(const FileInfo& info)
   {
     THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
@@ -43,5 +43,5 @@ namespace Orthanc
                                                    const std::string& publicId)
   {
     THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
-  }      
+  }
 }

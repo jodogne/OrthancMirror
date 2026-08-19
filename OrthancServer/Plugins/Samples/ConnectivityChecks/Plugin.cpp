@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -73,7 +73,7 @@ extern "C"
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   {
     context_ = c;
-    
+
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(c) == 0)
     {
@@ -92,7 +92,7 @@ extern "C"
     OrthancPluginSetRootUri2(context_, ORTHANC_PLUGIN_NAME, ROOT_URI "/app/index.html");
     OrthancPluginRegisterRestCallback(context_, ROOT_URI "/libs/(.*)", ServeStaticResource<Orthanc::EmbeddedResources::LIBRARIES>);
     OrthancPluginRegisterRestCallback(context_, ROOT_URI "/app/(.*)", ServeStaticResource<Orthanc::EmbeddedResources::WEB_RESOURCES>);
- 
+
     return 0;
   }
 

@@ -38,7 +38,7 @@ namespace Orthanc
   {
   }
 
-  
+
   JobStatus::JobStatus(ErrorCode code,
                        const std::string& details,
                        const IJob& job) :
@@ -52,7 +52,7 @@ namespace Orthanc
     {
       progress_ = 0;
     }
-      
+
     if (progress_ > 1)
     {
       progress_ = 1;
@@ -61,7 +61,7 @@ namespace Orthanc
     job.GetJobType(jobType_);
     job.GetPublicContent(publicContent_);
     job.GetUserData(userData_);
-    
+
     hasSerialized_ = job.Serialize(serialized_);
   }
 

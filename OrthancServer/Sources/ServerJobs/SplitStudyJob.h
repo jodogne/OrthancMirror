@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -30,14 +30,14 @@
 namespace Orthanc
 {
   class ServerContext;
-  
+
   class SplitStudyJob : public CleaningInstancesJob
   {
   private:
     typedef std::map<std::string, std::string>  SeriesUidMap;
     typedef std::map<DicomTag, std::string>     Replacements;
-    
-    
+
+
     std::set<DicomTag>     allowedTags_;
     std::string            sourceStudy_;
     std::string            targetStudy_;
@@ -48,13 +48,13 @@ namespace Orthanc
     std::set<DicomTag>     removals_;
 
     void CheckAllowedTag(const DicomTag& tag) const;
-    
+
     void Setup();
 
     // Make setter methods private to prevent incorrect calls
     using SetOfInstancesJob::AddParentResource;
     using SetOfInstancesJob::AddInstance;
-    
+
   protected:
     virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE;
 
@@ -83,18 +83,18 @@ namespace Orthanc
     void AddSourceSeries(const std::string& series);
 
     void AddSourceInstance(const std::string& instance);  // New in Orthanc 1.9.4
-    
+
     bool LookupTargetSeriesUid(std::string& uid,
                                const std::string& series) const;
 
     void Replace(const DicomTag& tag,
                  const std::string& value);
-    
+
     bool LookupReplacement(std::string& value,
                            const DicomTag& tag) const;
 
     void Remove(const DicomTag& tag);
-    
+
     bool IsRemoved(const DicomTag& tag) const
     {
       return removals_.find(tag) != removals_.end();

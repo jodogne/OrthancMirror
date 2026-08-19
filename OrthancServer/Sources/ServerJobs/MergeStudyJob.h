@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -30,14 +30,14 @@
 namespace Orthanc
 {
   class ServerContext;
-  
+
   class MergeStudyJob : public CleaningInstancesJob
   {
   private:
     typedef std::map<std::string, std::string>  SeriesUidMap;
     typedef std::map<DicomTag, std::string>     Replacements;
-    
-    
+
+
     std::string            targetStudy_;
     Replacements           replacements_;
     std::set<DicomTag>     removals_;
@@ -52,7 +52,7 @@ namespace Orthanc
     // Make setter methods private to prevent incorrect calls
     using SetOfInstancesJob::AddParentResource;
     using SetOfInstancesJob::AddInstance;
-    
+
   protected:
     virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE;
 

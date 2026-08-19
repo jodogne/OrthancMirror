@@ -39,7 +39,7 @@ namespace Orthanc
                                 const char* end)
   {
     std::string name, value;
-    
+
     const char* equal = strchr(start, '=');
     if (equal == NULL || equal >= end)
     {
@@ -64,7 +64,7 @@ namespace Orthanc
   }
 
 
-  void HttpToolbox::ParseGetArguments(GetArguments& result, 
+  void HttpToolbox::ParseGetArguments(GetArguments& result,
                                       const char* query)
   {
     const char* pos = query;
@@ -88,7 +88,7 @@ namespace Orthanc
 
 
   void  HttpToolbox::ParseGetQuery(UriComponents& uri,
-                                   GetArguments& getArguments, 
+                                   GetArguments& getArguments,
                                    const char* query)
   {
     const char *questionMark = ::strchr(query, '?');
@@ -102,10 +102,10 @@ namespace Orthanc
     {
       Toolbox::SplitUriComponents(uri, std::string(query, questionMark));
       HttpToolbox::ParseGetArguments(getArguments, questionMark + 1);
-    }    
+    }
   }
 
- 
+
   std::string HttpToolbox::GetArgument(const Arguments& getArguments,
                                        const std::string& name,
                                        const std::string& defaultValue)
@@ -139,7 +139,7 @@ namespace Orthanc
 
 
 
-  void HttpToolbox::ParseCookies(Arguments& result, 
+  void HttpToolbox::ParseCookies(Arguments& result,
                                  const Arguments& httpHeaders)
   {
     result.clear();

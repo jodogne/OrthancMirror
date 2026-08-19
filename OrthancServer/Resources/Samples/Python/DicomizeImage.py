@@ -74,7 +74,7 @@ else:
         'PatientID' : 'Test',
         'PatientName' : 'Hello^World',
         'PatientSex' : 'O',
-        
+
         'PatientBirthDate' : None,
         'StudyID' : 'Test',
         'ReferringPhysicianName' : None,

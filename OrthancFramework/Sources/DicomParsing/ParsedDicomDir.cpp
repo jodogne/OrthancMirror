@@ -44,7 +44,7 @@ namespace Orthanc
     }
   }
 
-  
+
   bool ParsedDicomDir::LookupIndexOfOffset(size_t& target,
                                            unsigned int offset) const
   {
@@ -106,7 +106,7 @@ namespace Orthanc
         item->writeXML(std::cout);
         throw OrthancException(ErrorCode_BadFileFormat,
                                "Missing offsets in DICOMDIR");
-      }          
+      }
 
       nextOffsets_[i] = next;
       lowerOffsets_[i] = lower;
@@ -141,7 +141,7 @@ namespace Orthanc
     {
       offsetToIndex_[*it] = index;
       index ++;
-    }    
+    }
   }
 
   ParsedDicomDir::~ParsedDicomDir()

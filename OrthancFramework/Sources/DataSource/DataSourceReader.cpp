@@ -55,7 +55,7 @@ namespace Orthanc
     else if (cacheSizeMegabytesName.empty() ||
              cacheCountName.empty() ||
              cacheHitCountName.empty() ||
-             cacheMissCountName.empty() || 
+             cacheMissCountName.empty() ||
              capacityMaxSizeMegabytesName.empty() ||
              capacityCurrentSizeMegabytesName.empty() ||
              capacityCountName.empty() ||
@@ -321,7 +321,7 @@ namespace Orthanc
     unsigned int currentReservations;
 
     GetStatistics(maximumMemory, currentMemory, currentReservations);
-    
+
     return maximumMemory;
   }
 

@@ -64,7 +64,7 @@ namespace Orthanc
     {
       result.failureDetails_ = details;
     }
-    
+
     return result;
   }
 
@@ -98,7 +98,7 @@ namespace Orthanc
   {
     return code_;
   }
-  
+
 
   unsigned int JobStepResult::GetRetryTimeout() const
   {

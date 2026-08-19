@@ -36,7 +36,7 @@ def ToArray(source):
     for byte in bytearray(source):
         result += '\\x%02x' % byte
     return '"%s"' % result
-    
+
 
 for encoding, orthancEnumeration in encodings.iteritems():
     l.append('::Orthanc::Encoding_%s' % orthancEnumeration)

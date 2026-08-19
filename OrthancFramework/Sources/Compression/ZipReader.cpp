@@ -76,7 +76,7 @@ static size_t maximumUncompressedFileSize_ = 0;
 namespace Orthanc
 {
   // ZPOS64_T corresponds to "uint64_t"
-  
+
   class ZipReader::MemoryBuffer : public boost::noncopyable
   {
   private:
@@ -92,7 +92,7 @@ namespace Orthanc
       pos_(0)
     {
     }
-  
+
     explicit MemoryBuffer(const std::string& s) :
       content_(s.empty() ? NULL : reinterpret_cast<const uint8_t*>(s.c_str())),
       size_(s.size()),
@@ -120,10 +120,10 @@ namespace Orthanc
         {
           memcpy(target, content_ + pos_, s);
         }
-      
+
         pos_ += s;
         return static_cast<uLong>(s);
-      }             
+      }
     }
 
     ZPOS64_T Tell() const
@@ -135,7 +135,7 @@ namespace Orthanc
               int origin)
     {
       SSIZE_T next;
-    
+
       switch (origin)
       {
         case ZLIB_FILEFUNC_SEEK_CUR:
@@ -249,7 +249,7 @@ namespace Orthanc
                (c[2] == 0x07 && c[3] == 0x08)));
     }
   }
-  
+
 
   bool ZipReader::IsZipMemoryBuffer(const std::string& content)
   {
@@ -295,7 +295,7 @@ namespace Orthanc
   {
   }
 
-  
+
   ZipReader::~ZipReader()
   {
     if (pimpl_->unzip_ != NULL)
@@ -305,13 +305,13 @@ namespace Orthanc
     }
   }
 
-  
+
   uint64_t ZipReader::GetFilesCount() const
   {
     assert(pimpl_->unzip_ != NULL);
-    
+
     unz_global_info64_s info;
-    
+
     if (unzGetGlobalInfo64(pimpl_->unzip_, &info) == 0)
     {
       return info.number_entry;
@@ -322,10 +322,10 @@ namespace Orthanc
     }
   }
 
-  
+
   void ZipReader::SeekFirst()
   {
-    assert(pimpl_->unzip_ != NULL);    
+    assert(pimpl_->unzip_ != NULL);
     pimpl_->done_ = (unzGoToFirstFile(pimpl_->unzip_) != 0);
   }
 
@@ -439,7 +439,7 @@ namespace Orthanc
         if (unzOpenCurrentFile(pimpl_->unzip_) == 0)
         {
           bool success = ReadInternal(content, pimpl_->unzip_, info.uncompressed_size);
-                          
+
           if (unzCloseCurrentFile(pimpl_->unzip_) != 0 ||
               !success)
           {
@@ -451,14 +451,14 @@ namespace Orthanc
           throw OrthancException(ErrorCode_BadFileFormat, "Invalid file or unsupported compression method (e.g. Deflate64)");
         }
       }
-      
+
       pimpl_->done_ = (unzGoToNextFile(pimpl_->unzip_) != 0);
- 
+
       return true;
     }
-  }    
+  }
 
-  
+
   ZipReader* ZipReader::CreateFromMemory(const void* buffer,
                                          size_t size)
   {
@@ -475,7 +475,7 @@ namespace Orthanc
       {
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
-    
+
       zlib_filefunc64_def funcs;
       memset(&funcs, 0, sizeof(funcs));
 
@@ -499,7 +499,7 @@ namespace Orthanc
       }
     }
   }
-  
+
 
 #if ORTHANC_SANDBOXED != 1
   ZipReader* ZipReader::CreateFromFile(const boost::filesystem::path& path)

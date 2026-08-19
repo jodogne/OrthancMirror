@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -93,7 +93,7 @@ namespace Orthanc
     return fabs(x) < 10.0 * std::numeric_limits<float>::epsilon();
   }
 
-  
+
   bool SliceOrdering::ComputeNormal(Vector& normal,
                                     const DicomMap& dicom)
   {
@@ -142,15 +142,15 @@ namespace Orthanc
     }
   }
 
-  
+
   struct SliceOrdering::Instance : public boost::noncopyable
   {
   private:
     std::string   instanceId_;
     bool          hasPosition_;
-    Vector        position_;   
+    Vector        position_;
     bool          hasNormal_;
-    Vector        normal_;   
+    Vector        normal_;
     bool          hasIndexInSeries_;
     unsigned int  indexInSeries_;
     unsigned int  framesCount_;
@@ -174,7 +174,7 @@ namespace Orthanc
       {
         SerializationToolbox::ParseUnsignedInteger(framesCount_, Toolbox::StripSpaces(frames->GetContent()));
       }
-      
+
       std::vector<float> tmp;
       hasPosition_ = TokenizeVector(tmp, instance, DICOM_TAG_IMAGE_POSITION_PATIENT, 3);
 
@@ -189,7 +189,7 @@ namespace Orthanc
       hasIndexInSeries_ = false;
 
       std::string s;
-  
+
       if (index.LookupMetadata(s, instanceId, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
       {
         hasIndexInSeries_ = SerializationToolbox::ParseUnsignedInteger(indexInSeries_, Toolbox::StripSpaces(s));
@@ -209,7 +209,7 @@ namespace Orthanc
     float ComputeRelativePosition(const Vector& normal) const
     {
       assert(HasPosition());
-      return (normal[0] * position_[0] + 
+      return (normal[0] * position_[0] +
               normal[1] * position_[1] +
               normal[2] * position_[2]);
     }
@@ -218,7 +218,7 @@ namespace Orthanc
     {
       return hasIndexInSeries_;
     }
-    
+
     unsigned int GetIndexInSeries() const
     {
       assert(HasIndexInSeries());
@@ -252,7 +252,7 @@ namespace Orthanc
     explicit PositionComparator(const Vector& normal) : normal_(normal)
     {
     }
-    
+
     int operator() (const Instance* a,
                     const Instance* b) const
     {
@@ -265,7 +265,7 @@ namespace Orthanc
                                               const SliceOrdering::Instance* b)
   {
     return a->GetIndexInSeries() < b->GetIndexInSeries();
-  }  
+  }
 
 
   void SliceOrdering::ComputeNormal()
@@ -292,7 +292,7 @@ namespace Orthanc
       instances_.push_back(new Instance(index_, *it));
     }
   }
-  
+
 
   bool SliceOrdering::SortUsingPositions()
   {
@@ -360,7 +360,7 @@ namespace Orthanc
     }
 
     std::sort(instances_.begin(), instances_.end(), IndexInSeriesComparator);
-    
+
     for (size_t i = 1; i < instances_.size(); i++)
     {
       if (instances_[i - 1]->GetIndexInSeries() == instances_[i]->GetIndexInSeries())
@@ -436,7 +436,7 @@ namespace Orthanc
   {
     result = Json::objectValue;
     result["Type"] = (isVolume_ ? "Volume" : "Sequence");
-    
+
     Json::Value tmp = Json::arrayValue;
     for (size_t i = 0; i < GetInstancesCount(); i++)
     {
@@ -460,7 +460,7 @@ namespace Orthanc
       tmp2.append(GetInstanceId(i));
       tmp2.append(0);
       tmp2.append(GetFramesCount(i));
-      
+
       slicesShort.append(tmp2);
     }
 

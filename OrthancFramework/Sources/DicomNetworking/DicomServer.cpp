@@ -139,7 +139,7 @@ namespace Orthanc
 
   void DicomServer::SetAssociationTimeout(uint32_t seconds)
   {
-    CLOG(INFO, DICOM) << "Setting timeout for DICOM connections if Orthanc acts as SCP (server): " 
+    CLOG(INFO, DICOM) << "Setting timeout for DICOM connections if Orthanc acts as SCP (server): "
                       << seconds << " seconds (0 = no timeout)";
 
     Stop();
@@ -201,7 +201,7 @@ namespace Orthanc
     Stop();
     modalities_ = &modalities;
   }
-  
+
   DicomServer::IRemoteModalities& DicomServer::GetRemoteModalities() const
   {
     if (modalities_ == NULL)
@@ -213,7 +213,7 @@ namespace Orthanc
       return *modalities_;
     }
   }
-    
+
   void DicomServer::SetFindRequestHandlerFactory(IFindRequestHandlerFactory& factory)
   {
     Stop();
@@ -393,7 +393,7 @@ namespace Orthanc
                                "DICOM TLS is enabled in Orthanc SCP, but no certificate was provided");
       }
     }
-    
+
     Stop();
 
     /* initialize network, i.e. create an instance of T_ASC_Network*. */
@@ -484,7 +484,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-    
+
     if (!HasCalledApplicationEntityTitleCheck())
     {
       // OK, no check on the AET.
@@ -502,7 +502,7 @@ namespace Orthanc
     Stop();
     useDicomTls_ = enabled;
   }
-  
+
   bool DicomServer::IsDicomTlsEnabled() const
   {
     return useDicomTls_;
@@ -528,20 +528,20 @@ namespace Orthanc
     if (!privateKeyPath.empty() &&
         !certificatePath.empty())
     {
-      CLOG(INFO, DICOM) << "Setting the TLS certificate for DICOM SCP connections: " 
+      CLOG(INFO, DICOM) << "Setting the TLS certificate for DICOM SCP connections: "
                         << privateKeyPath << " (key), " << certificatePath << " (certificate)";
 
       if (certificatePath.empty())
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange, "No path to the default DICOM TLS certificate was provided");
       }
-      
+
       if (privateKeyPath.empty())
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange,
                                "No path to the private key for the default DICOM TLS certificate was provided");
       }
-      
+
       if (!SystemToolbox::IsRegularFile(SystemToolbox::PathFromUtf8(privateKeyPath)))
       {
         throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + privateKeyPath);
@@ -551,7 +551,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + certificatePath);
       }
-      
+
       ownPrivateKeyPath_ = privateKeyPath;
       ownCertificatePath_ = certificatePath;
     }
@@ -561,17 +561,17 @@ namespace Orthanc
       ownCertificatePath_.clear();
     }
   }
-  
+
   const std::string& DicomServer::GetOwnPrivateKeyPath() const
   {
     return ownPrivateKeyPath_;
   }
-  
+
   const std::string& DicomServer::GetOwnCertificatePath() const
   {
     return ownCertificatePath_;
   }
-    
+
   void DicomServer::SetTrustedCertificatesPath(const std::string& path)
   {
     Stop();
@@ -584,7 +584,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + path);
       }
-      
+
       trustedCertificatesPath_ = path;
     }
     else
@@ -592,7 +592,7 @@ namespace Orthanc
       trustedCertificatesPath_.clear();
     }
   }
-  
+
   const std::string& DicomServer::GetTrustedCertificatesPath() const
   {
     return trustedCertificatesPath_;
@@ -616,7 +616,7 @@ namespace Orthanc
     Stop();
     remoteCertificateRequired_ = required;
   }
-  
+
   bool DicomServer::IsRemoteCertificateRequired() const
   {
     return remoteCertificateRequired_;
@@ -628,7 +628,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-    
+
     Stop();
     threadsCount_ = threads;
   }

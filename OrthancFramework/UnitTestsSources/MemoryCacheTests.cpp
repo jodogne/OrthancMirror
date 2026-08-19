@@ -49,7 +49,7 @@
 TEST(LRU, Basic)
 {
   Orthanc::LeastRecentlyUsedIndex<std::string> r;
-  
+
   r.Add("d");
   r.Add("a");
   r.Add("c");
@@ -81,7 +81,7 @@ TEST(LRU, Basic)
 TEST(LRU, Payload)
 {
   Orthanc::LeastRecentlyUsedIndex<std::string, int> r;
-  
+
   r.Add("a", 420);
   r.Add("b", 421);
   r.Add("c", 422);
@@ -122,7 +122,7 @@ TEST(LRU, Payload)
 TEST(LRU, PayloadUpdate)
 {
   Orthanc::LeastRecentlyUsedIndex<std::string, int> r;
-  
+
   r.Add("a", 420);
   r.Add("b", 421);
   r.Add("d", 423);
@@ -150,7 +150,7 @@ TEST(LRU, PayloadUpdate)
 TEST(LRU, PayloadUpdateBis)
 {
   Orthanc::LeastRecentlyUsedIndex<std::string, int> r;
-  
+
   r.AddOrMakeMostRecent("a", 420);
   r.AddOrMakeMostRecent("b", 421);
   r.AddOrMakeMostRecent("d", 423);
@@ -238,7 +238,7 @@ TEST(MemoryCache, Basic)
     cache.Access("45");  // 45, 43, 42 -> exit
     cache.Access("42");  // 42, 45, 43 -> exit
     cache.Access("43");  // 43, 42, 45 -> exit
-    cache.Access("47");  // 45 is removed; 47, 43, 42 -> exit 
+    cache.Access("47");  // 45 is removed; 47, 43, 42 -> exit
     cache.Access("44");  // 42 is removed; 44, 47, 43 -> exit
     cache.Access("42");  // 43 is removed; 42, 44, 47 -> exit
     // Closing the cache: 47, 44, 42 are successively removed
@@ -281,7 +281,7 @@ TEST(LRU, SharedArchive)
   for (int i = 1; i < 100; i++)
   {
     a.Add(new S("Item " + boost::lexical_cast<std::string>(i)));
-    
+
     // Continuously protect the two first items
     {
       Orthanc::SharedArchive::Accessor accessor(a, first);
@@ -324,7 +324,7 @@ TEST(MemoryStringCache, Basic)
 {
   Orthanc::MemoryStringCache c;
   ASSERT_NO_THROW(c.SetMaximumSize(0));  // changed in 1.12.10, setting the MaximumSize to zero is a way to disable a cache
-  
+
   c.SetMaximumSize(3);
 
   std::string v;
@@ -386,14 +386,14 @@ TEST(MemoryStringCache, Invalidate)
   a.Add("hello2", "b");
 
   std::string v;
-  ASSERT_TRUE(a.Fetch(v, "hello"));   
+  ASSERT_TRUE(a.Fetch(v, "hello"));
   ASSERT_EQ("a", v);
-  ASSERT_TRUE(a.Fetch(v, "hello2"));  
+  ASSERT_TRUE(a.Fetch(v, "hello2"));
   ASSERT_EQ("b", v);
 
   c.Invalidate("hello");
   ASSERT_FALSE(a.Fetch(v, "hello"));
-  ASSERT_TRUE(a.Fetch(v, "hello2"));  
+  ASSERT_TRUE(a.Fetch(v, "hello2"));
   ASSERT_EQ("b", v);
 }
 
@@ -414,7 +414,7 @@ void ThreadingScenarioHappyThread1()
   {
     LOG(INFO) << "Thread1 has fetch";
     ThreadingScenarioHappyStep = 1;
-    
+
     // wait for the other thread to fetch too
     while (ThreadingScenarioHappyStep < 2)
     {
@@ -487,7 +487,7 @@ void ThreadingScenarioFailureThread1()
   {
     LOG(INFO) << "Thread1 has fetch";
     ThreadingScenarioFailureStep = 1;
-    
+
     // wait for the other thread to fetch too
     while (ThreadingScenarioFailureStep < 2)
     {
@@ -550,7 +550,7 @@ void ThreadingScenarioInvalidateThread1()
   {
     LOG(INFO) << "Thread1 has fetch";
     ThreadingScenarioInvalidateStep = 1;
-    
+
     // wait for the other thread to fetch too
     while (ThreadingScenarioInvalidateStep < 2)
     {

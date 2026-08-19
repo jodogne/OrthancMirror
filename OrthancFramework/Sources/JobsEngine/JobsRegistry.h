@@ -199,7 +199,7 @@ namespace Orthanc
                        unsigned int& running);
 
     void GetLastModificationTime(boost::posix_time::ptime& modificationTime) const;
-    
+
     class ORTHANC_PUBLIC RunningJob : public boost::noncopyable
     {
     private:

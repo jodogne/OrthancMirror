@@ -61,7 +61,7 @@ namespace Orthanc
     };
   }
 
-  
+
   DicomModification::DicomTagRange::DicomTagRange(uint16_t groupFrom,
                                                   uint16_t groupTo,
                                                   uint16_t elementFrom,
@@ -73,7 +73,7 @@ namespace Orthanc
   {
   }
 
-  
+
   bool DicomModification::DicomTagRange::Contains(const DicomTag& tag) const
   {
     return (tag.GetGroup() >= groupFrom_ &&
@@ -241,7 +241,7 @@ namespace Orthanc
           {
             assert(vr == ValueRepresentation_LongString ||
                    vr == ValueRepresentation_PersonName);
-            newValue = that_.MapDicomIdentifier(value, ResourceType_Patient);            
+            newValue = that_.MapDicomIdentifier(value, ResourceType_Patient);
           }
           else
           {
@@ -250,7 +250,7 @@ namespace Orthanc
                    vr == ValueRepresentation_NotSupported /* for older versions of DCMTK */);
             newValue = that_.MapDicomIdentifier(value, ResourceType_Instance);
           }
-          
+
           return Action_Replace;
         }
         else
@@ -300,7 +300,7 @@ namespace Orthanc
           return Action_Replace;
         }
         else if (tag == DICOM_TAG_SOP_INSTANCE_UID)
-        {  
+        {
           newValue = that_.MapDicomIdentifier(value, ResourceType_Instance);
           return Action_Replace;
         }
@@ -366,7 +366,7 @@ namespace Orthanc
       {
         dicom.Remove(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE);
       }
-      
+
       if (!IsManuallyModified(DICOM_TAG_SOURCE_IMAGE_SEQUENCE))
       {
         dicom.Remove(DICOM_TAG_SOURCE_IMAGE_SEQUENCE);
@@ -378,7 +378,7 @@ namespace Orthanc
   void DicomModification::CancelReplacement(const DicomTag& tag)
   {
     Replacements::iterator it = replacements_.find(tag);
-    
+
     if (it != replacements_.end())
     {
       assert(it->second != NULL);
@@ -464,7 +464,7 @@ namespace Orthanc
                                                     ResourceType level)
   {
     const std::string stripped = Toolbox::StripSpaces(original);
-    
+
     std::string mapped;
 
     UidMap::const_iterator previous = uidMap_.find(std::make_pair(level, stripped));
@@ -526,12 +526,12 @@ namespace Orthanc
 
     std::string mapped = MapDicomIdentifier(original, level);
 
-    dicom.Replace(*tag, mapped, 
-                  false /* don't try and decode data URI scheme for UIDs */, 
+    dicom.Replace(*tag, mapped,
+                  false /* don't try and decode data URI scheme for UIDs */,
                   DicomReplaceMode_InsertIfAbsent, privateCreator_);
   }
 
-  
+
   DicomModification::DicomModification() :
     removePrivateTags_(false),
     keepLabels_(false),
@@ -667,7 +667,7 @@ namespace Orthanc
     {
       assert(it->second != NULL);
       return *it->second;
-    } 
+    }
   }
 
 
@@ -682,7 +682,7 @@ namespace Orthanc
     else
     {
       return json.asString();
-    }    
+    }
   }
 
 
@@ -735,7 +735,7 @@ namespace Orthanc
     uids.insert(tag);
     removals.erase(tag);  // Necessary if unserializing a job from 1.9.3
   }
-  
+
 
   void DicomModification::SetupUidsFromOrthanc_1_9_3()
   {
@@ -750,7 +750,7 @@ namespace Orthanc
     // (*) "PatientID" and "PatientName" are handled as UIDs since Orthanc 1.9.4
     uids_.insert(DICOM_TAG_PATIENT_ID);
     uids_.insert(DICOM_TAG_PATIENT_NAME);
-    
+
     SetupUidsFromOrthancInternal(uids_, removals_, DicomTag(0x0008, 0x0014));  // Instance Creator UID                   <= from SetupAnonymization2008()
     SetupUidsFromOrthancInternal(uids_, removals_, DicomTag(0x0008, 0x1155));  // Referenced SOP Instance UID            <= from VisitString() + RemoveRelationships()
     SetupUidsFromOrthancInternal(uids_, removals_, DicomTag(0x0020, 0x0052));  // Frame of Reference UID                 <= from VisitString() + RemoveRelationships()
@@ -768,52 +768,52 @@ namespace Orthanc
     // https://raw.githubusercontent.com/jodogne/dicom-specification/master/2008/08_15pu.pdf
 
     SetupUidsFromOrthanc_1_9_3();
-    
+
     //uids_.insert(DicomTag(0x0008, 0x0014));  // Instance Creator UID => set in SetupUidsFromOrthanc_1_9_3()
     //removals_.insert(DicomTag(0x0008, 0x0018));  // SOP Instance UID => set in Apply()
     removals_.insert(DicomTag(0x0008, 0x0050));  // Accession Number
     removals_.insert(DicomTag(0x0008, 0x0080));  // Institution Name
     removals_.insert(DicomTag(0x0008, 0x0081));  // Institution Address
-    removals_.insert(DicomTag(0x0008, 0x0090));  // Referring Physician's Name 
-    removals_.insert(DicomTag(0x0008, 0x0092));  // Referring Physician's Address 
-    removals_.insert(DicomTag(0x0008, 0x0094));  // Referring Physician's Telephone Numbers 
-    removals_.insert(DicomTag(0x0008, 0x1010));  // Station Name 
-    removals_.insert(DicomTag(0x0008, 0x1030));  // Study Description 
-    removals_.insert(DicomTag(0x0008, 0x103e));  // Series Description 
-    removals_.insert(DicomTag(0x0008, 0x1040));  // Institutional Department Name 
-    removals_.insert(DicomTag(0x0008, 0x1048));  // Physician(s) of Record 
-    removals_.insert(DicomTag(0x0008, 0x1050));  // Performing Physicians' Name 
-    removals_.insert(DicomTag(0x0008, 0x1060));  // Name of Physician(s) Reading Study 
-    removals_.insert(DicomTag(0x0008, 0x1070));  // Operators' Name 
-    removals_.insert(DicomTag(0x0008, 0x1080));  // Admitting Diagnoses Description 
+    removals_.insert(DicomTag(0x0008, 0x0090));  // Referring Physician's Name
+    removals_.insert(DicomTag(0x0008, 0x0092));  // Referring Physician's Address
+    removals_.insert(DicomTag(0x0008, 0x0094));  // Referring Physician's Telephone Numbers
+    removals_.insert(DicomTag(0x0008, 0x1010));  // Station Name
+    removals_.insert(DicomTag(0x0008, 0x1030));  // Study Description
+    removals_.insert(DicomTag(0x0008, 0x103e));  // Series Description
+    removals_.insert(DicomTag(0x0008, 0x1040));  // Institutional Department Name
+    removals_.insert(DicomTag(0x0008, 0x1048));  // Physician(s) of Record
+    removals_.insert(DicomTag(0x0008, 0x1050));  // Performing Physicians' Name
+    removals_.insert(DicomTag(0x0008, 0x1060));  // Name of Physician(s) Reading Study
+    removals_.insert(DicomTag(0x0008, 0x1070));  // Operators' Name
+    removals_.insert(DicomTag(0x0008, 0x1080));  // Admitting Diagnoses Description
     //uids_.insert(DicomTag(0x0008, 0x1155));      // Referenced SOP Instance UID => set in SetupUidsFromOrthanc_1_9_3()
-    removals_.insert(DicomTag(0x0008, 0x2111));  // Derivation Description 
+    removals_.insert(DicomTag(0x0008, 0x2111));  // Derivation Description
     //removals_.insert(DicomTag(0x0010, 0x0010));  // Patient's Name => cf. below (*)
     //removals_.insert(DicomTag(0x0010, 0x0020));  // Patient ID => cf. below (*)
-    removals_.insert(DicomTag(0x0010, 0x0030));  // Patient's Birth Date 
-    removals_.insert(DicomTag(0x0010, 0x0032));  // Patient's Birth Time 
-    removals_.insert(DicomTag(0x0010, 0x0040));  // Patient's Sex 
-    removals_.insert(DicomTag(0x0010, 0x1000));  // Other Patient Ids 
-    removals_.insert(DicomTag(0x0010, 0x1001));  // Other Patient Names 
-    removals_.insert(DicomTag(0x0010, 0x1010));  // Patient's Age 
-    removals_.insert(DicomTag(0x0010, 0x1020));  // Patient's Size 
-    removals_.insert(DicomTag(0x0010, 0x1030));  // Patient's Weight 
-    removals_.insert(DicomTag(0x0010, 0x1090));  // Medical Record Locator 
-    removals_.insert(DicomTag(0x0010, 0x2160));  // Ethnic Group 
-    removals_.insert(DicomTag(0x0010, 0x2180));  // Occupation 
-    removals_.insert(DicomTag(0x0010, 0x21b0));  // Additional Patient's History 
-    removals_.insert(DicomTag(0x0010, 0x4000));  // Patient Comments 
-    removals_.insert(DicomTag(0x0018, 0x1000));  // Device Serial Number 
-    removals_.insert(DicomTag(0x0018, 0x1030));  // Protocol Name 
+    removals_.insert(DicomTag(0x0010, 0x0030));  // Patient's Birth Date
+    removals_.insert(DicomTag(0x0010, 0x0032));  // Patient's Birth Time
+    removals_.insert(DicomTag(0x0010, 0x0040));  // Patient's Sex
+    removals_.insert(DicomTag(0x0010, 0x1000));  // Other Patient Ids
+    removals_.insert(DicomTag(0x0010, 0x1001));  // Other Patient Names
+    removals_.insert(DicomTag(0x0010, 0x1010));  // Patient's Age
+    removals_.insert(DicomTag(0x0010, 0x1020));  // Patient's Size
+    removals_.insert(DicomTag(0x0010, 0x1030));  // Patient's Weight
+    removals_.insert(DicomTag(0x0010, 0x1090));  // Medical Record Locator
+    removals_.insert(DicomTag(0x0010, 0x2160));  // Ethnic Group
+    removals_.insert(DicomTag(0x0010, 0x2180));  // Occupation
+    removals_.insert(DicomTag(0x0010, 0x21b0));  // Additional Patient's History
+    removals_.insert(DicomTag(0x0010, 0x4000));  // Patient Comments
+    removals_.insert(DicomTag(0x0018, 0x1000));  // Device Serial Number
+    removals_.insert(DicomTag(0x0018, 0x1030));  // Protocol Name
     //removals_.insert(DicomTag(0x0020, 0x000d));  // Study Instance UID => set in Apply()
     //removals_.insert(DicomTag(0x0020, 0x000e));  // Series Instance UID => set in Apply()
-    removals_.insert(DicomTag(0x0020, 0x0010));  // Study ID 
+    removals_.insert(DicomTag(0x0020, 0x0010));  // Study ID
     //uids_.insert(DicomTag(0x0020, 0x0052));      // Frame of Reference UID => set in SetupUidsFromOrthanc_1_9_3()
     //uids_.insert(DicomTag(0x0020, 0x0200));      // Synchronization Frame of Reference UID => set in SetupUidsFromOrthanc_1_9_3()
-    removals_.insert(DicomTag(0x0020, 0x4000));  // Image Comments 
-    removals_.insert(DicomTag(0x0040, 0x0275));  // Request Attributes Sequence 
+    removals_.insert(DicomTag(0x0020, 0x4000));  // Image Comments
+    removals_.insert(DicomTag(0x0040, 0x0275));  // Request Attributes Sequence
     //uids_.insert(DicomTag(0x0040, 0xa124));      // UID => set in SetupUidsFromOrthanc_1_9_3()
-    removals_.insert(DicomTag(0x0040, 0xa730));  // Content Sequence 
+    removals_.insert(DicomTag(0x0040, 0xa730));  // Content Sequence
     //uids_.insert(DicomTag(0x0088, 0x0140));      // Storage Media File-set UID => set in SetupUidsFromOrthanc_1_9_3()
     //uids_.insert(DicomTag(0x3006, 0x0024));      // Referenced Frame of Reference UID => set in SetupUidsFromOrthanc_1_9_3()
     //uids_.insert(DicomTag(0x3006, 0x00c2));      // Related Frame of Reference UID => set in SetupUidsFromOrthanc_1_9_3()
@@ -827,7 +827,7 @@ namespace Orthanc
     // Set the DeidentificationMethod tag
     ReplaceInternal(DICOM_TAG_DEIDENTIFICATION_METHOD, ORTHANC_DEIDENTIFICATION_METHOD_2008);
   }
-  
+
 
   void DicomModification::SetupAnonymization2017c()
   {
@@ -838,13 +838,13 @@ namespace Orthanc
      * "../../../OrthancServer/Resources/GenerateAnonymizationProfile.py
      * https://raw.githubusercontent.com/jodogne/dicom-specification/master/2017c/part15.xml"
      **/
-    
+
 #include "DicomModification_Anonymization2017c.impl.h"
-    
+
     // Set the DeidentificationMethod tag
     ReplaceInternal(DICOM_TAG_DEIDENTIFICATION_METHOD, ORTHANC_DEIDENTIFICATION_METHOD_2017c);
   }
-  
+
 
   void DicomModification::SetupAnonymization2021b()
   {
@@ -855,13 +855,13 @@ namespace Orthanc
      * "../../../OrthancServer/Resources/GenerateAnonymizationProfile.py
      * https://raw.githubusercontent.com/jodogne/dicom-specification/master/2021b/part15.xml"
      **/
-    
+
 #include "DicomModification_Anonymization2021b.impl.h"
-    
+
     // Set the DeidentificationMethod tag
     ReplaceInternal(DICOM_TAG_DEIDENTIFICATION_METHOD, ORTHANC_DEIDENTIFICATION_METHOD_2021b);
   }
-  
+
 
   void DicomModification::SetupAnonymization2023b()
   {
@@ -875,18 +875,18 @@ namespace Orthanc
      * http://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_E.html#table_E.1-1a
      * http://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_E.html#table_E.1-1
      **/
-    
+
 #include "DicomModification_Anonymization2023b.impl.h"
-    
+
     // Set the DeidentificationMethod tag
     ReplaceInternal(DICOM_TAG_DEIDENTIFICATION_METHOD, ORTHANC_DEIDENTIFICATION_METHOD_2023b);
   }
-  
+
 
   void DicomModification::SetupAnonymization(DicomVersion version)
   {
     isAnonymization_ = true;
-    
+
     keep_.clear();
     removals_.clear();
     clearings_.clear();
@@ -898,7 +898,7 @@ namespace Orthanc
     uidMap_.clear();
     privateTagsToKeep_.clear();
     keepSequences_.clear();
-    removeSequences_.clear();    
+    removeSequences_.clear();
 
     switch (version)
     {
@@ -954,7 +954,7 @@ namespace Orthanc
       {
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
-    }        
+    }
   }
 
   void DicomModification::Apply(std::unique_ptr<ParsedDicomFile>& toModify)
@@ -976,7 +976,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadRequest, "It is forbidden to remove one of the main Dicom identifiers");
     }
-    
+
     if (!allowManualIdentifiers_)
     {
        // Sanity checks at the patient level
@@ -1071,21 +1071,21 @@ namespace Orthanc
     }
 
     // (3) Clear the tags specified by the user
-    for (SetOfTags::const_iterator it = clearings_.begin(); 
+    for (SetOfTags::const_iterator it = clearings_.begin();
          it != clearings_.end(); ++it)
     {
       toModify->Clear(*it, true /* only clear if the tag exists in the original file */);
     }
 
     // (4) Remove the tags specified by the user
-    for (SetOfTags::const_iterator it = removals_.begin(); 
+    for (SetOfTags::const_iterator it = removals_.begin();
          it != removals_.end(); ++it)
     {
       toModify->Remove(*it);
     }
 
     // (5) Replace the tags
-    for (Replacements::const_iterator it = replacements_.begin(); 
+    for (Replacements::const_iterator it = replacements_.begin();
          it != replacements_.end(); ++it)
     {
       assert(it->second != NULL);
@@ -1203,7 +1203,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_BadRequest);
       }
-      
+
       std::string name = query[i].asString();
 
       const DicomPath path(DicomPath::Parse(name));
@@ -1262,10 +1262,10 @@ namespace Orthanc
                                "Marking tag \"" + name + "\" as to be replaced " +
                                "requires the \"Force\" option to be set to true");
       }
-        
+
       target.Replace(path, value, false /* not safe for anonymization */);
 
-      LOG(TRACE) << "Replace: " << name << " = " << path.Format() 
+      LOG(TRACE) << "Replace: " << name << " = " << path.Format()
                  << " by: " << value.toStyledString();
     }
   }
@@ -1299,7 +1299,7 @@ namespace Orthanc
     }
 
     bool force = GetBooleanValue("Force", request, false);
-      
+
     if (GetBooleanValue("RemovePrivateTags", request, false))
     {
       SetRemovePrivateTags(true);
@@ -1348,7 +1348,7 @@ namespace Orthanc
        **/
       bool isReplacedPatientId = (IsReplaced(DICOM_TAG_PATIENT_ID) ||
                                   uids_.find(DICOM_TAG_PATIENT_ID) != uids_.end());
-    
+
       if (level_ == ResourceType_Patient && !isReplacedPatientId)
       {
         throw OrthancException(ErrorCode_BadRequest,
@@ -1378,7 +1378,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadRequest,
                                "When modifying an instance, the parent PatientID cannot be manually modified");
       }
-      
+
       if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
       {
         throw OrthancException(ErrorCode_BadRequest,
@@ -1403,12 +1403,12 @@ namespace Orthanc
     }
 
     bool force = GetBooleanValue("Force", request, false);
-      
+
     // DicomVersion version = DicomVersion_2008;   // For Orthanc <= 1.2.0
     // DicomVersion version = DicomVersion_2017c;  // For Orthanc between 1.3.0 and 1.9.3
     // DicomVersion version = DicomVersion_2021b;  // For Orthanc >= 1.9.4
     DicomVersion version = DicomVersion_2023b;     // For Orthanc >= 1.12.1
-    
+
     if (request.isMember("DicomVersion"))
     {
       if (request["DicomVersion"].type() != Json::stringValue)
@@ -1420,7 +1420,7 @@ namespace Orthanc
         version = StringToDicomVersion(request["DicomVersion"].asString());
       }
     }
-        
+
     SetupAnonymization(version);
 
     if (GetBooleanValue("KeepPrivateTags", request, false))
@@ -1449,7 +1449,7 @@ namespace Orthanc
     }
 
     patientNameOverridden = (uids_.find(DICOM_TAG_PATIENT_NAME) == uids_.end());
-    
+
     // New in Orthanc 1.6.0
     if (request.isMember("PrivateCreator"))
     {
@@ -1494,7 +1494,7 @@ namespace Orthanc
   static const char* KEEP_SEQUENCES = "KeepSequences";      // New in Orthanc 1.9.4
   static const char* REMOVE_SEQUENCES = "RemoveSequences";  // New in Orthanc 1.9.4
   static const char* SEQUENCE_REPLACEMENTS = "SequenceReplacements";  // New in Orthanc 1.9.4
-  
+
   void DicomModification::Serialize(Json::Value& value) const
   {
     if (identifierGenerator_ != NULL)
@@ -1574,7 +1574,7 @@ namespace Orthanc
 
     // New in Orthanc 1.9.4
     Json::Value ranges = Json::arrayValue;
-      
+
     for (RemovedRanges::const_iterator it = removedRanges_.begin(); it != removedRanges_.end(); ++it)
     {
       Json::Value item = Json::arrayValue;
@@ -1629,7 +1629,7 @@ namespace Orthanc
     }
 
     Json::Value::Members names = serialized[field].getMemberNames();
-    
+
     for (Json::Value::Members::const_iterator it = names.begin(); it != names.end(); ++it)
     {
       const Json::Value& value = serialized[field][*it];
@@ -1645,7 +1645,7 @@ namespace Orthanc
     }
   }
 
-  
+
   DicomModification::DicomModification(const Json::Value& serialized)
   {
     removePrivateTags_ = SerializationToolbox::ReadBoolean(serialized, REMOVE_PRIVATE_TAGS);
@@ -1724,7 +1724,7 @@ namespace Orthanc
     if (serialized.isMember(REMOVED_RANGES))  // Backward compatibility with Orthanc <= 1.9.3
     {
       const Json::Value& ranges = serialized[REMOVED_RANGES];
-      
+
       if (ranges.type() != Json::arrayValue)
       {
         throw OrthancException(ErrorCode_BadFileFormat);
@@ -1769,7 +1769,7 @@ namespace Orthanc
     if (serialized.isMember(KEEP_SEQUENCES))
     {
       const Json::Value& keep = serialized[KEEP_SEQUENCES];
-      
+
       if (keep.type() != Json::arrayValue)
       {
         throw OrthancException(ErrorCode_BadFileFormat);
@@ -1794,7 +1794,7 @@ namespace Orthanc
     if (serialized.isMember(REMOVE_SEQUENCES))
     {
       const Json::Value& remove = serialized[REMOVE_SEQUENCES];
-      
+
       if (remove.type() != Json::arrayValue)
       {
         throw OrthancException(ErrorCode_BadFileFormat);
@@ -1819,7 +1819,7 @@ namespace Orthanc
     if (serialized.isMember(SEQUENCE_REPLACEMENTS))
     {
       const Json::Value& replace = serialized[SEQUENCE_REPLACEMENTS];
-      
+
       if (replace.type() != Json::objectValue)
       {
         throw OrthancException(ErrorCode_BadFileFormat);
@@ -1858,7 +1858,7 @@ namespace Orthanc
     keepSequences_.push_back(path);
     MarkNotOrthancAnonymization();
   }
-  
+
 
   void DicomModification::Remove(const DicomPath& path)
   {
@@ -1872,7 +1872,7 @@ namespace Orthanc
       MarkNotOrthancAnonymization();
     }
   }
-  
+
 
   void DicomModification::Replace(const DicomPath& path,
                                   const Json::Value& value,

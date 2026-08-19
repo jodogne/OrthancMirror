@@ -213,18 +213,18 @@ namespace Orthanc
     // convert the encoding of the tags. Use "ChangeEncoding()" if need be.
     void SetEncoding(Encoding encoding);
 
-    void DatasetToJson(Json::Value& target, 
+    void DatasetToJson(Json::Value& target,
                        DicomToJsonFormat format,
                        DicomToJsonFlags flags,
                        unsigned int maxStringLength) const;
 
-    void DatasetToJson(Json::Value& target, 
+    void DatasetToJson(Json::Value& target,
                        DicomToJsonFormat format,
                        DicomToJsonFlags flags,
                        unsigned int maxStringLength,
                        const std::set<DicomTag>& ignoreTagLength) const;
-      
-    void HeaderToJson(Json::Value& target, 
+
+    void HeaderToJson(Json::Value& target,
                       DicomToJsonFormat format) const;
 
     bool HasTag(const DicomTag& tag) const;

@@ -148,12 +148,12 @@ namespace Orthanc
     std::unique_ptr<JobOperationValues> result(new JobOperationValues);
 
     result->Reserve(source.size());
-    
+
     for (Json::Value::ArrayIndex i = 0; i < source.size(); i++)
     {
       result->Append(unserializer.UnserializeValue(source[i]));
     }
-    
+
     return result.release();
   }
 }

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -76,7 +76,7 @@ namespace Orthanc
       {
         std::unique_ptr<Resources> children(new Resources);
 
-        for (Resources::const_iterator it = resources_->begin(); 
+        for (Resources::const_iterator it = resources_->begin();
              it != resources_->end(); ++it)
         {
           std::list<int64_t> tmp;
@@ -119,7 +119,7 @@ namespace Orthanc
     void SetOfResources::Flatten(std::list<std::string>& result)
     {
       result.clear();
-      
+
       if (resources_.get() == NULL)
       {
         // All the resources of this level are part of the filter
@@ -127,7 +127,7 @@ namespace Orthanc
       }
       else
       {
-        for (Resources::const_iterator it = resources_->begin(); 
+        for (Resources::const_iterator it = resources_->begin();
              it != resources_->end(); ++it)
         {
           result.push_back(transaction_.GetPublicId(*it));
@@ -140,7 +140,7 @@ namespace Orthanc
                                  std::list<int64_t>& result)
     {
       result.clear();
-      
+
       if (resources_.get() == NULL)
       {
         // All the resources of this level are part of the filter
@@ -148,7 +148,7 @@ namespace Orthanc
       }
       else
       {
-        for (Resources::const_iterator it = resources_->begin(); 
+        for (Resources::const_iterator it = resources_->begin();
              it != resources_->end(); ++it)
         {
           result.push_back(*it);

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -64,7 +64,7 @@ namespace Orthanc
     {
       return indexInSeries_;
     }
- 
+
     const FileInfo& GetFileInfo() const
     {
       return fileInfo_;
@@ -75,7 +75,7 @@ namespace Orthanc
                                                        const SimpleInstanceOrdering::Instance* b)
   {
     return a->GetIndexInSeries() < b->GetIndexInSeries();
-  }  
+  }
 
 
   SimpleInstanceOrdering::SimpleInstanceOrdering(ServerIndex& index,
@@ -100,7 +100,7 @@ namespace Orthanc
       uint32_t indexInSeries = 0;
       FileInfo fileInfo;
       int64_t revisionNotUsed;
-			
+
       if (resource.LookupMetadata(strIndexInSeries, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
       {
         SerializationToolbox::ParseUnsignedInteger32(indexInSeries, strIndexInSeries);
@@ -109,14 +109,14 @@ namespace Orthanc
       if (resource.LookupAttachment(fileInfo, revisionNotUsed, FileContentType_Dicom))
       {
         std::string instanceId = resource.GetIdentifier();
-        
+
         allIndexInSeries.insert(indexInSeries);
         instances_.push_back(new SimpleInstanceOrdering::Instance(instanceId, indexInSeries, fileInfo));
       }
     }
 
     // if there are duplicates, the set will be smaller than the vector
-    hasDuplicateIndexInSeries_ = allIndexInSeries.size() != instances_.size(); 
+    hasDuplicateIndexInSeries_ = allIndexInSeries.size() != instances_.size();
 
     std::sort(instances_.begin(), instances_.end(), IndexInSeriesComparator);
   }
@@ -143,7 +143,7 @@ namespace Orthanc
     if (hasDuplicateIndexInSeries_)
     {
       // if there are duplicates, we count the instances from 0
-      return index; 
+      return index;
     }
     else
     {

@@ -76,9 +76,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICONV)
     )
 
   set(LIBICONV_SOURCES
-    ${LIBICONV_SOURCES_DIR}/lib/iconv.c  
+    ${LIBICONV_SOURCES_DIR}/lib/iconv.c
     ${LIBICONV_SOURCES_DIR}/lib/relocatable.c
-    ${LIBICONV_SOURCES_DIR}/libcharset/lib/localcharset.c  
+    ${LIBICONV_SOURCES_DIR}/libcharset/lib/localcharset.c
     ${LIBICONV_SOURCES_DIR}/libcharset/lib/relocatable.c
     )
 
@@ -90,7 +90,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICONV)
     add_definitions(-DHAVE_WORKING_O_NOFOLLOW=1)
   endif()
 
-else() 
+else()
   CHECK_INCLUDE_FILE_CXX(iconv.h HAVE_ICONV_H)
   if (NOT HAVE_ICONV_H)
     message(FATAL_ERROR "Please install the libiconv-dev package")

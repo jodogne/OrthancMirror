@@ -56,16 +56,16 @@ namespace Orthanc
 
   public:
     DicomValue();
-    
+
     DicomValue(const std::string& content,
                bool isBinary);
-    
+
     DicomValue(const char* data,
                size_t size,
                bool isBinary);
-    
+
     explicit DicomValue(const Json::Value& value);
-    
+
     const std::string& GetContent() const;
 
     const Json::Value& GetSequenceContent() const;
@@ -77,7 +77,7 @@ namespace Orthanc
     bool IsString() const;
 
     bool IsSequence() const;
-    
+
     DicomValue* Clone() const;
 
 #if ORTHANC_ENABLE_BASE64 == 1
@@ -89,16 +89,16 @@ namespace Orthanc
 
     bool CopyToString(std::string& result,
                       bool allowBinary) const;
-    
+
     bool ParseInteger32(int32_t& result) const;
 
-    bool ParseInteger64(int64_t& result) const;                                
+    bool ParseInteger64(int64_t& result) const;
 
     bool ParseUnsignedInteger32(uint32_t& result) const;
 
-    bool ParseUnsignedInteger64(uint64_t& result) const;                                
+    bool ParseUnsignedInteger64(uint64_t& result) const;
 
-    bool ParseFloat(float& result) const;                                
+    bool ParseFloat(float& result) const;
 
     bool ParseDouble(double& result) const;
 

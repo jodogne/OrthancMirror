@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -55,7 +55,7 @@
 
 
 namespace Orthanc
-{  
+{
   static std::string JoinRequestedMetadata(const FindRequest::ChildrenSpecification& childrenSpec)
   {
     std::set<std::string> metadataTypes;
@@ -72,14 +72,14 @@ namespace Orthanc
   static std::string JoinRequestedTags(const FindRequest::ChildrenSpecification& childrenSpec)
   {
     // note: SQLite does not seem to support (tagGroup, tagElement) in ((x, y), (z, w)) in complex subqueries.
-    // Therefore, since we expect the requested tag list to be short, we write it as 
+    // Therefore, since we expect the requested tag list to be short, we write it as
     // ((tagGroup = x AND tagElement = y ) OR (tagGroup = z AND tagElement = w))
 
     std::string sql = " (";
     std::set<std::string> tags;
     for (std::set<DicomTag>::const_iterator it = childrenSpec.GetMainDicomTags().begin(); it != childrenSpec.GetMainDicomTags().end(); ++it)
     {
-      tags.insert("(tagGroup = " + boost::lexical_cast<std::string>(it->GetGroup()) 
+      tags.insert("(tagGroup = " + boost::lexical_cast<std::string>(it->GetGroup())
                   + " AND tagElement = " + boost::lexical_cast<std::string>(it->GetElement()) + ")");
     }
     std::string joinedTags;
@@ -114,7 +114,7 @@ namespace Orthanc
       values_.push_back(value);
       return "?";
     }
-    
+
     virtual std::string FormatResourceType(ResourceType level) ORTHANC_OVERRIDE
     {
       return boost::lexical_cast<std::string>(level);
@@ -143,7 +143,7 @@ namespace Orthanc
 
         sql += " OFFSET " + boost::lexical_cast<std::string>(since);
       }
-      
+
       return sql;
     }
 
@@ -155,7 +155,7 @@ namespace Orthanc
     void Bind(SQLite::Statement& statement) const
     {
       int pos = 0;
-      
+
       for (std::list<std::string>::const_iterator
              it = values_.begin(); it != values_.end(); ++it, pos++)
       {
@@ -164,7 +164,7 @@ namespace Orthanc
     }
   };
 
-  
+
   class SQLiteDatabaseWrapper::SignalRemainingAncestor : public SQLite::IScalarFunction
   {
   private:
@@ -173,7 +173,7 @@ namespace Orthanc
     ResourceType remainingType_;
 
   public:
-    SignalRemainingAncestor() : 
+    SignalRemainingAncestor() :
       hasRemainingAncestor_(false)
     {
     }
@@ -241,9 +241,9 @@ namespace Orthanc
     {
       resourcesId.clear();
       instancesId.clear();
-    
+
       std::unique_ptr<SQLite::Statement> statement;
-    
+
       switch (level)
       {
         case ResourceType_Patient:
@@ -256,7 +256,7 @@ namespace Orthanc
               "INNER JOIN Resources series ON studies.internalId=series.parentId "
               "INNER JOIN Resources instances ON series.internalId=instances.parentId "
               "GROUP BY patients.publicId"));
-      
+
           break;
         }
 
@@ -269,7 +269,7 @@ namespace Orthanc
               "INNER JOIN Resources series ON studies.internalId=series.parentId "
               "INNER JOIN Resources instances ON series.internalId=instances.parentId "
               "GROUP BY studies.publicId"));
-      
+
           break;
         }
 
@@ -281,7 +281,7 @@ namespace Orthanc
               "SELECT series.publicId, instances.publicID FROM Lookup AS series "
               "INNER JOIN Resources instances ON series.internalId=instances.parentId "
               "GROUP BY series.publicId"));
-      
+
           break;
         }
 
@@ -290,16 +290,16 @@ namespace Orthanc
           statement.reset(
             new SQLite::Statement(
               db_, SQLITE_FROM_HERE, "SELECT publicId, publicId FROM Lookup"));
-        
+
           break;
         }
-      
+
         default:
           THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
 
       assert(statement.get() != NULL);
-      
+
       while (statement->Step())
       {
         resourcesId.push_back(statement->ColumnString(0));
@@ -310,7 +310,7 @@ namespace Orthanc
 
     void ClearTable(const std::string& tableName)
     {
-      db_.Execute("DELETE FROM " + tableName);    
+      db_.Execute("DELETE FROM " + tableName);
     }
 
 
@@ -336,7 +336,7 @@ namespace Orthanc
       }
 
       done = target.size() <= limit;  // 'done' means "there are no more other changes of this type in that direction (depending on since/to)"
-      
+
       // if we have retrieved more changes than requested -> cleanup
       if (target.size() > limit)
       {
@@ -367,7 +367,7 @@ namespace Orthanc
         ResourceType resourceType = static_cast<ResourceType>(s.ColumnInt(1));
         std::string publicId = s.ColumnString(2);
 
-        ExportedResource resource(seq, 
+        ExportedResource resource(seq,
                                   resourceType,
                                   publicId,
                                   s.ColumnString(3),  // modality
@@ -421,12 +421,12 @@ namespace Orthanc
       return listener_;
     }
 
-    
+
     virtual void AddAttachment(int64_t id,
                                const FileInfo& attachment,
                                int64_t revision) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
         "INSERT INTO AttachedFiles (id, fileType, uuid, compressedSize, uncompressedSize, compressionType, uncompressedMD5, compressedMD5, revision, customData) "
         "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
       s.BindInt64(0, id);
@@ -456,7 +456,7 @@ namespace Orthanc
       LookupFormatter::Apply(sql, formatter, lookup, queryLevel, labels, labelsConstraint, limit);
 
       sql = "CREATE TEMPORARY TABLE Lookup AS " + sql;   // TODO-FIND: use a CTE (or is this method obsolete ?)
-    
+
       {
         SQLite::Statement s(db_, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS Lookup");
         s.Run();
@@ -475,9 +475,9 @@ namespace Orthanc
       else
       {
         resourcesId.clear();
-    
+
         SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT publicId FROM Lookup");
-        
+
         while (s.Step())
         {
           resourcesId.push_back(s.ColumnString(0));
@@ -663,7 +663,7 @@ namespace Orthanc
                "    NULL AS c11_big_int2 "
                "   FROM OneInstance "
                "   INNER JOIN Metadata ON Metadata.id = OneInstance.instanceInternalId ";
-              
+
         sql += "   UNION SELECT"
                "    " TOSTRING(QUERY_ONE_INSTANCE_ATTACHMENTS) " AS c0_queryId, "
                "    parentInternalId AS c1_internalId, "
@@ -804,7 +804,7 @@ namespace Orthanc
                  "  NULL AS c11_big_int2 "
                  "FROM Lookup "
                  "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
-                 "INNER JOIN Metadata ON Metadata.id = currentLevel.parentId ";        
+                 "INNER JOIN Metadata ON Metadata.id = currentLevel.parentId ";
         }
 
         if (requestLevel > ResourceType_Study)
@@ -873,7 +873,7 @@ namespace Orthanc
                "  NULL AS c11_big_int2 "
                "FROM Lookup "
                "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
-               "  INNER JOIN MainDicomTags ON MainDicomTags.id = childLevel.internalId AND " + JoinRequestedTags(request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1))); 
+               "  INNER JOIN MainDicomTags ON MainDicomTags.id = childLevel.internalId AND " + JoinRequestedTags(request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1)));
       }
 
       // need MainDicomTags from grandchildren ?
@@ -895,7 +895,7 @@ namespace Orthanc
                 "FROM Lookup "
                 "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
                 "  INNER JOIN Resources grandChildLevel ON grandChildLevel.parentId = childLevel.internalId "
-                "  INNER JOIN MainDicomTags ON MainDicomTags.id = grandChildLevel.internalId AND " + JoinRequestedTags(request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2))); 
+                "  INNER JOIN MainDicomTags ON MainDicomTags.id = grandChildLevel.internalId AND " + JoinRequestedTags(request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2)));
       }
 
       // need parent identifier ?
@@ -1134,7 +1134,7 @@ namespace Orthanc
           case QUERY_MAIN_DICOM_TAGS:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            res.AddStringDicomTag(requestLevel, 
+            res.AddStringDicomTag(requestLevel,
                                   static_cast<uint16_t>(s.ColumnInt(C7_INT_1)),
                                   static_cast<uint16_t>(s.ColumnInt(C8_INT_2)),
                                   s.ColumnString(C3_STRING_1));
@@ -1143,7 +1143,7 @@ namespace Orthanc
           case QUERY_PARENT_MAIN_DICOM_TAGS:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            res.AddStringDicomTag(static_cast<ResourceType>(requestLevel - 1), 
+            res.AddStringDicomTag(static_cast<ResourceType>(requestLevel - 1),
                                   static_cast<uint16_t>(s.ColumnInt(C7_INT_1)),
                                   static_cast<uint16_t>(s.ColumnInt(C8_INT_2)),
                                   s.ColumnString(C3_STRING_1));
@@ -1152,7 +1152,7 @@ namespace Orthanc
           case QUERY_GRAND_PARENT_MAIN_DICOM_TAGS:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            res.AddStringDicomTag(static_cast<ResourceType>(requestLevel - 2), 
+            res.AddStringDicomTag(static_cast<ResourceType>(requestLevel - 2),
                                   static_cast<uint16_t>(s.ColumnInt(C7_INT_1)),
                                   static_cast<uint16_t>(s.ColumnInt(C8_INT_2)),
                                   s.ColumnString(C3_STRING_1));
@@ -1161,7 +1161,7 @@ namespace Orthanc
           case QUERY_CHILDREN_MAIN_DICOM_TAGS:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            res.AddChildrenMainDicomTagValue(static_cast<ResourceType>(requestLevel + 1), 
+            res.AddChildrenMainDicomTagValue(static_cast<ResourceType>(requestLevel + 1),
                                              DicomTag(static_cast<uint16_t>(s.ColumnInt(C7_INT_1)), static_cast<uint16_t>(s.ColumnInt(C8_INT_2))),
                                              s.ColumnString(C3_STRING_1));
           }; break;
@@ -1169,7 +1169,7 @@ namespace Orthanc
           case QUERY_GRAND_CHILDREN_MAIN_DICOM_TAGS:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            res.AddChildrenMainDicomTagValue(static_cast<ResourceType>(requestLevel + 2), 
+            res.AddChildrenMainDicomTagValue(static_cast<ResourceType>(requestLevel + 2),
                                              DicomTag(static_cast<uint16_t>(s.ColumnInt(C7_INT_1)), static_cast<uint16_t>(s.ColumnInt(C8_INT_2))),
                                              s.ColumnString(C3_STRING_1));
           }; break;
@@ -1177,7 +1177,7 @@ namespace Orthanc
           case QUERY_METADATA:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            res.AddMetadata(static_cast<ResourceType>(requestLevel), 
+            res.AddMetadata(static_cast<ResourceType>(requestLevel),
                             static_cast<MetadataType>(s.ColumnInt(C7_INT_1)),
                             s.ColumnString(C3_STRING_1), s.ColumnInt(C8_INT_2));
           }; break;
@@ -1185,7 +1185,7 @@ namespace Orthanc
           case QUERY_PARENT_METADATA:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            res.AddMetadata(static_cast<ResourceType>(requestLevel - 1), 
+            res.AddMetadata(static_cast<ResourceType>(requestLevel - 1),
                             static_cast<MetadataType>(s.ColumnInt(C7_INT_1)),
                             s.ColumnString(C3_STRING_1), s.ColumnInt(C8_INT_2));
           }; break;
@@ -1193,7 +1193,7 @@ namespace Orthanc
           case QUERY_GRAND_PARENT_METADATA:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            res.AddMetadata(static_cast<ResourceType>(requestLevel - 2), 
+            res.AddMetadata(static_cast<ResourceType>(requestLevel - 2),
                             static_cast<MetadataType>(s.ColumnInt(C7_INT_1)),
                             s.ColumnString(C3_STRING_1), s.ColumnInt(C8_INT_2));
           }; break;
@@ -1201,7 +1201,7 @@ namespace Orthanc
           case QUERY_CHILDREN_METADATA:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            res.AddChildrenMetadataValue(static_cast<ResourceType>(requestLevel + 1), 
+            res.AddChildrenMetadataValue(static_cast<ResourceType>(requestLevel + 1),
                                          static_cast<MetadataType>(s.ColumnInt(C7_INT_1)),
                                          s.ColumnString(C3_STRING_1));
           }; break;
@@ -1209,7 +1209,7 @@ namespace Orthanc
           case QUERY_GRAND_CHILDREN_METADATA:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            res.AddChildrenMetadataValue(static_cast<ResourceType>(requestLevel + 2), 
+            res.AddChildrenMetadataValue(static_cast<ResourceType>(requestLevel + 2),
                                          static_cast<MetadataType>(s.ColumnInt(C7_INT_1)),
                                          s.ColumnString(C3_STRING_1));
           }; break;
@@ -1404,12 +1404,12 @@ namespace Orthanc
 
     void GetDeletedFileCustomData(std::string& customData, const std::string& uuid)
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT customData FROM DeletedFiles WHERE uuid=?");
       s.BindString(0, uuid);
-    
+
       if (s.Step())
-      { 
+      {
         if (s.ColumnIsNull(0) ||
             !s.ColumnBlobAsString(0, &customData))
         {
@@ -1528,7 +1528,7 @@ namespace Orthanc
         sql = "SELECT * FROM Changes " + filtersString + " ORDER BY seq ASC LIMIT ?";
         returnFirstResults = true;
       }
-       
+
       SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
 
       int paramCounter = 0;
@@ -1558,7 +1558,7 @@ namespace Orthanc
                                        int64_t id) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT a.internalId FROM Resources AS a, Resources AS b  "
-                          "WHERE a.parentId = b.internalId AND b.internalId = ?");     
+                          "WHERE a.parentId = b.internalId AND b.internalId = ?");
       s.BindInt64(0, id);
 
       target.clear();
@@ -1574,7 +1574,7 @@ namespace Orthanc
                                      int64_t id) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT a.publicId FROM Resources AS a, Resources AS b  "
-                          "WHERE a.parentId = b.internalId AND b.internalId = ?");     
+                          "WHERE a.parentId = b.internalId AND b.internalId = ?");
       s.BindInt64(0, id);
 
       target.clear();
@@ -1591,7 +1591,7 @@ namespace Orthanc
                                       int64_t since,
                                       uint32_t limit) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT * FROM ExportedResources WHERE seq>? ORDER BY seq LIMIT ?");
       s.BindInt64(0, since);
       s.BindInt(1, static_cast<int>(limit) + 1);
@@ -1609,7 +1609,7 @@ namespace Orthanc
 
     int64_t GetLastChangeIndex() ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT seq FROM sqlite_sequence WHERE name='Changes'");
 
       if (s.Step())
@@ -1625,11 +1625,11 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void GetLastExportedResource(std::list<ExportedResource>& target) ORTHANC_OVERRIDE
     {
       bool done;  // Ignored
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT * FROM ExportedResources ORDER BY seq DESC LIMIT 1");
       GetExportedResourcesInternal(target, done, s, 1);
     }
@@ -1653,12 +1653,12 @@ namespace Orthanc
 
     virtual std::string GetPublicId(int64_t resourceId) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT publicId FROM Resources WHERE internalId=?");
       s.BindInt64(0, resourceId);
-    
+
       if (s.Step())
-      { 
+      {
         return s.ColumnString(0);
       }
       else
@@ -1670,10 +1670,10 @@ namespace Orthanc
 
     virtual uint64_t GetResourcesCount(ResourceType resourceType) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT COUNT(*) FROM Resources WHERE resourceType=?");
       s.BindInt(0, resourceType);
-    
+
       if (!s.Step())
       {
         return 0;
@@ -1689,16 +1689,16 @@ namespace Orthanc
 
     virtual ResourceType GetResourceType(int64_t resourceId) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT resourceType FROM Resources WHERE internalId=?");
       s.BindInt64(0, resourceId);
-    
+
       if (s.Step())
       {
         return static_cast<ResourceType>(s.ColumnInt(0));
       }
       else
-      { 
+      {
         throw OrthancException(ErrorCode_UnknownResource);
       }
     }
@@ -1722,7 +1722,7 @@ namespace Orthanc
       return static_cast<uint64_t>(statement->ColumnInt64(0));
     }
 
-    
+
     virtual uint64_t GetTotalUncompressedSize() ORTHANC_OVERRIDE
     {
       std::unique_ptr<SQLite::Statement> statement;
@@ -1762,7 +1762,7 @@ namespace Orthanc
     {
       target.clear();
 
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT fileType FROM AttachedFiles WHERE id=?");
       s.BindInt64(0, id);
 
@@ -1790,7 +1790,7 @@ namespace Orthanc
 
     virtual void LogExportedResource(const ExportedResource& resource) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "INSERT INTO ExportedResources (seq, resourceType, publicId, remoteModality, patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid, date) VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?)");
 
       s.BindInt(0, resource.GetResourceType());
@@ -1801,7 +1801,7 @@ namespace Orthanc
       s.BindString(5, resource.GetSeriesInstanceUid());
       s.BindString(6, resource.GetSopInstanceUid());
       s.BindString(7, resource.GetDate());
-      s.Run();      
+      s.Run();
     }
 
 
@@ -1810,7 +1810,7 @@ namespace Orthanc
                                   int64_t id,
                                   FileContentType contentType) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT uuid, uncompressedSize, compressionType, compressedSize, "
                           "uncompressedMD5, compressedMD5, revision, customData FROM AttachedFiles WHERE id=? AND fileType=?");
       s.BindInt64(0, id);
@@ -1838,7 +1838,7 @@ namespace Orthanc
     virtual void GetAttachmentCustomData(std::string& customData,
                                          const std::string& attachmentUuid) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT customData FROM AttachedFiles WHERE uuid=?");
       s.BindString(0, attachmentUuid);
 
@@ -1863,7 +1863,7 @@ namespace Orthanc
                                          const void* customData,
                                          size_t customDataSize) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "UPDATE AttachedFiles SET customData=? WHERE uuid=?");
       s.BindBlob(0, customData, customDataSize);
       s.BindString(1, attachmentUuid);
@@ -1876,8 +1876,8 @@ namespace Orthanc
     {
       // The "shared" info is not used by the SQLite database, as it
       // can only be used by one Orthanc server.
-      
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT value FROM GlobalProperties WHERE property=?");
       s.BindInt(0, property);
 
@@ -1898,7 +1898,7 @@ namespace Orthanc
                                 int64_t id,
                                 MetadataType type) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT value, revision FROM Metadata WHERE id=? AND type=?");
       s.BindInt64(0, id);
       s.BindInt(1, type);
@@ -1919,7 +1919,7 @@ namespace Orthanc
     virtual bool LookupParent(int64_t& parentId,
                               int64_t resourceId) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT parentId FROM Resources WHERE internalId=?");
       s.BindInt64(0, resourceId);
 
@@ -1953,7 +1953,7 @@ namespace Orthanc
                                 ResourceType& type,
                                 const std::string& publicId) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT internalId, resourceType FROM Resources WHERE publicId=?");
       s.BindString(0, publicId);
 
@@ -1978,7 +1978,7 @@ namespace Orthanc
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT patientId FROM PatientRecyclingOrder ORDER BY seq ASC LIMIT 1");
-   
+
       if (!s.Step())
       {
         // No patient remaining or all the patients are protected
@@ -1988,7 +1988,7 @@ namespace Orthanc
       {
         internalId = s.ColumnInt(0);
         return true;
-      }    
+      }
     }
 
 
@@ -2009,7 +2009,7 @@ namespace Orthanc
       {
         internalId = s.ColumnInt(0);
         return true;
-      }   
+      }
     }
 
 
@@ -2019,7 +2019,7 @@ namespace Orthanc
     {
       // The "shared" info is not used by the SQLite database, as it
       // can only be used by one Orthanc server.
-      
+
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO GlobalProperties (property, value) VALUES(?, ?)");
       s.BindInt(0, property);
       s.BindString(1, value);
@@ -2041,7 +2041,7 @@ namespace Orthanc
     }
 
 
-    virtual void SetProtectedPatient(int64_t internalId, 
+    virtual void SetProtectedPatient(int64_t internalId,
                                      bool isProtected) ORTHANC_OVERRIDE
     {
       if (isProtected)
@@ -2108,7 +2108,7 @@ namespace Orthanc
 
         assert(db_.GetLastChangeCount() == 0 ||
                db_.GetLastChangeCount() == 1);
-      
+
         if (db_.GetLastChangeCount() == 0)
         {
           // The patient was protected, there was nothing to delete from the recycling order
@@ -2164,7 +2164,7 @@ namespace Orthanc
     {
       target.clear();
 
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT label FROM Labels WHERE id=?");
       s.BindInt64(0, resource);
 
@@ -2179,7 +2179,7 @@ namespace Orthanc
     {
       target.clear();
 
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT DISTINCT label FROM Labels");
 
       while (s.Step())
@@ -2213,7 +2213,7 @@ namespace Orthanc
                              const std::string& storeId,
                              const std::string& key) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT value FROM KeyValueStores WHERE storeId=? AND key=?");
       s.BindString(0, storeId);
       s.BindString(1, key);
@@ -2233,7 +2233,7 @@ namespace Orthanc
         {
           return true;
         }
-      }    
+      }
     }
 
     // New in Orthanc 1.12.8
@@ -2519,7 +2519,7 @@ namespace Orthanc
       }
     }
   };
-    
+
 
   class SQLiteDatabaseWrapper::SignalResourceDeleted : public SQLite::IScalarFunction
   {
@@ -2553,7 +2553,7 @@ namespace Orthanc
     }
   };
 
-  
+
   class SQLiteDatabaseWrapper::ReadWriteTransaction : public SQLiteDatabaseWrapper::TransactionBase
   {
   private:
@@ -2562,7 +2562,7 @@ namespace Orthanc
     int64_t                               initialDiskSize_;
     bool                                  isNested_;
 
-  // Rationale for the isNested_ field: 
+  // Rationale for the isNested_ field:
   //   This was added while implementing the DelayedDeletion part of the advanced-storage plugin.
   //   When Orthanc deletes an attachment, a SQLite transaction is created to delete the attachment from
   //   the SQLite DB and, while the transaction is still active, the StorageRemove callback is called.
@@ -2587,7 +2587,7 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_InternalError, "Unable to create a nested RW transaction, the current transaction is not a RW transaction");
         }
-        
+
         isNested_ = true;
       }
       else
@@ -2608,7 +2608,7 @@ namespace Orthanc
     {
       if (!isNested_)
       {
-        assert(that_.activeTransaction_ != NULL);    
+        assert(that_.activeTransaction_ != NULL);
         that_.activeTransaction_ = NULL;
       }
     }
@@ -2651,7 +2651,7 @@ namespace Orthanc
   private:
     SQLiteDatabaseWrapper&  that_;
     bool                    isNested_;  // see explanation on the ReadWriteTransaction
-    
+
   public:
     ReadOnlyTransaction(SQLiteDatabaseWrapper& that,
                         IDatabaseListener& listener,
@@ -2666,7 +2666,7 @@ namespace Orthanc
         // THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
       else
-      {      
+      {
         that_.activeTransaction_ = this;
       }
     }
@@ -2675,7 +2675,7 @@ namespace Orthanc
     {
       if (!isNested_)
       {
-        assert(that_.activeTransaction_ != NULL);    
+        assert(that_.activeTransaction_ != NULL);
         that_.activeTransaction_ = NULL;
       }
     }
@@ -2692,10 +2692,10 @@ namespace Orthanc
       }
     }
   };
-  
 
-  SQLiteDatabaseWrapper::SQLiteDatabaseWrapper(const std::string& path) : 
-    activeTransaction_(NULL), 
+
+  SQLiteDatabaseWrapper::SQLiteDatabaseWrapper(const std::string& path) :
+    activeTransaction_(NULL),
     signalRemainingAncestor_(NULL),
     version_(0)
   {
@@ -2712,8 +2712,8 @@ namespace Orthanc
   }
 
 
-  SQLiteDatabaseWrapper::SQLiteDatabaseWrapper() : 
-    activeTransaction_(NULL), 
+  SQLiteDatabaseWrapper::SQLiteDatabaseWrapper() :
+    activeTransaction_(NULL),
     signalRemainingAncestor_(NULL),
     version_(0)
   {
@@ -2766,11 +2766,11 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_BadSequenceOfCalls);  // Cannot open twice
       }
-    
+
       signalRemainingAncestor_ = dynamic_cast<SignalRemainingAncestor*>(db_.Register(new SignalRemainingAncestor));
       db_.Register(new SignalFileDeleted(*this));
       db_.Register(new SignalResourceDeleted(*this));
-    
+
       db_.Execute("PRAGMA ENCODING=\"UTF-8\";");
 
       // Performance tuning of SQLite with PRAGMAs
@@ -2781,12 +2781,12 @@ namespace Orthanc
       db_.Execute("PRAGMA WAL_AUTOCHECKPOINT=1000;");
       //db_.Execute("PRAGMA TEMP_STORE=memory");
 
-      // Make "LIKE" case-sensitive in SQLite 
+      // Make "LIKE" case-sensitive in SQLite
       db_.Execute("PRAGMA case_sensitive_like = true;");
     }
 
     VoidDatabaseListener listener;
-      
+
     {
       std::unique_ptr<ITransaction> transaction(StartTransaction(TransactionType_ReadOnly, listener));
 
@@ -2888,7 +2888,7 @@ namespace Orthanc
     db_.Close();
   }
 
-  
+
   static void ExecuteUpgradeScript(SQLite::Connection& db,
                                    ServerResources::FileResourceId script)
   {
@@ -2896,7 +2896,7 @@ namespace Orthanc
     ServerResources::GetFileResource(upgrade, script);
     db.BeginTransaction();
     db.Execute(upgrade);
-    db.CommitTransaction();    
+    db.CommitTransaction();
   }
 
 
@@ -2942,7 +2942,7 @@ namespace Orthanc
       // (as more tags got included).
 
       VoidDatabaseListener listener;
-      
+
       {
         ReadWriteTransaction transaction(*this, listener, false /* GetTotalSizeIsFast necessitates the table "GlobalIntegers" */);
         transaction.Begin();
@@ -2962,7 +2962,7 @@ namespace Orthanc
                     boost::lexical_cast<std::string>(GlobalProperty_DatabaseSchemaVersion) + ";");
         transaction.Commit(0);
       }
-      
+
       version_ = 6;
     }
 
@@ -3006,7 +3006,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void SQLiteDatabaseWrapper::FlushToDisk()
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
@@ -3100,7 +3100,7 @@ namespace Orthanc
                                                                       int64_t id)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT a.publicId FROM Resources AS a, Resources AS b "
-                        "WHERE a.internalId = b.parentId AND b.internalId = ?");     
+                        "WHERE a.internalId = b.parentId AND b.internalId = ?");
     s.BindInt64(0, id);
 
     if (s.Step())

@@ -76,7 +76,7 @@ namespace Orthanc
     const std::string& GetHost() const;
 
     void SetHost(const std::string& host);
-    
+
     uint16_t GetPortNumber() const;
 
     void SetPortNumber(uint16_t port);
@@ -118,7 +118,7 @@ namespace Orthanc
 
     uint32_t GetTimeout() const;
 
-    bool HasTimeout() const;    
+    bool HasTimeout() const;
 
     RetrieveMethod GetRetrieveMethod() const;
 

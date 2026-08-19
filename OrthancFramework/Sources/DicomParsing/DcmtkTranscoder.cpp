@@ -64,7 +64,7 @@ namespace Orthanc
     return dataset.findAndGetUint16(DCM_BitsStored, bitsStored).good();
   }
 
-  
+
   void DcmtkTranscoder::SetDefaultLossyQuality(unsigned int quality)
   {
     if (quality == 0 ||
@@ -112,7 +112,7 @@ namespace Orthanc
                                          DcmFileFormat& dicom, /* in/out */
                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                          TranscodingSopInstanceUidMode mode,
-                                         unsigned int lossyQuality) 
+                                         unsigned int lossyQuality)
   {
     std::vector<std::string> failureReasons;
 
@@ -133,7 +133,7 @@ namespace Orthanc
       // No transcoding is needed
       return true;
     }
-    
+
     if (TryTranscode(failureReasons, selectedSyntax, dicom, allowedSyntaxes, DicomTransferSyntax_LittleEndianImplicit))
     {
       return true;
@@ -181,7 +181,7 @@ namespace Orthanc
       {
         // Check out "dcmjpeg/apps/dcmcjpeg.cc"
         DJ_RPLossy parameters(static_cast<int>(lossyQuality));
-          
+
         if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess1, &parameters))
         {
           fixer.Apply(dicom);
@@ -192,7 +192,7 @@ namespace Orthanc
       }
     }
 #endif
-      
+
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess2_4) != allowedSyntaxes.end())
     {
@@ -218,7 +218,7 @@ namespace Orthanc
       }
     }
 #endif
-      
+
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess14) != allowedSyntaxes.end())
     {
@@ -234,7 +234,7 @@ namespace Orthanc
       failureReasons.push_back(std::string("Internal error while transcoding to ") + GetTransferSyntaxUid(DicomTransferSyntax_JPEGProcess14));
     }
 #endif
-      
+
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess14SV1) != allowedSyntaxes.end())
     {
@@ -249,7 +249,7 @@ namespace Orthanc
       failureReasons.push_back(std::string("Internal error while transcoding to ") + GetTransferSyntaxUid(DicomTransferSyntax_JPEGProcess14SV1));
     }
 #endif
-      
+
 #if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
     if (allowedSyntaxes.find(DicomTransferSyntax_JPEGLSLossless) != allowedSyntaxes.end())
     {
@@ -260,7 +260,7 @@ namespace Orthanc
       /**
        * WARNING: This call results in a segmentation fault if using
        * the DCMTK package 3.6.2 from Ubuntu 18.04.
-       **/              
+       **/
       if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGLSLossless, &parameters))
       {
         selectedSyntax = DicomTransferSyntax_JPEGLSLossless;
@@ -269,7 +269,7 @@ namespace Orthanc
       failureReasons.push_back(std::string("Internal error while transcoding to ") + GetTransferSyntaxUid(DicomTransferSyntax_JPEGLSLossless));
     }
 #endif
-      
+
 #if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
     if (allowNewSopInstanceUid &&
         allowedSyntaxes.find(DicomTransferSyntax_JPEGLSLossy) != allowedSyntaxes.end())
@@ -281,7 +281,7 @@ namespace Orthanc
       /**
        * WARNING: This call results in a segmentation fault if using
        * the DCMTK package 3.6.2 from Ubuntu 18.04.
-       **/              
+       **/
       if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGLSLossy, &parameters))
       {
         fixer.Apply(dicom);
@@ -323,7 +323,7 @@ namespace Orthanc
       return true;
     }
 #endif
-    
+
     return false;
   }
 
@@ -345,7 +345,7 @@ namespace Orthanc
     Semaphore::Locker lock(maxConcurrentExecutionsSemaphore_); // limit the number of concurrent executions
 
     target.Clear();
-    
+
     DicomTransferSyntax sourceSyntax;
     if (!FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, source.GetParsed()))
     {
@@ -388,7 +388,7 @@ namespace Orthanc
     }
     else if (InplaceTranscode(targetSyntax, failureReason, source.GetParsed(),
                               allowedSyntaxes, mode, lossyQuality))
-    {   
+    {
       // Sanity check
       DicomTransferSyntax targetSyntax2;
       if (FromDcmtkBridge::LookupOrthancTransferSyntax(targetSyntax2, source.GetParsed()) &&
@@ -397,7 +397,7 @@ namespace Orthanc
       {
         target.AcquireParsed(source);
         source.Clear();
-        
+
 #if !defined(NDEBUG)
         {
           // Only run the sanity check in debug mode
@@ -407,13 +407,13 @@ namespace Orthanc
                            allowedSyntaxes, allowNewSopInstanceUid);
         }
 #endif
-        
+
         return true;
       }
       else
       {
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
-      }  
+      }
     }
     else
     {

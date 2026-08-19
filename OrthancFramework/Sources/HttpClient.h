@@ -64,7 +64,7 @@ namespace Orthanc
       virtual ~IRequestBody()
       {
       }
-      
+
       virtual bool ReadNextChunk(std::string& chunk) = 0;
     };
 
@@ -77,7 +77,7 @@ namespace Orthanc
 
       virtual void AddHeader(const std::string& key,
                              const std::string& value) = 0;
-      
+
       virtual void AddChunk(const void* data,
                             size_t size) = 0;
     };
@@ -201,7 +201,7 @@ namespace Orthanc
 
     const boost::filesystem::path& GetHttpsCACertificates() const;
 
-    void SetClientCertificate(const boost::filesystem::path& certificateFile, 
+    void SetClientCertificate(const boost::filesystem::path& certificateFile,
                               const boost::filesystem::path& certificateKeyFile,
                               const std::string& certificateKeyPassword);
 
@@ -224,7 +224,7 @@ namespace Orthanc
     bool IsRedirectionFollowed() const;
 
     static void GlobalInitialize();
-  
+
     static void GlobalFinalize();
 
     static void InitializePkcs11(const std::string& module,

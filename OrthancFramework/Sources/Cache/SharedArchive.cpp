@@ -85,10 +85,10 @@ namespace Orthanc
     {
       return *item_;
     }
-  }  
+  }
 
 
-  SharedArchive::SharedArchive(size_t maxSize) : 
+  SharedArchive::SharedArchive(size_t maxSize) :
     maxSize_(maxSize)
   {
     if (maxSize == 0)
@@ -134,7 +134,7 @@ namespace Orthanc
     WriterLock lock(mutex_);
     boost::mutex::scoped_lock lruLock(lruMutex_);
 
-    RemoveInternal(id);      
+    RemoveInternal(id);
   }
 
 

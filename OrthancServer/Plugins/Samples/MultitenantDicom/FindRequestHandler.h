@@ -36,7 +36,7 @@ private:
   const std::string           retrieveAet_;
   const std::set<std::string> labels_;
   const LabelsConstraint      constraint_;
-        
+
 public:
   FindRequestHandler(const std::string& retrieveAet,
                      const std::set<std::string>& labels,

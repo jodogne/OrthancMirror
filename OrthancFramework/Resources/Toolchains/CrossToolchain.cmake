@@ -51,7 +51,7 @@ SET(CMAKE_SYSTEM_PROCESSOR ${CROSSTOOL_NG_ARCH})
 # which compilers to use for C and C++
 SET(CMAKE_C_COMPILER ${CROSSTOOL_NG_BASE}/bin/${CROSSTOOL_NG_NAME}-gcc)
 
-if (${CMAKE_VERSION} VERSION_LESS "3.6.0") 
+if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
   CMAKE_FORCE_CXX_COMPILER(${CROSSTOOL_NG_BASE}/bin/${CROSSTOOL_NG_NAME}-g++ GNU)
 else()
   SET(CMAKE_CXX_COMPILER ${CROSSTOOL_NG_BASE}/bin/${CROSSTOOL_NG_NAME}-g++)
@@ -62,7 +62,7 @@ SET(CMAKE_FIND_ROOT_PATH ${CROSSTOOL_NG_IMAGE})
 #SET(CMAKE_FIND_ROOT_PATH ${CROSSTOOL_NG_BASE}/${CROSSTOOL_NG_NAME}/sysroot)
 
 # adjust the default behaviour of the FIND_XXX() commands:
-# search headers and libraries in the target environment, search 
+# search headers and libraries in the target environment, search
 # programs in the host environment
 SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)

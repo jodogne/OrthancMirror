@@ -38,7 +38,7 @@ namespace Orthanc
   {
   }
 
-  
+
   FileInfo::FileInfo(const std::string& uuid,
                      FileContentType contentType,
                      uint64_t size,
@@ -73,13 +73,13 @@ namespace Orthanc
   {
   }
 
-  
+
   bool FileInfo::IsValid() const
   {
     return valid_;
   }
 
-  
+
   const std::string& FileInfo::GetUuid() const
   {
     if (valid_)
@@ -92,7 +92,7 @@ namespace Orthanc
     }
   }
 
-  
+
   FileContentType FileInfo::GetContentType() const
   {
     if (valid_)
@@ -104,7 +104,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
-  
+
 
   uint64_t FileInfo::GetUncompressedSize() const
   {
@@ -117,7 +117,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
-  
+
 
   CompressionType FileInfo::GetCompressionType() const
   {
@@ -130,7 +130,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
-  
+
 
   uint64_t FileInfo::GetCompressedSize() const
   {
@@ -144,7 +144,7 @@ namespace Orthanc
     }
   }
 
-  
+
   const std::string& FileInfo::GetCompressedMD5() const
   {
     if (valid_)
@@ -157,7 +157,7 @@ namespace Orthanc
     }
   }
 
-  
+
   const std::string& FileInfo::GetUncompressedMD5() const
   {
     if (valid_)

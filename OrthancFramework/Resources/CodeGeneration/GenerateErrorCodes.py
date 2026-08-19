@@ -32,7 +32,7 @@ BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')
 
 
 
-## 
+##
 ## Read all the available error codes and HTTP status
 ##
 

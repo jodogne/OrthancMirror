@@ -32,9 +32,9 @@
 namespace PluginToolbox
 {
   bool IsValidLabel(const std::string& label);
-  
+
   Orthanc::ResourceType ParseQueryRetrieveLevel(const std::string& level);
-  
+
   bool IsSameAETitle(bool isStrict,
                      const std::string& aet1,
                      const std::string& aet2);
@@ -47,10 +47,10 @@ namespace PluginToolbox
   void ParseLabels(std::set<std::string>& targetLabels,
                    LabelsConstraint& targetConstraint,
                    const Json::Value& serverConfig);
-  
+
   void AddLabelsToFindRequest(Json::Value& request,
                               const std::set<std::string>& labels,
                               LabelsConstraint constraint);
-  
+
   LabelsConstraint StringToLabelsConstraint(const std::string& s);
 }

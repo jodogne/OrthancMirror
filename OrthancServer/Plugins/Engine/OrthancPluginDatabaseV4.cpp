@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -77,7 +77,7 @@ namespace Orthanc
     }
   }
 
-    
+
   static DatabasePluginMessages::ResourceType Convert(ResourceType type)
   {
     switch (type)
@@ -99,7 +99,7 @@ namespace Orthanc
     }
   }
 
-    
+
   static void Convert(FileInfo& info,
                       const DatabasePluginMessages::FileInfo& source)
   {
@@ -400,7 +400,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_DatabasePlugin, "Cannot unserialize protobuf originating from the database plugin");
     }
   }
-  
+
 
   static void ExecuteDatabase(DatabasePluginMessages::DatabaseResponse& response,
                               const OrthancPluginDatabaseV4& database,
@@ -414,11 +414,11 @@ namespace Orthanc
 
     DatabasePluginMessages::Response fullResponse;
     Execute(fullResponse, database, fullRequest);
-    
+
     response.CopyFrom(fullResponse.database_response());
   }
 
-  
+
   class OrthancPluginDatabaseV4::Transaction :
     public IDatabaseWrapper::ITransaction,
     public IDatabaseWrapper::ICompatibilityTransaction
@@ -427,7 +427,7 @@ namespace Orthanc
     OrthancPluginDatabaseV4&  database_;
     IDatabaseListener&        listener_;
     void*                     transaction_;
-    
+
     void ExecuteTransaction(DatabasePluginMessages::TransactionResponse& response,
                             DatabasePluginMessages::TransactionOperation operation,
                             const DatabasePluginMessages::TransactionRequest& request)
@@ -440,27 +440,27 @@ namespace Orthanc
 
       DatabasePluginMessages::Response fullResponse;
       Execute(fullResponse, database_, fullRequest);
-    
+
       response.CopyFrom(fullResponse.transaction_response());
     }
-    
-    
+
+
     void ExecuteTransaction(DatabasePluginMessages::TransactionResponse& response,
                             DatabasePluginMessages::TransactionOperation operation)
     {
       DatabasePluginMessages::TransactionRequest request;    // Ignored
       ExecuteTransaction(response, operation, request);
     }
-    
-    
+
+
     void ExecuteTransaction(DatabasePluginMessages::TransactionOperation operation,
                             const DatabasePluginMessages::TransactionRequest& request)
     {
       DatabasePluginMessages::TransactionResponse response;  // Ignored
       ExecuteTransaction(response, operation, request);
     }
-    
-    
+
+
     void ExecuteTransaction(DatabasePluginMessages::TransactionOperation operation)
     {
       DatabasePluginMessages::TransactionResponse response;  // Ignored
@@ -494,7 +494,7 @@ namespace Orthanc
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
-    
+
 
   public:
     Transaction(OrthancPluginDatabaseV4& database,
@@ -531,7 +531,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual ~Transaction() ORTHANC_OVERRIDE
     {
       try
@@ -553,13 +553,13 @@ namespace Orthanc
     {
       return transaction_;
     }
-    
+
 
     virtual void Rollback() ORTHANC_OVERRIDE
     {
       ExecuteTransaction(DatabasePluginMessages::OPERATION_ROLLBACK);
     }
-    
+
 
     virtual void Commit(int64_t fileSizeDelta) ORTHANC_OVERRIDE
     {
@@ -569,7 +569,7 @@ namespace Orthanc
       ExecuteTransaction(DatabasePluginMessages::OPERATION_COMMIT, request);
     }
 
-    
+
     virtual void AddAttachment(int64_t id,
                                const FileInfo& attachment,
                                int64_t revision) ORTHANC_OVERRIDE
@@ -582,7 +582,7 @@ namespace Orthanc
       request.mutable_add_attachment()->mutable_attachment()->set_uncompressed_hash(attachment.GetUncompressedMD5());
       request.mutable_add_attachment()->mutable_attachment()->set_compression_type(attachment.GetCompressionType());
       request.mutable_add_attachment()->mutable_attachment()->set_compressed_size(attachment.GetCompressedSize());
-      request.mutable_add_attachment()->mutable_attachment()->set_compressed_hash(attachment.GetCompressedMD5());        
+      request.mutable_add_attachment()->mutable_attachment()->set_compressed_hash(attachment.GetCompressedMD5());
       request.mutable_add_attachment()->mutable_attachment()->set_custom_data(attachment.GetCustomData());  // New in 1.12.8
       request.mutable_add_attachment()->set_revision(revision);
 
@@ -595,7 +595,7 @@ namespace Orthanc
       ExecuteTransaction(DatabasePluginMessages::OPERATION_CLEAR_CHANGES);
     }
 
-    
+
     virtual void ClearExportedResources() ORTHANC_OVERRIDE
     {
       ExecuteTransaction(DatabasePluginMessages::OPERATION_CLEAR_EXPORTED_RESOURCES);
@@ -617,7 +617,7 @@ namespace Orthanc
       listener_.SignalAttachmentDeleted(info);
     }
 
-    
+
     virtual void DeleteMetadata(int64_t id,
                                 MetadataType type) ORTHANC_OVERRIDE
     {
@@ -628,7 +628,7 @@ namespace Orthanc
       ExecuteTransaction(DatabasePluginMessages::OPERATION_DELETE_METADATA, request);
     }
 
-    
+
     virtual void DeleteResource(int64_t id) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionRequest request;
@@ -657,7 +657,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
                                 int64_t id) ORTHANC_OVERRIDE
     {
@@ -671,7 +671,7 @@ namespace Orthanc
       for (int i = 0; i < response.get_all_metadata().metadata().size(); i++)
       {
         MetadataType key = static_cast<MetadataType>(response.get_all_metadata().metadata(i).type());
-          
+
         if (target.find(key) == target.end())
         {
           target[key] = response.get_all_metadata().metadata(i).value();
@@ -683,7 +683,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType) ORTHANC_OVERRIDE
     {
@@ -700,7 +700,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void GetAllPublicIdsCompatibility(std::list<std::string>& target,
                                               ResourceType resourceType,
                                               int64_t since,
@@ -721,7 +721,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
                             int64_t since,
@@ -735,7 +735,7 @@ namespace Orthanc
       ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_CHANGES, request);
 
       done = response.get_changes().done();
-        
+
       target.clear();
       for (int i = 0; i < response.get_changes().changes().size(); i++)
       {
@@ -762,7 +762,7 @@ namespace Orthanc
       {
         request.mutable_get_changes_extended()->add_change_type(*it);
       }
-      
+
       ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_CHANGES_EXTENDED, request);
 
       done = response.get_changes_extended().done();
@@ -774,7 +774,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void GetChildrenInternalId(std::list<int64_t>& target,
                                        int64_t id) ORTHANC_OVERRIDE
     {
@@ -791,7 +791,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void GetChildrenPublicId(std::list<std::string>& target,
                                      int64_t id) ORTHANC_OVERRIDE
     {
@@ -808,7 +808,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                       bool& done /*out*/,
                                       int64_t since,
@@ -822,7 +822,7 @@ namespace Orthanc
       ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_EXPORTED_RESOURCES, request);
 
       done = response.get_exported_resources().done();
-        
+
       target.clear();
       for (int i = 0; i < response.get_exported_resources().resources().size(); i++)
       {
@@ -830,7 +830,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionResponse response;
@@ -843,7 +843,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void GetLastExportedResource(std::list<ExportedResource>& target /*out*/) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionResponse response;
@@ -856,7 +856,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void GetMainDicomTags(DicomMap& target,
                                   int64_t id) ORTHANC_OVERRIDE
     {
@@ -883,7 +883,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual std::string GetPublicId(int64_t resourceId) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionRequest request;
@@ -894,7 +894,7 @@ namespace Orthanc
       return response.get_public_id().id();
     }
 
-    
+
     virtual uint64_t GetResourcesCount(ResourceType resourceType) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionRequest request;
@@ -905,7 +905,7 @@ namespace Orthanc
       return response.get_resources_count().count();
     }
 
-    
+
     virtual ResourceType GetResourceType(int64_t resourceId) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionRequest request;
@@ -916,7 +916,7 @@ namespace Orthanc
       return Convert(response.get_resource_type().type());
     }
 
-    
+
     virtual uint64_t GetTotalCompressedSize() ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionResponse response;
@@ -924,7 +924,7 @@ namespace Orthanc
       return response.get_total_compressed_size().size();
     }
 
-    
+
     virtual uint64_t GetTotalUncompressedSize() ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionResponse response;
@@ -932,7 +932,7 @@ namespace Orthanc
       return response.get_total_uncompressed_size().size();
     }
 
-    
+
     virtual bool IsProtectedPatient(int64_t internalId) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionRequest request;
@@ -943,7 +943,7 @@ namespace Orthanc
       return response.is_protected_patient().protected_patient();
     }
 
-    
+
     virtual void ListAvailableAttachments(std::set<FileContentType>& target,
                                           int64_t id) ORTHANC_OVERRIDE
     {
@@ -969,7 +969,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void LogChange(ChangeType changeType,
                            ResourceType resourceType,
                            int64_t internalId,
@@ -985,11 +985,11 @@ namespace Orthanc
       ExecuteTransaction(DatabasePluginMessages::OPERATION_LOG_CHANGE, request);
     }
 
-    
+
     virtual void LogExportedResource(const ExportedResource& resource) ORTHANC_OVERRIDE
     {
       // TODO: "seq" is ignored, could be simplified in "ExportedResource"
-      
+
       DatabasePluginMessages::TransactionRequest request;
       request.mutable_log_exported_resource()->set_resource_type(Convert(resource.GetResourceType()));
       request.mutable_log_exported_resource()->set_public_id(resource.GetPublicId());
@@ -1003,7 +1003,7 @@ namespace Orthanc
       ExecuteTransaction(DatabasePluginMessages::OPERATION_LOG_EXPORTED_RESOURCE, request);
     }
 
-    
+
     virtual bool LookupAttachment(FileInfo& attachment,
                                   int64_t& revision,
                                   int64_t id,
@@ -1150,7 +1150,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual bool LookupParent(int64_t& parentId,
                               int64_t resourceId) ORTHANC_OVERRIDE
     {
@@ -1171,7 +1171,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual bool LookupResource(int64_t& id,
                                 ResourceType& type,
                                 const std::string& publicId) ORTHANC_OVERRIDE
@@ -1194,7 +1194,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual bool SelectPatientToRecycle(int64_t& internalId) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionResponse response;
@@ -1211,7 +1211,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual bool SelectPatientToRecycle(int64_t& internalId,
                                         int64_t patientIdToAvoid) ORTHANC_OVERRIDE
     {
@@ -1232,7 +1232,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void SetGlobalProperty(GlobalProperty property,
                                    bool shared,
                                    const std::string& value) ORTHANC_OVERRIDE
@@ -1245,7 +1245,7 @@ namespace Orthanc
       ExecuteTransaction(DatabasePluginMessages::OPERATION_SET_GLOBAL_PROPERTY, request);
     }
 
-    
+
     virtual void ClearMainDicomTags(int64_t id) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionRequest request;
@@ -1254,7 +1254,7 @@ namespace Orthanc
       ExecuteTransaction(DatabasePluginMessages::OPERATION_CLEAR_MAIN_DICOM_TAGS, request);
     }
 
-    
+
     virtual void SetMetadata(int64_t id,
                              MetadataType type,
                              const std::string& value,
@@ -1269,8 +1269,8 @@ namespace Orthanc
       ExecuteTransaction(DatabasePluginMessages::OPERATION_SET_METADATA, request);
     }
 
-    
-    virtual void SetProtectedPatient(int64_t internalId, 
+
+    virtual void SetProtectedPatient(int64_t internalId,
                                      bool isProtected) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionRequest request;
@@ -1313,7 +1313,7 @@ namespace Orthanc
       request.mutable_lookup_resources()->set_retrieve_instances_ids(instancesId != NULL);
 
       request.mutable_lookup_resources()->mutable_lookup()->Reserve(static_cast<int>(lookup.GetSize()));
-      
+
       for (size_t i = 0; i < lookup.GetSize(); i++)
       {
         Convert(*request.mutable_lookup_resources()->add_lookup(), lookup.GetConstraint(i));
@@ -1325,7 +1325,7 @@ namespace Orthanc
       }
 
       request.mutable_lookup_resources()->set_labels_constraint(Convert(labelsConstraint));
-      
+
       DatabasePluginMessages::TransactionResponse response;
       ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LOOKUP_RESOURCES, request);
 
@@ -1333,7 +1333,7 @@ namespace Orthanc
       {
         resourcesId.push_back(response.lookup_resources().resources_ids(i));
       }
-      
+
       if (instancesId != NULL)
       {
         if (response.lookup_resources().resources_ids().size() != response.lookup_resources().instances_ids().size())
@@ -1350,7 +1350,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual bool CreateInstance(CreateInstanceResult& result, /* out */
                                 int64_t& instanceId,          /* out */
                                 const std::string& patient,
@@ -1359,7 +1359,7 @@ namespace Orthanc
                                 const std::string& instance) ORTHANC_OVERRIDE
     {
       // TODO: "CreateInstanceResult" => constructor and getters
-      
+
       DatabasePluginMessages::TransactionRequest request;
       request.mutable_create_instance()->set_patient(patient);
       request.mutable_create_instance()->set_study(study);
@@ -1387,7 +1387,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void SetResourcesContent(const ResourcesContent& content) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionRequest request;
@@ -1402,7 +1402,7 @@ namespace Orthanc
         tag->set_element(it->GetTag().GetElement());
         tag->set_value(it->GetValue());
       }
-      
+
       request.mutable_set_resources_content()->mutable_metadata()->Reserve(static_cast<int>(content.GetListMetadata().size()));
       for (ResourcesContent::ListMetadata::const_iterator it = content.GetListMetadata().begin(); it != content.GetListMetadata().end(); ++it)
       {
@@ -1415,7 +1415,7 @@ namespace Orthanc
       ExecuteTransaction(DatabasePluginMessages::OPERATION_SET_RESOURCES_CONTENT, request);
     }
 
-    
+
     virtual void GetChildrenMetadata(std::list<std::string>& target,
                                      int64_t resourceId,
                                      MetadataType metadata) ORTHANC_OVERRIDE
@@ -1433,7 +1433,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual int64_t GetLastChangeIndex() ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionResponse response;
@@ -1441,7 +1441,7 @@ namespace Orthanc
       return response.get_last_change_index().result();
     }
 
-    
+
     virtual bool LookupResourceAndParent(int64_t& id,
                                          ResourceType& type,
                                          std::string& parentPublicId,
@@ -1466,7 +1466,7 @@ namespace Orthanc
               throw OrthancException(ErrorCode_DatabasePlugin);
             }
             break;
-            
+
           case ResourceType_Study:
           case ResourceType_Series:
           case ResourceType_Instance:
@@ -1479,11 +1479,11 @@ namespace Orthanc
               parentPublicId = response.lookup_resource_and_parent().parent_public_id();
             }
             break;
-            
+
           default:
             throw OrthancException(ErrorCode_ParameterOutOfRange);
         }
-        
+
         return true;
       }
       else
@@ -1492,7 +1492,7 @@ namespace Orthanc
       }
     }
 
-    
+
     virtual void AddLabel(int64_t resource,
                           const std::string& label) ORTHANC_OVERRIDE
     {
@@ -1537,7 +1537,7 @@ namespace Orthanc
       ListLabelsInternal(target, true, resource);
     }
 
-    
+
     virtual void ListAllLabels(std::set<std::string>& target) ORTHANC_OVERRIDE
     {
       ListLabelsInternal(target, false, -1);
@@ -1580,7 +1580,7 @@ namespace Orthanc
 
         for (std::deque<DatabaseMetadataConstraint*>::const_iterator it = request.GetMetadataConstraint().begin(); it != request.GetMetadataConstraint().end(); ++it)
         {
-          Convert(*dbRequest.mutable_find()->add_metadata_constraints(), *(*it)); 
+          Convert(*dbRequest.mutable_find()->add_metadata_constraints(), *(*it));
         }
 
         for (std::set<std::string>::const_iterator it = request.GetLabels().begin(); it != request.GetLabels().end(); ++it)
@@ -1637,12 +1637,12 @@ namespace Orthanc
 
         for (std::deque<DatabaseMetadataConstraint*>::const_iterator it = request.GetMetadataConstraint().begin(); it != request.GetMetadataConstraint().end(); ++it)
         {
-          Convert(*dbRequest.mutable_find()->add_metadata_constraints(), *(*it)); 
+          Convert(*dbRequest.mutable_find()->add_metadata_constraints(), *(*it));
         }
 
         for (std::deque<FindRequest::Ordering*>::const_iterator it = request.GetOrdering().begin(); it != request.GetOrdering().end(); ++it)
         {
-          Convert(*dbRequest.mutable_find()->add_ordering(), *(*it)); 
+          Convert(*dbRequest.mutable_find()->add_ordering(), *(*it));
         }
 
         if (request.HasLimits())
@@ -2058,7 +2058,7 @@ namespace Orthanc
     }
 
     virtual bool ReserveQueueValue(std::string& value,
-                                   uint64_t& valueId, 
+                                   uint64_t& valueId,
                                    const std::string& queueId,
                                    QueueOrigin origin,
                                    uint32_t releaseTimeout) ORTHANC_OVERRIDE
@@ -2103,7 +2103,7 @@ namespace Orthanc
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
-      
+
     virtual void AcknowledgeQueueValue(const std::string& queueId,
                                        uint64_t valueId) ORTHANC_OVERRIDE
     {
@@ -2148,7 +2148,7 @@ namespace Orthanc
     }
   }
 
-  
+
   OrthancPluginDatabaseV4::~OrthancPluginDatabaseV4()
   {
     definition_.finalize(definition_.backend);
@@ -2179,14 +2179,14 @@ namespace Orthanc
     }
   }
 
-  
+
   void OrthancPluginDatabaseV4::Open()
   {
     if (open_)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-    
+
     {
       DatabasePluginMessages::DatabaseRequest request;
       AddIdentifierTags(*request.mutable_open(), ResourceType_Patient);
@@ -2202,7 +2202,7 @@ namespace Orthanc
       DatabasePluginMessages::DatabaseRequest request;
       DatabasePluginMessages::DatabaseResponse response;
       ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_GET_SYSTEM_INFORMATION, request);
-      
+
       const ::Orthanc::DatabasePluginMessages::GetSystemInformation_Response& systemInfo = response.get_system_information();
       databaseVersion_ = systemInfo.database_version();
       dbCapabilities_.SetFlushToDisk(systemInfo.supports_flush_to_disk());
@@ -2236,7 +2236,7 @@ namespace Orthanc
       ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_CLOSE, request);
     }
   }
-  
+
 
 
   void OrthancPluginDatabaseV4::FlushToDisk()
@@ -2253,7 +2253,7 @@ namespace Orthanc
       ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_FLUSH_TO_DISK, request);
     }
   }
-  
+
 
   IDatabaseWrapper::ITransaction* OrthancPluginDatabaseV4::StartTransaction(TransactionType type,
                                                                             IDatabaseListener& listener)
@@ -2268,7 +2268,7 @@ namespace Orthanc
     }
   }
 
-  
+
   unsigned int OrthancPluginDatabaseV4::GetDatabaseVersion()
   {
     if (!open_)
@@ -2281,7 +2281,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void OrthancPluginDatabaseV4::Upgrade(unsigned int targetVersion,
                                         IPluginStorageArea& storageArea)
   {
@@ -2300,7 +2300,7 @@ namespace Orthanc
         request.mutable_upgrade()->set_target_version(targetVersion);
         request.mutable_upgrade()->set_storage_area(reinterpret_cast<intptr_t>(&storageArea));
         request.mutable_upgrade()->set_transaction(reinterpret_cast<intptr_t>(transaction.GetTransactionObject()));
-        
+
         DatabasePluginMessages::DatabaseResponse response;
 
         ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_UPGRADE, request);

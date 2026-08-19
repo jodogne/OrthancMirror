@@ -162,7 +162,7 @@ static OFCondition acceptUnknownContextsWithTransferSyntax(
         }
       }
     }
-    
+
     if (accepted)
     {
       cond = ASC_acceptPresentationContext(
@@ -295,7 +295,7 @@ namespace Orthanc
       std::string remoteAet;
       std::string remoteIp;
       std::string calledAet;
-  
+
       {
         DIC_AE remoteAet_C;
         DIC_AE calledAet_C;
@@ -330,14 +330,14 @@ namespace Orthanc
 
       if (!Toolbox::IsValidAet(remoteAet))
       {
-        LOG(ERROR) << "Association Received from an invalid AET (sanitized: " << Toolbox::NormalizeAet(remoteAet) << ")" 
+        LOG(ERROR) << "Association Received from an invalid AET (sanitized: " << Toolbox::NormalizeAet(remoteAet) << ")"
                    << " on IP " << remoteIp << ", rejecting the association";
         return NULL;
       }
 
       remoteAet = Toolbox::NormalizeAet(remoteAet);  // removes leading/trailing spaces that are not significant according to the standard
 
-      CLOG(INFO, DICOM) << "Association Received from AET " << remoteAet 
+      CLOG(INFO, DICOM) << "Association Received from AET " << remoteAet
                         << " on IP " << remoteIp;
 
 
@@ -393,7 +393,7 @@ namespace Orthanc
           return NULL;
         }
 
-      
+
         /* storage commitment support, new in Orthanc 1.6.0 */
         if (server.HasStorageCommitmentRequestHandlerFactory())
         {
@@ -401,8 +401,8 @@ namespace Orthanc
            * "ASC_SC_ROLE_SCUSCP": The "SCU" role is needed to accept
            * remote storage commitment requests, and the "SCP" role is
            * needed to receive storage commitments answers.
-           **/        
-          const char* as[1] = { UID_StorageCommitmentPushModelSOPClass }; 
+           **/
+          const char* as[1] = { UID_StorageCommitmentPushModelSOPClass };
           cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
             assoc->params, as, 1,
             &genericTransferSyntaxes[0], static_cast<int>(genericTransferSyntaxes.size()), ASC_SC_ROLE_SCUSCP);
@@ -414,11 +414,11 @@ namespace Orthanc
           }
         }
       }
-      
+
 
       {
         /* accept the abstract syntaxes for C-STORE, if presented */
-        
+
         std::set<DicomTransferSyntax> storageTransferSyntaxes;
 
         if (server.HasApplicationEntityFilter())
@@ -466,7 +466,7 @@ namespace Orthanc
           {
             storageTransferSyntaxesC.push_back(GetTransferSyntaxUid(PREFERRED_TRANSFER_SYNTAX));
           }
-          
+
           for (std::set<DicomTransferSyntax>::const_iterator
                  syntax = storageTransferSyntaxes.begin(); syntax != storageTransferSyntaxes.end(); ++syntax)
           {
@@ -484,14 +484,14 @@ namespace Orthanc
           {
             count++;
           }
-        
+
 #if DCMTK_VERSION_NUMBER >= 362
           // The global variable "numberOfDcmAllStorageSOPClassUIDs" is
           // only published if DCMTK >= 3.6.2:
           // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=137
           assert(static_cast<int>(count) == numberOfDcmAllStorageSOPClassUIDs);
 #endif
-      
+
           if (!server.HasGetRequestHandlerFactory())    // dcmqrsrv.cc line 828
           {
             // This branch exactly corresponds to Orthanc <= 1.6.1 (in
@@ -531,7 +531,7 @@ namespace Orthanc
                  * we can be the SCU of the Storage Service Class.
                  **/
                 const T_ASC_SC_ROLE role = pc.proposedRole;
-            
+
                 /**
                  * Accept in the order "least wanted" to "most wanted"
                  * transfer syntax.  Accepting a transfer syntax will
@@ -643,7 +643,7 @@ namespace Orthanc
         return NULL;
       }
 
-      if (opt_rejectWithoutImplementationUID && 
+      if (opt_rejectWithoutImplementationUID &&
           strlen(assoc->params->theirImplementationClassUID) == 0)
       {
         /* reject: the no implementation Class UID provided */
@@ -677,7 +677,7 @@ namespace Orthanc
           std::string suffix;
           if (ASC_countAcceptedPresentationContexts(assoc->params) == 0)
             suffix = " (but no valid presentation contexts)";
-          
+
           CLOG(INFO, DICOM) << "Association Acknowledged (Max Send PDV: " << assoc->sendPDVLength
                             << ") to AET " << remoteAet << " on IP " << remoteIp << suffix;
         }
@@ -742,7 +742,7 @@ namespace Orthanc
 
       OFCondition cond = DIMSE_receiveCommand(assoc_, DIMSE_NONBLOCKING, 1, &presID, &msg, &statusDetail);
       elapsedTimeSinceLastCommand_++;
-    
+
       // if the command which was received has extra status
       // detail information, dump this information
       if (statusDetail != NULL)
@@ -761,7 +761,7 @@ namespace Orthanc
       else if (cond == DIMSE_NODATAAVAILABLE)
       {
         // Timeout due to DIMSE_NONBLOCKING
-        if (associationTimeout_ != 0 && 
+        if (associationTimeout_ != 0 &&
             elapsedTimeSinceLastCommand_ >= associationTimeout_)
         {
           // This timeout is actually a association timeout
@@ -775,7 +775,7 @@ namespace Orthanc
           CLOG(TRACE, DICOM) << "Received Command:" << std::endl
                              << DIMSE_dumpMessage(str, msg, DIMSE_INCOMING, NULL, presID);
         }
-        
+
         // Reset the association timeout counter
         elapsedTimeSinceLastCommand_ = 0;
 
@@ -798,7 +798,7 @@ namespace Orthanc
             request = DicomRequestType_Move;
             supported = true;
             break;
-            
+
           case DIMSE_C_GET_RQ:
             request = DicomRequestType_Get;
             supported = true;
@@ -818,7 +818,7 @@ namespace Orthanc
             supported = true;
             break;
           }
-          
+
           case DIMSE_N_ACTION_RQ:
             request = DicomRequestType_NAction;
             supported = true;
@@ -838,7 +838,7 @@ namespace Orthanc
 
 
         // Check whether this request is allowed by the security filter
-        if (supported && 
+        if (supported &&
             filter_ != NULL &&
             !filter_->IsAllowedRequest(remoteIp_, remoteAet_, calledAet_, request))
         {
@@ -887,13 +887,13 @@ namespace Orthanc
                 }
               }
               break;
-              
+
             case DicomRequestType_Get:
               if (server_.HasGetRequestHandlerFactory()) // Should always be true
               {
                 std::unique_ptr<IGetRequestHandler> handler
                   (server_.GetGetRequestHandlerFactory().ConstructGetRequestHandler());
-                
+
                 if (handler.get() != NULL)
                 {
                   cond = Internals::getScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_, calledAet_, static_cast<int>(associationTimeout_));
@@ -925,11 +925,11 @@ namespace Orthanc
 
             case DicomRequestType_NAction:
               cond = NActionScp(&msg, presID);
-              break;              
+              break;
 
             case DicomRequestType_NEventReport:
               cond = NEventReportScp(&msg, presID);
-              break;              
+              break;
 
             default:
               // Should never happen
@@ -946,7 +946,7 @@ namespace Orthanc
         CLOG(INFO, DICOM) << "Finishing association with AET " << remoteAet_
                           << " on IP " << remoteIp_ << ": " << cond.text();
       }
-    
+
       if (finished)
       {
         if (cond == DUL_PEERREQUESTEDRELEASE)
@@ -993,7 +993,7 @@ namespace Orthanc
     {
       DcmDataset *tmp = NULL;
       T_ASC_PresentationContextID presIdData;
-    
+
       OFCondition cond = DIMSE_receiveDataSetInMemory(
         assoc, (timeout ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), timeout,
         &presIdData, &tmp, NULL, NULL);
@@ -1045,7 +1045,7 @@ namespace Orthanc
           sequence == NULL)
       {
         if (mandatory)
-        {        
+        {
           char buf[64];
           sprintf(buf, "Missing mandatory sequence in dataset: (%04X,%04X)",
                   tag.getGroup(), tag.getElement());
@@ -1097,7 +1097,7 @@ namespace Orthanc
       }
     }
 
-    
+
     OFCondition CommandDispatcher::NActionScp(T_DIMSE_Message* msg,
                                               T_ASC_PresentationContextID presID)
     {
@@ -1108,7 +1108,7 @@ namespace Orthanc
        * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.2.html
        * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#table_10.1-4
        **/
-      
+
       if (msg->CommandField != DIMSE_N_ACTION_RQ /* value == 304 == 0x0130 */ ||
           !server_.HasStorageCommitmentRequestHandlerFactory())
       {
@@ -1119,7 +1119,7 @@ namespace Orthanc
       /**
        * Check that the storage commitment request is correctly formatted.
        **/
-      
+
       const T_DIMSE_N_ActionRQ& request = msg->msg.NActionRQ;
 
       if (request.ActionTypeID != 1)
@@ -1148,7 +1148,7 @@ namespace Orthanc
        * J.3-1. Storage Commitment Request - Action Information":
        * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.2.html#table_J.3-1
        **/
-      
+
       std::unique_ptr<DcmDataset> dataset(
         ReadDataset(assoc_, "Cannot read the dataset in N-ACTION SCP", static_cast<int>(associationTimeout_)));
       assert(dataset.get() != NULL);
@@ -1158,7 +1158,7 @@ namespace Orthanc
         dataset->print(s);
         CLOG(TRACE, DICOM) << "Received Storage Commitment Request:" << std::endl << s.str();
       }
-      
+
       std::string transactionUid = ReadString(*dataset, DCM_TransactionUID);
 
       std::vector<std::string> sopClassUid, sopInstanceUid;
@@ -1182,7 +1182,7 @@ namespace Orthanc
        **/
 
       DIC_US dimseStatus;
-  
+
       try
       {
         std::unique_ptr<IStorageCommitmentRequestHandler> handler
@@ -1192,7 +1192,7 @@ namespace Orthanc
         DicomConnectionInfo connection(remoteIp_, remoteAet_, calledAet_);
 
         handler->HandleRequest(transactionUid, sopClassUid, sopInstanceUid, connection);
-        
+
         dimseStatus = 0;  // Success
       }
       catch (OrthancException& e)
@@ -1227,7 +1227,7 @@ namespace Orthanc
           CLOG(TRACE, DICOM) << "Sending Storage Commitment Request Response:" << std::endl
                              << DIMSE_dumpMessage(str, response, DIMSE_OUTGOING);
         }
-        
+
         return DIMSE_sendMessageUsingMemoryData(
           assoc_, presID, &response, NULL /* no dataset */, NULL /* dataObject */,
           NULL /* callback */, NULL /* callback context */, NULL /* commandSet */);
@@ -1255,7 +1255,7 @@ namespace Orthanc
       /**
        * Check that the storage commitment report is correctly formatted.
        **/
-      
+
       const T_DIMSE_N_EventReportRQ& report = msg->msg.NEventReportRQ;
 
       if (report.EventTypeID != 1 /* successful */ &&
@@ -1285,7 +1285,7 @@ namespace Orthanc
        * J.3-2. Storage Commitment Result - Event Information":
        * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html#table_J.3-2
        **/
-      
+
       std::unique_ptr<DcmDataset> dataset(
         ReadDataset(assoc_, "Cannot read the dataset in N-EVENT-REPORT SCP", static_cast<int>(associationTimeout_)));
       assert(dataset.get() != NULL);
@@ -1295,7 +1295,7 @@ namespace Orthanc
         dataset->print(s);
         CLOG(TRACE, DICOM) << "Received Storage Commitment Report:" << std::endl << s.str();
       }
-      
+
       std::string transactionUid = ReadString(*dataset, DCM_TransactionUID);
 
       std::vector<std::string> successSopClassUid, successSopInstanceUid;
@@ -1347,7 +1347,7 @@ namespace Orthanc
         handler->HandleReport(transactionUid, successSopClassUid, successSopInstanceUid,
                               failedSopClassUid, failedSopInstanceUid, failureReasons,
                               connection);
-        
+
         dimseStatus = 0;  // Success
       }
       catch (OrthancException& e)
@@ -1358,7 +1358,7 @@ namespace Orthanc
         dimseStatus = STATUS_N_ProcessingFailure;
       }
 
-      
+
       /**
        * Send the DIMSE status back to the SCU.
        **/

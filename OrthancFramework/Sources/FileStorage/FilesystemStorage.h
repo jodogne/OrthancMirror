@@ -56,7 +56,7 @@ namespace Orthanc
     boost::filesystem::path GetPath(const std::string& uuid) const;
 
     void Setup(const boost::filesystem::path& root);
-    
+
   public:
     explicit FilesystemStorage(const boost::filesystem::path& root);
 
@@ -64,7 +64,7 @@ namespace Orthanc
                       bool fsyncOnWrite);
 
     virtual void Create(const std::string& uuid,
-                        const void* content, 
+                        const void* content,
                         size_t size,
                         FileContentType type) ORTHANC_OVERRIDE;
 

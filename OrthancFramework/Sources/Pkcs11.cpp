@@ -58,9 +58,9 @@ namespace Orthanc
   {
     static const char* PKCS11_ENGINE_ID = "pkcs11";
     static const char* PKCS11_ENGINE_NAME = "PKCS#11 for Orthanc";
-    static const ENGINE_CMD_DEFN PKCS11_ENGINE_COMMANDS[] = 
+    static const ENGINE_CMD_DEFN PKCS11_ENGINE_COMMANDS[] =
     {
-      { 
+      {
         CMD_MODULE_PATH,
         "MODULE_PATH",
         "Specifies the path to the PKCS#11 module shared library",
@@ -70,13 +70,13 @@ namespace Orthanc
         CMD_PIN,
         "PIN",
         "Specifies the pin code",
-        ENGINE_CMD_FLAG_STRING 
+        ENGINE_CMD_FLAG_STRING
       },
       {
         CMD_VERBOSE,
         "VERBOSE",
         "Print additional details",
-        ENGINE_CMD_FLAG_NO_INPUT 
+        ENGINE_CMD_FLAG_NO_INPUT
       },
       {
         CMD_LOAD_CERT_CTRL,
@@ -86,8 +86,8 @@ namespace Orthanc
       },
       {
         0,
-        NULL, 
-        NULL, 
+        NULL,
+        NULL,
         0
       }
     };
@@ -128,10 +128,10 @@ namespace Orthanc
     }
 
 
-    static int EngineControl(ENGINE *engine, 
-                             int command, 
-                             long i, 
-                             void *p, 
+    static int EngineControl(ENGINE *engine,
+                             int command,
+                             long i,
+                             void *p,
                              void (*f) ())
     {
       if (context_ == NULL)
@@ -145,9 +145,9 @@ namespace Orthanc
     }
 
 
-    static EVP_PKEY *EngineLoadPublicKey(ENGINE *engine, 
+    static EVP_PKEY *EngineLoadPublicKey(ENGINE *engine,
                                          const char *s_key_id,
-                                         UI_METHOD *ui_method, 
+                                         UI_METHOD *ui_method,
                                          void *callback_data)
     {
       if (context_ == NULL)
@@ -161,9 +161,9 @@ namespace Orthanc
     }
 
 
-    static EVP_PKEY *EngineLoadPrivateKey(ENGINE *engine, 
+    static EVP_PKEY *EngineLoadPrivateKey(ENGINE *engine,
                                           const char *s_key_id,
-                                          UI_METHOD *ui_method, 
+                                          UI_METHOD *ui_method,
                                           void *callback_data)
     {
       if (context_ == NULL)
@@ -284,12 +284,12 @@ namespace Orthanc
       }
 
       if (!pin.empty() &&
-          !ENGINE_ctrl_cmd_string(engine, "PIN", pin.c_str(), 0)) 
+          !ENGINE_ctrl_cmd_string(engine, "PIN", pin.c_str(), 0))
       {
         throw OrthancException(ErrorCode_InternalError,
                                "Cannot set the PIN code for PKCS#11");
       }
-  
+
       if (!ENGINE_init(engine))
       {
         throw OrthancException(ErrorCode_InternalError,

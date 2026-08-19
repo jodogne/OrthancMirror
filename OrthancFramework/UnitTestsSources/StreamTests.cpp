@@ -48,7 +48,7 @@ using namespace Orthanc;
 TEST(Gzip, Basic)
 {
   std::string s = "Hello world";
- 
+
   std::string compressed;
   GzipCompressor c;
   ASSERT_FALSE(c.HasPrefixWithUncompressedSize());
@@ -64,7 +64,7 @@ TEST(Gzip, Basic)
 TEST(Gzip, Empty)
 {
   std::string s;
- 
+
   std::string compressed;
   GzipCompressor c;
   ASSERT_FALSE(c.HasPrefixWithUncompressedSize());
@@ -80,7 +80,7 @@ TEST(Gzip, Empty)
 TEST(Gzip, BasicWithPrefix)
 {
   std::string s = "Hello world";
- 
+
   std::string compressed;
   GzipCompressor c;
   c.SetPrefixWithUncompressedSize(true);
@@ -97,7 +97,7 @@ TEST(Gzip, BasicWithPrefix)
 TEST(Gzip, EmptyWithPrefix)
 {
   std::string s;
- 
+
   std::string compressed;
   GzipCompressor c;
   c.SetPrefixWithUncompressedSize(true);
@@ -114,7 +114,7 @@ TEST(Zlib, Basic)
 {
   std::string s = Toolbox::GenerateUuid();
   s = s + s + s + s;
- 
+
   std::string compressed;
   ZlibCompressor c;
   ASSERT_TRUE(c.HasPrefixWithUncompressedSize());
@@ -131,7 +131,7 @@ TEST(Zlib, Level)
 {
   std::string s = Toolbox::GenerateUuid();
   s = s + s + s + s;
- 
+
   std::string compressed, compressed2;
   ZlibCompressor c;
   c.SetCompressionLevel(9);
@@ -148,7 +148,7 @@ TEST(Zlib, DISABLED_Corrupted)  // Disabled because it may result in a crash
 {
   std::string s = Toolbox::GenerateUuid();
   s = s + s + s + s;
- 
+
   std::string compressed;
   ZlibCompressor c;
   IBufferCompressor::Compress(compressed, c, s);
@@ -164,7 +164,7 @@ TEST(Zlib, DISABLED_Corrupted)  // Disabled because it may result in a crash
 TEST(Zlib, Empty)
 {
   std::string s = "";
- 
+
   std::string compressed, compressed2;
   ZlibCompressor c;
   IBufferCompressor::Compress(compressed, c, s);
@@ -284,10 +284,10 @@ TEST(HttpStreamTranscoder, Basic)
     sender.SetBuffer(t);
 
     HttpStreamTranscoder transcode(sender, CompressionType_None);
-    
+
     std::string u;
     ASSERT_TRUE(ReadAllStream(u, transcode));
-    
+
     ASSERT_EQ(t, u);
   }
 
@@ -299,10 +299,10 @@ TEST(HttpStreamTranscoder, Basic)
     sender.SetBuffer(t);
 
     HttpStreamTranscoder transcode(sender, CompressionType_ZlibWithSize);
-    
+
     std::string u;
     ASSERT_TRUE(ReadAllStream(u, transcode, false, false));
-    
+
     ASSERT_EQ(s, u);
   }
 
@@ -314,10 +314,10 @@ TEST(HttpStreamTranscoder, Basic)
     sender.SetBuffer(t);
 
     HttpStreamTranscoder transcode(sender, CompressionType_ZlibWithSize);
-    
+
     std::string u;
     ASSERT_TRUE(ReadAllStream(u, transcode, false, true));
-    
+
     ASSERT_EQ(t.size() - sizeof(uint64_t), u.size());
     ASSERT_EQ(t.substr(sizeof(uint64_t)), u);
   }
@@ -330,7 +330,7 @@ TEST(HttpStreamTranscoder, Basic)
     HttpStreamTranscoder transcode(sender, CompressionType_ZlibWithSize);
     std::string u;
     ASSERT_TRUE(ReadAllStream(u, transcode, false, true));
-    
+
     ASSERT_EQ(0u, u.size());
   }
 }

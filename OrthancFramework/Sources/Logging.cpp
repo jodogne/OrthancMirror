@@ -47,12 +47,12 @@ namespace Orthanc
   namespace Logging
   {
     static const uint32_t ALL_CATEGORIES_MASK = 0xffffffff;
-    
+
     static uint32_t infoCategoriesMask_ = 0;
     static uint32_t traceCategoriesMask_ = 0;
     static std::string logTargetFolder_;            // keep a track of the log folder in case of reset of the context
     static std::string logTargetFile_;              // keep a track of the log file in case of reset of the context
-    
+
     const char* EnumerationToString(LogLevel level)
     {
       switch (level)
@@ -93,13 +93,13 @@ namespace Orthanc
       {
         return LogLevel_TRACE;
       }
-      else 
+      else
       {
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
 
-    
+
     void EnableInfoLevel(bool enabled)
     {
       if (enabled)
@@ -114,13 +114,13 @@ namespace Orthanc
       }
     }
 
-    
+
     bool IsInfoLevelEnabled()
     {
       return (infoCategoriesMask_ != 0);
     }
 
-    
+
     void EnableTraceLevel(bool enabled)
     {
       if (enabled)
@@ -141,7 +141,7 @@ namespace Orthanc
       return (traceCategoriesMask_ != 0);
     }
 
-    
+
     void SetCategoryEnabled(LogLevel level,
                             LogCategory category,
                             bool enabled)
@@ -149,7 +149,7 @@ namespace Orthanc
       // Invariant: If a bit is set for "trace", it must also be set
       // for "verbose" (in other words, trace level implies verbose level)
       assert((traceCategoriesMask_ & infoCategoriesMask_) == traceCategoriesMask_);
-      
+
       if (level == LogLevel_INFO)
       {
         if (enabled)
@@ -183,7 +183,7 @@ namespace Orthanc
       assert((traceCategoriesMask_ & infoCategoriesMask_) == traceCategoriesMask_);
     }
 
-    
+
     bool IsCategoryEnabled(LogLevel level,
                            LogCategory category)
     {
@@ -269,7 +269,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
-    
+
 
     const char* GetCategoryName(LogCategory category)
     {
@@ -277,16 +277,16 @@ namespace Orthanc
       {
         case LogCategory_GENERIC:
           return "generic";
-            
+
         case LogCategory_PLUGINS:
           return "plugins";
-            
+
         case LogCategory_HTTP:
           return "http";
-            
+
         case LogCategory_DICOM:
           return "dicom";
-            
+
         case LogCategory_SQLITE:
           return "sqlite";
 
@@ -354,7 +354,7 @@ namespace Orthanc
 
 /*********************************************************
  * Logger compatible with <stdio.h> OR logger that sends its
- * output to the emscripten html5 api (depending on the 
+ * output to the emscripten html5 api (depending on the
  * definition of __EMSCRIPTEN__)
  *********************************************************/
 
@@ -499,7 +499,7 @@ namespace
    * plugin, limited to the logging facilities, and that is binary
    * compatible with the definitions of "OrthancCPlugin.h"
    **/
-  typedef enum 
+  typedef enum
   {
     _OrthancPluginService_LogInfo = 1,
     _OrthancPluginService_LogWarning = 2,
@@ -531,7 +531,7 @@ namespace
   } _OrthancPluginLogMessage;
 
 }
-  
+
 
 #include "Enumerations.h"
 #include "SystemToolbox.h"
@@ -557,7 +557,7 @@ namespace
     std::unique_ptr<std::ofstream> file_;
 
   public:
-    LoggingStreamsContext() : 
+    LoggingStreamsContext() :
       error_(&std::cerr),
       warning_(&std::cerr),
       info_(&std::cerr)
@@ -992,7 +992,7 @@ namespace Orthanc
       boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
       boost::filesystem::path root(SystemToolbox::PathFromUtf8(directory));
       boost::filesystem::path exe(SystemToolbox::GetPathToExecutable());
-      
+
       if (!boost::filesystem::exists(root) ||
           !boost::filesystem::is_directory(root))
       {
@@ -1049,7 +1049,7 @@ namespace Orthanc
 #if defined(__linux__) && !defined(NDEBUG) && !defined(__LSB_VERSION__)
         // set the thread name at "system" level too -> required to have the thread names visible in GDB !
         pthread_setname_np(pthread_self(), name.substr(0, 15).c_str());  // thread names are limited to 15 in Linux
-#endif              
+#endif
       }
       else
       {
@@ -1097,7 +1097,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_NotImplemented);  // Not available for plugins
       }
-    }    
+    }
 
 
     static void PushCurrentThreadContext(const std::string& context)
@@ -1294,7 +1294,7 @@ namespace Orthanc
         prefix += "(" + std::string(GetCategoryName(category)) + ") ";
       }
     }
-    
+
 
     void InitializePluginContext(void* pluginContext)
     {
@@ -1461,7 +1461,7 @@ namespace Orthanc
           // We lock the global mutex. The mutex is locked until the
           // destructor is called: No change in the output can be done.
           pimpl_->lock_.lock();
-      
+
           if (loggingStreamsContext_.get() == NULL)
           {
             // Have you called Orthanc::Logging::InitializePluginContext()?
@@ -1476,19 +1476,19 @@ namespace Orthanc
             case LogLevel_ERROR:
               stream_ = &loggingStreamsContext_->GetError();
               break;
-              
+
             case LogLevel_WARNING:
               stream_ = &loggingStreamsContext_->GetWarning();
               break;
-              
+
             case LogLevel_INFO:
             case LogLevel_TRACE:
               stream_ = &loggingStreamsContext_->GetInfo();
               break;
-              
+
             default:  // Should not occur
               stream_ = &loggingStreamsContext_->GetError();
-              break;              
+              break;
           }
 
           if (stream_ == &nullStream_)
@@ -1504,7 +1504,7 @@ namespace Orthanc
               (*stream_) << prefix;
             }
             catch (...)
-            { 
+            {
               // Something is going really wrong, probably running out of
               // memory. Fallback to a degraded mode.
               stream_ = &loggingStreamsContext_->GetError();
@@ -1522,7 +1522,7 @@ namespace Orthanc
       if (pluginContext_ != NULL)
       {
         // We are logging through the Orthanc SDK
-        
+
         std::string message = messageStream_.str();
 
         if (pluginContext_ != NULL)
@@ -1586,7 +1586,7 @@ namespace Orthanc
       assert(pimpl_ != NULL);
       delete pimpl_;
     }
-      
+
 
     void Flush()
     {
@@ -1597,7 +1597,7 @@ namespace Orthanc
         loggingStreamsContext_->Flush();
       }
     }
-    
+
 
     void SetErrorWarnInfoLoggingStreams(std::ostream& errorStream,
                                         std::ostream& warningStream,

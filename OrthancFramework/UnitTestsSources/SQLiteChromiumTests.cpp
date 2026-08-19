@@ -48,7 +48,7 @@ using namespace Orthanc::SQLite;
 
 namespace
 {
-  class SQLConnectionTest : public testing::Test 
+  class SQLConnectionTest : public testing::Test
   {
   public:
     SQLConnectionTest()
@@ -69,9 +69,9 @@ namespace
       db_.Close();
     }
 
-    Connection& db() 
-    { 
-      return db_; 
+    Connection& db()
+    {
+      return db_;
     }
 
   private:
@@ -81,7 +81,7 @@ namespace
 
 
 
-TEST_F(SQLConnectionTest, Execute) 
+TEST_F(SQLConnectionTest, Execute)
 {
   // Valid statement should return true.
   ASSERT_TRUE(db().Execute("CREATE TABLE foo (a, b)"));
@@ -276,7 +276,7 @@ namespace
     }
 
     // Returns the number of rows in table "foo".
-    int CountFoo() 
+    int CountFoo()
     {
       Statement count(db(), "SELECT count(*) FROM foo");
       count.Step();

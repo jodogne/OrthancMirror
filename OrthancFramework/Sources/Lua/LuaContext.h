@@ -43,7 +43,7 @@
 #  include "../HttpClient.h"
 #endif
 
-extern "C" 
+extern "C"
 {
 #include <lua.h>
 }
@@ -91,7 +91,7 @@ namespace Orthanc
                         bool keepStrings);
 
     void SetHttpHeaders(int top);
-    
+
   public:
     LuaContext();
 

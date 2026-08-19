@@ -276,11 +276,11 @@ TEST(Uri, Truncate)
 
 TEST(Uri, Child)
 {
-  UriComponents c1;  Toolbox::SplitUriComponents(c1, "/hello/world");  
-  UriComponents c2;  Toolbox::SplitUriComponents(c2, "/hello/hello");  
-  UriComponents c3;  Toolbox::SplitUriComponents(c3, "/hello");  
-  UriComponents c4;  Toolbox::SplitUriComponents(c4, "/world");  
-  UriComponents c5;  Toolbox::SplitUriComponents(c5, "/");  
+  UriComponents c1;  Toolbox::SplitUriComponents(c1, "/hello/world");
+  UriComponents c2;  Toolbox::SplitUriComponents(c2, "/hello/hello");
+  UriComponents c3;  Toolbox::SplitUriComponents(c3, "/hello");
+  UriComponents c4;  Toolbox::SplitUriComponents(c4, "/world");
+  UriComponents c5;  Toolbox::SplitUriComponents(c5, "/");
 
   ASSERT_TRUE(Toolbox::IsChildUri(c1, c1));
   ASSERT_FALSE(Toolbox::IsChildUri(c1, c2));
@@ -428,7 +428,7 @@ TEST(Toolbox, ComputeMD5)
 TEST(Toolbox, ComputeSHA1)
 {
   std::string s;
-  
+
   Toolbox::ComputeSHA1(s, "The quick brown fox jumps over the lazy dog");
   ASSERT_EQ("2fd4e1c6-7a2d28fc-ed849ee1-bb76e739-1b93eb12", s);
   Toolbox::ComputeSHA1(s, "");
@@ -460,10 +460,10 @@ TEST(Toolbox, StripSpaces)
   Toolbox::RemoveSurroundingQuotes(s); ASSERT_EQ("  abd ", s);
 
   s = "\"";
-  Toolbox::RemoveSurroundingQuotes(s); ASSERT_EQ("", s);  
+  Toolbox::RemoveSurroundingQuotes(s); ASSERT_EQ("", s);
 
   s = "\"\"";
-  Toolbox::RemoveSurroundingQuotes(s); ASSERT_EQ("", s);  
+  Toolbox::RemoveSurroundingQuotes(s); ASSERT_EQ("", s);
 
   s = "\"_\"";
   Toolbox::RemoveSurroundingQuotes(s); ASSERT_EQ("_", s);
@@ -480,7 +480,7 @@ TEST(Toolbox, Case)
   Toolbox::ToUpperCase(ss, s);
   ASSERT_EQ("COU", ss);
   Toolbox::ToLowerCase(ss, s);
-  ASSERT_EQ("cou", ss); 
+  ASSERT_EQ("cou", ss);
 
   s = "CoU";
   Toolbox::ToUpperCase(s);
@@ -510,7 +510,7 @@ TEST(Toolbox, ConvertFromLatin1)
 {
   // This is a Latin-1 test string
   const unsigned char data[10] = { 0xe0, 0xe9, 0xea, 0xe7, 0x26, 0xc6, 0x61, 0x62, 0x63, 0x00 };
-  
+
   std::string s(reinterpret_cast<const char*>(&data[0]), 10);
   ASSERT_EQ("&abc", Toolbox::ConvertToAscii(s));
   ASSERT_FALSE(Toolbox::IsValidUtf8(s));
@@ -574,40 +574,40 @@ static uint32_t GetUnicode(const uint8_t* data,
 TEST(Toolbox, Utf8ToUnicode)
 {
   // https://en.wikipedia.org/wiki/UTF-8
-  
+
   ASSERT_EQ(1u, sizeof(char));
   ASSERT_EQ(1u, sizeof(uint8_t));
-  
+
   {
     const uint8_t data[] = { 0x24 };
     ASSERT_EQ(0x24, GetUnicode(data, 1, 1));
     ASSERT_THROW(GetUnicode(data, 0, 1), OrthancException);
   }
-  
+
   {
     const uint8_t data[] = { 0xc2, 0xa2 };
     ASSERT_EQ(0xa2, GetUnicode(data, 2, 2));
     ASSERT_THROW(GetUnicode(data, 1, 2), OrthancException);
   }
-  
+
   {
     const uint8_t data[] = { 0xe0, 0xa4, 0xb9 };
     ASSERT_EQ(0x0939, GetUnicode(data, 3, 3));
     ASSERT_THROW(GetUnicode(data, 2, 3), OrthancException);
   }
-  
+
   {
     const uint8_t data[] = { 0xe2, 0x82, 0xac };
     ASSERT_EQ(0x20ac, GetUnicode(data, 3, 3));
     ASSERT_THROW(GetUnicode(data, 2, 3), OrthancException);
   }
-  
+
   {
     const uint8_t data[] = { 0xf0, 0x90, 0x8d, 0x88 };
     ASSERT_EQ(0x010348, GetUnicode(data, 4, 4));
     ASSERT_THROW(GetUnicode(data, 3, 4), OrthancException);
   }
-  
+
   {
     const uint8_t data[] = { 0xe0 };
     ASSERT_THROW(GetUnicode(data, 1, 1), OrthancException);
@@ -625,8 +625,8 @@ TEST(Toolbox, UrlDecode)
 
   s = "%21%23%24%26%27%28%29%2A%2B%2c%2f%3A%3b%3d%3f%40%5B%5D%90%ff";
   Toolbox::UrlDecode(s);
-  std::string ss = "!#$&'()*+,/:;=?@[]"; 
-  ss.push_back((char) 144); 
+  std::string ss = "!#$&'()*+,/:;=?@[]";
+  ss.push_back((char) 144);
   ss.push_back((char) 255);
   ASSERT_EQ(ss, s);
 
@@ -745,16 +745,16 @@ TEST(Toolbox, Wildcard)
 TEST(Toolbox, Tokenize)
 {
   std::vector<std::string> t;
-  
-  Toolbox::TokenizeString(t, "", ','); 
+
+  Toolbox::TokenizeString(t, "", ',');
   ASSERT_EQ(1u, t.size());
   ASSERT_EQ("", t[0]);
-  
-  Toolbox::TokenizeString(t, "abc", ','); 
+
+  Toolbox::TokenizeString(t, "abc", ',');
   ASSERT_EQ(1u, t.size());
   ASSERT_EQ("abc", t[0]);
-  
-  Toolbox::TokenizeString(t, "ab,cd,ef,", ','); 
+
+  Toolbox::TokenizeString(t, "ab,cd,ef,", ',');
   ASSERT_EQ(4u, t.size());
   ASSERT_EQ("ab", t[0]);
   ASSERT_EQ("cd", t[1]);
@@ -992,15 +992,15 @@ TEST(Toolbox, Endianness)
   /**
    * Windows and OS X are assumed to always little-endian.
    **/
-  
+
 #if defined(_WIN32) || defined(__APPLE__)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 
-  
+
   /**
    * FreeBSD.
    **/
-  
+
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)
 #  if _BYTE_ORDER == _BIG_ENDIAN
    ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
@@ -1012,7 +1012,7 @@ TEST(Toolbox, Endianness)
   /**
    * Linux.
    **/
-  
+
 #elif defined(__linux__) || defined(__FreeBSD_kernel__)
 
 #if !defined(__BYTE_ORDER)
@@ -1025,11 +1025,11 @@ TEST(Toolbox, Endianness)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 #  endif
 
-  
+
   /**
    * WebAssembly is always little-endian.
    **/
-  
+
 #elif defined(__EMSCRIPTEN__)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 #else
@@ -1296,7 +1296,7 @@ TEST(Toolbox, UriEncode)
 
   // Unreserved characters must not be modified
   std::string t = "aAzZ09.-~_";
-  Toolbox::UriEncode(s, t); 
+  Toolbox::UriEncode(s, t);
   ASSERT_EQ(t, s);
 
   Toolbox::UriEncode(s, "!#$&'()*+,/:;=?@[]"); ASSERT_EQ("%21%23%24%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D", s);
@@ -1304,7 +1304,7 @@ TEST(Toolbox, UriEncode)
 
   // Encode characters from UTF-8. This is the test string from the
   // file "../Resources/EncodingTests.py"
-  Toolbox::UriEncode(s, "\x54\x65\x73\x74\xc3\xa9\xc3\xa4\xc3\xb6\xc3\xb2\xd0\x94\xce\x98\xc4\x9d\xd7\x93\xd8\xb5\xc4\xb7\xd1\x9b\xe0\xb9\x9b\xef\xbe\x88\xc4\xb0"); 
+  Toolbox::UriEncode(s, "\x54\x65\x73\x74\xc3\xa9\xc3\xa4\xc3\xb6\xc3\xb2\xd0\x94\xce\x98\xc4\x9d\xd7\x93\xd8\xb5\xc4\xb7\xd1\x9b\xe0\xb9\x9b\xef\xbe\x88\xc4\xb0");
   ASSERT_EQ("Test%C3%A9%C3%A4%C3%B6%C3%B2%D0%94%CE%98%C4%9D%D7%93%D8%B5%C4%B7%D1%9B%E0%B9%9B%EF%BE%88%C4%B0", s);
 }
 
@@ -1362,7 +1362,7 @@ TEST(Toolbox, LinesIterator)
     ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
     ASSERT_FALSE(it.GetLine(s));
   }
-  
+
   {
     std::string content = "\n Hello \n\nWorld\n\n";
     Toolbox::LinesIterator it(content);
@@ -1429,7 +1429,7 @@ TEST(Toolbox, SubstituteVariables)
             Toolbox::SubstituteVariables(
               "${WORLD} A ${WORLD2:-a} B ${WORLD:-b} C ${WORLD2:-\"'c'\"} D ${WORLD2:-'{\"a\":\"b\"}'} E ${WORLD2:-}",
               env));
-  
+
   SystemToolbox::GetEnvironmentVariables(env);
   ASSERT_TRUE(env.find("NOPE") == env.end());
 
@@ -1456,7 +1456,7 @@ void GetValuesDico(std::map<std::string, std::string>& values, MetricsRegistry& 
 
   std::vector<std::string> t;
   Toolbox::TokenizeString(t, s, '\n');
- 
+
   for (size_t i = 0; i < t.size() - 1; i++)
   {
     std::vector<std::string> v;
@@ -1471,7 +1471,7 @@ TEST(MetricsRegistry, Basic)
     MetricsRegistry m;
     m.SetEnabled(false);
     m.SetIntegerValue("hello.world", 42);
-    
+
     std::string s;
     m.ExportPrometheusText(s);
     ASSERT_TRUE(s.empty());
@@ -1480,7 +1480,7 @@ TEST(MetricsRegistry, Basic)
   {
     MetricsRegistry m;
     m.Register("hello.world", MetricsUpdatePolicy_Directly, MetricsDataType_Integer);
-    
+
     std::string s;
     m.ExportPrometheusText(s);
     ASSERT_TRUE(s.empty());
@@ -1491,7 +1491,7 @@ TEST(MetricsRegistry, Basic)
     m.SetIntegerValue("hello.world", -42);
     ASSERT_EQ(MetricsUpdatePolicy_Directly, m.GetUpdatePolicy("hello.world"));
     ASSERT_THROW(m.GetUpdatePolicy("nope"), OrthancException);
-    
+
     std::string s;
     m.ExportPrometheusText(s);
 
@@ -1515,13 +1515,13 @@ TEST(MetricsRegistry, Basic)
     m.SetIntegerValue("hello.min", 20);
     m.SetIntegerValue("hello.min", -10);
     m.SetIntegerValue("hello.min", 5);
-    
+
     m.Register("hello.directly", MetricsUpdatePolicy_Directly, MetricsDataType_Integer);
     m.SetIntegerValue("hello.directly", 10);
     m.SetIntegerValue("hello.directly", 20);
     m.SetIntegerValue("hello.directly", -10);
     m.SetIntegerValue("hello.directly", 5);
-    
+
     ASSERT_EQ(MetricsUpdatePolicy_MaxOver10Seconds, m.GetUpdatePolicy("hello.max"));
     ASSERT_EQ(MetricsUpdatePolicy_MinOver10Seconds, m.GetUpdatePolicy("hello.min"));
     ASSERT_EQ(MetricsUpdatePolicy_Directly, m.GetUpdatePolicy("hello.directly"));
@@ -1620,7 +1620,7 @@ TEST(MetricsRegistry, Basic)
 
     {
       MetricsRegistry::SharedMetrics max10(mr, "shared_max10", MetricsUpdatePolicy_MaxOver10Seconds);
-    
+
       {
         MetricsRegistry::ActiveCounter c1(max10);
         MetricsRegistry::ActiveCounter c2(max10);
@@ -1683,9 +1683,9 @@ TEST(Toolbox, ReadFileRange)
   tmp.Read(s);                     ASSERT_TRUE(s.empty());
   tmp.ReadRange(s, 0, 0, true);    ASSERT_TRUE(s.empty());
   tmp.ReadRange(s, 0, 10, false);  ASSERT_TRUE(s.empty());
-  
+
   ASSERT_THROW(tmp.ReadRange(s, 0, 1, true), OrthancException);
-  
+
   tmp.Write("Hello");
   tmp.Read(s);                     ASSERT_EQ("Hello", s);
   tmp.ReadRange(s, 0, 5, true);    ASSERT_EQ("Hello", s);
@@ -1698,7 +1698,7 @@ TEST(Toolbox, ReadFileRange)
   tmp.ReadRange(s, 2, 50, false);  ASSERT_EQ("llo", s);
   tmp.ReadRange(s, 2, 2, false);   ASSERT_TRUE(s.empty());
   tmp.ReadRange(s, 10, 50, false); ASSERT_TRUE(s.empty());
-  
+
   ASSERT_THROW(tmp.ReadRange(s, 5, 10, true), OrthancException);
   ASSERT_THROW(tmp.ReadRange(s, 10, 50, true), OrthancException);
   ASSERT_THROW(tmp.ReadRange(s, 50, 10, true), OrthancException);

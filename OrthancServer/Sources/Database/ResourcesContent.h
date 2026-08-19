@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -36,7 +36,7 @@ namespace Orthanc
   {
     class ISetResourcesContent;
   }
-  
+
   class ResourcesContent : public boost::noncopyable
   {
   public:
@@ -116,7 +116,7 @@ namespace Orthanc
 
     typedef std::list<TagValue>  ListTags;
     typedef std::list<Metadata>  ListMetadata;
-    
+
   private:
     bool           isNewResource_;
     ListTags       tags_;
@@ -129,12 +129,12 @@ namespace Orthanc
       isNewResource_(isNewResource)
     {
     }
-    
+
     void AddMainDicomTag(int64_t resourceId,
                          const DicomTag& tag,
                          const std::string& value)
     {
-      // avoid adding twice the same tag for the same resource e.g, when the same tag is registered at study and patient level 
+      // avoid adding twice the same tag for the same resource e.g, when the same tag is registered at study and patient level
       // https://discourse.orthanc-server.org/t/jobs-api-the-dicommovescu-job-doesnt-seems-to-track-progress/3140/14
       if (mainDicomTagsPerResource_.find(resourceId) == mainDicomTagsPerResource_.end())
       {

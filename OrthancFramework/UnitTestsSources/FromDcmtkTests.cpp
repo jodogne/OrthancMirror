@@ -183,7 +183,7 @@ TEST(DicomModification, Anonymization)
   ASSERT_TRUE(Toolbox::IsUuid(s));
   ASSERT_TRUE(o->GetTagValue(s, privateTag));
   ASSERT_STREQ("private tag", s.c_str());
-  
+
   m.SetupAnonymization(DicomVersion_2008);
   m.Apply(o);
   ASSERT_FALSE(o->GetTagValue(s, privateTag));
@@ -244,7 +244,7 @@ TEST(DicomModification, Png)
 
     ImageAccessor accessor;
     img.GetWriteableAccessor(accessor);
-    
+
     uint16_t v = 0;
     for (unsigned int y = 0; y < img.GetHeight(); y++)
     {
@@ -378,15 +378,15 @@ TEST(FromDcmtkBridge, Encodings3)
 
 TEST(FromDcmtkBridge, ValueRepresentation)
 {
-  ASSERT_EQ(ValueRepresentation_PersonName, 
+  ASSERT_EQ(ValueRepresentation_PersonName,
             FromDcmtkBridge::LookupValueRepresentation(DICOM_TAG_PATIENT_NAME));
-  ASSERT_EQ(ValueRepresentation_Date, 
+  ASSERT_EQ(ValueRepresentation_Date,
             FromDcmtkBridge::LookupValueRepresentation(DicomTag(0x0008, 0x0020) /* StudyDate */));
-  ASSERT_EQ(ValueRepresentation_Time, 
+  ASSERT_EQ(ValueRepresentation_Time,
             FromDcmtkBridge::LookupValueRepresentation(DicomTag(0x0008, 0x0030) /* StudyTime */));
-  ASSERT_EQ(ValueRepresentation_DateTime, 
+  ASSERT_EQ(ValueRepresentation_DateTime,
             FromDcmtkBridge::LookupValueRepresentation(DicomTag(0x0008, 0x002a) /* AcquisitionDateTime */));
-  ASSERT_EQ(ValueRepresentation_NotSupported, 
+  ASSERT_EQ(ValueRepresentation_NotSupported,
             FromDcmtkBridge::LookupValueRepresentation(DicomTag(0x0001, 0x0001) /* some private tag */));
 }
 
@@ -420,14 +420,14 @@ TEST(FromDcmtkBridge, ParseListOfTags)
   {// invalid tag
     std::string source = "0010,0010;Patient-BirthDate;0020,0020";
     std::set<DicomTag> result;
-    
+
     ASSERT_THROW(FromDcmtkBridge::ParseListOfTags(result, source), OrthancException);
   }
 
   {// duplicate tag only once
     std::string source = "0010,0010;PatientName";
     std::set<DicomTag> result;
-    
+
     FromDcmtkBridge::ParseListOfTags(result, source);
 
     ASSERT_EQ(1u, result.size());
@@ -555,7 +555,7 @@ TEST(ParsedDicomFile, InsertReplaceJson)
     ASSERT_NE(0, c["ReferencedStudySequence"].compare(a));  // Because Data URI Scheme decoding was enabled
   }
 
-  a = "data:application/octet-stream;base64,VGF0YQ==";   // echo -n "Tata" | base64 
+  a = "data:application/octet-stream;base64,VGF0YQ==";   // echo -n "Tata" | base64
   f.Replace(DICOM_TAG_SOP_INSTANCE_UID, a, false, DicomReplaceMode_InsertIfAbsent, "");  // (*)
   f.Replace(DICOM_TAG_SOP_CLASS_UID, a, true, DicomReplaceMode_InsertIfAbsent, "");  // (**)
 
@@ -698,25 +698,25 @@ TEST(ParsedDicomFile, ToJsonFlags2)
   f.DatasetToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(5u, v.getMemberNames().size());
-  ASSERT_FALSE(v.isMember("7fe0,0010"));  
+  ASSERT_FALSE(v.isMember("7fe0,0010"));
 
   f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData | DicomToJsonFlags_ConvertBinaryToNull), 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(6u, v.getMemberNames().size());
-  ASSERT_TRUE(v.isMember("7fe0,0010"));  
-  ASSERT_EQ(Json::nullValue, v["7fe0,0010"].type());  
+  ASSERT_TRUE(v.isMember("7fe0,0010"));
+  ASSERT_EQ(Json::nullValue, v["7fe0,0010"].type());
 
   f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData | DicomToJsonFlags_ConvertBinaryToAscii), 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(6u, v.getMemberNames().size());
-  ASSERT_TRUE(v.isMember("7fe0,0010"));  
-  ASSERT_EQ(Json::stringValue, v["7fe0,0010"].type());  
+  ASSERT_TRUE(v.isMember("7fe0,0010"));
+  ASSERT_EQ(Json::stringValue, v["7fe0,0010"].type());
   ASSERT_EQ("BA", v["7fe0,0010"].asString().substr(0, 2));
 
   f.DatasetToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePixelData, 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(6u, v.getMemberNames().size());
-  ASSERT_TRUE(v.isMember("7fe0,0010"));  
+  ASSERT_TRUE(v.isMember("7fe0,0010"));
   ASSERT_EQ(Json::stringValue, v["7fe0,0010"].type());
   std::string mime, content;
   ASSERT_TRUE(Toolbox::DecodeDataUriScheme(mime, content, v["7fe0,0010"].asString()));
@@ -757,7 +757,7 @@ TEST(ParsedDicomFile, ToJsonFlags3)
     ASSERT_EQ(2u, v.size());
     ASSERT_EQ("HELLO^", v["0010,0010"].asString());
     ASSERT_EQ("WORLD^", v["7fe1,0010"].asString());
-  }  
+  }
 }
 
 
@@ -812,7 +812,7 @@ TEST(ParsedDicomFile, FromJson)
     v["7052-1000"] = "Some unknown tag";  // Even group => public, unknown tag
     v["7057-1000"] = "Some private tag";  // Odd group => private tag
     v["7059-1000"] = "Some private tag2";  // Odd group => private tag, with an odd length to test padding
-  
+
     std::string s;
     Toolbox::EncodeDataUriScheme(s, "application/octet-stream", "Sebastien");
     v["StudyDescription"] = s;
@@ -829,9 +829,9 @@ TEST(ParsedDicomFile, FromJson)
   }
 
   const DicomToJsonFlags toJsonFlags = static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeBinary |
-                                                                     DicomToJsonFlags_IncludePixelData | 
-                                                                     DicomToJsonFlags_IncludePrivateTags | 
-                                                                     DicomToJsonFlags_IncludeUnknownTags | 
+                                                                     DicomToJsonFlags_IncludePixelData |
+                                                                     DicomToJsonFlags_IncludePrivateTags |
+                                                                     DicomToJsonFlags_IncludeUnknownTags |
                                                                      DicomToJsonFlags_ConvertBinaryToAscii);
 
 
@@ -911,12 +911,12 @@ TEST(TestImages, PatternGrayscale8)
 
   image.GetRegion(r, 32, 32, 64, 192);
   Orthanc::ImageProcessing::Set(r, 0);
-  
+
   image.GetRegion(r, 160, 32, 64, 192);
-  Orthanc::ImageProcessing::Set(r, 255); 
+  Orthanc::ImageProcessing::Set(r, 255);
 
   std::string saved;
-  
+
   {
     ParsedDicomFile f(true);
     f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
@@ -932,7 +932,7 @@ TEST(TestImages, PatternGrayscale8)
 
   {
     Orthanc::ParsedDicomFile f(saved);
-    
+
     std::unique_ptr<Orthanc::ImageAccessor> decoded(f.DecodeFrame(0));
     ASSERT_EQ(256u, decoded->GetWidth());
     ASSERT_EQ(256u, decoded->GetHeight());
@@ -992,7 +992,7 @@ TEST(TestImages, PatternRGB)
 
   {
     Orthanc::ParsedDicomFile f(saved);
-    
+
     std::unique_ptr<Orthanc::ImageAccessor> decoded(f.DecodeFrame(0));
     ASSERT_EQ(384u, decoded->GetWidth());
     ASSERT_EQ(256u, decoded->GetHeight());
@@ -1023,15 +1023,15 @@ TEST(TestImages, PatternUint16)
   }
 
   Orthanc::ImageAccessor r;
-  
+
   image.GetRegion(r, 32, 32, 64, 192);
   Orthanc::ImageProcessing::Set(r, 0);
-  
+
   image.GetRegion(r, 160, 32, 64, 192);
-  Orthanc::ImageProcessing::Set(r, 65535); 
+  Orthanc::ImageProcessing::Set(r, 65535);
 
   std::string saved;
-  
+
   {
     ParsedDicomFile f(true);
     f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
@@ -1047,7 +1047,7 @@ TEST(TestImages, PatternUint16)
 
   {
     Orthanc::ParsedDicomFile f(saved);
-    
+
     std::unique_ptr<Orthanc::ImageAccessor> decoded(f.DecodeFrame(0));
     ASSERT_EQ(256u, decoded->GetWidth());
     ASSERT_EQ(256u, decoded->GetHeight());
@@ -1080,12 +1080,12 @@ TEST(TestImages, PatternInt16)
   Orthanc::ImageAccessor r;
   image.GetRegion(r, 32, 32, 64, 192);
   Orthanc::ImageProcessing::Set(r, -32768);
-  
+
   image.GetRegion(r, 160, 32, 64, 192);
-  Orthanc::ImageProcessing::Set(r, 32767); 
+  Orthanc::ImageProcessing::Set(r, 32767);
 
   std::string saved;
-  
+
   {
     ParsedDicomFile f(true);
     f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
@@ -1101,7 +1101,7 @@ TEST(TestImages, PatternInt16)
 
   {
     Orthanc::ParsedDicomFile f(saved);
-    
+
     std::unique_ptr<Orthanc::ImageAccessor> decoded(f.DecodeFrame(0));
     ASSERT_EQ(256u, decoded->GetWidth());
     ASSERT_EQ(256u, decoded->GetHeight());
@@ -1177,14 +1177,14 @@ TEST(ParsedDicomFile, DicomMapEncodings2)
       utf8 = testEncodingsEncoded[i];
       break;
     }
-  }  
+  }
 
   ASSERT_TRUE(utf8 != NULL);
 
   for (unsigned int i = 0; i < testEncodingsCount; i++)
   {
     // 1251 codepage is not supported by the core DICOM standard, ignore it
-    if (testEncodings[i] != Encoding_Windows1251) 
+    if (testEncodings[i] != Encoding_Windows1251)
     {
       {
         // Sanity check to test the proper behavior of "EncodingTests.py"
@@ -1214,7 +1214,7 @@ TEST(ParsedDicomFile, DicomMapEncodings2)
         m.SetValue(DICOM_TAG_PATIENT_NAME, testEncodingsExpected[i], false);
 
         ParsedDicomFile dicom(m, testEncodings[i], false);
-    
+
         const char* encoded = NULL;
         ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->findAndGetString(DCM_PatientName, encoded).good());
         ASSERT_STREQ(testEncodingsEncoded[i], encoded);
@@ -1237,7 +1237,7 @@ TEST(ParsedDicomFile, DicomMapEncodings2)
 
         Json::Value v2;
         dicom.DatasetToJson(v2, DicomToJsonFormat_Human, DicomToJsonFlags_Default, 0);
-        
+
         ASSERT_EQ(v2["PatientName"].asString(), v["PatientName"].asString());
         ASSERT_EQ(v2["SpecificCharacterSet"].asString(), v["SpecificCharacterSet"].asString());
       }
@@ -1251,7 +1251,7 @@ TEST(ParsedDicomFile, ChangeEncoding)
   for (unsigned int i = 0; i < testEncodingsCount; i++)
   {
     // 1251 codepage is not supported by the core DICOM standard, ignore it
-    if (testEncodings[i] != Encoding_Windows1251) 
+    if (testEncodings[i] != Encoding_Windows1251)
     {
       DicomMap m;
       m.SetValue(DICOM_TAG_PATIENT_NAME, testEncodingsExpected[i], false);
@@ -1276,11 +1276,11 @@ TEST(ParsedDicomFile, ChangeEncoding)
 
       ASSERT_EQ(testEncodings[i], dicom.DetectEncoding(hasCodeExtensions));
       ASSERT_FALSE(hasCodeExtensions);
-      
+
       const char* c = NULL;
       ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->findAndGetString(DCM_PatientName, c).good());
       EXPECT_STREQ(c, testEncodingsEncoded[i]);
-      
+
       ASSERT_TRUE(dicom.GetTagValue(tag, DICOM_TAG_PATIENT_NAME));  // Decodes to UTF-8
       EXPECT_EQ(tag, testEncodingsExpected[i]);
 
@@ -1315,7 +1315,7 @@ TEST(ParsedDicomFile, InvalidCharacterSets)
     ASSERT_EQ(Encoding_Latin3, d.DetectEncoding(hasCodeExtensions));
     ASSERT_FALSE(hasCodeExtensions);
   }
-  
+
   {
     // Valid encoding, "ISO_IR 13" is Japanese
     DicomMap m;
@@ -1328,7 +1328,7 @@ TEST(ParsedDicomFile, InvalidCharacterSets)
     ASSERT_EQ(Encoding_Japanese, d.DetectEncoding(hasCodeExtensions));
     ASSERT_FALSE(hasCodeExtensions);
   }
-  
+
   {
     // Invalid value for an encoding ("nope" is not in the DICOM standard)
     DicomMap m;
@@ -1338,7 +1338,7 @@ TEST(ParsedDicomFile, InvalidCharacterSets)
     ASSERT_THROW(ParsedDicomFile d(m, Encoding_Latin3, false),
                  OrthancException);
   }
-  
+
   {
     // Invalid encoding, as provided as a binary string
     DicomMap m;
@@ -1348,7 +1348,7 @@ TEST(ParsedDicomFile, InvalidCharacterSets)
     ASSERT_THROW(ParsedDicomFile d(m, Encoding_Latin3, false),
                  OrthancException);
   }
-  
+
   {
     // Encoding provided as an empty string, fallback to default encoding
     // In Orthanc <= 1.3.1, this test was throwing an exception
@@ -1431,21 +1431,21 @@ TEST(Toolbox, RemoveIso2022EscapeSequences)
   // +----------------------------------+
 
   static const uint8_t iso2022_cstr_oneByteControl[] = {
-    0x0f, 0x41, 
-    0x0e, 0x42, 
-    0x8e, 0x1b, 0x4e, 0x43, 
+    0x0f, 0x41,
+    0x0e, 0x42,
+    0x8e, 0x1b, 0x4e, 0x43,
     0x8f, 0x1b, 0x4f, 0x44,
-    0x8e, 0x1b, 0x4a, 0x45, 
+    0x8e, 0x1b, 0x4a, 0x45,
     0x8f, 0x1b, 0x4a, 0x46,
     0x50, 0x51, 0x52, 0x00
   };
-  
+
   static const uint8_t iso2022_cstr_oneByteControl_ref[] = {
     0x41,
     0x42,
     0x43,
     0x44,
-    0x8e, 0x1b, 0x4a, 0x45, 
+    0x8e, 0x1b, 0x4a, 0x45,
     0x8f, 0x1b, 0x4a, 0x46,
     0x50, 0x51, 0x52, 0x00
   };
@@ -1463,7 +1463,7 @@ TEST(Toolbox, RemoveIso2022EscapeSequences)
     0x1b, 0x7d, 0x46,
     0x1b, 0x7c, 0x47, 0x00
   };
-  
+
   static const uint8_t iso2022_cstr_twoByteControl_ref[] = {
     0x41,
     0x42,
@@ -1480,17 +1480,17 @@ TEST(Toolbox, RemoveIso2022EscapeSequences)
 
   static const uint8_t iso2022_cstr_escapeSequence[] = {
     0x1b, 0x40, 0x41, // 1b and 40 should not be removed (invalid esc seq)
-    0x1b, 0x50, 0x42, // ditto 
+    0x1b, 0x50, 0x42, // ditto
     0x1b, 0x7f, 0x43, // ditto
     0x1b, 0x21, 0x4a, 0x44, // this will match
     0x1b, 0x20, 0x21, 0x2f, 0x40, 0x45, // this will match
     0x1b, 0x20, 0x21, 0x2f, 0x2f, 0x40, 0x46, // this will match too
     0x1b, 0x20, 0x21, 0x2f, 0x1f, 0x47, 0x48, 0x00 // this will NOT match!
   };
-  
+
   static const uint8_t iso2022_cstr_escapeSequence_ref[] = {
     0x1b, 0x40, 0x41, // 1b and 40 should not be removed (invalid esc seq)
-    0x1b, 0x50, 0x42, // ditto 
+    0x1b, 0x50, 0x42, // ditto
     0x1b, 0x7f, 0x43, // ditto
     0x44, // this will match
     0x45, // this will match
@@ -1498,7 +1498,7 @@ TEST(Toolbox, RemoveIso2022EscapeSequences)
     0x1b, 0x20, 0x21, 0x2f, 0x1f, 0x47, 0x48, 0x00 // this will NOT match!
   };
 
-  
+
   // +----------------------------------+
   // | a real-world japanese sample     |
   // +----------------------------------+
@@ -1574,7 +1574,7 @@ static std::string DecodeFromSpecification(const std::string& s)
 
   std::string result;
   result.resize(tokens.size());
-  
+
   for (size_t i = 0; i < tokens.size(); i++)
   {
     std::vector<std::string> components;
@@ -1644,11 +1644,11 @@ TEST(Toolbox, EncodingsKorean)
   Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
   ASSERT_EQ(Encoding_Korean, encoding);
   ASSERT_TRUE(hasCodeExtensions);
-  
+
   std::string value;
   ASSERT_TRUE(dicom.GetTagValue(value, DICOM_TAG_PATIENT_NAME));
   ASSERT_EQ(utf8, value);
-  
+
   DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
   ASSERT_EQ(utf8.substr(0, 12), visitor.GetResult()["00100010"]["Value"][0]["Alphabetic"].asString());
@@ -1690,7 +1690,7 @@ TEST(Toolbox, EncodingsKorean)
   node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/GivenName");
   ASSERT_EQ(utf8.substr(28), node.node().text().as_string());
 #endif
-  
+
   {
     DicomMap m;
     m.FromDicomWeb(visitor.GetResult());
@@ -1746,7 +1746,7 @@ TEST(Toolbox, EncodingsJapaneseKanji)
   std::string value;
   ASSERT_TRUE(dicom.GetTagValue(value, DICOM_TAG_PATIENT_NAME));
   ASSERT_EQ(utf8, value);
-  
+
   DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
   ASSERT_EQ(utf8.substr(0, 12), visitor.GetResult()["00100010"]["Value"][0]["Alphabetic"].asString());
@@ -1787,8 +1787,8 @@ TEST(Toolbox, EncodingsJapaneseKanji)
 
   node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/GivenName");
   ASSERT_EQ(utf8.substr(37), node.node().text().as_string());
-#endif  
-  
+#endif
+
   {
     DicomMap m;
     m.FromDicomWeb(visitor.GetResult());
@@ -1923,7 +1923,7 @@ TEST(Toolbox, EncodingsSimplifiedChinese2)
     0x5a, 0x68, 0x61, 0x6e, 0x67, 0x5e, 0x58, 0x69, 0x61, 0x6f, 0x44, 0x6f, 0x6e, 0x67,
     0x3d, 0xe5, 0xbc, 0xa0, 0x5e, 0xe5, 0xb0, 0x8f, 0xe4, 0xb8, 0x9c, 0x3d
   };
-  
+
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "\\ISO 2022 IR 58");
   ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
@@ -2052,7 +2052,7 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x4342, 0x1234), "UN");   // Inexistent tag
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0120), "UR");
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0301), "17");   // US
-  dicom.ReplacePlainString(DicomTag(0x0040, 0x0031), "UT");  
+  dicom.ReplacePlainString(DicomTag(0x0040, 0x0031), "UT");
 
 #if DCMTK_VERSION_NUMBER >= 365
   dicom.ReplacePlainString(DicomTag(0x7056, 0x1000), "17");  // OV
@@ -2196,7 +2196,7 @@ TEST(DicomWebJson, ValueRepresentation)
 
   std::string xml;
   visitor.FormatXml(xml);
-  
+
   {
     DicomMap m;
     m.FromDicomWeb(visitor.GetResult());
@@ -2206,7 +2206,7 @@ TEST(DicomWebJson, ValueRepresentation)
 #else
     ASSERT_EQ(31u, m.GetSize());
 #endif
-    
+
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0002, 0x0002), false));  ASSERT_EQ("UI", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0040, 0x0241), false));  ASSERT_EQ("AE", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x1010), false));  ASSERT_EQ("AS", s);
@@ -2255,7 +2255,7 @@ TEST(DicomWebJson, ValueRepresentation)
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0119), true));  ASSERT_EQ("UC", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0120), true));  ASSERT_EQ("UR", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0301), true));  ASSERT_EQ("17", s);  // US (but tag unknown to DCMTK 3.6.0)
-#endif    
+#endif
 
 #if DCMTK_VERSION_NUMBER >= 365
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7056, 0x1000), true));  ASSERT_EQ("17", s);  // OV
@@ -2269,7 +2269,7 @@ TEST(DicomWebJson, ValueRepresentation)
 TEST(DicomWebJson, Sequence)
 {
   ParsedDicomFile dicom(false);
-  
+
   {
     std::unique_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_ReferencedSeriesSequence));
 
@@ -2291,7 +2291,7 @@ TEST(DicomWebJson, Sequence)
   ASSERT_EQ(3u, visitor.GetResult() ["00081115"]["Value"].size());
 
   std::set<std::string> items;
-  
+
   for (Json::Value::ArrayIndex i = 0; i < 3; i++)
   {
     ASSERT_EQ(1u, visitor.GetResult() ["00081115"]["Value"][i].size());
@@ -2319,7 +2319,7 @@ TEST(DicomWebJson, Sequence)
 TEST(DicomWebJson, SequenceWithEmptyItem)
 {
   ParsedDicomFile dicom(false);
-  
+
   {
     std::unique_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_OriginalAttributesSequence));
 
@@ -2375,7 +2375,7 @@ TEST(ParsedDicomCache, Basic)
     ASSERT_THROW(accessor.GetDicom(), OrthancException);
     ASSERT_THROW(accessor.GetFileSize(), OrthancException);
   }
-  
+
   {
     ParsedDicomCache::Accessor accessor(cache, "a");
     ASSERT_TRUE(accessor.IsValid());
@@ -2384,9 +2384,9 @@ TEST(ParsedDicomCache, Basic)
     ASSERT_EQ("patient1", s);
     ASSERT_EQ(20u, accessor.GetFileSize());
   }
-  
+
   tags.SetValue(DICOM_TAG_PATIENT_ID, "patient2", false);
-  cache.Acquire("b", new ParsedDicomFile(tags, Encoding_Latin1, true), 5);  
+  cache.Acquire("b", new ParsedDicomFile(tags, Encoding_Latin1, true), 5);
   ASSERT_EQ(5u, cache.GetCurrentSize());
   ASSERT_EQ(1u, cache.GetNumberOfItems());
 
@@ -2402,7 +2402,7 @@ TEST(ParsedDicomCache, Basic)
     ASSERT_EQ("patient2", s);
     ASSERT_EQ(5u, accessor.GetFileSize());
   }
-  
+
   cache.Acquire("d", new ParsedDicomFile(true), 5);
   ASSERT_EQ(10u, cache.GetCurrentSize());
   ASSERT_EQ(2u, cache.GetNumberOfItems());
@@ -2497,7 +2497,7 @@ TEST(DicomModification, DicomPath)
   ASSERT_EQ(0u, path.GetPrefixIndex(0));
   ASSERT_THROW(path.GetPrefixTag(1), OrthancException);
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
-  
+
   path = DicomPath::Parse("(0008,1111)[1].(0008,1111)[2].(0010,0010)");
   ASSERT_FALSE(path.HasUniversal());
   ASSERT_EQ(2u, path.GetPrefixLength());
@@ -2509,7 +2509,7 @@ TEST(DicomModification, DicomPath)
   ASSERT_EQ(2u, path.GetPrefixIndex(1));
   ASSERT_THROW(path.GetPrefixTag(2), OrthancException);
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
-  
+
   path = DicomPath::Parse("(0008,1111)[*].PatientName");
   ASSERT_TRUE(path.HasUniversal());
   ASSERT_EQ(1u, path.GetPrefixLength());
@@ -2519,7 +2519,7 @@ TEST(DicomModification, DicomPath)
   ASSERT_THROW(path.GetPrefixTag(1), OrthancException);
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
   ASSERT_EQ("(0008,1111)[*].(0010,0010)", path.Format());
-  
+
   path = DicomPath::Parse("(0008,1111)[1].(0008,1111)[*].(0010,0010)");
   ASSERT_TRUE(path.HasUniversal());
   ASSERT_EQ(2u, path.GetPrefixLength());
@@ -2531,7 +2531,7 @@ TEST(DicomModification, DicomPath)
   ASSERT_THROW(path.GetPrefixIndex(1), OrthancException);
   ASSERT_THROW(path.GetPrefixTag(2), OrthancException);
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
-  
+
   path = DicomPath::Parse("PatientID[1].PatientName");
   ASSERT_FALSE(path.HasUniversal());
   ASSERT_EQ(1u, path.GetPrefixLength());
@@ -2605,17 +2605,17 @@ TEST(ParsedDicomFile, DicomPath)
       item["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.719";
       a.append(item);
     }
-      
+
     {
       Json::Value item = Json::objectValue;
       item["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";  // ReferencedSOPClassUID
       item["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.726";
       a.append(item);
     }
-      
+
     v["ReferencedImageSequence"] = a;
   }
-    
+
   {
     Json::Value a = Json::arrayValue;
 
@@ -2635,10 +2635,10 @@ TEST(ParsedDicomFile, DicomPath)
 
         item["PurposeOfReferenceCodeSequence"] = b;
       }
-        
+
       a.append(item);
     }
-      
+
     v["RelatedSeriesSequence"] = a;
   }
 
@@ -2670,7 +2670,7 @@ TEST(ParsedDicomFile, DicomPath)
     ASSERT_TRUE(vv[REF_IM_SEQ][1].isMember(REF_SOP_CLASS));
     ASSERT_TRUE(vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0].isMember(CODE_VALUE));
   }
-    
+
   {
     std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
 
@@ -2685,7 +2685,7 @@ TEST(ParsedDicomFile, DicomPath)
     ASSERT_FALSE(vv[REF_IM_SEQ][0].isMember(REF_SOP_CLASS));
     ASSERT_FALSE(vv[REF_IM_SEQ][1].isMember(REF_SOP_CLASS));
   }
-    
+
   {
     std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
 
@@ -2700,7 +2700,7 @@ TEST(ParsedDicomFile, DicomPath)
     ASSERT_FALSE(vv[REF_IM_SEQ][0].isMember(REF_SOP_CLASS));
     ASSERT_TRUE(vv[REF_IM_SEQ][1].isMember(REF_SOP_CLASS));
   }
-    
+
   {
     std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
 
@@ -2715,7 +2715,7 @@ TEST(ParsedDicomFile, DicomPath)
     ASSERT_TRUE(vv[REF_IM_SEQ][0].isMember(REF_SOP_CLASS));
     ASSERT_FALSE(vv[REF_IM_SEQ][1].isMember(REF_SOP_CLASS));
   }
-    
+
   {
     std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
 
@@ -2729,7 +2729,7 @@ TEST(ParsedDicomFile, DicomPath)
     ASSERT_EQ("WORLD", vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0][SERIES_DESCRIPTION].asString());
     ASSERT_FALSE(vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0].isMember(CODE_VALUE));
   }
-    
+
   {
     std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
 
@@ -2737,11 +2737,11 @@ TEST(ParsedDicomFile, DicomPath)
 
     Json::Value vv;
     dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
-      
+
     ASSERT_EQ(1u, vv[REL_SERIES_SEQ][0].size());
     ASSERT_FALSE(vv[REL_SERIES_SEQ][0].isMember(PURPOSE_CODE_SEQ));
   }
-    
+
   {
     std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
 
@@ -2749,7 +2749,7 @@ TEST(ParsedDicomFile, DicomPath)
 
     Json::Value vv;
     dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
-      
+
     ASSERT_FALSE(vv.isMember(REL_SERIES_SEQ));
   }
 
@@ -2767,7 +2767,7 @@ TEST(ParsedDicomFile, DicomPath)
                        "Hello4", false, DicomReplaceMode_IgnoreIfAbsent, "");
     dicom->ReplacePath(DicomPath::Parse("RelatedSeriesSequence[*].PurposeOfReferenceCodeSequence[*].CodeValue"),
                        "Hello5", false, DicomReplaceMode_ThrowIfAbsent, "");
-      
+
     Json::Value vv;
     dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
 
@@ -2787,7 +2787,7 @@ TEST(ParsedDicomFile, DicomPath)
                        "Hello1", false, DicomReplaceMode_ThrowIfAbsent, "");
     dicom->ReplacePath(DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence[0].CodeValue"),
                        "Hello2", false, DicomReplaceMode_ThrowIfAbsent, "");
-      
+
     Json::Value vv;
     dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
 
@@ -2803,20 +2803,20 @@ TEST(ParsedDicomFile, DicomPath)
     dicom->ClearPath(DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence[0].CodeValue"), true);
     dicom->ClearPath(DicomPath::Parse("ReferencedImageSequence[0].PatientID"), false);
     dicom->ClearPath(DicomPath::Parse("ReferencedImageSequence[0].PatientName"), true);
-      
+
     Json::Value vv;
     dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
 
     ASSERT_EQ(3u, vv[REF_IM_SEQ][0].size());
     ASSERT_EQ(2u, vv[REF_IM_SEQ][1].size());
-      
+
     ASSERT_EQ("1.2.840.10008.5.1.4.1.1.4", vv[REF_IM_SEQ][0][REF_SOP_CLASS].asString());
     ASSERT_EQ("1.2.840.113619.2.176.2025.1499492.7040.1171286241.719", vv[REF_IM_SEQ][0][REF_SOP_INSTANCE].asString());
     ASSERT_EQ("", vv[REF_IM_SEQ][0][PATIENT_ID].asString());
-      
+
     ASSERT_EQ("", vv[REF_IM_SEQ][1][REF_SOP_CLASS].asString());
     ASSERT_EQ("1.2.840.113619.2.176.2025.1499492.7040.1171286241.726", vv[REF_IM_SEQ][1][REF_SOP_INSTANCE].asString());
-      
+
     ASSERT_EQ("", vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0][CODE_VALUE].asString());
   }
 
@@ -2830,7 +2830,7 @@ TEST(ParsedDicomFile, DicomPath)
       modif.Replace(DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence[0].CodeValue"), "Hello3", false);
       modif.Apply(dicom);
     }
-    
+
     Json::Value vv;
     dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
 
@@ -2852,7 +2852,7 @@ TEST(ParsedDicomFile, DicomPath)
       modif.Remove(DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence"));
       modif.Apply(dicom);
     }
-    
+
     Json::Value vv;
     dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
 
@@ -2875,7 +2875,7 @@ TEST(ParsedDicomFile, DicomPath)
       modif.Apply(dicom2);
     }
 
-    // Same anonymization context and same input DICOM => hence, same output DICOM    
+    // Same anonymization context and same input DICOM => hence, same output DICOM
     Json::Value vv1, vv2;
     dicom1->DatasetToJson(vv1, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
     dicom2->DatasetToJson(vv2, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
@@ -2902,7 +2902,7 @@ TEST(ParsedDicomFile, DicomPath)
       modif.Keep(DicomPath::Parse("RelatedSeriesSequence"));
       modif.Apply(dicom);
     }
-    
+
     Json::Value vv;
     dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
 
@@ -2919,14 +2919,14 @@ TEST(ParsedDicomFile, DicomPath)
     ASSERT_EQ(2u, m.GetSize());
     ASSERT_EQ("1.2.840.113619.2.176.2025.1499492.7040.1171286241.719",
               m.GetStringValue(DICOM_TAG_REFERENCED_SOP_INSTANCE_UID, "", false));
-    
+
     ASSERT_TRUE(dicom->LookupSequenceItem(m, DicomPath(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE), 1));
     ASSERT_EQ(2u, m.GetSize());
     ASSERT_EQ("1.2.840.113619.2.176.2025.1499492.7040.1171286241.726",
               m.GetStringValue(DICOM_TAG_REFERENCED_SOP_INSTANCE_UID, "", false));
-    
+
     ASSERT_FALSE(dicom->LookupSequenceItem(m, DicomPath(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE), 2));
-    
+
     ASSERT_TRUE(dicom->LookupSequenceItem(m, DicomPath(DicomTag(0x0008, 0x1250), 0, DicomTag(0x0040, 0xa170)), 0));
     ASSERT_EQ(2u, m.GetSize());
     ASSERT_EQ("122403", m.GetStringValue(DicomTag(0x0008, 0x0100), "", false));
@@ -2943,7 +2943,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
   {
   private:
     uint32_t seen_;
-    
+
   public:
     V() : seen_(0)
     {
@@ -2953,14 +2953,14 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
     {
       return seen_;
     }
-    
+
     virtual Action VisitNotSupported(const std::vector<DicomTag>& parentTags,
                                      const std::vector<size_t>& parentIndexes,
                                      const DicomTag& tag,
                                      ValueRepresentation vr) ORTHANC_OVERRIDE
     {
       seen_ |= (1 << 0);
-      
+
       if (parentTags.size() == 0u &&
           parentIndexes.size() == 0u &&
           DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_PixelData)
@@ -2970,7 +2970,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
       else
       {
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
-      }        
+      }
     }
 
     virtual Action VisitSequence(const std::vector<DicomTag>& parentTags,
@@ -2979,7 +2979,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
                                  size_t countItems) ORTHANC_OVERRIDE
     {
       seen_ |= (1 << 1);
-      
+
       if (parentTags.size() == 0u &&
           parentIndexes.size() == 0u &&
           tag == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
@@ -3008,7 +3008,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
       else
       {
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
-      }        
+      }
     }
 
     virtual Action VisitIntegers(const std::vector<DicomTag>& parentTags,
@@ -3018,7 +3018,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
                                  const std::vector<int64_t>& values) ORTHANC_OVERRIDE
     {
       seen_ |= (1 << 2);
-      
+
       if (parentTags.size() == 0u &&
           parentIndexes.size() == 0u &&
           DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_TagAngleSecondAxis &&
@@ -3041,7 +3041,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
                                 const std::vector<double>& values) ORTHANC_OVERRIDE
     {
       seen_ |= (1 << 3);
-      
+
       if (parentTags.size() == 1u &&
           parentIndexes.size() == 1u &&
           parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
@@ -3066,7 +3066,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
                                    const std::vector<DicomTag>& values) ORTHANC_OVERRIDE
     {
       seen_ |= (1 << 4);
-      
+
       if (parentTags.size() == 1u &&
           parentIndexes.size() == 1u &&
           parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
@@ -3099,7 +3099,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
                                size_t size) ORTHANC_OVERRIDE
     {
       seen_ |= (1 << 5);
-      
+
       if (parentTags.size() == 1u &&
           parentIndexes.size() == 1u &&
           parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
@@ -3151,7 +3151,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
       ASSERT_TRUE(s->putSint16Array(a, 2).good());
       dicom->GetDcmtkObject().getDataset()->insert(s.release());
     }
-  
+
     DcmItem *parent = NULL;
     ASSERT_TRUE(dicom->GetDcmtkObject().getDataset()->findAndGetSequenceItem(DCM_ReferencedImageSequence, parent, 0).good());
 
@@ -3161,7 +3161,7 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
       ASSERT_TRUE(s->putFloat32Array(a, 3).good());
       parent->insert(s.release());
     }
-  
+
     {
       const uint16_t a[] = { 0x0008, 0x0020, 0x0008, 0x0030 };
       std::unique_ptr<DcmAttributeTag> s(new DcmAttributeTag(DCM_DimensionIndexPointer));  // VisitAttributes()
@@ -3283,21 +3283,21 @@ TEST(ParsedDicomFile, ImageInformation)
     v["PerFrameFunctionalGroupsSequence"][1]["PixelValueTransformationSequence"][0]["RescaleIntercept"] = "13";
     v["PerFrameFunctionalGroupsSequence"][1]["PixelValueTransformationSequence"][0]["RescaleSlope"] = "-14";
     std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
-    
+
     dicom->GetDefaultWindowing(wc, ww, 0);
     dicom->GetRescale(ri, rs, 0);
     ASSERT_DOUBLE_EQ(614.0, wc);
     ASSERT_DOUBLE_EQ(1067.0, ww);
     ASSERT_DOUBLE_EQ(12.0, ri);
     ASSERT_DOUBLE_EQ(2.551648, rs);
-    
+
     dicom->GetDefaultWindowing(wc, ww, 1);
     dicom->GetRescale(ri, rs, 1);
     ASSERT_DOUBLE_EQ(-61.0, wc);
     ASSERT_DOUBLE_EQ(-63.0, ww);
     ASSERT_DOUBLE_EQ(13.0, ri);
     ASSERT_DOUBLE_EQ(-14.0, rs);
-    
+
     dicom->GetDefaultWindowing(wc, ww, 2);
     dicom->GetRescale(ri, rs, 2);
     ASSERT_DOUBLE_EQ(128.0, wc);
@@ -3314,7 +3314,7 @@ TEST(ParsedDicomFile, ImageInformation)
     v["PerFrameFunctionalGroupsSequence"][0]["PixelValueTransformationSequence"][0]["RescaleIntercept"] = "30";
     v["PerFrameFunctionalGroupsSequence"][0]["PixelValueTransformationSequence"][0]["RescaleSlope"] = "40";
     std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
-    
+
     dicom->GetRescale(ri, rs, 0);
     ASSERT_DOUBLE_EQ(10.0, ri);
     ASSERT_DOUBLE_EQ(20.0, rs);
@@ -3471,7 +3471,7 @@ TEST(ParsedDicomFile, GuessPixelDataValueRepresentation)
       default:
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
-      
+
     for (Syntaxes::const_iterator it = compressedSyntaxes.begin(); it != compressedSyntaxes.end(); ++it)
     {
       // All the compressed transfer syntaxes must have "OB" pixel data
@@ -3554,7 +3554,7 @@ TEST(ParsedDicomFile, GuessPixelDataValueRepresentation)
       ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianExplicit));
       ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_BigEndianExplicit));
     }
-    
+
     {
       ParsedDicomFile dicom(true);
       ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, bitsAllocated).good());
@@ -3573,7 +3573,7 @@ TEST(ParsedDicomFile, GuessPixelDataValueRepresentation)
   }
 
   // Explicit little and big endian with > 8 bpp is OW
-  
+
   ASSERT_EQ(ValueRepresentation_OtherWord, DicomImageInformation::GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianExplicit, 16));
   ASSERT_EQ(ValueRepresentation_OtherWord, DicomImageInformation::GuessPixelDataValueRepresentation(DicomTransferSyntax_BigEndianExplicit, 16));
 
@@ -4118,9 +4118,9 @@ TEST(Toto, DISABLED_Transcode4)
                                      "/Subversion/orthanc-tests/Database/KarstenHilbertRF.dcm");
     toto.reset(FromDcmtkBridge::LoadFromMemoryBuffer(source.c_str(), source.size()));
   }
-  
+
   const std::string sourceUid = IDicomTranscoder::GetSopInstanceUid(*toto);
-  
+
   DicomTransferSyntax sourceSyntax;
   ASSERT_TRUE(FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, *toto));
 
@@ -4129,7 +4129,7 @@ TEST(Toto, DISABLED_Transcode4)
   for (int i = 0; i <= DicomTransferSyntax_XML; i++)
   {
     DicomTransferSyntax a = (DicomTransferSyntax) i;
-    
+
     std::set<DicomTransferSyntax> s;
     s.insert(a);
 
@@ -4145,12 +4145,12 @@ TEST(Toto, DISABLED_Transcode4)
     {
       DicomTransferSyntax targetSyntax;
       ASSERT_TRUE(FromDcmtkBridge::LookupOrthancTransferSyntax(targetSyntax, target.GetParsed()));
-      
+
       ASSERT_EQ(targetSyntax, a);
       bool lossy = (a == DicomTransferSyntax_JPEGProcess1 ||
                     a == DicomTransferSyntax_JPEGProcess2_4 ||
                     a == DicomTransferSyntax_JPEGLSLossy);
-      
+
       if (sourceUid == IDicomTranscoder::GetSopInstanceUid(target.GetParsed()))
       {
         ASSERT_FALSE(lossy);

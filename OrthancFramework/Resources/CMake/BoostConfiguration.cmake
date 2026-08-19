@@ -54,14 +54,14 @@ else()
       else()
         set(tmp2 "missing")
       endif()
-      
+
       message("Boost component ${item} - ${tmp2}")
     endforeach()
-    
+
     message(FATAL_ERROR "Unable to locate Boost on this system")
   endif()
 
-  
+
   # Patch by xnox to fix issue #166 (CMake find_boost version is now
   # broken with newer boost/cmake)
   # https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=166
@@ -70,8 +70,8 @@ else()
   else()
     set(BOOST144 104400)
   endif()
-  
-  
+
+
   # Boost releases 1.44 through 1.47 supply both V2 and V3 filesystem
   # http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
   if (${Boost_VERSION} LESS ${BOOST144})
@@ -97,9 +97,9 @@ endif()
 
 if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
   ##
-  ## Parameters for static compilation of Boost 
+  ## Parameters for static compilation of Boost
   ##
-  
+
   set(BOOST_NAME boost_1_89_0)
   set(BOOST_VERSION 1.89.0)
   set(BOOST_BCP_SUFFIX bcpdigest-1.12.11)
@@ -137,7 +137,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
 
   ##
   ## Generic configuration of Boost
-  ## 
+  ##
 
   if (CMAKE_COMPILER_IS_GNUCXX)
     add_definitions(-isystem ${BOOST_SOURCES_DIR})
@@ -162,9 +162,9 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
     add_definitions(
       # Static build of Boost (this was the only possibility in
       # Orthanc <= 1.7.1)
-      -DBOOST_ALL_NO_LIB 
-      -DBOOST_ALL_NOLIB 
-      -DBOOST_DATE_TIME_NO_LIB 
+      -DBOOST_ALL_NO_LIB
+      -DBOOST_ALL_NOLIB
+      -DBOOST_DATE_TIME_NO_LIB
       -DBOOST_THREAD_BUILD_LIB
       -DBOOST_PROGRAM_OPTIONS_NO_LIB
       -DBOOST_REGEX_NO_LIB
@@ -195,11 +195,11 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
       )
   endif()
 
-  
+
   ##
   ## Configuration of boost::thread
   ##
-  
+
   if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR
       CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR
       CMAKE_SYSTEM_NAME STREQUAL "FreeBSD" OR
@@ -222,7 +222,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
       add_definitions(-DBOOST_HAS_SCHED_YIELD=1)
     endif()
 
-    # Fix for error: "boost_1_69_0/boost/chrono/detail/inlined/mac/thread_clock.hpp:54:28: 
+    # Fix for error: "boost_1_69_0/boost/chrono/detail/inlined/mac/thread_clock.hpp:54:28:
     # error: use of undeclared identifier 'pthread_mach_thread_np'"
     # https://github.com/envoyproxy/envoy/pull/1785
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -247,7 +247,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
   ##
   ## Configuration of boost::regex
   ##
-  
+
   aux_source_directory(${BOOST_SOURCES_DIR}/libs/regex/src BOOST_REGEX_SOURCES)
 
   list(APPEND BOOST_SOURCES
@@ -258,7 +258,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
   ##
   ## Configuration of boost::datetime
   ##
-  
+
   list(APPEND BOOST_SOURCES
     ${BOOST_SOURCES_DIR}/libs/date_time/src/gregorian/greg_month.cpp
     )
@@ -266,7 +266,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
 
   ##
   ## Configuration of boost::filesystem and boost::iostreams
-  ## 
+  ##
 
   if (CMAKE_SYSTEM_NAME STREQUAL "PNaCl" OR
       CMAKE_SYSTEM_NAME STREQUAL "NaCl32" OR
@@ -309,11 +309,11 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
   list(APPEND BOOST_SOURCES
     ${BOOST_SOURCES_DIR}/libs/iostreams/src/file_descriptor.cpp
     )
-  
+
 
   ##
   ## Configuration of boost::locale
-  ## 
+  ##
 
   if (NOT ENABLE_LOCALE)
     message("boost::locale is disabled")
@@ -346,7 +346,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
       ${BOOST_SOURCES_DIR}/libs/locale/src/util/gregorian.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/util/info.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/util/locale_data.cpp
-      )        
+      )
 
     if (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD" OR
         CMAKE_SYSTEM_VERSION STREQUAL "LinuxStandardBase")
@@ -354,7 +354,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
         -DBOOST_LOCALE_NO_WINAPI_BACKEND=1
         -DBOOST_LOCALE_NO_POSIX_BACKEND=1
         )
-      
+
       list(APPEND BOOST_SOURCES
         ${BOOST_SOURCES_DIR}/libs/locale/src/std/codecvt.cpp
         ${BOOST_SOURCES_DIR}/libs/locale/src/std/collate.cpp
@@ -385,7 +385,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
         -DBOOST_LOCALE_NO_WINAPI_BACKEND=1
         -DBOOST_LOCALE_NO_STD_BACKEND=1
         )
-      
+
       list(APPEND BOOST_SOURCES
         ${BOOST_SOURCES_DIR}/libs/locale/src/posix/codecvt.cpp
         ${BOOST_SOURCES_DIR}/libs/locale/src/posix/collate.cpp
@@ -444,7 +444,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
     endif()
   endif()
 
-  
+
   ##
   ## Configuration of boost::program_options (new in Orthanc 1.13.0)
   ##

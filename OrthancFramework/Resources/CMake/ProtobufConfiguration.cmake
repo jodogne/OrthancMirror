@@ -44,14 +44,14 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_PROTOBUF)
     set(PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/protoc${Suffix})
   endif()
 
-  include(${CMAKE_CURRENT_LIST_DIR}/../ProtocolBuffers/ProtobufLibrary.cmake)  
+  include(${CMAKE_CURRENT_LIST_DIR}/../ProtocolBuffers/ProtobufLibrary.cmake)
   source_group(ThirdParty\\Protobuf REGULAR_EXPRESSION ${PROTOBUF_SOURCE_DIR}/.*)
 
 else()
   if (CMAKE_CROSSCOMPILING)
     message(FATAL_ERROR "If cross-compiling, the static version of Protocol Buffers should be used to avoid version mismatch")
   endif()
-  
+
   if (ENABLE_PROTOBUF_COMPILER)
     find_program(PROTOC_EXECUTABLE protoc)
     if (${PROTOC_EXECUTABLE} MATCHES "PROTOC_EXECUTABLE-NOTFOUND")
@@ -59,7 +59,7 @@ else()
     endif()
     add_custom_target(ProtobufCompiler)
   endif()
-  
+
   check_include_file_cxx(google/protobuf/any.h HAVE_PROTOBUF_H)
   if (NOT HAVE_PROTOBUF_H)
     message(FATAL_ERROR "Please install the libprotobuf-dev package")
@@ -67,7 +67,7 @@ else()
 
   set(CMAKE_REQUIRED_LIBRARIES "protobuf")
 
-  include(CheckCXXSourceCompiles) 
+  include(CheckCXXSourceCompiles)
   check_cxx_source_compiles(
     "
 #include <google/protobuf/descriptor.h>
@@ -79,7 +79,7 @@ int main()
   if (NOT HAVE_PROTOBUF_LIB)
     message(FATAL_ERROR "Cannot find the protobuf library")
   endif()
-  
+
   unset(CMAKE_REQUIRED_LIBRARIES)
 
   link_libraries(protobuf)

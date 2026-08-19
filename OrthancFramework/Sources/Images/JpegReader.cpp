@@ -86,11 +86,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
-    accessor.AssignWritable(format, cinfo.output_width, cinfo.output_height, pitch, 
+    accessor.AssignWritable(format, cinfo.output_width, cinfo.output_height, pitch,
                             content.empty() ? NULL : &content[0]);
 
     uint8_t* target = reinterpret_cast<uint8_t*>(&content[0]);
-    while (cinfo.output_scanline < cinfo.output_height) 
+    while (cinfo.output_scanline < cinfo.output_height)
     {
       jpeg_read_scanlines(&cinfo, buffer, 1);
       memcpy(target, buffer[0], static_cast<size_t>(pitch));
@@ -117,8 +117,8 @@ namespace Orthanc
 
     Internals::JpegErrorManager jerr;
     cinfo.err = jerr.GetPublic();
-    
-    if (setjmp(jerr.GetJumpBuffer())) 
+
+    if (setjmp(jerr.GetJumpBuffer()))
     {
       jpeg_destroy_decompress(&cinfo);
       fclose(fp);
@@ -157,8 +157,8 @@ namespace Orthanc
 
     Internals::JpegErrorManager jerr;
     cinfo.err = jerr.GetPublic();
-    
-    if (setjmp(jerr.GetJumpBuffer())) 
+
+    if (setjmp(jerr.GetJumpBuffer()))
     {
       jpeg_destroy_decompress(&cinfo);
       throw OrthancException(ErrorCode_InternalError,
@@ -167,7 +167,7 @@ namespace Orthanc
 
     // Below this line, we are under the scope of a "setjmp"
     jpeg_create_decompress(&cinfo);
-    jpeg_mem_src(&cinfo, 
+    jpeg_mem_src(&cinfo,
       const_cast<unsigned char*>(
         reinterpret_cast<const unsigned char*>(buffer)), size);
 

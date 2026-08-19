@@ -60,7 +60,7 @@ namespace Orthanc
                       Internals::SQLiteValue** argv);
 
       ColumnType GetColumnType(unsigned int index) const;
- 
+
       unsigned int GetParameterCount() const;
 
       int GetIntValue(unsigned int index) const;
@@ -72,7 +72,7 @@ namespace Orthanc
       std::string GetStringValue(unsigned int index) const;
 
       bool IsNullValue(unsigned int index) const;
-  
+
       void SetNullResult();
 
       void SetIntResult(int value);

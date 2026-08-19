@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -35,10 +35,10 @@ private:
 
 public:
   Resource() :
-    dateTime_(boost::posix_time::second_clock::universal_time())      
+    dateTime_(boost::posix_time::second_clock::universal_time())
   {
   }
-    
+
   virtual ~Resource()
   {
   }
@@ -58,7 +58,7 @@ class File : public Resource
 {
 private:
   std::string  content_;
-    
+
 public:
   File(const void* data,
        size_t size) :
@@ -75,7 +75,7 @@ public:
   {
     return false;
   }
-    
+
   virtual Resource* LookupPath(const std::vector<std::string>& path) ORTHANC_OVERRIDE
   {
     if (path.empty())
@@ -126,14 +126,14 @@ public:
         return NULL;
       }
       else
-      {          
+      {
         std::vector<std::string> childPath(path.size() - 1);
-          
+
         for (size_t i = 0; i < childPath.size(); i++)
         {
           childPath[i] = path[i + 1];
         }
-          
+
         return found->second->LookupPath(childPath);
       }
     }
@@ -147,7 +147,7 @@ public:
       assert(it->second != NULL);
 
       const std::string dateTime = boost::posix_time::to_iso_string(it->second->GetDateTime());
-        
+
       if (it->second->IsFolder())
       {
         subfolders.push_back(OrthancPlugins::IWebDavCollection::FolderInfo(it->first, dateTime));
@@ -224,7 +224,7 @@ private:
     else
     {
       std::vector<std::string> p(path.size() - 1);
-          
+
       for (size_t i = 0; i < p.size(); i++)
       {
         p[i] = path[i];
@@ -239,11 +239,11 @@ public:
     root_(new Folder)
   {
   }
-  
+
   virtual bool IsExistingFolder(const std::vector<std::string>& path)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    
+
     const Resource* resource = root_->LookupPath(path);
     return (resource != NULL &&
             resource->IsFolder());
@@ -254,7 +254,7 @@ public:
                           const std::vector<std::string>& path)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    
+
     Resource* resource = root_->LookupPath(path);
     if (resource != NULL &&
         resource->IsFolder())
@@ -267,14 +267,14 @@ public:
       return false;
     }
   }
-  
+
   virtual bool GetFile(std::string& content /* out */,
                        std::string& mime /* out */,
                        std::string& dateTime /* out */,
                        const std::vector<std::string>& path)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    
+
     Resource* resource = root_->LookupPath(path);
     if (resource != NULL &&
         !resource->IsFolder())
@@ -296,7 +296,7 @@ public:
                          size_t size)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    
+
     Resource* parent = root_->LookupPath(GetParentPath(path));
     if (parent != NULL &&
         parent->IsFolder())
@@ -309,11 +309,11 @@ public:
       return false;
     }
   }
-  
+
   virtual bool CreateFolder(const std::vector<std::string>& path)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    
+
     Resource* parent = root_->LookupPath(GetParentPath(path));
     if (parent != NULL &&
         parent->IsFolder())
@@ -330,7 +330,7 @@ public:
   virtual bool DeleteItem(const std::vector<std::string>& path)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    
+
     Resource* parent = root_->LookupPath(GetParentPath(path));
     if (parent != NULL &&
         parent->IsFolder())
@@ -341,7 +341,7 @@ public:
     else
     {
       return false;
-    }    
+    }
   }
 };
 

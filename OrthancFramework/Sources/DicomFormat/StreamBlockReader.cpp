@@ -61,7 +61,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_BadSequenceOfCalls);
       }
-        
+
       block.clear();
       return true;
     }
@@ -74,10 +74,10 @@ namespace Orthanc
          * work properly on non-buffered stream (which is the case in
          * "DicomStreamReader::LookupPixelDataOffset()" for buffers)
          **/
-        
+
         size_t remainingBytes = std::min(block_.size() - blockPos_, static_cast<size_t>(std::numeric_limits<std::streamsize>::max())); // avoid overflowing std::streamsize
         stream_.read(&block_[blockPos_], static_cast<std::streamsize>(remainingBytes));
-        
+
         std::streamsize r = stream_.gcount();
         if (r == 0)
         {

@@ -70,7 +70,7 @@ namespace Orthanc
     }
 
     MemoryCache::MemoryCache(ICachePageProvider& provider,
-                             size_t cacheSize) : 
+                             size_t cacheSize) :
       provider_(provider),
       cacheSize_(cacheSize)
     {

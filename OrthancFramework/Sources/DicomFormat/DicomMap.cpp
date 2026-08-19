@@ -44,7 +44,7 @@
 
 namespace Orthanc
 {
-  // WARNING: the DEFAULT list of main dicom tags below are the list as they 
+  // WARNING: the DEFAULT list of main dicom tags below are the list as they
   // were in Orthanc 1.10 before we introduced the dynamic main dicom tags.
   // This list has not changed since Orthanc 1.4.2 and had a single change since
   // Orthanc 0.9.5.
@@ -65,7 +65,7 @@ namespace Orthanc
 
     // don't add tags here, check ResetDefaultMainDicomTags instead
   };
-  
+
   static const DicomTag DEFAULT_1_11_STUDY_MAIN_DICOM_TAGS[] =
   {
     // { DicomTag(0x0010, 0x1020), "PatientSize" },
@@ -76,7 +76,7 @@ namespace Orthanc
     DICOM_TAG_STUDY_DESCRIPTION,
     DICOM_TAG_ACCESSION_NUMBER,
     DICOM_TAG_STUDY_INSTANCE_UID,
-    
+
     // New in db v6 (Orthanc 0.9.5)
     DICOM_TAG_REQUESTED_PROCEDURE_DESCRIPTION,
     DICOM_TAG_INSTITUTION_NAME,
@@ -242,7 +242,7 @@ namespace Orthanc
                                  ResourceType level)
     {
       std::set<DicomTag>& existingLevelTags = GetMainDicomTagsByLevelInternal(level);
-      
+
       if (existingLevelTags.find(tag) != existingLevelTags.end())
       {
         throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined", false);
@@ -251,7 +251,7 @@ namespace Orthanc
       if (level == ResourceType_Study) // all patients main dicom tags are also copied at study level
       {
         std::set<DicomTag>& patientLevelTags = GetMainDicomTagsByLevelInternal(ResourceType_Patient);
-        
+
         if (patientLevelTags.find(tag) != patientLevelTags.end())
         {
           throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined", false);
@@ -275,7 +275,7 @@ namespace Orthanc
     void ResetDefaultMainDicomTags()
     {
       ReaderWriterLock::WriteLock lock(mutex_);
-      
+
       patientsMainDicomTagsByLevel_.clear();
       studiesMainDicomTagsByLevel_.clear();
       seriesMainDicomTagsByLevel_.clear();
@@ -297,7 +297,7 @@ namespace Orthanc
       // only add new tags here !
       // introduced in v 1.12.5
       AddMainDicomTagInternal(DICOM_TAG_TIMEZONE_OFFSET_FROM_UTC, ResourceType_Study);  // used in default QIDO-RS queries
-      
+
       AddMainDicomTagInternal(DICOM_TAG_TIMEZONE_OFFSET_FROM_UTC, ResourceType_Series);  // used in default QIDO-RS queries
       AddMainDicomTagInternal(DICOM_TAG_PERFORMED_PROCEDURE_STEP_START_DATE, ResourceType_Series);  // used in default QIDO-RS queries
       AddMainDicomTagInternal(DICOM_TAG_PERFORMED_PROCEDURE_STEP_START_TIME, ResourceType_Series);  // used in default QIDO-RS queries
@@ -310,7 +310,7 @@ namespace Orthanc
                          ResourceType level)
     {
       ReaderWriterLock::WriteLock lock(mutex_);
-      
+
       AddMainDicomTagInternal(tag, level);
     }
 
@@ -359,8 +359,8 @@ namespace Orthanc
   };
 
 
-  void DicomMap::SetValueInternal(uint16_t group, 
-                                  uint16_t element, 
+  void DicomMap::SetValueInternal(uint16_t group,
+                                  uint16_t element,
                                   DicomValue* value)
   {
     DicomTag tag(group, element);
@@ -570,7 +570,7 @@ namespace Orthanc
   }
 
 
-  void DicomMap::Remove(const DicomTag& tag) 
+  void DicomMap::Remove(const DicomTag& tag)
   {
     Content::iterator it = content_.find(tag);
     if (it != content_.end())
@@ -580,7 +580,7 @@ namespace Orthanc
     }
   }
 
-  void DicomMap::RemoveTags(const std::set<DicomTag>& tags) 
+  void DicomMap::RemoveTags(const std::set<DicomTag>& tags)
   {
     for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
     {
@@ -902,7 +902,7 @@ namespace Orthanc
 
       case ValueRepresentation_OtherByte:
         return true;
-      
+
       case ValueRepresentation_OtherDouble:
         return value.size() <= (static_cast<uint64_t>(1) << 32) - 8;
 
@@ -1090,7 +1090,7 @@ namespace Orthanc
       {
         return false;
       }
-      
+
       uint16_t reserved = ReadLittleEndianUint16(dicom + position + 6);
       if (reserved != 0)
       {
@@ -1136,7 +1136,7 @@ namespace Orthanc
             p[130] == 'C' &&
             p[131] == 'M');
   }
-    
+
 
   bool DicomMap::ParseDicomMetaInformation(DicomMap& result,
                                            const void* dicom,
@@ -1212,7 +1212,7 @@ namespace Orthanc
   std::string DicomMap::FormatMissingTagsForStore() const
   {
     std::string patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid;
-    
+
     if (HasTag(DICOM_TAG_PATIENT_ID))
     {
       patientId = ValueAsString(*this, DICOM_TAG_PATIENT_ID);
@@ -1236,7 +1236,7 @@ namespace Orthanc
     return FormatMissingTagsForStore(patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
   }
 
-  
+
   std::string DicomMap::FormatMissingTagsForStore(const std::string& patientId,
                                                   const std::string& studyInstanceUid,
                                                   const std::string& seriesInstanceUid,
@@ -1443,19 +1443,19 @@ namespace Orthanc
     }
   }
 
-  
+
   void DicomMap::FromDicomAsJson(const Json::Value& dicomAsJson, bool append, bool parseSequences)
   {
     if (dicomAsJson.type() != Json::objectValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
-    
+
     if (!append)
     {
       Clear();
     }
-    
+
     Json::Value::Members tags = dicomAsJson.getMemberNames();
     for (Json::Value::Members::const_iterator
            it = tags.begin(); it != tags.end(); ++it)
@@ -1536,7 +1536,7 @@ namespace Orthanc
       }
     }
   }
-    
+
 
   void DicomMap::ExtractMainDicomTags(const DicomMap& other)
   {
@@ -1545,7 +1545,7 @@ namespace Orthanc
     MergeMainDicomTags(other, ResourceType_Study);
     MergeMainDicomTags(other, ResourceType_Series);
     MergeMainDicomTags(other, ResourceType_Instance);
-  }    
+  }
 
 
   bool DicomMap::HasOnlyMainDicomTags() const
@@ -1581,7 +1581,7 @@ namespace Orthanc
     for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
     {
       assert(it->second != NULL);
-      
+
       std::string tag = it->first.Format();
 
       Json::Value value;
@@ -1590,7 +1590,7 @@ namespace Orthanc
       target[tag] = value;
     }
   }
-  
+
 
   void DicomMap::Unserialize(const Json::Value& source)
   {
@@ -1606,7 +1606,7 @@ namespace Orthanc
     for (size_t i = 0; i < tags.size(); i++)
     {
       DicomTag tag(0, 0);
-      
+
       if (!DicomTag::ParseHexadecimal(tag, tags[i].c_str()) ||
           content_.find(tag) != content_.end())
       {
@@ -1629,14 +1629,14 @@ namespace Orthanc
     static const char* const PHONETIC = "Phonetic";
     static const char* const VALUE = "Value";
     static const char* const VR = "vr";
-  
+
     Clear();
 
     if (source.type() != Json::objectValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
-  
+
     Json::Value::Members tags = source.getMemberNames();
 
     for (size_t i = 0; i < tags.size(); i++)
@@ -1677,7 +1677,7 @@ namespace Orthanc
         if (value.type() == Json::arrayValue)
         {
           bool supported = true;
-          
+
           std::string s;
           for (Json::Value::ArrayIndex j = 0; j < value.size() && supported; j++)
           {
@@ -1699,14 +1699,14 @@ namespace Orthanc
                   }
 
                   bool hasIdeographic = false;
-                  
+
                   if (value[j].isMember(IDEOGRAPHIC) &&
                       value[j][IDEOGRAPHIC].type() == Json::stringValue)
                   {
                     s += '=' + value[j][IDEOGRAPHIC].asString();
                     hasIdeographic = true;
                   }
-                  
+
                   if (value[j].isMember(PHONETIC) &&
                       value[j][PHONETIC].type() == Json::stringValue)
                   {
@@ -1714,7 +1714,7 @@ namespace Orthanc
                     {
                       s += '=';
                     }
-                      
+
                     s += '=' + value[j][PHONETIC].asString();
                   }
                 }
@@ -1725,23 +1725,23 @@ namespace Orthanc
                 }
 
                 break;
-            
+
               case Json::stringValue:
                 s += value[j].asString();
                 break;
-              
+
               case Json::intValue:
                 s += boost::lexical_cast<std::string>(value[j].asInt64());
                 break;
-              
+
               case Json::uintValue:
                 s += boost::lexical_cast<std::string>(value[j].asUInt64());
                 break;
-              
+
               case Json::realValue:
                 s += boost::lexical_cast<std::string>(value[j].asDouble());
                 break;
-              
+
               default:
                 break;
             }
@@ -1822,13 +1822,13 @@ namespace Orthanc
   {
     std::set<DicomTag> mainDicomTags;
     DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(mainDicomTags, level);
-    
+
     target = Json::objectValue;
 
     for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
     {
       assert(it->second != NULL);
-      
+
       if (!it->second->IsBinary() &&
           !it->second->IsNull())
       {
@@ -1843,9 +1843,9 @@ namespace Orthanc
 #endif
         }
       }
-    }    
+    }
   }
-  
+
 
   ValueRepresentation DicomMap::GuessPixelDataValueRepresentation(DicomTransferSyntax transferSyntax) const
   {
@@ -1860,7 +1860,7 @@ namespace Orthanc
 
     return DicomImageInformation::GuessPixelDataValueRepresentation(transferSyntax, bitsAllocated);
   }
-  
+
 
   void DicomMap::Print(FILE* fp) const
   {

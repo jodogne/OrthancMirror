@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -52,7 +52,7 @@
 namespace Orthanc
 {
   PluginsManager::Plugin::Plugin(PluginsManager& pluginManager,
-                                 const boost::filesystem::path& path) : 
+                                 const boost::filesystem::path& path) :
     library_(path),
     pluginManager_(pluginManager)
   {
@@ -146,7 +146,7 @@ namespace Orthanc
 
 
   OrthancPluginErrorCode PluginsManager::InvokeService(OrthancPluginContext* context,
-                                                       _OrthancPluginService service, 
+                                                       _OrthancPluginService service,
                                                        const void* params)
   {
     switch (service)
@@ -166,11 +166,11 @@ namespace Orthanc
       case _OrthancPluginService_LogMessage:
       {
         const _OrthancPluginLogMessage& m = *reinterpret_cast<const _OrthancPluginLogMessage*>(params);
-        // We can convert directly from OrthancPluginLogLevel to LogLevel (and category) because the enum values must be identical 
+        // We can convert directly from OrthancPluginLogLevel to LogLevel (and category) because the enum values must be identical
         // for Orthanc::Logging to work both in the core and in the plugins
         Orthanc::Logging::LogLevel level = static_cast<Orthanc::Logging::LogLevel>(m.level);
         Orthanc::Logging::LogCategory category = static_cast<Orthanc::Logging::LogCategory>(m.category);
-          
+
         LOG_FROM_PLUGIN(level, category, m.plugin, m.file, m.line) << m.message;
         return OrthancPluginErrorCode_Success;
       }
@@ -182,7 +182,7 @@ namespace Orthanc
     Plugin* that = reinterpret_cast<Plugin*>(context->pluginsManager);
 
     for (std::list<IPluginServiceProvider*>::iterator
-           it = that->GetPluginManager().serviceProviders_.begin(); 
+           it = that->GetPluginManager().serviceProviders_.begin();
          it != that->GetPluginManager().serviceProviders_.end(); ++it)
     {
       try
@@ -240,7 +240,7 @@ namespace Orthanc
             library.HasFunction("OrthancPluginGetVersion"));
   }
 
-  
+
   void PluginsManager::RegisterPlugin(const boost::filesystem::path& path)
   {
     if (!boost::filesystem::exists(path))
@@ -249,12 +249,12 @@ namespace Orthanc
       Toolbox::ToLowerCase(extension);
 
       if (extension == PLUGIN_EXTENSION)
-      { 
+      {
         // if this is a plugin path, fail to start
         throw OrthancException(ErrorCode_SharedLibrary, "Inexistent path to plugin: " + SystemToolbox::PathToUtf8(path));
       }
       else
-      { 
+      {
         // it might be a directory -> just log a warning
         LOG(WARNING) << "Inexistent path to plugins: " << SystemToolbox::PathToUtf8(path);
         return;
@@ -343,7 +343,7 @@ namespace Orthanc
   {
     result.clear();
 
-    for (Plugins::const_iterator it = plugins_.begin(); 
+    for (Plugins::const_iterator it = plugins_.begin();
          it != plugins_.end(); ++it)
     {
       result.push_back(it->first);
@@ -370,7 +370,7 @@ namespace Orthanc
     }
   }
 
-  
+
   std::string PluginsManager::GetPluginName(SharedLibrary& library)
   {
     return CallGetName(library);

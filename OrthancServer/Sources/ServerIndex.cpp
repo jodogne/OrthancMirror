@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -67,7 +67,7 @@ namespace Orthanc
         return customData_;
       }
 
-      FileContentType GetContentType() const 
+      FileContentType GetContentType() const
       {
         return type_;
       }
@@ -94,7 +94,7 @@ namespace Orthanc
 
     void CommitFilesToRemove()
     {
-      for (std::list<FileToRemove>::const_iterator 
+      for (std::list<FileToRemove>::const_iterator
              it = pendingFilesToRemove_.begin();
            it != pendingFilesToRemove_.end(); ++it)
       {
@@ -112,8 +112,8 @@ namespace Orthanc
 
     void CommitChanges()
     {
-      for (std::list<ServerIndexChange>::const_iterator 
-             it = pendingChanges_.begin(); 
+      for (std::list<ServerIndexChange>::const_iterator
+             it = pendingChanges_.begin();
            it != pendingChanges_.end(); ++it)
       {
         context_.SignalChange(*it);
@@ -148,7 +148,7 @@ namespace Orthanc
         hasRemainingLevel_ = true;
         remainingType_ = parentType;
         remainingPublicId_ = publicId;
-      }        
+      }
     }
 
     virtual void SignalAttachmentDeleted(const FileInfo& info) ORTHANC_OVERRIDE
@@ -166,8 +166,8 @@ namespace Orthanc
 
     virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE
     {
-      LOG(TRACE) << "Change related to resource " << change.GetPublicId() << " of type " 
-                 << EnumerationToString(change.GetResourceType()) << ": " 
+      LOG(TRACE) << "Change related to resource " << change.GetPublicId() << " of type "
+                 << EnumerationToString(change.GetResourceType()) << ": "
                  << EnumerationToString(change.GetChangeType());
 
       pendingChanges_.push_back(change);
@@ -190,7 +190,7 @@ namespace Orthanc
       else
       {
         return false;
-      }        
+      }
     };
 
     virtual void MarkAsUnstable(ResourceType type,
@@ -212,7 +212,7 @@ namespace Orthanc
       // been successfully committed. Some files might have to be
       // deleted because of recycling.
       CommitFilesToRemove();
-      
+
       // Send all the pending changes to the Orthanc plugins
       CommitChanges();
     }
@@ -229,7 +229,7 @@ namespace Orthanc
   {
   private:
     ServerContext& context_;
-      
+
   public:
     explicit TransactionContextFactory(ServerContext& context) :
       context_(context)
@@ -242,9 +242,9 @@ namespace Orthanc
       // issue because we simply create an object
       return new TransactionContext(context_);
     }
-  };    
-  
-  
+  };
+
+
   class ServerIndex::UnstableResourcePayload
   {
   private:
@@ -256,7 +256,7 @@ namespace Orthanc
     {
     }
 
-    explicit UnstableResourcePayload(const std::string& publicId) : 
+    explicit UnstableResourcePayload(const std::string& publicId) :
       publicId_(publicId),
       time_(boost::posix_time::second_clock::local_time())
     {
@@ -266,7 +266,7 @@ namespace Orthanc
     {
       return (boost::posix_time::second_clock::local_time() - time_).total_seconds();
     }
-    
+
     const std::string& GetPublicId() const
     {
       return publicId_;
@@ -295,12 +295,12 @@ namespace Orthanc
     {
       boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleepGranularityMilliseconds));
       count++;
-      
+
       if (count >= countThreshold)
       {
         Logging::Flush();
         that->FlushToDisk();
-        
+
         count = 0;
       }
     }
@@ -391,12 +391,12 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::SetMaximumPatientCount(unsigned int count) 
+  void ServerIndex::SetMaximumPatientCount(unsigned int count)
   {
     {
       boost::recursive_mutex::scoped_lock lock(monitoringMutex_);
       maximumPatients_ = count;
-      
+
       if (count == 0)
       {
         LOG(WARNING) << "No limit on the number of stored patients";
@@ -410,13 +410,13 @@ namespace Orthanc
     StandaloneRecycling(maximumStorageMode_, maximumStorageSize_, maximumPatients_);
   }
 
-  
-  void ServerIndex::SetMaximumStorageSize(uint64_t size) 
+
+  void ServerIndex::SetMaximumStorageSize(uint64_t size)
   {
     {
       boost::recursive_mutex::scoped_lock lock(monitoringMutex_);
       maximumStorageSize_ = size;
-      
+
       if (size == 0)
       {
         LOG(WARNING) << "No limit on the size of the storage area";
@@ -430,12 +430,12 @@ namespace Orthanc
     StandaloneRecycling(maximumStorageMode_, maximumStorageSize_, maximumPatients_);
   }
 
-  void ServerIndex::SetMaximumStorageMode(MaxStorageMode mode) 
+  void ServerIndex::SetMaximumStorageMode(MaxStorageMode mode)
   {
     {
       boost::recursive_mutex::scoped_lock lock(monitoringMutex_);
       maximumStorageMode_ = mode;
-      
+
       if (mode == MaxStorageMode_Recycle)
       {
         if (maximumStorageSize_ > 0 || maximumPatients_ > 0)
@@ -461,7 +461,7 @@ namespace Orthanc
     Logging::ScopedCurrentThreadNameSetter setter("UNSTABLE-MON");
 
     unsigned int stableAge = 0;
-    
+
     {
       OrthancConfiguration::ReaderLock lock;
       stableAge = lock.GetConfiguration().GetUnsignedIntegerParameter("StableAge");
@@ -485,7 +485,7 @@ namespace Orthanc
         ResourceType stableLevel;
         int64_t stableId;
 
-        {      
+        {
           boost::recursive_mutex::scoped_lock lock(that->monitoringMutex_);
 
           if (!that->unstableResources_.IsEmpty() &&
@@ -512,7 +512,7 @@ namespace Orthanc
 
     LOG(INFO) << "Closing the monitor thread for stable resources";
   }
-  
+
   void ServerIndex::LogStableChange(ResourceType stableLevel,
                                     int64_t stableId,
                                     const std::string& publicId)
@@ -531,15 +531,15 @@ namespace Orthanc
         case ResourceType_Patient:
           LogChange(stableId, ChangeType_StablePatient, publicId, ResourceType_Patient);
           break;
-        
+
         case ResourceType_Study:
           LogChange(stableId, ChangeType_StableStudy, publicId, ResourceType_Study);
           break;
-        
+
         case ResourceType_Series:
           LogChange(stableId, ChangeType_StableSeries, publicId, ResourceType_Series);
           break;
-        
+
         default:
           THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
@@ -547,7 +547,7 @@ namespace Orthanc
     catch (OrthancException& e)
     {
       LOG(ERROR) << "Cannot log a change about a stable resource into the database";
-    }          
+    }
   }
 
 
@@ -631,7 +631,7 @@ namespace Orthanc
     uint64_t maximumStorageSize;
     unsigned int maximumPatients;
     MaxStorageMode maximumStorageMode;
-    
+
     {
       boost::recursive_mutex::scoped_lock lock(monitoringMutex_);
       maximumStorageSize = maximumStorageSize_;
@@ -645,7 +645,7 @@ namespace Orthanc
       maximumStorageSize, maximumPatients, isReconstruct);
   }
 
-  
+
   StoreStatus ServerIndex::AddAttachment(int64_t& newRevision,
                                          const FileInfo& attachment,
                                          const std::string& publicId,
@@ -655,7 +655,7 @@ namespace Orthanc
   {
     uint64_t maximumStorageSize;
     unsigned int maximumPatients;
-    
+
     {
       boost::recursive_mutex::scoped_lock lock(monitoringMutex_);
       maximumStorageSize = maximumStorageSize_;

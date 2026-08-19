@@ -75,7 +75,7 @@
 #else
 #  include <boost/uuid/sha1.hpp>
 #endif
- 
+
 #include <string>
 #include <stdint.h>
 #include <string.h>
@@ -126,7 +126,7 @@ extern "C"
   int64_t strtoll(const char *nptr, char **endptr, int base)
   {
     return _strtoi64(nptr, endptr, base);
-  } 
+  }
 }
 #endif
 
@@ -207,7 +207,7 @@ extern "C"
 #  endif
 
 #endif
- 
+
 
 
 #if defined(__unix__) && ORTHANC_SANDBOXED != 1
@@ -220,7 +220,7 @@ namespace Orthanc
 {
 #if ORTHANC_ENABLE_MD5 == 1
 #  if BOOST_VERSION >= 106600
-  
+
   struct Toolbox::MD5Context::PImpl : public boost::noncopyable
   {
     boost::uuids::detail::md5  md5_;
@@ -316,19 +316,19 @@ namespace Orthanc
 
 #      if BOOST_ENDIAN_LITTLE_BYTE
     sprintf(&target[0], "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-            (digest[0] >> 0) & 0xFF, 
+            (digest[0] >> 0) & 0xFF,
             (digest[0] >> 8) & 0xFF,
             (digest[0] >> 16) & 0xFF,
             (digest[0] >> 24) & 0xFF,
-            (digest[1] >> 0) & 0xFF, 
+            (digest[1] >> 0) & 0xFF,
             (digest[1] >> 8) & 0xFF,
             (digest[1] >> 16) & 0xFF,
             (digest[1] >> 24) & 0xFF,
-            (digest[2] >> 0) & 0xFF, 
+            (digest[2] >> 0) & 0xFF,
             (digest[2] >> 8) & 0xFF,
             (digest[2] >> 16) & 0xFF,
             (digest[2] >> 24) & 0xFF,
-            (digest[3] >> 0) & 0xFF, 
+            (digest[3] >> 0) & 0xFF,
             (digest[3] >> 8) & 0xFF,
             (digest[3] >> 16) & 0xFF,
             (digest[3] >> 24) & 0xFF);
@@ -480,7 +480,7 @@ namespace Orthanc
       lineEnd_ += 1;
     }
   }
-  
+
 
   Toolbox::LinesIterator::LinesIterator(const std::string& content) :
     content_(content),
@@ -489,7 +489,7 @@ namespace Orthanc
     FindEndOfLine();
   }
 
-    
+
   bool Toolbox::LinesIterator::GetLine(std::string& target) const
   {
     assert(lineStart_ <= content_.size() &&
@@ -507,7 +507,7 @@ namespace Orthanc
     }
   }
 
-    
+
   void Toolbox::LinesIterator::Next()
   {
     lineStart_ = lineEnd_;
@@ -518,7 +518,7 @@ namespace Orthanc
              content_[lineStart_] == '\n');
 
       char second;
-      
+
       if (content_[lineStart_] == '\r')
       {
         second = '\n';
@@ -527,7 +527,7 @@ namespace Orthanc
       {
         second = '\r';
       }
-        
+
       lineStart_ += 1;
 
       if (lineStart_ < content_.size() &&
@@ -540,7 +540,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void Toolbox::ToUpperCase(std::string& s)
   {
     std::transform(s.begin(), s.end(), s.begin(), toupper);
@@ -646,7 +646,7 @@ namespace Orthanc
       assert(j == target.size());
     }
   }
-  
+
 
 
   bool Toolbox::IsChildUri(const UriComponents& baseUri,
@@ -749,14 +749,14 @@ namespace Orthanc
 
 
 #if ORTHANC_ENABLE_BASE64 == 1
-  void Toolbox::EncodeBase64(std::string& result, 
+  void Toolbox::EncodeBase64(std::string& result,
                              const std::string& data)
   {
     result.clear();
     base64_encode(result, data);
   }
 
-  void Toolbox::DecodeBase64(std::string& result, 
+  void Toolbox::DecodeBase64(std::string& result,
                              const std::string& data)
   {
     for (size_t i = 0; i < data.length(); i++)
@@ -848,7 +848,7 @@ namespace Orthanc
 
       case Encoding_Hebrew:
         return "ISO-8859-8";
-        
+
       case Encoding_Japanese:
         return "SHIFT-JIS";
 
@@ -899,17 +899,17 @@ namespace Orthanc
 
     // The "::skip" flag makes boost skip invalid UTF-8
     // characters. This can occur in badly-encoded DICOM files.
-    
+
     try
     {
       if (sourceEncoding == Encoding_Ascii)
       {
         return ConvertToAscii(source);
       }
-      else 
+      else
       {
         std::string s;
-        
+
         if (sourceEncoding == Encoding_Utf8)
         {
           // Already in UTF-8: No conversion is required, but we ensure
@@ -950,7 +950,7 @@ namespace Orthanc
         else
         {
           return s;
-        }        
+        }
       }
     }
     catch (std::runtime_error& e)
@@ -961,7 +961,7 @@ namespace Orthanc
     }
   }
 #endif
-  
+
 
 #if ORTHANC_ENABLE_LOCALE == 1
   std::string Toolbox::ConvertFromUtf8(const std::string& source,
@@ -981,7 +981,7 @@ namespace Orthanc
 
     // The "::skip" flag makes boost skip invalid UTF-8
     // characters. This can occur in badly-encoded DICOM files.
-    
+
     try
     {
       if (targetEncoding == Encoding_Utf8)
@@ -1081,7 +1081,7 @@ namespace Orthanc
   {
     return IsAsciiString(s.c_str(), s.size());
   }
-  
+
 
   std::string Toolbox::ConvertToAscii(const std::string& source)
   {
@@ -1262,8 +1262,8 @@ namespace Orthanc
            isspace(source[last - 1]))
     {
       last--;
-    }          
-    
+    }
+
     assert(first <= last);
     return source.substr(first, last - first);
   }
@@ -1329,14 +1329,14 @@ namespace Orthanc
     buffer[2] = 0x02;
     buffer[3] = 0x03;
 
-    switch (bufferView) 
+    switch (bufferView)
     {
-      case 0x00010203: 
+      case 0x00010203:
         return Endianness_Big;
 
-      case 0x03020100: 
+      case 0x03020100:
         return Endianness_Little;
-        
+
       default:
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
@@ -1376,7 +1376,7 @@ namespace Orthanc
                                bool includeEmptyStrings)
   {
     size_t countSeparators = 0;
-    
+
     for (size_t i = 0; i < value.size(); i++)
     {
       if (value[i] == separator)
@@ -1384,7 +1384,7 @@ namespace Orthanc
         countSeparators++;
       }
     }
-    
+
     result.clear();
     result.reserve(countSeparators + 1);
 
@@ -1535,7 +1535,7 @@ namespace Orthanc
         }
         break;
       }
-        
+
       case Json::objectValue:
       {
         Json::Value::Members members = source.getMemberNames();
@@ -1544,7 +1544,7 @@ namespace Orthanc
         {
           pugi::xml_node node = target.append_child();
           node.set_name(members[i].c_str());
-          JsonToXmlInternal(node, source[members[i]], arrayElement);          
+          JsonToXmlInternal(node, source[members[i]], arrayElement);
         }
 
         break;
@@ -1583,7 +1583,7 @@ namespace Orthanc
 #endif
 
 
-  
+
   bool Toolbox::IsInteger(const std::string& str)
   {
     std::string s = StripSpaces(str);
@@ -1690,7 +1690,7 @@ namespace Orthanc
       return str.compare(0, prefix.size(), prefix) == 0;
     }
   }
-  
+
 
   static bool IsUnreservedCharacter(char c)
   {
@@ -1929,7 +1929,7 @@ namespace Orthanc
     return (globalLocale_.get() != NULL);
   }
 
-  
+
   static void InitializeIcu()
   {
 #if (ORTHANC_STATIC_ICU == 1) && (ORTHANC_ENABLE_ICU == 1)
@@ -1963,7 +1963,7 @@ namespace Orthanc
         if (reinterpret_cast<intptr_t>(globalIcuData_.c_str()) % ALIGN == 0)
         {
           // Data is already properly aligned
-          udata_setCommonData(globalIcuData_.c_str(), &status);  
+          udata_setCommonData(globalIcuData_.c_str(), &status);
         }
         else
         {
@@ -1988,18 +1988,18 @@ namespace Orthanc
           {
             *q = *p;
           }
-        
+
           globalIcuData_.swap(aligned);
 
           const uint8_t* data = reinterpret_cast<const uint8_t*>(globalIcuData_.c_str()) + offset;
-        
+
           if (reinterpret_cast<intptr_t>(data) % ALIGN != 0)
           {
             throw OrthancException(ErrorCode_InternalError, "Cannot align on 16-bytes boundary");
           }
           else
           {
-            udata_setCommonData(data, &status);  
+            udata_setCommonData(data, &status);
           }
         }
 
@@ -2033,14 +2033,14 @@ namespace Orthanc
     uloc_getDefault();
 #endif
   }
-  
+
   void Toolbox::InitializeGlobalLocale(const char* locale)
   {
     InitializeIcu();
 
 #if defined(__unix__) && ORTHANC_SANDBOXED != 1
     static const char* LOCALTIME = "/etc/localtime";
-    
+
     if (!boost::filesystem::exists(LOCALTIME))
     {
       // Check out file
@@ -2056,14 +2056,14 @@ namespace Orthanc
 #endif
 
     bool ok;
-    
+
     if (locale == NULL)
     {
       // Make Orthanc use English, United States locale
       // Linux: use "en_US.UTF-8"
       // Windows: use ""
       // Wine: use NULL
-    
+
 #if defined(__MINGW32__)
       // Visibly, there is no support of locales in MinGW yet
       // http://mingw.5.n7.nabble.com/How-to-use-std-locale-global-with-MinGW-correct-td33048.html
@@ -2124,7 +2124,7 @@ namespace Orthanc
     }
 #  endif
 #endif
-    
+
     if (error)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls,
@@ -2151,7 +2151,7 @@ namespace Orthanc
      * (2) The function "boost::algorithm::to_upper_copy" does not
      * make use of the "std::locale::global()". We therefore create a
      * global variable "globalLocale_".
-     * 
+     *
      * (3) The variant of "boost::algorithm::to_upper_copy()" that
      * uses std::string does not work properly. We need to apply it
      * one wide strings (std::wstring). This explains the two calls to
@@ -2194,21 +2194,21 @@ namespace Orthanc
   {
     LOG(INFO) << "OpenSSL is disabled";
   }
-  
+
   void Toolbox::FinalizeOpenSsl()
   {
-  }  
+  }
 
 
 #elif (ORTHANC_ENABLE_SSL == 1 &&               \
-       OPENSSL_VERSION_NUMBER < 0x10100000L) 
+       OPENSSL_VERSION_NUMBER < 0x10100000L)
   /**
    * OpenSSL < 1.1.0
    **/
   void Toolbox::InitializeOpenSsl()
   {
     LOG(INFO) << "OpenSSL version: " << OPENSSL_VERSION_TEXT;
-    
+
     // https://wiki.openssl.org/index.php/Library_Initialization
     SSL_library_init();
     SSL_load_error_strings();
@@ -2227,7 +2227,7 @@ namespace Orthanc
 #if !defined(OPENSSL_NO_ENGINE)
     ENGINE_cleanup();
 #endif
-    
+
     CONF_modules_unload(1);
     EVP_cleanup();
     CRYPTO_cleanup_all_ex_data();
@@ -2235,9 +2235,9 @@ namespace Orthanc
     ERR_free_strings();
   }
 
-  
+
 #elif (ORTHANC_ENABLE_SSL == 1 &&               \
-       OPENSSL_VERSION_NUMBER >= 0x10100000L) 
+       OPENSSL_VERSION_NUMBER >= 0x10100000L)
   /**
    * OpenSSL >= 1.1.0. In this case, the initialization is
    * automatically done by the functions of OpenSSL.
@@ -2255,7 +2255,7 @@ namespace Orthanc
 #else
 #  error "Support your platform here"
 #endif
-  
+
 
 
   std::string Toolbox::GenerateUuid()
@@ -2297,7 +2297,7 @@ namespace Orthanc
         dictionary_(dictionary)
       {
       }
-  
+
       template<typename Out>
       Out operator()(const boost::smatch& what,
                      Out out) const
@@ -2306,7 +2306,7 @@ namespace Orthanc
         {
           // Variable without a default value
           Dictionary::const_iterator found = dictionary_.find(what[1]);
-    
+
           if (found != dictionary_.end())
           {
             const std::string& value = found->second;
@@ -2318,7 +2318,7 @@ namespace Orthanc
           // Variable with a default value
           std::string key;
           std::string defaultValue;
-          
+
           if (!what[2].str().empty())
           {
             key = what[2].str();
@@ -2340,7 +2340,7 @@ namespace Orthanc
           }
 
           Dictionary::const_iterator found = dictionary_.find(key);
-    
+
           if (found == dictionary_.end())
           {
             out = std::copy(defaultValue.begin(), defaultValue.end(), out);
@@ -2351,13 +2351,13 @@ namespace Orthanc
             out = std::copy(value.begin(), value.end(), out);
           }
         }
-    
+
         return out;
       }
     };
   }
 
-  
+
   std::string Toolbox::SubstituteVariables(const std::string& source,
                                            const std::map<std::string, std::string>& dictionary)
   {
@@ -2479,7 +2479,7 @@ namespace Orthanc
       {
         size_t j = i+1;
 
-        // advance reading cursor while we are in a sequence 
+        // advance reading cursor while we are in a sequence
         while (TestCharRange(s, j, '\x20', '\x2f'))
           ++j;
 
@@ -2495,7 +2495,7 @@ namespace Orthanc
     }
   }
 
-  
+
 
   /**
      This function will strip all ISO/IEC 2022 control codes and escape
@@ -2537,7 +2537,7 @@ namespace Orthanc
         i += Iso2022::GetEscapeSequenceLength(src, i);
 
       // if the index was NOT incremented, this means there was no message at
-      // this location: we then may copy the character at this index and 
+      // this location: we then may copy the character at this index and
       // increment the index to point to the next read position
       if (j == i)
       {
@@ -2557,7 +2557,7 @@ namespace Orthanc
 
     static const uint8_t MASK_IS_1_BYTE = 0x80;     // printf '0x%x\n' "$((2#10000000))"
     static const uint8_t TEST_IS_1_BYTE = 0x00;
- 
+
     static const uint8_t MASK_IS_2_BYTES = 0xe0;    // printf '0x%x\n' "$((2#11100000))"
     static const uint8_t TEST_IS_2_BYTES = 0xc0;    // printf '0x%x\n' "$((2#11000000))"
 
@@ -2630,7 +2630,7 @@ namespace Orthanc
      * NB: Focus of the code below is *not* efficiency, but
      * readability!
      **/
-    
+
     for (size_t i = 0; i < hex.size(); i++)
     {
       const char c = hex[i];
@@ -2642,7 +2642,7 @@ namespace Orthanc
                                "Not an hexadecimal number");
       }
     }
-    
+
     std::vector<uint8_t> decimal;
     decimal.push_back(0);
 
@@ -2655,7 +2655,7 @@ namespace Orthanc
       {
         uint8_t val = static_cast<uint8_t>(decimal[j]) * 16 + hexDigit;  // Maximum: 9 * 16 + 15
         assert(val <= 159 /* == 9 * 16 + 15 */);
-      
+
         decimal[j] = val % 10;
         hexDigit = val / 10;
         assert(hexDigit <= 15 /* == 159 / 10 */);
@@ -2705,7 +2705,7 @@ namespace Orthanc
      * each of those characters lying in the range [0,16[. The large
      * number is thus in the [0,16^32[ = [0,256^16[ range. This number
      * has a maximum of 39 decimal digits, as can be seen in Python:
-     * 
+     *
      * # python -c 'import math; print(math.log(16**32))/math.log(10))'
      * 38.531839445
      *
@@ -2803,10 +2803,10 @@ namespace Orthanc
 #else
     Json::CharReaderBuilder builder;
     builder.settings_["collectComments"] = collectComments;
-    
+
     const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
     assert(reader.get() != NULL);
-    
+
     JSONCPP_STRING err;
     if (reader->parse(reinterpret_cast<const char*>(buffer),
                       reinterpret_cast<const char*>(buffer) + size, &target, &err))
@@ -2827,7 +2827,7 @@ namespace Orthanc
   {
     return ReadJson(target, source.empty() ? NULL : source.c_str(), source.size());
   }
-  
+
 
   bool Toolbox::ReadJson(Json::Value& target,
                          const void* buffer,
@@ -2835,14 +2835,14 @@ namespace Orthanc
   {
     return ReadJsonInternal(target, buffer, size, true);
   }
-  
+
 
   bool Toolbox::ReadJsonWithoutComments(Json::Value& target,
                                         const std::string& source)
   {
     return ReadJsonWithoutComments(target, source.empty() ? NULL : source.c_str(), source.size());
   }
-  
+
 
   bool Toolbox::ReadJsonWithoutComments(Json::Value& target,
                                         const void* buffer,
@@ -2850,7 +2850,7 @@ namespace Orthanc
   {
     return ReadJsonInternal(target, buffer, size, false);
   }
-  
+
 
   void Toolbox::WriteFastJson(std::string& target,
                               const Json::Value& source)
@@ -2864,7 +2864,7 @@ namespace Orthanc
     target = Json::writeString(builder, source);
 #endif
   }
-  
+
 
   void Toolbox::WriteStyledJson(std::string& target,
                                 const Json::Value& source)
@@ -3183,7 +3183,7 @@ namespace Orthanc
       int i = 0;
       double size = static_cast<double>(sizeInBytes)/1024.0;
 
-      while (size >= 1024.0 && i < suffixesCount - 1) 
+      while (size >= 1024.0 && i < suffixesCount - 1)
       {
         size /= 1024.0;
         i++;
@@ -3211,7 +3211,7 @@ namespace Orthanc
       int i = 0;
       double duration = static_cast<double>(durationInNanoseconds);
 
-      while (duration >= 1000.0 && i < suffixesCount - 1) 
+      while (duration >= 1000.0 && i < suffixesCount - 1)
       {
         duration /= 1000.0;
         i++;
@@ -3225,7 +3225,7 @@ namespace Orthanc
 
   std::string Toolbox::GetHumanTransferSpeed(bool full, uint64_t sizeInBytes, uint64_t durationInNanoseconds)
   {
-    // in "full" mode, returns " 26.45MB in 2.25s = 94.04Mbps"    
+    // in "full" mode, returns " 26.45MB in 2.25s = 94.04Mbps"
     // else, return "94.04Mbps"
 
     if (full)
@@ -3251,7 +3251,7 @@ namespace Orthanc
 
       int i = 0;
 
-      while (throughputInBps >= 1000.0 && i < suffixesCount - 1) 
+      while (throughputInBps >= 1000.0 && i < suffixesCount - 1)
       {
         throughputInBps /= 1000.0;
         i++;

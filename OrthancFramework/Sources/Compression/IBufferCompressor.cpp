@@ -32,8 +32,8 @@ namespace Orthanc
                                    IBufferCompressor& compressor,
                                    const std::string& uncompressed)
   {
-    compressor.Compress(compressed, 
-                        uncompressed.size() == 0 ? NULL : uncompressed.c_str(), 
+    compressor.Compress(compressed,
+                        uncompressed.size() == 0 ? NULL : uncompressed.c_str(),
                         uncompressed.size());
   }
 
@@ -41,8 +41,8 @@ namespace Orthanc
                                      IBufferCompressor& compressor,
                                      const std::string& compressed)
   {
-    compressor.Uncompress(uncompressed, 
-                          compressed.size() == 0 ? NULL : compressed.c_str(), 
+    compressor.Uncompress(uncompressed,
+                          compressed.size() == 0 ? NULL : compressed.c_str(),
                           compressed.size());
   }
 }

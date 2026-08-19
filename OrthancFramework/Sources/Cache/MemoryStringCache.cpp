@@ -53,7 +53,7 @@ namespace Orthanc
     virtual size_t GetMemoryUsage() const
     {
       return content_.size();
-    }      
+    }
   };
 
 
@@ -204,7 +204,7 @@ namespace Orthanc
       delete item;
 
       content_.Invalidate(key);
-          
+
       assert(currentSize_ >= size);
       currentSize_ -= size;
     }
@@ -262,7 +262,7 @@ namespace Orthanc
     while (currentSize_ > targetSize)
     {
       assert(!content_.IsEmpty());
-        
+
       StringValue* item = NULL;
       content_.RemoveOldest(item);
 
@@ -283,7 +283,7 @@ namespace Orthanc
 
     return currentSize_;
   }
-    
+
   size_t MemoryStringCache::GetNumberOfItems() const
   {
     boost::mutex::scoped_lock cacheLock(cacheMutex_);

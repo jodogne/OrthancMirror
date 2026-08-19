@@ -41,7 +41,7 @@ namespace Orthanc
     explicit StringOperationValue(const std::string& content);
 
     virtual Type GetType() const ORTHANC_OVERRIDE;
-    
+
     virtual IJobOperationValue* Clone() const ORTHANC_OVERRIDE;
 
     const std::string& GetContent() const;

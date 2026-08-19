@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -51,8 +51,8 @@ namespace Orthanc
         client_->AddHeader("Content-Encoding", "gzip");
       }
     }
-      
-    LOG(INFO) << "Sending instance " << instance << " to peer \"" 
+
+    LOG(INFO) << "Sending instance " << instance << " to peer \""
               << peer_.GetUrl() << "\"";
 
     // Lifetime of "body" must exceed the call to "client_->Apply()" because of "SetExternalBody()"
@@ -69,7 +69,7 @@ namespace Orthanc
       {
         std::set<DicomTransferSyntax> syntaxes;
         syntaxes.insert(transferSyntax_);
-        
+
         IDicomTranscoder::DicomImage source, transcoded;
         source.SetExternalBuffer(dicom.GetData(), dicom.GetSize());
 
@@ -129,7 +129,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NetworkProtocol);
     }
   }
-    
+
 
   bool OrthancPeerStoreJob::HandleTrailingStep()
   {
@@ -161,7 +161,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
-  
+
 
   void OrthancPeerStoreJob::SetTranscode(DicomTransferSyntax syntax)
   {
@@ -173,9 +173,9 @@ namespace Orthanc
     {
       transcode_ = true;
       transferSyntax_ = syntax;
-    }    
+    }
   }
-  
+
 
   void OrthancPeerStoreJob::SetTranscode(const std::string& transferSyntaxUid)
   {
@@ -214,7 +214,7 @@ namespace Orthanc
     else
     {
       compress_ = compress;
-    }    
+    }
   }
 
 
@@ -229,14 +229,14 @@ namespace Orthanc
   void OrthancPeerStoreJob::GetPublicContent(Json::Value& value) const
   {
     SetOfInstancesJob::GetPublicContent(value);
-    
+
     Json::Value v;
-    peer_.Serialize(v, 
+    peer_.Serialize(v,
                     false /* allow simple format if possible */,
                     false /* don't include passwords */);
     value["Peer"] = v;
     value["Compress"] = compress_;
-    
+
     if (transcode_)
     {
       value["Transcode"] = GetTransferSyntaxUid(transferSyntax_);
@@ -309,8 +309,8 @@ namespace Orthanc
 
       target[COMPRESS] = compress_;
       target[SIZE] = boost::lexical_cast<std::string>(size_);
-      
+
       return true;
     }
-  }  
+  }
 }

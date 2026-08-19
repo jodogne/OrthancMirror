@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -34,7 +34,7 @@ using namespace Orthanc;
 TEST(DatabaseLookup, SingleConstraint)
 {
   {
-    ASSERT_THROW(DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_Equal, 
+    ASSERT_THROW(DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_Equal,
                                         "HEL*LO", true, true), OrthancException);
     ASSERT_THROW(DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_Equal,
                                         "HEL?LO", true, true), OrthancException);

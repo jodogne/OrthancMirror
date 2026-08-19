@@ -33,7 +33,7 @@
 #include <cassert>
 #include <boost/lexical_cast.hpp>
 
-extern "C" 
+extern "C"
 {
 #include <lualib.h>
 #include <lauxlib.h>
@@ -53,7 +53,7 @@ namespace Orthanc
 
     return true;
   }
-  
+
   LuaContext& LuaContext::GetLuaContext(lua_State *state)
   {
     const void* value = GetGlobalVariable(state, "_LuaContext");
@@ -88,11 +88,11 @@ namespace Orthanc
         result.append("<No conversion to string>");
       else
         result.append(s);
- 
+
       lua_pop(state, 1);
     }
 
-    LOG(WARNING) << "Lua says: " << result;         
+    LOG(WARNING) << "Lua says: " << result;
     that.log_.append(result);
     that.log_.append("\n");
 
@@ -229,14 +229,14 @@ namespace Orthanc
     return true;
   }
 #endif
-  
+
 
 #if ORTHANC_ENABLE_CURL == 1
   void LuaContext::SetHttpHeaders(int top)
   {
     std::map<std::string, std::string> headers;
     GetDictionaryArgument(headers, lua_, top, false /* keep key case as provided by Lua script */);
-      
+
     httpClient_.ClearHeaders(); // always reset headers in case they have been set in a previous request
 
     for (std::map<std::string, std::string>::const_iterator
@@ -334,7 +334,7 @@ namespace Orthanc
     return 1;
   }
 #endif
-  
+
 
 #if ORTHANC_ENABLE_CURL == 1
   int LuaContext::CallHttpPost(lua_State *state)
@@ -440,7 +440,7 @@ namespace Orthanc
 
       Json::Value::Members members = value.getMemberNames();
 
-      for (Json::Value::Members::const_iterator 
+      for (Json::Value::Members::const_iterator
              it = members.begin(); it != members.end(); ++it)
       {
         // Push the index of the cell
@@ -472,7 +472,7 @@ namespace Orthanc
       size_t size = 0;
 
       // Code adapted from: http://stackoverflow.com/a/6142700/881731
-      
+
       // Push another reference to the table on top of the stack (so we know
       // where it is, and this function can work for negative, positive and
       // pseudo indices
@@ -505,7 +505,7 @@ namespace Orthanc
         {
           isArray = false;
         }
-        
+
         // pop value + copy of key, leaving original key
         lua_pop(state, 2);
         // stack now contains: -1 => key; -2 => table
@@ -546,7 +546,7 @@ namespace Orthanc
       double value = static_cast<double>(lua_tonumber(state, top));
       int truncated = static_cast<int>(value);
 
-      if (std::abs(value - static_cast<double>(truncated)) <= 
+      if (std::abs(value - static_cast<double>(truncated)) <=
           std::numeric_limits<double>::epsilon())
       {
         result = truncated;
@@ -586,7 +586,7 @@ namespace Orthanc
     lua_register(lua_, "print", PrintToLog);
     lua_register(lua_, "ParseJson", ParseJson);
     lua_register(lua_, "DumpJson", DumpJson);
-    
+
 #if ORTHANC_ENABLE_CURL == 1
     lua_register(lua_, "HttpGet", CallHttpGet);
     lua_register(lua_, "HttpPost", CallHttpPost);
@@ -624,7 +624,7 @@ namespace Orthanc
     int error = (luaL_loadbuffer(lua_, command.c_str(), command.size(), "line") ||
                  lua_pcall(lua_, 0, 0, 0));
 
-    if (error) 
+    if (error)
     {
       assert(lua_gettop(lua_) >= 1);
 
@@ -675,7 +675,7 @@ namespace Orthanc
     lua_setglobal(lua_, name);
   }
 
-  
+
   const void* LuaContext::GetGlobalVariable(lua_State* state,
                                             const char* name)
   {
@@ -709,7 +709,7 @@ namespace Orthanc
         {
           Toolbox::ToLowerCase(key);
         }
-        
+
         target[key] = headers[members[i]].asString();
       }
     }

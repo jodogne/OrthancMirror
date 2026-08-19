@@ -64,7 +64,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void StringHttpOutput::GetBody(std::string& output)
   {
     if (!validBody_)
@@ -112,7 +112,7 @@ namespace Orthanc
           {
             Toolbox::ToLowerCase(key);
           }
-          
+
           const std::string value = lines[i].substr(colon + 1);
           target[Toolbox::StripSpaces(key)] = Toolbox::StripSpaces(value);
         }

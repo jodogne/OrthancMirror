@@ -59,7 +59,7 @@ namespace Orthanc
              vr == ValueRepresentation_UnlimitedText));
   }
 
-  
+
   static void NormalizeValue(std::string& inplace,
                              ValueRepresentation vr)
   {
@@ -70,7 +70,7 @@ namespace Orthanc
     }
   }
 
-    
+
   static uint16_t ReadUnsignedInteger16(const char* dicom,
                                         bool littleEndian)
   {
@@ -198,7 +198,7 @@ namespace Orthanc
     while (pos + 8 <= block.size())
     {
       DicomTag tag = ReadTag(p + pos, true);
-        
+
       ValueRepresentation vr = StringToValueRepresentation(std::string(p + pos + 4, 2), true);
 
       if (IsShortExplicitTag(vr))
@@ -217,7 +217,7 @@ namespace Orthanc
         if (tag.GetGroup() == 0x0002)
         {
           visitor.VisitMetaHeaderTag(tag, vr, value);
-        }                  
+        }
 
         if (tag == DICOM_TAG_TRANSFER_SYNTAX_UID)
         {
@@ -230,7 +230,7 @@ namespace Orthanc
             throw OrthancException(ErrorCode_NotImplemented, "Unsupported transfer syntax: " + value);
           }
         }
-          
+
         pos += length + 8;
       }
       else if (pos + 12 <= block.size())
@@ -240,7 +240,7 @@ namespace Orthanc
         {
           break;
         }
-          
+
         uint32_t length = ReadUnsignedInteger32(p + pos + 8, true);
 
         if (pos + 12 + static_cast<size_t>(length) > block.size())
@@ -254,8 +254,8 @@ namespace Orthanc
           value.assign(p + pos + 12, length);
           NormalizeValue(value, vr);
           visitor.VisitMetaHeaderTag(tag, vr, value);
-        }                  
-          
+        }
+
         pos += length + 12;
       }
       else
@@ -279,7 +279,7 @@ namespace Orthanc
     reader_.Schedule(8);
     state_ = State_DatasetTag;
   }
-    
+
 
   void DicomStreamReader::HandleDatasetTag(const std::string& block,
                                            const DicomTag& untilTag)
@@ -299,7 +299,7 @@ namespace Orthanc
       state_ = State_Done;
       return;
     }
-      
+
     if (tag == DICOM_TAG_SEQUENCE_ITEM ||
         tag == DICOM_TAG_SEQUENCE_DELIMITATION_ITEM ||
         tag == DICOM_TAG_SEQUENCE_DELIMITATION_SEQUENCE)
@@ -337,7 +337,7 @@ namespace Orthanc
         }
 
         reader_.Schedule(8);
-        state_ = State_DatasetTag;          
+        state_ = State_DatasetTag;
       }
       else
       {
@@ -348,9 +348,9 @@ namespace Orthanc
     {
       assert(reader_.GetProcessedBytes() >= block.size());
       const uint64_t tagOffset = reader_.GetProcessedBytes() - block.size();
-        
+
       ValueRepresentation vr = ValueRepresentation_Unknown;
-        
+
       if (transferSyntax_ == DicomTransferSyntax_LittleEndianImplicit)
       {
         if (sequenceDepth_ == 0)
@@ -425,9 +425,9 @@ namespace Orthanc
       reader_.Schedule(length);
       state_ = State_DatasetValue;
     }
-  }    
+  }
 
-    
+
   void DicomStreamReader::HandleDatasetExplicitLength(IVisitor& visitor,
                                                       const std::string& block)
   {
@@ -442,7 +442,7 @@ namespace Orthanc
       state_ = State_Done;
     }
   }
-    
+
 
   void DicomStreamReader::HandleSequenceExplicitLength(const std::string& block)
   {
@@ -461,7 +461,7 @@ namespace Orthanc
     }
   }
 
-    
+
   void DicomStreamReader::HandleSequenceExplicitValue()
   {
     if (sequenceDepth_ == 0)
@@ -492,7 +492,7 @@ namespace Orthanc
       {
         c = visitor.VisitDatasetTag(danglingTag_, danglingVR_, block, IsLittleEndian(), danglingOffset_);
       }
-      
+
       if (!c)
       {
         state_ = State_Done;
@@ -503,8 +503,8 @@ namespace Orthanc
     reader_.Schedule(8);
     state_ = State_DatasetTag;
   }
-    
-    
+
+
   DicomStreamReader::DicomStreamReader(std::istream& stream) :
     reader_(stream),
     state_(State_Preamble),
@@ -522,7 +522,7 @@ namespace Orthanc
                      4 /* actual length of the meta-header */);
   }
 
-  
+
   void DicomStreamReader::Consume(IVisitor& visitor,
                                   const DicomTag& untilTag)
   {
@@ -585,7 +585,7 @@ namespace Orthanc
     return (state_ == State_Done);
   }
 
-  
+
   uint64_t DicomStreamReader::GetProcessedBytes() const
   {
     return reader_.GetProcessedBytes();
@@ -599,7 +599,7 @@ namespace Orthanc
     uint64_t             pixelDataOffset_;
     ValueRepresentation  pixelDataVR_;
     DicomTransferSyntax  transferSyntax_;
-    
+
   public:
     PixelDataVisitor() :
       hasPixelData_(false),
@@ -608,7 +608,7 @@ namespace Orthanc
       transferSyntax_(DicomTransferSyntax_LittleEndianImplicit) // Default DICOM transfer syntax
     {
     }
-    
+
     virtual void VisitMetaHeaderTag(const DicomTag& tag,
                                     const ValueRepresentation& vr,
                                     const std::string& value) ORTHANC_OVERRIDE
@@ -619,7 +619,7 @@ namespace Orthanc
     {
       transferSyntax_ = transferSyntax;
     }
-    
+
     virtual bool VisitDatasetTag(const DicomTag& tag,
                                  const ValueRepresentation& vr,
                                  const std::string& value,
@@ -701,7 +701,7 @@ namespace Orthanc
         }
 
         stream.seekg(static_cast<off_t>(visitor.GetPixelDataOffset()), stream.beg);
-        
+
         std::string s;
         s.resize(4);
         stream.read(&s[0], static_cast<std::streamsize>(s.size()));
@@ -711,9 +711,9 @@ namespace Orthanc
           // Byte swapping if reading a file whose transfer syntax is
           // 1.2.840.10008.1.2.2 (big endian explicit)
           std::swap(s[0], s[1]);
-          std::swap(s[2], s[3]);          
+          std::swap(s[2], s[3]);
         }
-        
+
         if (stream.gcount() == static_cast<std::streamsize>(s.size()) &&
             s[0] == char(0xe0) &&
             s[1] == char(0x7f) &&
@@ -736,7 +736,7 @@ namespace Orthanc
     }
   };
 
-  
+
   bool DicomStreamReader::LookupPixelDataOffset(uint64_t& offset,
                                                 ValueRepresentation& vr,
                                                 const std::string& dicom)
@@ -744,7 +744,7 @@ namespace Orthanc
     std::stringstream stream(dicom);
     return PixelDataVisitor::LookupPixelDataOffset(offset, vr, stream);
   }
-  
+
 
   bool DicomStreamReader::LookupPixelDataOffset(uint64_t& offset,
                                                 ValueRepresentation& vr,

@@ -219,7 +219,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void RemoteModalityParameters::UnserializeObject(const Json::Value& serialized)
   {
     assert(serialized.type() == Json::objectValue);
@@ -240,7 +240,7 @@ namespace Orthanc
     {
       manufacturer_ = StringToModalityManufacturer
         (SerializationToolbox::ReadString(serialized, KEY_MANUFACTURER));
-    }   
+    }
     else
     {
       manufacturer_ = ModalityManufacturer_Generic;
@@ -317,7 +317,7 @@ namespace Orthanc
     {
       retrieveMethod_ = StringToRetrieveMethod
         (SerializationToolbox::ReadString(serialized, KEY_RETRIEVE_METHOD));
-    }   
+    }
     else
     {
       retrieveMethod_ = RetrieveMethod_SystemDefault;
@@ -418,7 +418,7 @@ namespace Orthanc
             HasLocalAet());
   }
 
-  
+
   void RemoteModalityParameters::Serialize(Json::Value& target,
                                            bool forceAdvancedFormat) const
   {
@@ -454,7 +454,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void RemoteModalityParameters::Unserialize(const Json::Value& serialized)
   {
     Clear();

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -35,7 +35,7 @@
 namespace Orthanc
 {
   class ServerContext;
-  
+
   class StorageCommitmentScpJob : public SetOfCommandsJob
   {
   private:
@@ -45,7 +45,7 @@ namespace Orthanc
       CommandType_Lookup,
       CommandType_Answer
     };
-    
+
     class StorageCommitmentCommand;
     class SetupCommand;
     class LookupCommand;
@@ -63,13 +63,13 @@ namespace Orthanc
     std::unique_ptr<IStorageCommitmentFactory::ILookupHandler>  lookupHandler_;
 
     void CheckInvariants();
-    
+
     void Setup(const std::string& jobId);
-    
+
     StorageCommitmentFailureReason Lookup(size_t index);
-    
+
     void Answer();
-    
+
   public:
     StorageCommitmentScpJob(ServerContext& context,
                             const std::string& transactionUid,
@@ -79,7 +79,7 @@ namespace Orthanc
                             const Json::Value& serialized);
 
     virtual void Reserve(size_t size) ORTHANC_OVERRIDE;
-    
+
     void AddInstance(const std::string& sopClassUid,
                      const std::string& sopInstanceUid);
 

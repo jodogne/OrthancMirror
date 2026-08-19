@@ -27,7 +27,7 @@
 #include "../Common/OrthancPluginCppWrapper.h"
 
 #include <boost/filesystem.hpp>
-#include <json/value.h> 
+#include <json/value.h>
 #include <string.h>
 #include <iostream>
 
@@ -43,13 +43,13 @@ OrthancPluginReceivedInstanceAction ReceivedInstanceCallback(OrthancPluginMemory
   std::string institutionName = "My institution";
 
   dicom.Replace(Orthanc::DICOM_TAG_INSTITUTION_NAME, institutionName, false, Orthanc::DicomReplaceMode_InsertIfAbsent, "");
-  
+
   std::string modifiedDicom;
   dicom.SaveToMemoryBuffer(modifiedDicom);
-  
+
   OrthancPluginCreateMemoryBuffer64(OrthancPlugins::GetGlobalContext(), modifiedDicomBuffer, modifiedDicom.size());
   memcpy(modifiedDicomBuffer->data, modifiedDicom.c_str(), modifiedDicom.size());
-  
+
   return OrthancPluginReceivedInstanceAction_Modify;
 }
 
@@ -70,7 +70,7 @@ extern "C"
                                                   ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
       return -1;
     }
-    
+
     ORTHANC_PLUGINS_LOG_WARNING("Sanitizer plugin is initializing");
     OrthancPlugins::SetDescription(ORTHANC_PLUGIN_NAME, "Sample plugin to sanitize incoming DICOM instances.");
 

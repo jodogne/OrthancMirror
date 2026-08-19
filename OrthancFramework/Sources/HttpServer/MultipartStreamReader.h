@@ -35,19 +35,19 @@ namespace Orthanc
   {
   public:
     typedef std::map<std::string, std::string>  HttpHeaders;
-    
+
     class IHandler : public boost::noncopyable
     {
     public:
       virtual ~IHandler()
       {
       }
-      
+
       virtual void HandlePart(const HttpHeaders& headers,
                               const void* part,
                               size_t size) = 0;
     };
-    
+
   private:
     enum State
     {
@@ -55,7 +55,7 @@ namespace Orthanc
       State_Content,
       State_Done
     };
-    
+
     State          state_;
     IHandler*      handler_;
     CStringMatcher headersMatcher_;
@@ -65,7 +65,7 @@ namespace Orthanc
 
     void ParseBlock(const void* data,
                     size_t size);
-    
+
     void ParseStream();
 
   public:
@@ -76,7 +76,7 @@ namespace Orthanc
     size_t GetBlockSize() const;
 
     void SetHandler(IHandler& handler);
-    
+
     void AddChunk(const void* chunk,
                   size_t size);
 

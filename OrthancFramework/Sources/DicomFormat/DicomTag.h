@@ -35,7 +35,7 @@ namespace Orthanc
 {
   class ORTHANC_PUBLIC DicomTag
   {
-    // This must stay a POD (plain old data structure) 
+    // This must stay a POD (plain old data structure)
 
   private:
     uint16_t group_;
@@ -108,7 +108,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID(0x0002, 0x0003);
   static const DicomTag DICOM_TAG_PATIENT_IDENTITY_REMOVED(0x0012, 0x0062);
   static const DicomTag DICOM_TAG_DEIDENTIFICATION_METHOD(0x0012, 0x0063);
-  
+
   // DICOM tags used for fMRI (thanks to Will Ryder)
   static const DicomTag DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS(0x0020, 0x0105);
   static const DicomTag DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER(0x0020, 0x0100);
@@ -208,16 +208,16 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_BLUE_PALETTE_COLOR_LOOKUP_TABLE_DESCRIPTOR(0x0028, 0x1103);
   static const DicomTag DICOM_TAG_CONTOUR_DATA(0x3006, 0x0050);
   static const DicomTag DICOM_TAG_CINE_RATE(0x0018, 0x0040);
-                             
+
   // Counting patients, studies and series
   // https://www.medicalconnections.co.uk/kb/Counting_Studies_Series_and_Instances
-  static const DicomTag DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES(0x0020, 0x1200);  
-  static const DicomTag DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES(0x0020, 0x1202);  
-  static const DicomTag DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES(0x0020, 0x1204);  
-  static const DicomTag DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES(0x0020, 0x1206);  
-  static const DicomTag DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES(0x0020, 0x1208);  
-  static const DicomTag DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES(0x0020, 0x1209);  
-  static const DicomTag DICOM_TAG_SOP_CLASSES_IN_STUDY(0x0008, 0x0062);  
+  static const DicomTag DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES(0x0020, 0x1200);
+  static const DicomTag DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES(0x0020, 0x1202);
+  static const DicomTag DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES(0x0020, 0x1204);
+  static const DicomTag DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES(0x0020, 0x1206);
+  static const DicomTag DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES(0x0020, 0x1208);
+  static const DicomTag DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES(0x0020, 0x1209);
+  static const DicomTag DICOM_TAG_SOP_CLASSES_IN_STUDY(0x0008, 0x0062);
 
   // Tags to preserve relationships during anonymization
   static const DicomTag DICOM_TAG_REFERENCED_IMAGE_SEQUENCE(0x0008, 0x1140);

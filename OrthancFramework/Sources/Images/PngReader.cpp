@@ -42,7 +42,7 @@
 namespace Orthanc
 {
 #if ORTHANC_SANDBOXED == 0
-  namespace 
+  namespace
   {
     struct FileRabi : public boost::noncopyable
     {
@@ -118,8 +118,8 @@ namespace Orthanc
       Destruct();
     }
 
-    static void MemoryCallback(png_structp png_ptr, 
-                               png_bytep data, 
+    static void MemoryCallback(png_structp png_ptr,
+                               png_bytep data,
                                png_size_t size);
   };
 
@@ -212,7 +212,7 @@ namespace Orthanc
       AssignEmpty(format);
       return;
     }
-    
+
     png_read_update_info(rabi.png_, rabi.info_);
 
     std::vector<png_bytep> rows(height);
@@ -267,8 +267,8 @@ namespace Orthanc
   }
 
 
-  void PngReader::PngRabi::MemoryCallback(png_structp png_ptr, 
-                                          png_bytep outBytes, 
+  void PngReader::PngRabi::MemoryCallback(png_structp png_ptr,
+                                          png_bytep outBytes,
                                           png_size_t byteCountToRead)
   {
     MemoryBuffer* from = reinterpret_cast<MemoryBuffer*>(png_get_io_ptr(png_ptr));

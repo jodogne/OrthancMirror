@@ -51,8 +51,8 @@ namespace Orthanc
     content_(content)
   {
   }
-  
-  
+
+
   DicomValue::DicomValue(const char* data,
                          size_t size,
                          bool isBinary) :
@@ -60,7 +60,7 @@ namespace Orthanc
   {
     content_.assign(data, size);
   }
-    
+
   DicomValue::DicomValue(const Json::Value& value) :
     type_(Type_SequenceAsJson),
     sequenceJson_(value)
@@ -70,7 +70,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadParameterType);
     }
   }
-  
+
   const std::string& DicomValue::GetContent() const
   {
     if (type_ == Type_Null || type_ == Type_SequenceAsJson)
@@ -121,7 +121,7 @@ namespace Orthanc
     return new DicomValue(*this);
   }
 
-  
+
 #if ORTHANC_ENABLE_BASE64 == 1
   void DicomValue::FormatDataUriScheme(std::string& target,
                                        const std::string& mime) const
@@ -259,12 +259,12 @@ namespace Orthanc
       result.assign(content_);
       return true;
     }
-  }    
+  }
 
 
   static const char* KEY_TYPE = "Type";
   static const char* KEY_CONTENT = "Content";
-  
+
   void DicomValue::Serialize(Json::Value& target) const
   {
     target = Json::objectValue;

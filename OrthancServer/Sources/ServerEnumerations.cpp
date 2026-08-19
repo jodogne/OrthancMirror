@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -46,7 +46,7 @@ namespace Orthanc
 
     dictMetadataType_.Clear();
     dictContentType_.Clear();
-    
+
     dictMetadataType_.Add(MetadataType_Instance_IndexInSeries, "IndexInSeries");
     dictMetadataType_.Add(MetadataType_Instance_ReceptionDate, "ReceptionDate");
     dictMetadataType_.Add(MetadataType_RemoteAet, "RemoteAET");
@@ -79,23 +79,23 @@ namespace Orthanc
 
     MetadataType type = static_cast<MetadataType>(metadata);
 
-    if (metadata < 0 || 
+    if (metadata < 0 ||
         !IsUserMetadata(type))
     {
       LOG(ERROR) << "A user content type must have index between "
                  << static_cast<int>(MetadataType_StartUser) << " and "
                  << static_cast<int>(MetadataType_EndUser) << ", but \""
                  << name << "\" has index " << metadata;
-        
+
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
     if (dictMetadataType_.Contains(type))
     {
       LOG(ERROR) << "Cannot associate user content type \""
-                 << name << "\" with index " << metadata 
+                 << name << "\" with index " << metadata
                  << ", as this index is already used";
-        
+
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
@@ -141,23 +141,23 @@ namespace Orthanc
 
     FileContentType type = static_cast<FileContentType>(contentType);
 
-    if (contentType < 0 || 
+    if (contentType < 0 ||
         !IsUserContentType(type))
     {
       LOG(ERROR) << "A user content type must have index between "
                  << static_cast<int>(FileContentType_StartUser) << " and "
                  << static_cast<int>(FileContentType_EndUser) << ", but \""
                  << name << "\" has index " << contentType;
-        
+
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
     if (dictContentType_.Contains(type))
     {
       LOG(ERROR) << "Cannot associate user content type \""
-                 << name << "\" with index " << contentType 
+                 << name << "\" with index " << contentType
                  << ", as this index is already used";
-        
+
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
@@ -179,7 +179,7 @@ namespace Orthanc
         type <= FileContentType_EndUser)
     {
       boost::mutex::scoped_lock lock(enumerationsMutex_);
-      
+
       MimeTypes::const_iterator it = mimeTypes_.find(type);
       if (it != mimeTypes_.end())
       {
@@ -226,7 +226,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange,
                              "Configuration option \"StorageAccessOnFind\" "
                              "should be \"Always\", \"Never\" or \"Answers\": " + value);
-    }    
+    }
   }
 
   bool IsStorageAccessAllowedForAnswers(FindStorageAccessMode mode)
@@ -254,7 +254,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange,
                              "Configuration option \"MaxStorageMode\" "
                              "should be \"Recycle\" or \"Reject\": " + value);
-    }    
+    }
   }
 
   BuiltinDecoderTranscoderOrder StringToBuiltinDecoderTranscoderOrder(const std::string& value)
@@ -276,7 +276,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange,
                              "Configuration option \"BuiltinDecoderTranscoderOrder\" "
                              "should be \"After\", \"Before\" or \"Disabled\": " + value);
-    }    
+    }
   }
 
 
@@ -298,9 +298,9 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange,
                              "Verbosity can be \"default\", \"verbose\" or \"trace\": " + str);
-    }    
+    }
   }
-  
+
 
   std::string GetBasePath(ResourceType type,
                           const std::string& publicId)
@@ -318,7 +318,7 @@ namespace Orthanc
 
       case ResourceType_Instance:
         return "/instances/" + publicId;
-      
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -520,19 +520,19 @@ namespace Orthanc
     {
       case Verbosity_Default:
         return "default";
-        
+
       case Verbosity_Verbose:
         return "verbose";
-        
+
       case Verbosity_Trace:
         return "trace";
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-  }    
+  }
 
-  
+
   bool IsUserMetadata(MetadataType metadata)
   {
     return (metadata >= MetadataType_StartUser &&
@@ -546,12 +546,12 @@ namespace Orthanc
     target.clear();
 
     switch (source)
-    {    
+    {
       // Transfer syntaxes supported since Orthanc 0.7.2
       case TransferSyntaxGroup_Deflated:
         target.insert(DicomTransferSyntax_DeflatedLittleEndianExplicit);
         break;
-        
+
       case TransferSyntaxGroup_Jpeg:
         target.insert(DicomTransferSyntax_JPEGProcess1);
         target.insert(DicomTransferSyntax_JPEGProcess2_4);
@@ -613,7 +613,7 @@ namespace Orthanc
         target.insert(DicomTransferSyntax_HEVCMainProfileLevel5_1);
         target.insert(DicomTransferSyntax_HEVCMain10ProfileLevel5_1);
         break;
-        
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -665,7 +665,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange,
                              "Unrecognized value for \"ResponseContent\": " + value);
-    }    
+    }
   }
 
   OverwriteInstancesMode StringToOverwriteInstancesMode(const std::string& value)
@@ -686,7 +686,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange,
                              "Unrecognized value for \"OverwriteInstances\": " + value);
-    }    
+    }
   }
 
   const char* EnumerationToString(OverwriteInstancesMode mode)
@@ -700,7 +700,7 @@ namespace Orthanc
       case OverwriteInstancesMode_IfChanged:
         return "IfChanged";
       default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);     
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 }

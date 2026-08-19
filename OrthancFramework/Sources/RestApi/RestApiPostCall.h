@@ -36,7 +36,7 @@ namespace Orthanc
 
   public:
     typedef void (*Handler) (RestApiPostCall& call);
-    
+
     RestApiPostCall(RestApiOutput& output,
                     RestApi& context,
                     RequestOrigin origin,

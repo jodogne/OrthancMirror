@@ -34,7 +34,7 @@ namespace Orthanc
   {
     result.clear();
 
-    for (HttpToolbox::Arguments::const_iterator 
+    for (HttpToolbox::Arguments::const_iterator
            it = getArguments_.begin(); it != getArguments_.end(); ++it)
     {
       result[it->first] = it->second;
@@ -43,14 +43,14 @@ namespace Orthanc
     return true;
   }
 
-  
+
   bool RestApiGetCall::GetBooleanArgument(const std::string& name,
                                           bool defaultValue) const
   {
     HttpToolbox::Arguments::const_iterator found = getArguments_.find(name);
 
     bool value;
-    
+
     if (found == getArguments_.end())
     {
       return defaultValue;
@@ -76,7 +76,7 @@ namespace Orthanc
     HttpToolbox::Arguments::const_iterator found = getArguments_.find(name);
 
     uint32_t value;
-    
+
     if (found == getArguments_.end())
     {
       return defaultValue;

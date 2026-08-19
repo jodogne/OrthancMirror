@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -134,7 +134,7 @@ namespace Orthanc
       const ServerIndexChange&            change_;
       bool                                ok_;
       DicomMap                            tags_;
-      std::map<MetadataType, std::string> metadata_;      
+      std::map<MetadataType, std::string> metadata_;
 
     public:
       explicit GetInfoOperations(const ServerIndexChange& change) :
@@ -142,7 +142,7 @@ namespace Orthanc
         ok_(false)
       {
       }
-      
+
       virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
       {
         int64_t internalId;
@@ -163,12 +163,12 @@ namespace Orthanc
         {
           Json::Value formattedMetadata = Json::objectValue;
 
-          for (std::map<MetadataType, std::string>::const_iterator 
+          for (std::map<MetadataType, std::string>::const_iterator
                  it = metadata_.begin(); it != metadata_.end(); ++it)
           {
             std::string key = EnumerationToString(it->first);
             formattedMetadata[key] = it->second;
-          }      
+          }
 
           {
             LuaScripting::Lock lock(that);
@@ -202,7 +202,7 @@ namespace Orthanc
         }
       }
     };
-    
+
 
   public:
     explicit StableResourceEvent(const ServerIndexChange& change) :
@@ -241,7 +241,7 @@ namespace Orthanc
           return;
         }
       }
-      
+
       GetInfoOperations operations(change_);
       that.context_.GetIndex().Apply(operations);
       operations.CallLua(that, name);
@@ -263,7 +263,7 @@ namespace Orthanc
     virtual void Apply(LuaScripting& that) ORTHANC_OVERRIDE
     {
       std::string functionName;
-      
+
       switch (event_.GetEventType())
       {
         case JobEventType_Failure:
@@ -313,7 +313,7 @@ namespace Orthanc
     virtual void Apply(LuaScripting& that) ORTHANC_OVERRIDE
     {
       std::string functionName;
-      
+
       switch (level_)
       {
         case ResourceType_Patient:
@@ -367,7 +367,7 @@ namespace Orthanc
     virtual void Apply(LuaScripting& that) ORTHANC_OVERRIDE
     {
       std::string functionName;
-      
+
       switch (level_)
       {
         case ResourceType_Patient:
@@ -424,7 +424,7 @@ namespace Orthanc
 
     // Check the types of the arguments
     int nArgs = lua_gettop(state);
-    if (nArgs < 1 || nArgs > 3 || 
+    if (nArgs < 1 || nArgs > 3 ||
         !lua_isstring(state, 1) ||                 // URI
         (nArgs >= 2 && !lua_isboolean(state, 2)))  // Restrict to built-in API?
     {
@@ -442,7 +442,7 @@ namespace Orthanc
     try
     {
       std::string result;
-      if (IHttpHandler::SimpleGet(result, NULL, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+      if (IHttpHandler::SimpleGet(result, NULL, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin),
                                   RequestOrigin_Lua, uri, headers) == HttpStatus_200_Ok)
       {
         lua_pushlstring(state, result.c_str(), result.size());
@@ -473,7 +473,7 @@ namespace Orthanc
 
     // Check the types of the arguments
     int nArgs = lua_gettop(state);
-    if (nArgs < 2 || nArgs > 4 || 
+    if (nArgs < 2 || nArgs > 4 ||
         !lua_isstring(state, 1) ||                 // URI
         !lua_isstring(state, 2) ||                 // Body
         (nArgs >= 3 && !lua_isboolean(state, 3)))  // Restrict to built-in API?
@@ -490,16 +490,16 @@ namespace Orthanc
 
     std::map<std::string, std::string> headers;
     LuaContext::GetDictionaryArgument(headers, state, 4, true /* HTTP header key to lower case */);
-        
+
     try
     {
       std::string result;
       if (isPost ?
           IHttpHandler::SimplePost(result, NULL,
-                                   serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+                                   serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin),
                                    RequestOrigin_Lua, uri, bodyData, bodySize, headers) == HttpStatus_200_Ok :
           IHttpHandler::SimplePut(result, NULL,
-                                  serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+                                  serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin),
                                   RequestOrigin_Lua, uri, bodyData, bodySize, headers) == HttpStatus_200_Ok)
       {
         lua_pushlstring(state, result.c_str(), result.size());
@@ -558,7 +558,7 @@ namespace Orthanc
 
     std::map<std::string, std::string> headers;
     LuaContext::GetDictionaryArgument(headers, state, 3, true /* HTTP header key to lower case */);
-    
+
     try
     {
       std::string bodyIgnored;
@@ -604,7 +604,7 @@ namespace Orthanc
 
     const char* resourceId = lua_tostring(state, 1);
     bool newStateIsStable = lua_toboolean(state, 2);
-    
+
     try
     {
       bool hasStateChanged = false;
@@ -669,7 +669,7 @@ namespace Orthanc
     const char* storeId = lua_tostring(state, 1);
     const char* key = lua_tostring(state, 2);
     const char* value = lua_tostring(state, 3);
-    
+
     try
     {
       serverContext->GetIndex().StoreKeyValue(storeId, key, value);
@@ -720,7 +720,7 @@ namespace Orthanc
 
     const char* storeId = lua_tostring(state, 1);
     const char* key = lua_tostring(state, 2);
-    
+
     try
     {
       std::string value;
@@ -780,7 +780,7 @@ namespace Orthanc
 
     const char* storeId = lua_tostring(state, 1);
     const char* key = lua_tostring(state, 2);
-    
+
     try
     {
       serverContext->GetIndex().DeleteKeyValue(storeId, key);
@@ -934,7 +934,7 @@ namespace Orthanc
     Json::Value operations;
     LuaFunctionCall call2(lua_, "_AccessJob");
     call2.ExecuteToJson(operations, false);
-     
+
     if (operations.type() != Json::arrayValue)
     {
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
@@ -961,7 +961,7 @@ namespace Orthanc
 
       std::string operation = parameters["Operation"].asString();
       size_t index = ParseOperation(context_, lock, operation, operations[i]);
-        
+
       std::string resource = parameters["Resource"].asString();
       if (!resource.empty())
       {
@@ -1026,13 +1026,13 @@ namespace Orthanc
     Logging::ScopedCurrentThreadNameSetter setter("LUA-HEARTBEAT");
 
     static const unsigned int GRANULARITY = 100;  // In milliseconds
-    
+
     const boost::posix_time::time_duration PERIODICITY =
       boost::posix_time::seconds(that->heartBeatPeriod_);
-    
+
     boost::posix_time::ptime next =
       boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
-    
+
     bool shouldStop = false;
 
     while (!shouldStop)
@@ -1107,7 +1107,7 @@ namespace Orthanc
     {
       LOG(INFO) << "Starting the Lua engine";
       eventThread_ = boost::thread(EventThread, this);
-      
+
       LuaScripting::Lock luaLock(*this);
 
       if (heartBeatPeriod_ > 0 && luaLock.GetLua().IsExistingFunction(ON_HEART_BEAT))
@@ -1154,8 +1154,8 @@ namespace Orthanc
   {
     Json::Value metadata = Json::objectValue;
 
-    for (ServerIndex::MetadataMap::const_iterator 
-           it = instance.GetMetadata().begin(); 
+    for (ServerIndex::MetadataMap::const_iterator
+           it = instance.GetMetadata().begin();
          it != instance.GetMetadata().end(); ++it)
     {
       if (it->first.first == ResourceType_Instance)
@@ -1307,7 +1307,7 @@ namespace Orthanc
       std::string command;
       Orthanc::ServerResources::GetFileResource(command, Orthanc::ServerResources::LUA_TOOLBOX);
       lua_.Execute(command);
-    }    
+    }
 
     std::list<std::string> luaScripts;
     configLock.GetConfiguration().GetListOfStringsParameter(luaScripts, "LuaScripts");
@@ -1327,7 +1327,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void LuaScripting::SignalJobEvent(const JobEvent& event)
   {
     // Lua has its own event thread and queue to dissociate it completely from the main JobEventsThread

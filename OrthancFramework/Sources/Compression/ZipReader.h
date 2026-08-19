@@ -54,7 +54,7 @@ namespace Orthanc
   {
   private:
     class MemoryBuffer;
-    
+
     struct PImpl;
     boost::shared_ptr<PImpl>   pimpl_;
 
@@ -69,7 +69,7 @@ namespace Orthanc
 
     bool ReadNextFile(std::string& filename,
                       std::string& content);
-    
+
     static ZipReader* CreateFromMemory(const void* buffer,
                                        size_t size);
 

@@ -17,7 +17,7 @@ static void Worker(bool *done)
   //client.SetUrl("http://localhost:8042/");
   //client.SetCredentials("orthanc", "orthanc");
   client.SetRedirectionFollowed(false);
-  
+
   while (!(*done))
   {
     try
@@ -79,7 +79,7 @@ int main()
       delete threads[i];
     }
   }
-  
+
   Orthanc::HttpClient::GlobalFinalize();
   printf("OK\n");
   return 0;

@@ -35,18 +35,18 @@
 namespace Orthanc
 {
   class IHttpHandler;
-  
+
   class ORTHANC_PUBLIC HttpToolbox : public boost::noncopyable
   {
   public:
     typedef std::map<std::string, std::string>                  Arguments;
     typedef std::vector< std::pair<std::string, std::string> >  GetArguments;
 
-    static void ParseGetArguments(GetArguments& result, 
+    static void ParseGetArguments(GetArguments& result,
                                   const char* query);
 
     static void ParseGetQuery(UriComponents& uri,
-                              GetArguments& getArguments, 
+                              GetArguments& getArguments,
                               const char* query);
 
     static std::string GetArgument(const Arguments& getArguments,
@@ -57,7 +57,7 @@ namespace Orthanc
                                    const std::string& name,
                                    const std::string& defaultValue);
 
-    static void ParseCookies(Arguments& result, 
+    static void ParseCookies(Arguments& result,
                              const Arguments& httpHeaders);
 
     static void CompileGetArguments(Arguments& compiled,

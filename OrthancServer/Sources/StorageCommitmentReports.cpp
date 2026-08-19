@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -75,7 +75,7 @@ namespace Orthanc
     }
   }
 
-  
+
   StorageCommitmentReports::Report::Status StorageCommitmentReports::Report::GetStatus() const
   {
     if (!isComplete_)
@@ -104,12 +104,12 @@ namespace Orthanc
     static const char* const FIELD_SUCCESS = "Success";
     static const char* const FIELD_FAILURES = "Failures";
 
-    
+
     json = Json::objectValue;
     json[FIELD_REMOTE_AET] = remoteAet_;
 
     bool pending;
-    
+
     switch (GetStatus())
     {
       case Status_Pending:
@@ -200,12 +200,12 @@ namespace Orthanc
     }
   }
 
-  
+
   void StorageCommitmentReports::Store(const std::string& transactionUid,
                                        Report* report)
   {
     std::unique_ptr<Report> protection(report);
-    
+
     boost::mutex::scoped_lock lock(mutex_);
 
     {
@@ -226,7 +226,7 @@ namespace Orthanc
         content_.GetSize() == maxSize_)
     {
       assert(!content_.IsEmpty());
-      
+
       Report* oldest = NULL;
       content_.RemoveOldest(oldest);
 

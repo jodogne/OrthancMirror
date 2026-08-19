@@ -67,7 +67,7 @@ namespace Orthanc
   }
 
 
-  WebServiceParameters::WebServiceParameters() : 
+  WebServiceParameters::WebServiceParameters() :
     pkcs11Enabled_(false),
     timeout_(0)
   {
@@ -132,7 +132,7 @@ namespace Orthanc
   void WebServiceParameters::SetCredentials(const std::string& username,
                                             const std::string& password)
   {
-    if (username.empty() && 
+    if (username.empty() &&
         !password.empty())
     {
       throw OrthancException(ErrorCode_BadFileFormat);
@@ -223,7 +223,7 @@ namespace Orthanc
     timeout_ = 0;
     ClearClientCertificate();
 
-    if (peer.size() != 1 && 
+    if (peer.size() != 1 &&
         peer.size() != 3)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
@@ -348,7 +348,7 @@ namespace Orthanc
 
     const Json::Value::Members members = peer.getMemberNames();
 
-    for (Json::Value::Members::const_iterator it = members.begin(); 
+    for (Json::Value::Members::const_iterator it = members.begin();
          it != members.end(); ++it)
     {
       if (!IsReservedKey(*it))
@@ -377,7 +377,7 @@ namespace Orthanc
 
     if (peer.isMember(KEY_TIMEOUT))
     {
-      timeout_ = SerializationToolbox::ReadUnsignedInteger(peer, KEY_TIMEOUT);      
+      timeout_ = SerializationToolbox::ReadUnsignedInteger(peer, KEY_TIMEOUT);
     }
     else
     {
@@ -496,7 +496,7 @@ namespace Orthanc
       return true;
     }
   }
-  
+
 
   bool WebServiceParameters::GetBooleanUserProperty(const std::string& key,
                                                     bool defaultValue) const
@@ -614,7 +614,7 @@ namespace Orthanc
                                "Cannot open certificate file: " + certificateFile_);
       }
 
-      if (!certificateKeyFile_.empty() && 
+      if (!certificateKeyFile_.empty() &&
           !SystemToolbox::IsRegularFile(certificateKeyFile_))
       {
         throw OrthancException(ErrorCode_InexistentFile,
@@ -644,14 +644,14 @@ namespace Orthanc
     {
       target[KEY_CERTIFICATE_FILE] = certificateFile_;
       target[KEY_CERTIFICATE_KEY_FILE] = Json::nullValue;
-      target[KEY_CERTIFICATE_KEY_PASSWORD] = Json::nullValue;      
+      target[KEY_CERTIFICATE_KEY_PASSWORD] = Json::nullValue;
     }
 
     target[KEY_PKCS11] = pkcs11Enabled_;
     target[KEY_TIMEOUT] = timeout_;
 
     Json::Value headers = Json::arrayValue;
-      
+
     for (Dictionary::const_iterator it = headers_.begin();
          it != headers_.end(); ++it)
     {

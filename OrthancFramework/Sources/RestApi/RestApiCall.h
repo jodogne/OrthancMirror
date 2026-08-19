@@ -84,12 +84,12 @@ namespace Orthanc
     {
       return context_;
     }
-    
+
     const UriComponents& GetFullUri() const
     {
       return fullUri_;
     }
-    
+
     const UriComponents& GetTrailingUri() const
     {
       return trailing_;

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -117,18 +117,18 @@ namespace Orthanc
     {
     protected:
       SQLite::Connection& db_;
-      
+
     public:
       UnitTestsTransaction(SQLite::Connection& db) :
         db_(db)
       {
       }
-      
+
       void GetChildren(std::list<std::string>& childrenPublicIds,
                        int64_t id);
 
       int64_t GetTableRecordCount(const std::string& table);
-    
+
       bool GetParentPublicId(std::string& target,
                              int64_t id);
 

@@ -59,7 +59,7 @@ namespace Orthanc
     }
   }
 
-  
+
   uint32_t DicomAssociationParameters::GetDefaultTimeout()
   {
     boost::mutex::scoped_lock lock(defaultConfigurationMutex_);
@@ -88,7 +88,7 @@ namespace Orthanc
     remote_.SetApplicationEntityTitle("ANY-SCP");
   }
 
-    
+
   DicomAssociationParameters::DicomAssociationParameters(const std::string& localAet,
                                                          const RemoteModalityParameters& remote) :
     localAet_(localAet),
@@ -202,7 +202,7 @@ namespace Orthanc
                              "DICOM TLS - No path to the trusted remote certificates was provided");
     }
   }
-  
+
   void DicomAssociationParameters::SetOwnCertificatePath(const std::string& privateKeyPath,
                                                          const std::string& certificatePath)
   {
@@ -220,7 +220,7 @@ namespace Orthanc
     CheckDicomTlsConfiguration();
     return ownPrivateKeyPath_;
   }
-    
+
   const std::string& DicomAssociationParameters::GetOwnCertificatePath() const
   {
     CheckDicomTlsConfiguration();
@@ -258,7 +258,7 @@ namespace Orthanc
   {
     return minimumTlsVersion_;
   }
-  
+
   void DicomAssociationParameters::SetMinimumTlsVersion(unsigned int version)
   {
     minimumTlsVersion_ = version;
@@ -284,7 +284,7 @@ namespace Orthanc
   static const char* const MAXIMUM_PDU_LENGTH = "MaximumPduLength";       // New in Orthanc 1.9.0
   static const char* const REMOTE_CERTIFICATE_REQUIRED = "RemoteCertificateRequired";  // New in Orthanc 1.9.3
 
-  
+
   void DicomAssociationParameters::SerializeJob(Json::Value& target) const
   {
     if (target.type() != Json::objectValue)
@@ -308,7 +308,7 @@ namespace Orthanc
       {
         target[OWN_PRIVATE_KEY] = ownPrivateKeyPath_;
       }
-      
+
       if (ownCertificatePath_.empty())
       {
         target.removeMember(OWN_CERTIFICATE);
@@ -317,7 +317,7 @@ namespace Orthanc
       {
         target[OWN_CERTIFICATE] = ownCertificatePath_;
       }
-      
+
       if (trustedCertificatesPath_.empty())
       {
         target.removeMember(TRUSTED_CERTIFICATES);
@@ -383,7 +383,7 @@ namespace Orthanc
       {
         result.remoteCertificateRequired_ = SerializationToolbox::ReadBoolean(serialized, REMOTE_CERTIFICATE_REQUIRED);
       }
-      
+
       return result;
     }
     else
@@ -391,11 +391,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
   }
-    
+
 
   void DicomAssociationParameters::SetDefaultTimeout(uint32_t seconds)
   {
-    CLOG(INFO, DICOM) << "Default timeout for DICOM connections if Orthanc acts as SCU (client): " 
+    CLOG(INFO, DICOM) << "Default timeout for DICOM connections if Orthanc acts as SCU (client): "
                       << seconds << " seconds (0 = no timeout)";
 
     {
@@ -411,20 +411,20 @@ namespace Orthanc
     if (!privateKeyPath.empty() &&
         !certificatePath.empty())
     {
-      CLOG(INFO, DICOM) << "Setting the default TLS certificate for DICOM SCU connections: " 
+      CLOG(INFO, DICOM) << "Setting the default TLS certificate for DICOM SCU connections: "
                         << privateKeyPath << " (key), " << certificatePath << " (certificate)";
 
       if (certificatePath.empty())
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange, "No path to the default DICOM TLS certificate was provided");
       }
-      
+
       if (privateKeyPath.empty())
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange,
                                "No path to the private key for the default DICOM TLS certificate was provided");
       }
-      
+
       if (!SystemToolbox::IsRegularFile(privateKeyPath))
       {
         throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + privateKeyPath);
@@ -434,7 +434,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + certificatePath);
       }
-      
+
       {
         boost::mutex::scoped_lock lock(defaultConfigurationMutex_);
         defaultOwnPrivateKeyPath_ = privateKeyPath;
@@ -447,9 +447,9 @@ namespace Orthanc
       defaultOwnPrivateKeyPath_.clear();
       defaultOwnCertificatePath_.clear();
     }
-  }    
+  }
 
-  
+
   void DicomAssociationParameters::SetDefaultTrustedCertificatesPath(const std::string& path)
   {
     if (!path.empty())
@@ -460,7 +460,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + path);
       }
-      
+
       {
         boost::mutex::scoped_lock lock(defaultConfigurationMutex_);
         defaultTrustedCertificatesPath_ = path;
@@ -513,7 +513,7 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(defaultConfigurationMutex_);
     defaultRemoteCertificateRequired_ = required;
   }
-  
+
 
   bool DicomAssociationParameters::GetDefaultRemoteCertificateRequired()
   {

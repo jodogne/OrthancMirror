@@ -129,7 +129,7 @@ namespace Orthanc
         }
 
         bool isEquivalentConstraint;
-        
+
         // DicomIdentifiers are stored UPPERCASE -> as soon as a case senstive search happens, it is currently not possible to perform it in DB only
         if (type == DicomTagType_Identifier && source.GetConstraint(i).IsCaseSensitive())
         {

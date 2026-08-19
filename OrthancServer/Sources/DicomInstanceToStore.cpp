@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -75,7 +75,7 @@ namespace Orthanc
     }
   };
 
-    
+
   class DicomInstanceToStore::FromParsedDicomFile : public DicomInstanceToStore
   {
   private:
@@ -116,7 +116,7 @@ namespace Orthanc
 
       assert(buffer_.get() != NULL);
       return buffer_->size();
-    }    
+    }
   };
 
 
@@ -132,7 +132,7 @@ namespace Orthanc
       if (buffer_.get() == NULL)
       {
         buffer_.reset(new std::string);
-        
+
         std::string errorMessage;
         if (!FromDcmtkBridge::SaveToMemoryBuffer(*buffer_, dataset_, errorMessage))
         {
@@ -146,7 +146,7 @@ namespace Orthanc
       dataset_(dataset)
     {
     }
-    
+
     virtual ParsedDicomFile& GetParsedDicomFile() const ORTHANC_OVERRIDE
     {
       if (parsed_.get() == NULL)
@@ -193,7 +193,7 @@ namespace Orthanc
       OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, dataset_, ignoreTagLength);
     }
 
-    virtual void DatasetToJson(Json::Value& target, 
+    virtual void DatasetToJson(Json::Value& target,
                                DicomToJsonFormat format,
                                DicomToJsonFlags flags,
                                unsigned int maxStringLength) const ORTHANC_OVERRIDE
@@ -207,21 +207,21 @@ namespace Orthanc
     {
       return DicomFrameIndex::GetFramesCount(dataset_);
     }
-    
+
     virtual ImageAccessor* DecodeFrame(unsigned int frame) const ORTHANC_OVERRIDE
     {
       return DicomImageDecoder::Decode(dataset_, frame);
     }
   };
 
-  
+
   DicomInstanceToStore* DicomInstanceToStore::CreateFromBuffer(const void* buffer,
                                                                size_t size)
   {
     return new FromBuffer(buffer, size);
   }
 
-  
+
   DicomInstanceToStore* DicomInstanceToStore::CreateFromBuffer(const std::string& buffer)
   {
     return new FromBuffer(buffer.empty() ? NULL : buffer.c_str(), buffer.size());
@@ -233,13 +233,13 @@ namespace Orthanc
     return new FromParsedDicomFile(dicom);
   }
 
-  
+
   DicomInstanceToStore* DicomInstanceToStore::CreateFromDcmDataset(DcmDataset& dataset)
   {
     return new FromDcmDataset(dataset);
   }
 
-  
+
   bool DicomInstanceToStore::LookupTransferSyntax(DicomTransferSyntax& result) const
   {
     DicomMap header;
@@ -260,7 +260,7 @@ namespace Orthanc
       // the transfer syntax. Added in Orthanc 1.8.2.
       return GetParsedDicomFile().LookupTransferSyntax(result);
     }
-    
+
     return false;
   }
 
@@ -270,20 +270,20 @@ namespace Orthanc
     return GetParsedDicomFile().HasTag(DICOM_TAG_PIXEL_DATA);
   }
 
-  
+
   void DicomInstanceToStore::GetSummary(DicomMap& summary) const
   {
     OrthancConfiguration::DefaultExtractDicomSummary(summary, GetParsedDicomFile());
   }
 
-  
+
   void DicomInstanceToStore::GetDicomAsJson(Json::Value& dicomAsJson, const std::set<DicomTag>& ignoreTagLength) const
   {
     OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, GetParsedDicomFile(), ignoreTagLength);
   }
 
 
-  void DicomInstanceToStore::DatasetToJson(Json::Value& target, 
+  void DicomInstanceToStore::DatasetToJson(Json::Value& target,
                                            DicomToJsonFormat format,
                                            DicomToJsonFlags flags,
                                            unsigned int maxStringLength) const
@@ -297,7 +297,7 @@ namespace Orthanc
     return GetParsedDicomFile().GetFramesCount();
   }
 
-  
+
   ImageAccessor* DicomInstanceToStore::DecodeFrame(unsigned int frame) const
   {
     return GetParsedDicomFile().DecodeFrame(frame);
@@ -305,7 +305,7 @@ namespace Orthanc
 
   void DicomInstanceToStore::CopyMetadata(const DicomInstanceToStore::MetadataMap& metadata)
   {
-    for (MetadataMap::const_iterator it = metadata.begin(); 
+    for (MetadataMap::const_iterator it = metadata.begin();
          it != metadata.end(); ++it)
     {
       AddMetadata(it->first.first, it->first.second, it->second);

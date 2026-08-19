@@ -63,7 +63,7 @@ namespace Orthanc
     Initialize(path);
   }
 
-  FilesystemHttpSender::FilesystemHttpSender(const boost::filesystem::path& path, 
+  FilesystemHttpSender::FilesystemHttpSender(const boost::filesystem::path& path,
                                              MimeType contentType)
   {
     SetContentType(contentType);

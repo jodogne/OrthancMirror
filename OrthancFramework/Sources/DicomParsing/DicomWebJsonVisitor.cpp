@@ -62,28 +62,28 @@ namespace Orthanc
     {
       target.append_child("FamilyName").text() = tokens[0].c_str();
     }
-            
+
     if (tokens.size() >= 2)
     {
       target.append_child("GivenName").text() = tokens[1].c_str();
     }
-            
+
     if (tokens.size() >= 3)
     {
       target.append_child("MiddleName").text() = tokens[2].c_str();
     }
-            
+
     if (tokens.size() >= 4)
     {
       target.append_child("NamePrefix").text() = tokens[3].c_str();
     }
-            
+
     if (tokens.size() >= 5)
     {
       target.append_child("NameSuffix").text() = tokens[4].c_str();
     }
   }
-  
+
   static void ExploreXmlDataset(pugi::xml_node& target,
                                 const Json::Value& source)
   {
@@ -102,7 +102,7 @@ namespace Orthanc
       const std::string vr = content[KEY_VR].asString();
 
       const std::string keyword = FromDcmtkBridge::GetTagName(tag, "");
-    
+
       pugi::xml_node node = target.append_child("DicomAttribute");
       node.append_attribute(KEY_TAG).set_value(members[i].c_str());
       node.append_attribute(KEY_VR).set_value(vr.c_str());
@@ -115,7 +115,7 @@ namespace Orthanc
       if (content.isMember(KEY_VALUE))
       {
         assert(content[KEY_VALUE].type() == Json::arrayValue);
-        
+
         for (Json::Value::ArrayIndex j = 0; j < content[KEY_VALUE].size(); j++)
         {
           std::string number = boost::lexical_cast<std::string>(j + 1);
@@ -237,7 +237,7 @@ namespace Orthanc
     return std::string(buf);
   }
 
-    
+
   Json::Value& DicomWebJsonVisitor::CreateNode(const std::vector<DicomTag>& parentTags,
                                                const std::vector<size_t>& parentIndexes,
                                                const DicomTag& tag)
@@ -261,7 +261,7 @@ namespace Orthanc
   Json::Value& DicomWebJsonVisitor::CreateEmptyNode(const std::vector<DicomTag>& parentTags,
                                                     const std::vector<size_t>& parentIndexes)
   {
-    assert(parentTags.size() == parentIndexes.size());      
+    assert(parentTags.size() == parentIndexes.size());
 
     Json::Value* node = &result_;
 
@@ -304,7 +304,7 @@ namespace Orthanc
         {
           THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
-          
+
         node = &(*node) [t][KEY_VALUE][Json::ArrayIndex(parentIndexes[i])];
       }
     }
@@ -314,7 +314,7 @@ namespace Orthanc
     return *node;
   }
 
-    
+
   Json::Value DicomWebJsonVisitor::FormatInteger(int64_t value)
   {
     if (value < 0)
@@ -327,7 +327,7 @@ namespace Orthanc
     }
   }
 
-    
+
   Json::Value DicomWebJsonVisitor::FormatDouble(double value)
   {
     long long a;
@@ -362,7 +362,7 @@ namespace Orthanc
 
       if (d <= std::numeric_limits<double>::epsilon() * 100.0)
       {
-        return FormatInteger(a);  // if the decimal number is an integer, you can represent it as an integer  
+        return FormatInteger(a);  // if the decimal number is an integer, you can represent it as an integer
       }
       else
       {
@@ -505,7 +505,7 @@ namespace Orthanc
 
     return Action_None;
   }
-  
+
   ITagVisitor::Action
   DicomWebJsonVisitor::VisitEmptyElement(const std::vector<DicomTag>& parentTags,
                                          const std::vector<size_t>& parentIndexes)
@@ -531,7 +531,7 @@ namespace Orthanc
     {
       BinaryMode mode;
       std::string bulkDataUri;
-        
+
       if (formatter_ == NULL)
       {
         mode = BinaryMode_InlineBinary;
@@ -565,7 +565,7 @@ namespace Orthanc
             case BinaryMode_InlineBinary:
             {
               std::string tmp(static_cast<const char*>(data), size);
-          
+
               std::string base64;
               Toolbox::EncodeBase64(base64, tmp);
 
@@ -741,7 +741,7 @@ namespace Orthanc
           {
             content.append(FormatDouble(values[i]));
           }
-          
+
           node[KEY_VALUE] = content;
         }
       }
@@ -750,7 +750,7 @@ namespace Orthanc
     return Action_None;
   }
 
-  
+
   ITagVisitor::Action
   DicomWebJsonVisitor::VisitAttributes(const std::vector<DicomTag>& parentTags,
                                        const std::vector<size_t>& parentIndexes,
@@ -769,7 +769,7 @@ namespace Orthanc
         {
           content.append(FormatTag(values[i]));
         }
-          
+
         node[KEY_VALUE] = content;
       }
     }
@@ -777,7 +777,7 @@ namespace Orthanc
     return Action_None;
   }
 
-  
+
   ITagVisitor::Action
   DicomWebJsonVisitor::VisitString(std::string& newValue,
                                    const std::vector<DicomTag>& parentTags,
@@ -813,7 +813,7 @@ namespace Orthanc
 #endif
       {
         std::string truncated;
-        
+
         if (!value.empty() &&
             value[value.size() - 1] == '\0')
         {
@@ -868,11 +868,11 @@ namespace Orthanc
                       tmp[KEY_PHONETIC] = components[2];
                     }
                   }
-                  
+
                   node[KEY_VALUE].append(tmp);
                   break;
                 }
-                  
+
                 case ValueRepresentation_IntegerString:
                 {
                   /**
@@ -893,15 +893,15 @@ namespace Orthanc
                     int64_t tmp = boost::lexical_cast<int64_t>(t);
                     node[KEY_VALUE].append(FormatInteger(tmp));
                   }
-                 
+
                   break;
                 }
-              
+
                 case ValueRepresentation_DecimalString:
                 {
                   std::string t = Toolbox::StripSpaces(tokens[i]);
                   boost::replace_all(t, ",", "."); // some invalid files uses "," instead of "."
-                  
+
                   // remove invalid/useless trailing decimal separator
                   if (t.size() > 0 && t[t.size()-1] == '.')
                   {
@@ -941,7 +941,7 @@ namespace Orthanc
                   {
                     node[KEY_VALUE].append(tokens[i]);
                   }
-                  
+
                   break;
               }
             }
@@ -953,7 +953,7 @@ namespace Orthanc
               {
                 tmp = ": " + value;
               }
-              
+
               LOG(WARNING) << "Ignoring DICOM tag (" << tag.Format()
                            << ") with invalid content for VR " << EnumerationToString(vr) << tmp;
             }
@@ -961,7 +961,7 @@ namespace Orthanc
         }
       }
     }
-      
+
     return Action_None;
   }
 }

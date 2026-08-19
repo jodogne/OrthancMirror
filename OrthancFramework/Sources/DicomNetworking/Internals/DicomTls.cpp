@@ -125,7 +125,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange, "Unknown role");
       }
-    
+
       if (requireRemoteCertificate && !SystemToolbox::IsRegularFile(trustedCertificatesPath))
       {
         throw OrthancException(ErrorCode_InexistentFile, "Cannot read file with trusted certificates for DICOM TLS: " +
@@ -156,16 +156,16 @@ namespace Orthanc
         case NET_ACCEPTOR:
           tmpRole = DICOM_APPLICATION_ACCEPTOR;
           break;
-          
+
         case NET_REQUESTOR:
           tmpRole = DICOM_APPLICATION_REQUESTOR;
           break;
-          
+
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }          
+      }
 #endif
-      
+
       std::unique_ptr<DcmTLSTransportLayer> tls(
         new DcmTLSTransportLayer(tmpRole /*opt_networkRole*/, NULL /*opt_readSeedFile*/,
                                  OFFalse /*initializeOpenSSL, done by Orthanc::Toolbox::InitializeOpenSsl()*/));
@@ -217,7 +217,7 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_InternalError, "Cannot set the DICOM TLS profile");
         }
-      
+
         if (IsFailure(tls->activateCipherSuites()))
         {
           throw OrthancException(ErrorCode_InternalError, "Cannot activate the cipher suites for DICOM TLS");
@@ -233,19 +233,19 @@ namespace Orthanc
 
         DcmTLSTransportLayer::native_handle_type sslNativeHandle = tls->getNativeHandle();
         SSL_CTX_clear_options(sslNativeHandle, SSL_OP_NO_SSL_MASK);
-        if (minimalTlsVersion > 1) 
+        if (minimalTlsVersion > 1)
         {
           SSL_CTX_set_options(sslNativeHandle, SSL_OP_NO_SSLv3);
         }
-        if (minimalTlsVersion > 2) 
+        if (minimalTlsVersion > 2)
         {
           SSL_CTX_set_options(sslNativeHandle, SSL_OP_NO_TLSv1);
         }
-        if (minimalTlsVersion > 3) 
+        if (minimalTlsVersion > 3)
         {
           SSL_CTX_set_options(sslNativeHandle, SSL_OP_NO_TLSv1_1);
         }
-        if (minimalTlsVersion > 4) 
+        if (minimalTlsVersion > 4)
         {
           SSL_CTX_set_options(sslNativeHandle, SSL_OP_NO_TLSv1_2);
         }
@@ -263,7 +263,7 @@ namespace Orthanc
             ciphersTls.insert(it->c_str());
             isValid = true;
           }
-          
+
           // list of TLS v1.3 ciphers according to https://www.openssl.org/docs/man3.3/man1/openssl-ciphers.html
           if (strstr("TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_CCM_SHA256:TLS_AES_128_CCM_8_SHA256", it->c_str()) != NULL)
           {
@@ -313,7 +313,7 @@ namespace Orthanc
         // From 1.12.4, do not even request remote certificate (prior to 1.12.4, we were requesting a certificates, checking it if present and succeeding if not present)
         tls->setCertificateVerification(DCV_ignoreCertificate /*opt_certVerification*/);
       }
-      
+
       if (ASC_setTransportLayer(network, tls.get(), 0).bad())
       {
         throw OrthancException(ErrorCode_InternalError, "Cannot enable DICOM TLS in the Orthanc " +

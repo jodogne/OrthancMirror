@@ -53,7 +53,7 @@ namespace Orthanc
     DeflateBaseCompressor();
 
     void SetCompressionLevel(uint8_t level);
-    
+
     void SetPrefixWithUncompressedSize(bool prefix);
 
     bool HasPrefixWithUncompressedSize() const;

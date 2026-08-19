@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -31,7 +31,7 @@ namespace Orthanc
   // Changes API --------------------------------------------------------------
   static const unsigned int DEFAULT_LIMIT = 100;
   static const int64_t DEFAULT_TO = -1;
- 
+
   static void GetSinceToAndLimit(int64_t& since,
                                  int64_t& to,
                                  unsigned int& limit,
@@ -85,7 +85,7 @@ namespace Orthanc
         .SetHttpGetSample("https://orthanc.uclouvain.be/demo/changes?since=0&limit=2", true);
       return;
     }
-    
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     int64_t since, to;
@@ -152,7 +152,7 @@ namespace Orthanc
 
 
   // Exports API --------------------------------------------------------------
- 
+
   static void GetExports(RestApiGetCall& call)
   {
     if (call.IsDocumentation())
@@ -207,7 +207,7 @@ namespace Orthanc
     OrthancRestApi::GetIndex(call).DeleteExportedResources();
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
-  
+
 
   void OrthancRestApi::RegisterChanges()
   {

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -42,10 +42,10 @@ namespace Orthanc
       IDatabaseWrapper::ITransaction&  transaction_;
       ResourceType                level_;
       std::unique_ptr<Resources>  resources_;
-    
+
     public:
       SetOfResources(IDatabaseWrapper::ITransaction& transaction,
-                     ResourceType level) : 
+                     ResourceType level) :
         transaction_(transaction),
         level_(level)
       {

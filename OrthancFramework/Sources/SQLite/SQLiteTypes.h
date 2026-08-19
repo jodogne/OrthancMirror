@@ -53,7 +53,7 @@ struct sqlite3_stmt;
  * We create our own copy of this typedef to get around this API incompatibility.
  * https://github.com/mackyle/sqlite/commit/db1d90df06a78264775a14d22c3361eb5b42be17
  **/
-      
+
 #if ORTHANC_SQLITE_VERSION < 3019000
 struct Mem;
 #else

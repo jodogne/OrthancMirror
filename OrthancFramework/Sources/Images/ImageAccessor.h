@@ -38,7 +38,7 @@ namespace Orthanc
   private:
     template <PixelFormat Format>
     friend struct ImageTraits;
-    
+
     bool readOnly_;
     PixelFormat format_;
     unsigned int width_;
@@ -108,7 +108,7 @@ namespace Orthanc
 
     void GetWriteableAccessor(ImageAccessor& target) const;
 
-    void ToMatlabString(std::string& target) const; 
+    void ToMatlabString(std::string& target) const;
 
     void GetRegion(ImageAccessor& accessor,
                    unsigned int x,

@@ -47,15 +47,15 @@ namespace Orthanc
     static void CheckHost(const std::string& host);
 
     void SetDefaultParameters();
-    
+
     void CheckDicomTlsConfiguration() const;
 
   public:
     DicomAssociationParameters();
-    
+
     DicomAssociationParameters(const std::string& localAet,
                                const RemoteModalityParameters& remote);
-    
+
     const std::string& GetLocalApplicationEntityTitle() const;
 
     void SetLocalApplicationEntityTitle(const std::string& aet);
@@ -63,7 +63,7 @@ namespace Orthanc
     const RemoteModalityParameters& GetRemoteModality() const;
 
     void SetRemoteModality(const RemoteModalityParameters& parameters);
-    
+
     void SetRemoteApplicationEntityTitle(const std::string& aet);
 
     void SetRemoteHost(const std::string& host);
@@ -93,7 +93,7 @@ namespace Orthanc
     void SetTrustedCertificatesPath(const std::string& path);
 
     const std::string& GetOwnPrivateKeyPath() const;
-    
+
     const std::string& GetOwnCertificatePath() const;
 
     const std::string& GetTrustedCertificatesPath() const;
@@ -101,7 +101,7 @@ namespace Orthanc
     unsigned int GetMaximumPduLength() const;
 
     void SetMaximumPduLength(unsigned int pdu);
-    
+
     void SetRemoteCertificateRequired(bool required);
 
     bool IsRemoteCertificateRequired() const;
@@ -109,7 +109,7 @@ namespace Orthanc
     void SerializeJob(Json::Value& target) const;
 
     static DicomAssociationParameters UnserializeJob(const Json::Value& serialized);
-    
+
     static void SetDefaultTimeout(uint32_t seconds);
 
     static uint32_t GetDefaultTimeout();

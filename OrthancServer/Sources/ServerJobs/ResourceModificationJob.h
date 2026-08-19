@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -32,7 +32,7 @@
 namespace Orthanc
 {
   class ServerContext;
-  
+
   class ResourceModificationJob : public ThreadedSetOfInstancesJob
   {
   private:
@@ -49,12 +49,12 @@ namespace Orthanc
 
       virtual bool IsSingleResource() const = 0;
     };
-    
+
     class SingleOutput;
     class MultipleOutputs;
 
     mutable boost::recursive_mutex      outputMutex_;
-    
+
     std::unique_ptr<DicomModification>  modification_;
     boost::shared_ptr<IOutput>          output_;
     bool                                isAnonymization_;
@@ -66,7 +66,7 @@ namespace Orthanc
 
   protected:
     virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE;
-    
+
     virtual void PostProcessInstances() ORTHANC_OVERRIDE;
 
   public:
@@ -122,7 +122,7 @@ namespace Orthanc
     }
 
     virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;
-    
+
     virtual bool Serialize(Json::Value& value) const ORTHANC_OVERRIDE;
 
     virtual void Reset() ORTHANC_OVERRIDE;

@@ -47,8 +47,8 @@ namespace Orthanc
       Type_JsonListOfStrings,
       Type_JsonListOfObjects,
       Type_JsonObject
-    };    
-    
+    };
+
   private:
     class Parameter
     {
@@ -63,7 +63,7 @@ namespace Orthanc
         required_(false)
       {
       }
-      
+
       Parameter(Type type,
                 const std::string& description,
                 bool required) :
@@ -88,7 +88,7 @@ namespace Orthanc
         return required_;
       }
     };
-    
+
     typedef std::map<std::string, Parameter>  Parameters;
     typedef std::map<MimeType, std::string>   AllowedTypes;
 
@@ -118,7 +118,7 @@ namespace Orthanc
       deprecated_(false)
     {
     }
-    
+
     RestApiCallDocumentation& SetTag(const std::string& tag)
     {
       tag_ = tag;

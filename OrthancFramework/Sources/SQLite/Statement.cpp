@@ -95,7 +95,7 @@ namespace Orthanc
       return err;
     }
 
-    void Statement::CheckOk(int err, ErrorCode code) const 
+    void Statement::CheckOk(int err, ErrorCode code) const
     {
       if (err == SQLITE_RANGE)
       {
@@ -117,7 +117,7 @@ namespace Orthanc
 
     Statement::Statement(Connection& database,
                          const StatementId& id,
-                         const std::string& sql) : 
+                         const std::string& sql) :
       reference_(database.GetCachedStatement(id, sql.c_str()))
     {
       Reset(true);
@@ -127,7 +127,7 @@ namespace Orthanc
 
     Statement::Statement(Connection& database,
                          const StatementId& id,
-                         const char* sql) : 
+                         const char* sql) :
       reference_(database.GetCachedStatement(id, sql))
     {
       Reset(true);
@@ -170,7 +170,7 @@ namespace Orthanc
       return CheckError(sqlite3_step(GetStatement()), ErrorCode_SQLiteCannotStep) == SQLITE_ROW;
     }
 
-    void Statement::Reset(bool clear_bound_vars) 
+    void Statement::Reset(bool clear_bound_vars)
     {
       // We don't call CheckError() here because sqlite3_reset() returns
       // the last error that Step() caused thereby generating a second
@@ -193,36 +193,36 @@ namespace Orthanc
               ErrorCode_BadParameterType);
     }
 
-    void Statement::BindBool(int col, bool val) 
+    void Statement::BindBool(int col, bool val)
     {
       BindInt(col, val ? 1 : 0);
     }
 
-    void Statement::BindInt(int col, int val) 
+    void Statement::BindInt(int col, int val)
     {
       CheckOk(sqlite3_bind_int(GetStatement(), col + 1, val),
               ErrorCode_BadParameterType);
     }
 
-    void Statement::BindInt64(int col, int64_t val) 
+    void Statement::BindInt64(int col, int64_t val)
     {
       CheckOk(sqlite3_bind_int64(GetStatement(), col + 1, val),
               ErrorCode_BadParameterType);
     }
 
-    void Statement::BindDouble(int col, double val) 
+    void Statement::BindDouble(int col, double val)
     {
       CheckOk(sqlite3_bind_double(GetStatement(), col + 1, val),
               ErrorCode_BadParameterType);
     }
 
-    void Statement::BindCString(int col, const char* val) 
+    void Statement::BindCString(int col, const char* val)
     {
       CheckOk(sqlite3_bind_text(GetStatement(), col + 1, val, -1, SQLITE_TRANSIENT),
               ErrorCode_BadParameterType);
     }
 
-    void Statement::BindString(int col, const std::string& val) 
+    void Statement::BindString(int col, const std::string& val)
     {
       CheckOk(sqlite3_bind_text(GetStatement(),
                                 col + 1,
@@ -232,7 +232,7 @@ namespace Orthanc
               ErrorCode_BadParameterType);
     }
 
-    /*void Statement::BindString16(int col, const string16& value) 
+    /*void Statement::BindString16(int col, const string16& value)
       {
       BindString(col, UTF16ToUTF8(value));
       }*/
@@ -256,13 +256,13 @@ namespace Orthanc
     }
 
 
-    int Statement::ColumnCount() const 
+    int Statement::ColumnCount() const
     {
       return sqlite3_column_count(GetStatement());
     }
 
 
-    ColumnType Statement::GetColumnType(int col) const 
+    ColumnType Statement::GetColumnType(int col) const
     {
       // Verify that our enum matches sqlite's values.
       assert(COLUMN_TYPE_INTEGER == SQLITE_INTEGER);
@@ -274,7 +274,7 @@ namespace Orthanc
       return static_cast<ColumnType>(sqlite3_column_type(GetStatement(), col));
     }
 
-    ColumnType Statement::GetDeclaredColumnType(int col) const 
+    ColumnType Statement::GetDeclaredColumnType(int col) const
     {
       std::string column_type(sqlite3_column_decltype(GetStatement(), col));
       std::transform(column_type.begin(), column_type.end(), column_type.begin(), tolower);
@@ -291,32 +291,32 @@ namespace Orthanc
       return COLUMN_TYPE_NULL;
     }
 
-    bool Statement::ColumnIsNull(int col) const 
+    bool Statement::ColumnIsNull(int col) const
     {
       return sqlite3_column_type(GetStatement(), col) == SQLITE_NULL;
     }
 
-    bool Statement::ColumnBool(int col) const 
+    bool Statement::ColumnBool(int col) const
     {
       return !!ColumnInt(col);
     }
 
-    int Statement::ColumnInt(int col) const 
+    int Statement::ColumnInt(int col) const
     {
       return sqlite3_column_int(GetStatement(), col);
     }
 
-    int64_t Statement::ColumnInt64(int col) const 
+    int64_t Statement::ColumnInt64(int col) const
     {
       return sqlite3_column_int64(GetStatement(), col);
     }
 
-    double Statement::ColumnDouble(int col) const 
+    double Statement::ColumnDouble(int col) const
     {
       return sqlite3_column_double(GetStatement(), col);
     }
 
-    std::string Statement::ColumnString(int col) const 
+    std::string Statement::ColumnString(int col) const
     {
       const char* str = reinterpret_cast<const char*>(
         sqlite3_column_text(GetStatement(), col));
@@ -328,23 +328,23 @@ namespace Orthanc
       return result;
     }
 
-    /*string16 Statement::ColumnString16(int col) const 
+    /*string16 Statement::ColumnString16(int col) const
       {
       std::string s = ColumnString(col);
       return !s.empty() ? UTF8ToUTF16(s) : string16();
       }*/
 
-    int Statement::ColumnByteLength(int col) const 
+    int Statement::ColumnByteLength(int col) const
     {
       return sqlite3_column_bytes(GetStatement(), col);
     }
 
-    const void* Statement::ColumnBlob(int col) const 
+    const void* Statement::ColumnBlob(int col) const
     {
       return sqlite3_column_blob(GetStatement(), col);
     }
 
-    bool Statement::ColumnBlobAsString(int col, std::string* blob) 
+    bool Statement::ColumnBlobAsString(int col, std::string* blob)
     {
       const void* p = ColumnBlob(col);
       size_t len = ColumnByteLength(col);
@@ -356,7 +356,7 @@ namespace Orthanc
       return true;
     }
 
-    /*bool Statement::ColumnBlobAsString16(int col, string16* val) const 
+    /*bool Statement::ColumnBlobAsString16(int col, string16* val) const
       {
       const void* data = ColumnBlob(col);
       size_t len = ColumnByteLength(col) / sizeof(char16);
@@ -367,7 +367,7 @@ namespace Orthanc
       return true;
       }*/
 
-    /*bool Statement::ColumnBlobAsVector(int col, std::vector<char>* val) const 
+    /*bool Statement::ColumnBlobAsVector(int col, std::vector<char>* val) const
     {
       val->clear();
 
@@ -382,7 +382,7 @@ namespace Orthanc
 
     /*bool Statement::ColumnBlobAsVector(
       int col,
-      std::vector<unsigned char>* val) const 
+      std::vector<unsigned char>* val) const
     {
       return ColumnBlobAsVector(col, reinterpret_cast< std::vector<char>* >(val));
       }*/

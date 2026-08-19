@@ -91,7 +91,7 @@
  * "dcmtk-3.6.0/dcmwlm/libsrc/wldsfs.cc".
  **/
 
-static void HandleExistentButEmptyReferencedStudyOrPatientSequenceAttributes(DcmDataset *dataset, 
+static void HandleExistentButEmptyReferencedStudyOrPatientSequenceAttributes(DcmDataset *dataset,
                                                                              const DcmTagKey &sequenceTagKey)
 // Date         : May 3, 2005
 // Author       : Thomas Wilkens
@@ -128,7 +128,7 @@ static void HandleExistentButEmptyReferencedStudyOrPatientSequenceAttributes(Dcm
 namespace Orthanc
 {
   namespace
-  {  
+  {
     struct FindScpData
     {
       IFindRequestHandler* findHandler_;
@@ -159,7 +159,7 @@ namespace Orthanc
       // WlmDataSourceFileSystem::HandleExistentButEmptyDescriptionAndCodeSequenceAttributes()"
       // in DCMTK 3.6.0
 
-      DcmDataset* dataset = query.GetDcmtkObject().getDataset();      
+      DcmDataset* dataset = query.GetDcmtkObject().getDataset();
       HandleExistentButEmptyReferencedStudyOrPatientSequenceAttributes(dataset, DCM_ReferencedStudySequence);
       HandleExistentButEmptyReferencedStudyOrPatientSequenceAttributes(dataset, DCM_ReferencedPatientSequence);
     }
@@ -175,14 +175,14 @@ namespace Orthanc
       // http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.4.html#sect_C.4.1.1.3
       // https://groups.google.com/d/msg/orthanc-users/D3kpPuX8yV0/_zgHOzkMEQAJ
 
-      // GroupLength are removed as well since they make no sense in the filtering as well as in the response.  
+      // GroupLength are removed as well since they make no sense in the filtering as well as in the response.
       // Note that it seems that only some GE devices include them.
 
       DicomArray a(source);
 
       for (size_t i = 0; i < a.GetSize(); i++)
       {
-        if (a.GetElement(i).GetTag().GetGroup() >= 0x0008 
+        if (a.GetElement(i).GetTag().GetGroup() >= 0x0008
           && a.GetElement(i).GetTag().GetElement() != 0x0000)
         {
           target.SetValue(a.GetElement(i).GetTag(), a.GetElement(i).GetValue());
@@ -193,11 +193,11 @@ namespace Orthanc
 
 
     void FindScpCallback(
-      /* in */ 
-      void *callbackData,  
-      OFBool cancelled, 
-      T_DIMSE_C_FindRQ *request, 
-      DcmDataset *requestIdentifiers, 
+      /* in */
+      void *callbackData,
+      OFBool cancelled,
+      T_DIMSE_C_FindRQ *request,
+      DcmDataset *requestIdentifiers,
       int responseCount,
       /* out */
       T_DIMSE_C_FindRSP *response,
@@ -206,7 +206,7 @@ namespace Orthanc
     {
       assert(response != NULL);
       assert(requestIdentifiers != NULL);
-      
+
       memset(response, 0, sizeof(T_DIMSE_C_FindRSP));
       *statusDetail = NULL;
 
@@ -220,7 +220,7 @@ namespace Orthanc
           requestIdentifiers->print(s);
           CLOG(TRACE, DICOM) << "Received C-FIND Request:" << std::endl << s.str();
         }
-      
+
         bool ok = false;
 
         try
@@ -269,7 +269,7 @@ namespace Orthanc
                   if (sequence.card() != 0)
                   {
                     CLOG(WARNING, DICOM) << "Orthanc only supports sequence matching on worklists, "
-                                         << "ignoring C-FIND SCU constraint on tag (" << tag.Format() 
+                                         << "ignoring C-FIND SCU constraint on tag (" << tag.Format()
                                          << ") " << FromDcmtkBridge::GetTagName(*element);
                   }
 
@@ -305,7 +305,7 @@ namespace Orthanc
         if (!ok)
         {
           response->DimseStatus = STATUS_FIND_Failed_UnableToProcess;
-          *responseIdentifiers = NULL;   
+          *responseIdentifiers = NULL;
           return;
         }
 
@@ -315,7 +315,7 @@ namespace Orthanc
       {
         // Internal error!
         response->DimseStatus = STATUS_FIND_Failed_UnableToProcess;
-        *responseIdentifiers = NULL;   
+        *responseIdentifiers = NULL;
         return;
       }
 
@@ -352,8 +352,8 @@ namespace Orthanc
   }
 
 
-  OFCondition Internals::findScp(T_ASC_Association * assoc, 
-                                 T_DIMSE_Message * msg, 
+  OFCondition Internals::findScp(T_ASC_Association * assoc,
+                                 T_DIMSE_Message * msg,
                                  T_ASC_PresentationContextID presID,
                                  IFindRequestHandler* findHandler,
                                  IWorklistRequestHandler* worklistHandler,
@@ -370,7 +370,7 @@ namespace Orthanc
     data.remoteAet_ = &remoteAet;
     data.calledAet_ = &calledAet;
 
-    OFCondition cond = DIMSE_findProvider(assoc, presID, &msg->msg.CFindRQ, 
+    OFCondition cond = DIMSE_findProvider(assoc, presID, &msg->msg.CFindRQ,
                                           FindScpCallback, &data,
                                           /*opt_blockMode*/ (timeout ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                                           /*opt_dimse_timeout*/ timeout);

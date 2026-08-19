@@ -169,7 +169,7 @@ namespace Orthanc
 
     ORTHANC_PUBLIC bool IsCategoryEnabled(LogLevel level,
                                           LogCategory category);
-    
+
     ORTHANC_PUBLIC bool LookupCategory(LogCategory& target,
                                        const std::string& category);
 
@@ -209,12 +209,12 @@ namespace Orthanc
 
     struct ORTHANC_LOCAL NullStream : public std::ostream
     {
-      NullStream() : 
-        std::ios(0), 
+      NullStream() :
+        std::ios(0),
         std::ostream(0)
       {
       }
-      
+
       template <typename T>
       std::ostream& operator<< (const T& message)
       {
@@ -312,7 +312,7 @@ namespace Orthanc
       }
 
       ~InternalLogger();
-      
+
       std::ostream& operator<< (const std::string& message)
       {
         return messageStream_ << message;
@@ -355,7 +355,7 @@ namespace Orthanc
                      int line);
 
       ~InternalLogger();
-      
+
       std::ostream& operator<< (const std::string& message)
       {
         return messageStream_ << message;
@@ -377,7 +377,7 @@ namespace Orthanc
      * InitializePluginContext() was called.
      **/
     ORTHANC_PUBLIC void SetErrorWarnInfoLoggingStreams(std::ostream& errorStream,
-                                                       std::ostream& warningStream, 
+                                                       std::ostream& warningStream,
                                                        std::ostream& infoStream);
   }
 }

@@ -33,7 +33,7 @@ if len(sys.argv) != 2:
 
 
 orthancSyntaxes = []
-    
+
 
 with open(os.path.join(os.path.dirname(__file__), 'DicomTransferSyntaxes.json'), 'r') as f:
     for syntax in json.loads(f.read()):
@@ -42,7 +42,7 @@ with open(os.path.join(os.path.dirname(__file__), 'DicomTransferSyntaxes.json'),
 
 with open(os.path.join(sys.argv[1], 'dcmdata/include/dcmtk/dcmdata/dcuid.h'), 'r') as f:
     r = re.compile(r'^#define UID_([A-Za-z0-9_]+)TransferSyntax\s+"([0-9.]+)"$')
-    
+
     for line in f.readlines():
         m = r.match(line)
         if m != None:

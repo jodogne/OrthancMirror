@@ -36,7 +36,7 @@ namespace Orthanc
   private:
     class StorageFile;
     class StorageFolder;
-    
+
     StorageFolder* LookupParentFolder(const std::vector<std::string>& path);
 
     boost::shared_ptr<StorageFolder>  root_;  // PImpl
@@ -45,7 +45,7 @@ namespace Orthanc
 
   public:
     explicit WebDavStorage(bool isMemory);
-  
+
     virtual bool IsExistingFolder(const std::vector<std::string>& path) ORTHANC_OVERRIDE;
 
     virtual bool ListCollection(Collection& collection,
@@ -53,9 +53,9 @@ namespace Orthanc
 
     virtual bool GetFileContent(MimeType& mime,
                                 std::string& content,
-                                boost::posix_time::ptime& modificationTime, 
+                                boost::posix_time::ptime& modificationTime,
                                 const std::vector<std::string>& path) ORTHANC_OVERRIDE;
-  
+
     virtual bool StoreFile(const std::string& content,
                            const std::vector<std::string>& path) ORTHANC_OVERRIDE;
 

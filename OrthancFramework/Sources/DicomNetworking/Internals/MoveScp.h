@@ -32,8 +32,8 @@ namespace Orthanc
 {
   namespace Internals
   {
-    OFCondition moveScp(T_ASC_Association * assoc, 
-                        T_DIMSE_Message * msg, 
+    OFCondition moveScp(T_ASC_Association * assoc,
+                        T_DIMSE_Message * msg,
                         T_ASC_PresentationContextID presID,
                         IMoveRequestHandler& handler,
                         const std::string& remoteIp,

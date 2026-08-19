@@ -38,7 +38,7 @@ namespace Orthanc
     class InstanceCommand;
     class TrailingStepCommand;
     class InstanceUnserializer;
-    
+
     bool                   hasTrailingStep_;
     std::set<std::string>  failedInstances_;
     std::map<std::string, ResourceType> parentResources_;
@@ -60,13 +60,13 @@ namespace Orthanc
     // Only used for reporting in the public content
     // https://groups.google.com/d/msg/orthanc-users/9GCV88GLEzw/6wAgP_PRAgAJ
     void AddParentResource(const std::string& resource, ResourceType level);
-    
+
     void AddInstance(const std::string& instance);
 
-    void AddTrailingStep(); 
+    void AddTrailingStep();
 
     size_t GetInstancesCount() const;
-    
+
     const std::string& GetInstance(size_t index) const;
 
     bool HasTrailingStep() const;

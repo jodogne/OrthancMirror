@@ -233,7 +233,7 @@ namespace Orthanc
   }
 
 
-  void FindRequest::AddOrdering(MetadataType metadataType, 
+  void FindRequest::AddOrdering(MetadataType metadataType,
                                 OrderingCast cast,
                                 OrderingDirection direction)
   {

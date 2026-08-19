@@ -110,7 +110,7 @@ namespace Orthanc
       {
       };
     };
-      
+
     static DcmDataset *BuildFailedInstanceList(const std::string& failedUIDs)
     {
       if (failedUIDs.empty())
@@ -120,7 +120,7 @@ namespace Orthanc
       else
       {
         std::unique_ptr<DcmDataset> rspIds(new DcmDataset());
-        
+
         if (!DU_putStringDOElement(rspIds.get(), DCM_FailedSOPInstanceUIDList, failedUIDs.c_str()))
         {
           throw OrthancException(ErrorCode_InternalError,
@@ -153,9 +153,9 @@ namespace Orthanc
       response.NumberOfWarningSubOperations = handler.GetWarningCount();
 
       // http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.4.3.3.html
-      
+
       if (handler.GetFailedCount() > 0 ||
-          handler.GetWarningCount() > 0) 
+          handler.GetWarningCount() > 0)
       {
         /**
          * "Warning if one or more sub-operations were successfully
@@ -176,17 +176,17 @@ namespace Orthanc
          */
         response.DimseStatus = STATUS_GET_Refused_OutOfResourcesSubOperations;
       }
-            
+
       *failedIdentifiers = BuildFailedInstanceList(handler.GetFailedUids());
     }
-    
+
 
     static void GetScpCallback(
-      /* in */ 
-      void *callbackData,  
-      OFBool cancelled, 
-      T_DIMSE_C_GetRQ *request, 
-      DcmDataset *requestIdentifiers, 
+      /* in */
+      void *callbackData,
+      OFBool cancelled,
+      T_DIMSE_C_GetRQ *request,
+      DcmDataset *requestIdentifiers,
       int responseCount,
       /* out */
       T_DIMSE_C_GetRSP *response,
@@ -196,10 +196,10 @@ namespace Orthanc
       assert(response != NULL);
       assert(responseIdentifiers != NULL);
       assert(requestIdentifiers != NULL);
-      
+
       memset(response, 0, sizeof(T_DIMSE_C_GetRSP));
       *statusDetail = NULL;
-      *responseIdentifiers = NULL;   
+      *responseIdentifiers = NULL;
 
       GetScpData& data = *reinterpret_cast<GetScpData*>(callbackData);
       if (data.lastRequest_ == NULL)
@@ -248,7 +248,7 @@ namespace Orthanc
         response->DimseStatus = STATUS_GET_Failed_UnableToProcess;
         return;
       }
-      
+
       if (data.handler_->GetSubOperationCount() ==
           data.handler_->GetCompletedCount() +
           data.handler_->GetFailedCount() +
@@ -260,7 +260,7 @@ namespace Orthanc
       else
       {
         bool isContinue;
-        
+
         try
         {
           isContinue = data.handler_->DoNext(data.assoc_);
@@ -292,7 +292,7 @@ namespace Orthanc
   }
 
   OFCondition Internals::getScp(T_ASC_Association * assoc,
-                                T_DIMSE_Message * msg, 
+                                T_DIMSE_Message * msg,
                                 T_ASC_PresentationContextID presID,
                                 IGetRequestHandler& handler,
                                 const std::string& remoteIp,
@@ -309,11 +309,11 @@ namespace Orthanc
     data.calledAet_ = calledAet;
     data.timeout_ = timeout;
 
-    OFCondition cond = DIMSE_getProvider(assoc, presID, &msg->msg.CGetRQ, 
+    OFCondition cond = DIMSE_getProvider(assoc, presID, &msg->msg.CGetRQ,
                                          GetScpCallback, &data,
                                          /*opt_blockMode*/ (timeout ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                                          /*opt_dimse_timeout*/ timeout);
-    
+
     // if some error occured, dump corresponding information and remove the outfile if necessary
     if (cond.bad())
     {

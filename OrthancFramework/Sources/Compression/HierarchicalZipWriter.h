@@ -55,7 +55,7 @@ namespace Orthanc
       };
 
       typedef std::list<Directory*> Stack;
-  
+
       Stack stack_;
 
       std::string EnsureUniqueFilename(const std::string& name,
@@ -109,9 +109,9 @@ namespace Orthanc
     uint8_t GetCompressionLevel() const;
 
     void SetAppendToExisting(bool append);
-    
+
     bool IsAppendToExisting() const;
-    
+
     void OpenFile(const std::string& name);
 
     void OpenDirectory(const std::string& name);

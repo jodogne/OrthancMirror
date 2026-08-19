@@ -77,7 +77,7 @@ namespace Orthanc
     else
     {
       int64_t value;
-        
+
       try
       {
         value = boost::lexical_cast<int64_t>(it->second);
@@ -134,27 +134,27 @@ namespace Orthanc
           assert(current <= corpusEnd);
           buffer_.AddChunk(current, corpusEnd - current);
           return;
-        }          
-      } 
-      
+        }
+      }
+
       for (;;)
       {
         assert(current <= corpusEnd);
-      
+
         size_t patternSize = boundaryMatcher_.GetPattern().size();
         size_t remainingSize = corpusEnd - current;
         if (remainingSize < patternSize + 2)
         {
           break;  // Not enough data available
         }
-        
+
         std::string boundary(current, current + patternSize + 2);
         if (boundary == boundaryMatcher_.GetPattern() + "--")
         {
           state_ = State_Done;
           return;
         }
-        
+
         if (boundary != boundaryMatcher_.GetPattern() + "\r\n")
         {
           throw OrthancException(ErrorCode_NetworkProtocol,
@@ -162,7 +162,7 @@ namespace Orthanc
         }
 
         const char* start = current + patternSize + 2;
-        
+
         if (!headersMatcher_.Apply(start, corpusEnd))
         {
           break;  // Not enough data available
@@ -207,7 +207,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_NetworkProtocol,
                                  "No endline at the end of a part");
         }
-          
+
         handler_->HandlePart(headers, headersMatcher_.GetMatchEnd(), contentLength);
         current = headersMatcher_.GetMatchEnd() + contentLength + 2;
       }
@@ -217,9 +217,9 @@ namespace Orthanc
         assert(current < corpusEnd);
         buffer_.AddChunk(current, corpusEnd - current);
       }
-    } 
+    }
   }
-  
+
 
   void MultipartStreamReader::ParseStream()
   {
@@ -260,7 +260,7 @@ namespace Orthanc
     else
     {
       blockSize_ = size;
-    }        
+    }
   }
 
   size_t MultipartStreamReader::GetBlockSize() const
@@ -348,7 +348,7 @@ namespace Orthanc
       value = value.substr(1, value.size() - 2);
     }
   }
-  
+
 
   bool MultipartStreamReader::ParseMultipartContentType(std::string& contentType,
                                                         std::string& subType,
@@ -387,7 +387,7 @@ namespace Orthanc
 
           // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=190
           RemoveSurroundingQuotes(boundary);
-          
+
           valid = !boundary.empty();
         }
         else if (boost::iequals("type", Toolbox::StripSpaces(items[0])))
@@ -405,7 +405,7 @@ namespace Orthanc
     return valid;
   }
 
-  
+
   bool MultipartStreamReader::ParseHeaderArguments(std::string& main,
                                                    std::map<std::string, std::string>& arguments,
                                                    const std::string& header)
@@ -426,7 +426,7 @@ namespace Orthanc
     }
 
     arguments.clear();
-    
+
     for (size_t i = 1; i < tokens.size(); i++)
     {
       std::vector<std::string> items;
@@ -440,7 +440,7 @@ namespace Orthanc
       {
         std::string key = Toolbox::StripSpaces(items[0]);
         Toolbox::ToLowerCase(key);
-        
+
         if (arguments.find(key) != arguments.end())
         {
           LOG(ERROR) << "The same argument was provided twice in an HTTP header: \""

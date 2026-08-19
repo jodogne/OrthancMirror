@@ -79,7 +79,7 @@ namespace Orthanc
         }
       }
     }
-  }                              
+  }
 
 
   void DicomAssociation::CheckConnecting(const DicomAssociationParameters& parameters,
@@ -97,7 +97,7 @@ namespace Orthanc
         CLOG(TRACE, DICOM) << "Association Rejected:" << std::endl
                            << ASC_printRejectParameters(str, &rej);
       }
-      
+
       CheckCondition(cond, parameters, "connecting");
     }
     catch (OrthancException&)
@@ -107,7 +107,7 @@ namespace Orthanc
     }
   }
 
-    
+
   void DicomAssociation::CloseInternal()
   {
     CLOG(INFO, DICOM) << "Closing DICOM association";
@@ -115,7 +115,7 @@ namespace Orthanc
 #if ORTHANC_ENABLE_SSL == 1
     tls_.reset(NULL);  // Transport layer must be destroyed before the association itself
 #endif
-    
+
     if (assoc_ != NULL)
     {
       ASC_releaseAssociation(assoc_);
@@ -142,7 +142,7 @@ namespace Orthanc
     isOpen_ = false;
   }
 
-    
+
   void DicomAssociation::AddAccepted(const std::string& abstractSyntax,
                                      DicomTransferSyntax syntax,
                                      uint8_t presentationContextId)
@@ -154,7 +154,7 @@ namespace Orthanc
       std::map<DicomTransferSyntax, uint8_t> syntaxes;
       syntaxes[syntax] = presentationContextId;
       accepted_[abstractSyntax] = syntaxes;
-    }      
+    }
     else
     {
       if (found->second.find(syntax) != found->second.end())
@@ -175,14 +175,14 @@ namespace Orthanc
   DicomAssociation::DicomAssociation()
   {
     isOpen_ = false;
-    net_ = NULL; 
+    net_ = NULL;
     params_ = NULL;
     assoc_ = NULL;
 
     // Must be after "isOpen_ = false"
     ClearPresentationContexts();
   }
-  
+
 
   DicomAssociation::~DicomAssociation()
   {
@@ -248,7 +248,7 @@ namespace Orthanc
     {
       dcmConnectionTimeout.set(acseTimeout);
     }
-      
+
 
     assert(net_ == NULL &&
            params_ == NULL &&
@@ -271,7 +271,7 @@ namespace Orthanc
                       << " from AET \"" << localAet
                       << "\" to AET \"" << parameters.GetRemoteModality().GetApplicationEntityTitle()
                       << "\" on host " << parameters.GetRemoteModality().GetHost()
-                      << ":" << parameters.GetRemoteModality().GetPortNumber() 
+                      << ":" << parameters.GetRemoteModality().GetPortNumber()
                       << " (manufacturer: " << EnumerationToString(parameters.GetRemoteModality().GetManufacturer())
                       << ", " << (parameters.HasTimeout() ?
                                   "timeout: " + boost::lexical_cast<std::string>(parameters.GetTimeout()) + "s" :
@@ -344,10 +344,10 @@ namespace Orthanc
       const char* abstractSyntax = proposed_[i].abstractSyntax_.c_str();
 
       const std::list<DicomTransferSyntax>& source = proposed_[i].transferSyntaxes_;
-          
+
       std::vector<const char*> transferSyntaxes;
       transferSyntaxes.reserve(source.size());
-          
+
       for (std::list<DicomTransferSyntax>::const_iterator
              it = source.begin(); it != source.end(); ++it)
       {
@@ -357,8 +357,8 @@ namespace Orthanc
       assert(!transferSyntaxes.empty());
       CheckConnecting(parameters, ASC_addPresentationContext(
                         params_, presentationContextId, abstractSyntax,
-                        &transferSyntaxes[0], 
-                        static_cast<int>(transferSyntaxes.size()), 
+                        &transferSyntaxes[0],
+                        static_cast<int>(transferSyntaxes.size()),
                         GetDcmtkRole(proposed_[i].role_)));
 
       presentationContextId += 2;
@@ -407,7 +407,7 @@ namespace Orthanc
                                  << "\": " << pc->acceptedTransferSyntax;
           }
         }
-            
+
         pc = reinterpret_cast<DUL_PRESENTATIONCONTEXT*>(LST_Next(l));
       }
     }
@@ -428,7 +428,7 @@ namespace Orthanc
     }
   }
 
-    
+
   bool DicomAssociation::LookupAcceptedPresentationContext(std::map<DicomTransferSyntax, uint8_t>& target,
                                                            const std::string& abstractSyntax) const
   {
@@ -436,7 +436,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls, "Connection not opened");
     }
-      
+
     AcceptedPresentationContexts::const_iterator found = accepted_.find(abstractSyntax);
 
     if (found == accepted_.end())
@@ -459,13 +459,13 @@ namespace Orthanc
     ts.push_back(DicomTransferSyntax_BigEndianExplicit);  // Retired but was historicaly proposed by Orthanc
     ProposePresentationContext(abstractSyntax, ts, role);
   }
-    
+
   void DicomAssociation::ProposeGenericPresentationContext(const std::string& abstractSyntax)
   {
     ProposeGenericPresentationContext(abstractSyntax, DicomAssociationRole_Default);
   }
 
-    
+
   void DicomAssociation::ProposePresentationContext(const std::string& abstractSyntax,
                                                     DicomTransferSyntax transferSyntax)
   {
@@ -487,7 +487,7 @@ namespace Orthanc
     assert(proposed_.size() <= MAX_PROPOSED_PRESENTATIONS);
     return MAX_PROPOSED_PRESENTATIONS - proposed_.size();
   }
-    
+
   void DicomAssociation::ProposePresentationContext(
     const std::string& abstractSyntax,
     const std::list<DicomTransferSyntax>& transferSyntaxes)
@@ -506,13 +506,13 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange,
                              "No transfer syntax provided");
     }
-      
+
     if (proposed_.size() >= MAX_PROPOSED_PRESENTATIONS)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange,
                              "Too many proposed presentation contexts");
     }
-      
+
     if (IsOpen())
     {
       Close();
@@ -526,7 +526,7 @@ namespace Orthanc
     proposed_.push_back(context);
   }
 
-    
+
   T_ASC_Association& DicomAssociation::GetDcmtkAssociation() const
   {
     if (isOpen_)
@@ -570,7 +570,7 @@ namespace Orthanc
 
     return false;
   }
-    
+
   T_ASC_Network& DicomAssociation::GetDcmtkNetwork() const
   {
     if (isOpen_)
@@ -585,7 +585,7 @@ namespace Orthanc
     }
   }
 
-    
+
   void DicomAssociation::CheckCondition(const OFCondition& cond,
                                         const DicomAssociationParameters& parameters,
                                         const std::string& command)
@@ -594,7 +594,7 @@ namespace Orthanc
     {
       // Reformat the error message from DCMTK by turning multiline
       // errors into a single line
-      
+
       std::string s(cond.text());
       std::string info;
       info.reserve(s.size());
@@ -635,7 +635,7 @@ namespace Orthanc
                              "\": " + info);
     }
   }
-    
+
 
   void DicomAssociation::ReportStorageCommitment(
     const DicomAssociationParameters& parameters,
@@ -649,7 +649,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-    
+
 
     std::vector<std::string> successSopClassUids, successSopInstanceUids, failedSopClassUids, failedSopInstanceUids;
     std::vector<StorageCommitmentFailureReason> failedReasons;
@@ -689,7 +689,7 @@ namespace Orthanc
         }
       }
     }
-    
+
     DicomAssociation association;
 
     {
@@ -700,7 +700,7 @@ namespace Orthanc
       association.ProposePresentationContext(UID_StorageCommitmentPushModelSOPClass,
                                              transferSyntaxes, DicomAssociationRole_Scp);
     }
-      
+
     association.Open(parameters);
 
     /**
@@ -719,10 +719,10 @@ namespace Orthanc
     CLOG(INFO, DICOM) << "Reporting modality \""
                       << parameters.GetRemoteModality().GetApplicationEntityTitle()
                       << "\" about storage commitment transaction: " << transactionUid
-                      << " (" << successSopClassUids.size() << " successes, " 
+                      << " (" << successSopClassUids.size() << " successes, "
                       << failedSopClassUids.size() << " failures)";
     const DIC_US messageId = association.GetDcmtkAssociation().nextMsgID++;
-      
+
     {
       T_DIMSE_Message message;
       memset(&message, 0, sizeof(message));
@@ -813,7 +813,7 @@ namespace Orthanc
         CLOG(TRACE, DICOM) << "Received Storage Commitment Report Response:" << std::endl
                            << DIMSE_dumpMessage(str, message, DIMSE_INCOMING, NULL, presID);
       }
-      
+
       const T_DIMSE_N_EventReportRSP& content = message.msg.NEventReportRSP;
       if (content.MessageIDBeingRespondedTo != messageId ||
           !(content.opts & O_NEVENTREPORT_AFFECTEDSOPCLASSUID) ||
@@ -839,7 +839,7 @@ namespace Orthanc
     association.Close();
   }
 
-    
+
   void DicomAssociation::RequestStorageCommitment(
     const DicomAssociationParameters& parameters,
     const std::string& transactionUid,
@@ -874,14 +874,14 @@ namespace Orthanc
       std::list<DicomTransferSyntax> transferSyntaxes;
       transferSyntaxes.push_back(DicomTransferSyntax_LittleEndianExplicit);
       transferSyntaxes.push_back(DicomTransferSyntax_LittleEndianImplicit);
-      
+
       // association.SetRole(DicomAssociationRole_Default);
       association.ProposePresentationContext(UID_StorageCommitmentPushModelSOPClass,
                                              transferSyntaxes, DicomAssociationRole_Default);
     }
-      
+
     association.Open(parameters);
-      
+
     /**
      * N-ACTION
      * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.2.html
@@ -900,7 +900,7 @@ namespace Orthanc
                       << "\" about storage commitment for " << sopClassUids.size()
                       << " instances, with transaction UID: " << transactionUid;
     const DIC_US messageId = association.GetDcmtkAssociation().nextMsgID++;
-      
+
     {
       T_DIMSE_Message message;
       memset(&message, 0, sizeof(message));
@@ -923,7 +923,7 @@ namespace Orthanc
         std::vector<StorageCommitmentFailureReason> empty;
         FillSopSequence(dataset, DCM_ReferencedSOPSequence, sopClassUids, sopInstanceUids, empty, false);
       }
-          
+
       int presID = ASC_findAcceptedPresentationContextID(
         &association.GetDcmtkAssociation(), UID_StorageCommitmentPushModelSOPClass);
       if (presID == 0)
@@ -959,7 +959,7 @@ namespace Orthanc
     {
       T_ASC_PresentationContextID presID = 0;
       T_DIMSE_Message message;
-        
+
       if (!DIMSE_receiveCommand(&association.GetDcmtkAssociation(),
                                 (parameters.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                                 static_cast<Sint32>(parameters.GetTimeout()), &presID, &message,

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -37,7 +37,7 @@ namespace Orthanc
                                 const IJobOperationValue& input)
   {
     TimeoutDicomConnectionManager::Lock lock(connectionManager_, localAet_, modality_);
-    
+
     if (input.GetType() != IJobOperationValue::Type_DicomInstance)
     {
       throw OrthancException(ErrorCode_BadParameterType);
@@ -46,7 +46,7 @@ namespace Orthanc
     const DicomInstanceOperationValue& instance =
       dynamic_cast<const DicomInstanceOperationValue&>(input);
 
-    LOG(INFO) << "Lua: Sending instance " << instance.GetId() << " to modality \"" 
+    LOG(INFO) << "Lua: Sending instance " << instance.GetId() << " to modality \""
               << modality_.GetApplicationEntityTitle() << "\"";
 
     try
@@ -61,14 +61,14 @@ namespace Orthanc
     }
     catch (OrthancException& e)
     {
-      LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId() << " to modality \"" 
+      LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId() << " to modality \""
                  << modality_.GetApplicationEntityTitle() << "\": " << e.What();
     }
 
     outputs.Append(input.Clone());
   }
 
-  
+
   void StoreScuOperation::Serialize(Json::Value& result) const
   {
     result = Json::objectValue;

@@ -32,13 +32,13 @@ namespace Orthanc
   {
     return Type_Null;
   }
-    
-  IJobOperationValue* NullOperationValue::Clone() const 
+
+  IJobOperationValue* NullOperationValue::Clone() const
   {
     return new NullOperationValue;
   }
 
-  void NullOperationValue::Serialize(Json::Value& target) const 
+  void NullOperationValue::Serialize(Json::Value& target) const
   {
     target = Json::objectValue;
     target["Type"] = "Null";

@@ -72,7 +72,7 @@ namespace Orthanc
                                 DcmItem& item,
                                 const DicomPath& pattern,
                                 const DicomPath& actualPath);
-      
+
     public:
       virtual ~IDicomPathVisitor()
       {
@@ -85,7 +85,7 @@ namespace Orthanc
                         DcmDataset& dataset,
                         const DicomPath& path);
     };
-    
+
 
     class ORTHANC_PUBLIC DictionaryWriterLock : public boost::noncopyable
     {
@@ -196,7 +196,7 @@ namespace Orthanc
                                           const std::set<DicomTag>& ignoreTagLength,
                                           ValueRepresentation vr);
 
-    static void ExtractHeaderAsJson(Json::Value& target, 
+    static void ExtractHeaderAsJson(Json::Value& target,
                                     DcmMetaInfo& header,
                                     DicomToJsonFormat format,
                                     DicomToJsonFlags flags,
@@ -255,7 +255,7 @@ namespace Orthanc
 
     static DcmElement* CreateElementForTag(const DicomTag& tag,
                                            const std::string& privateCreator);
-    
+
     static void FillElementWithString(DcmElement& element,
                                       const std::string& utf8alue,  // Encoded using UTF-8
                                       bool decodeDataUriScheme,
@@ -285,12 +285,12 @@ namespace Orthanc
                          const Json::Value& result,
                          const char* fieldName = NULL);
 
-    static void ExtractDicomSummary(DicomMap& target, 
+    static void ExtractDicomSummary(DicomMap& target,
                                     DcmItem& dataset,
                                     unsigned int maxStringLength,
                                     const std::set<DicomTag>& ignoreTagLength);
 
-    static void ExtractDicomAsJson(Json::Value& target, 
+    static void ExtractDicomAsJson(Json::Value& target,
                                    DcmDataset& dataset,
                                    DicomToJsonFormat format,
                                    DicomToJsonFlags flags,

@@ -37,13 +37,13 @@ namespace Orthanc
   /**
    * Class that caches a dictionary
    * of strings, using the "fetch/add" paradigm of memcached.
-   * 
+   *
    * Starting from 1.12.2, if multiple clients are trying to access
    * an inexistent item at the same time, only one of them will load it
    * and the others will wait until the first one has loaded the data.
-   * 
+   *
    * The MemoryStringCache is only accessible through an Accessor.
-   * 
+   *
    * Note: this class is thread safe
    **/
   class ORTHANC_PUBLIC ORTHANC_DEPRECATED_CLASS(MemoryStringCache) : public boost::noncopyable
@@ -87,13 +87,13 @@ namespace Orthanc
     ~MemoryStringCache();
 
     size_t GetMaximumSize();
-    
+
     void SetMaximumSize(size_t size);
 
     void Invalidate(const std::string& key);
 
     size_t GetCurrentSize() const;
-    
+
     size_t GetNumberOfItems() const;
 
   private:

@@ -69,7 +69,7 @@ namespace Orthanc
                const std::string& id);
 
       bool IsValid() const;
-      
+
       IDynamicObject& GetItem() const;
     };
 

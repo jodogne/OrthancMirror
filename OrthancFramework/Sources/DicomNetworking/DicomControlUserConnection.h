@@ -37,7 +37,7 @@
 namespace Orthanc
 {
   class DicomAssociation;  // Forward declaration for PImpl design pattern
-  
+
   typedef uint16_t (*CGetInstanceReceivedCallback) (void *callbackContext,
                                                     DcmDataset& dataset,
                                                     const std::string& remoteAet,
@@ -87,17 +87,17 @@ namespace Orthanc
                       const char* sopClass,
                       bool isWorklist,
                       const char* level);
-    
+
     void MoveInternal(const std::string& targetAet,
                       ResourceType level,
                       const DicomMap& fields,
                       uint16_t messageId);
-    
+
   public:
     explicit DicomControlUserConnection(const DicomAssociationParameters& params, ScuOperationFlags scuOperation);
 
     // specific constructor for CGet SCU
-    explicit DicomControlUserConnection(const DicomAssociationParameters& params, 
+    explicit DicomControlUserConnection(const DicomAssociationParameters& params,
                                         ScuOperationFlags scuOperation,
                                         const std::set<std::string>& acceptedStorageSopClasses,
                                         const std::list<DicomTransferSyntax>& proposedStorageTransferSyntaxes);
@@ -129,11 +129,11 @@ namespace Orthanc
               ResourceType level,
               const DicomMap& moveQuery,
               uint16_t messageId = 0);
-    
+
     void Move(const std::string& targetAet,
               const DicomMap& moveQuery,
               uint16_t messageId = 0);
-    
+
     void FindWorklist(DicomFindAnswers& result,
                       ParsedDicomFile& query);
   };

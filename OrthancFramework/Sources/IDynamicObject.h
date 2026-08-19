@@ -43,7 +43,7 @@ namespace Orthanc
     {
     }
   };
-  
+
 
   /**
    * This class is a simple implementation of a IDynamicObject that
@@ -54,7 +54,7 @@ namespace Orthanc
   {
   private:
     T  value_;
-    
+
   public:
     explicit SingleValueObject(const T& value) :
       value_(value)

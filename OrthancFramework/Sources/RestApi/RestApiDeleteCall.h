@@ -32,7 +32,7 @@ namespace Orthanc
   {
   public:
     typedef void (*Handler) (RestApiDeleteCall& call);
-    
+
     RestApiDeleteCall(RestApiOutput& output,
                       RestApi& context,
                       RequestOrigin origin,

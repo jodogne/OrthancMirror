@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -116,7 +116,7 @@ static bool ReadFile(std::string& content,
   }
 
   content.resize(size);
-      
+
   if (fseek(fp, 0, SEEK_SET) == -1)
   {
     fclose(fp);
@@ -226,7 +226,7 @@ extern "C"
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   {
     context = c;
-    
+
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(c) == 0)
     {
@@ -251,7 +251,7 @@ extern "C"
 #endif
 
     OrthancPluginRegisterRestCallback(context, "/", RedirectRoot);
- 
+
     return 0;
   }
 

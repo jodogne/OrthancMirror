@@ -50,7 +50,7 @@ endif()
 include_directories(
   ${PROTOBUF_SOURCE_DIR}/src
   )
-  
+
 set(PROTOBUF_LIBRARY_SOURCES
   ${PROTOBUF_SOURCE_DIR}/src/google/protobuf/any.cc
   ${PROTOBUF_SOURCE_DIR}/src/google/protobuf/any.pb.cc

@@ -90,7 +90,7 @@ namespace Orthanc
           {
             case HttpMethod_Get:
             {
-              RestApiGetCall call(output_, api_, origin_, remoteIp_, username_, 
+              RestApiGetCall call(output_, api_, origin_, remoteIp_, username_,
                                   headers_, components, trailing, uri, getArguments_);
               resource.Handle(call);
               return true;
@@ -98,7 +98,7 @@ namespace Orthanc
 
             case HttpMethod_Post:
             {
-              RestApiPostCall call(output_, api_, origin_, remoteIp_, username_, 
+              RestApiPostCall call(output_, api_, origin_, remoteIp_, username_,
                                    headers_, components, trailing, uri, bodyData_, bodySize_);
               resource.Handle(call);
               return true;
@@ -106,7 +106,7 @@ namespace Orthanc
 
             case HttpMethod_Delete:
             {
-              RestApiDeleteCall call(output_, api_, origin_, remoteIp_, username_, 
+              RestApiDeleteCall call(output_, api_, origin_, remoteIp_, username_,
                                      headers_, components, trailing, uri);
               resource.Handle(call);
               return true;
@@ -114,7 +114,7 @@ namespace Orthanc
 
             case HttpMethod_Put:
             {
-              RestApiPutCall call(output_, api_, origin_, remoteIp_, username_, 
+              RestApiPutCall call(output_, api_, origin_, remoteIp_, username_,
                                   headers_, components, trailing, uri, bodyData_, bodySize_);
               resource.Handle(call);
               return true;
@@ -142,7 +142,7 @@ namespace Orthanc
       virtual bool HandleCall(RestApiCall& call,
                               const std::string& path,
                               const std::set<std::string>& uriArgumentsNames) = 0;
-  
+
     public:
       explicit DocumentationVisitor(RestApi& restApi) :
         restApi_(restApi),
@@ -150,7 +150,7 @@ namespace Orthanc
         totalPathsCount_(0)
       {
       }
-  
+
       virtual bool Visit(const RestApiHierarchy::Resource& resource,
                          const UriComponents& uri,
                          bool hasTrailing,
@@ -165,7 +165,7 @@ namespace Orthanc
 
         std::set<std::string> uriArgumentsNames;
         HttpToolbox::Arguments uriArguments;
-        
+
         for (HttpToolbox::Arguments::const_iterator
                it = components.begin(); it != components.end(); ++it)
         {
@@ -183,7 +183,7 @@ namespace Orthanc
         if (resource.HasHandler(HttpMethod_Get))
         {
           totalPathsCount_ ++;
-          
+
           StringHttpOutput o1;
           HttpOutput o2(o1, false /* assume no keep-alive */, 0);
           RestApiOutput o3(o2, HttpMethod_Get);
@@ -193,7 +193,7 @@ namespace Orthanc
                               uri, HttpToolbox::Arguments() /* GET arguments */);
 
           bool ok = false;
-      
+
           try
           {
             ok = (resource.Handle(call) &&
@@ -217,11 +217,11 @@ namespace Orthanc
             LOG(WARNING) << "Ignoring URI without API documentation: GET " << path;
           }
         }
-    
+
         if (resource.HasHandler(HttpMethod_Post))
         {
           totalPathsCount_ ++;
-          
+
           StringHttpOutput o1;
           HttpOutput o2(o1, false /* assume no keep-alive */, 0);
           RestApiOutput o3(o2, HttpMethod_Post);
@@ -231,7 +231,7 @@ namespace Orthanc
                                uri, NULL /* body */, 0 /* body size */);
 
           bool ok = false;
-      
+
           try
           {
             ok = (resource.Handle(call) &&
@@ -255,11 +255,11 @@ namespace Orthanc
             LOG(WARNING) << "Ignoring URI without API documentation: POST " << path;
           }
         }
-    
+
         if (resource.HasHandler(HttpMethod_Delete))
         {
           totalPathsCount_ ++;
-          
+
           StringHttpOutput o1;
           HttpOutput o2(o1, false /* assume no keep-alive */, 0);
           RestApiOutput o3(o2, HttpMethod_Delete);
@@ -268,7 +268,7 @@ namespace Orthanc
                                  uriArguments, UriComponents() /* trailing */, uri);
 
           bool ok = false;
-      
+
           try
           {
             ok = (resource.Handle(call) &&
@@ -296,7 +296,7 @@ namespace Orthanc
         if (resource.HasHandler(HttpMethod_Put))
         {
           totalPathsCount_ ++;
-          
+
           StringHttpOutput o1;
           HttpOutput o2(o1, false /* assume no keep-alive */, 0);
           RestApiOutput o3(o2, HttpMethod_Put);
@@ -306,7 +306,7 @@ namespace Orthanc
                               NULL /* body */, 0 /* body size */);
 
           bool ok = false;
-      
+
           try
           {
             ok = (resource.Handle(call) &&
@@ -330,7 +330,7 @@ namespace Orthanc
             LOG(WARNING) << "Ignoring URI without API documentation: PUT " << path;
           }
         }
-    
+
         return true;
       }
 
@@ -354,7 +354,7 @@ namespace Orthanc
         }
         float coverage = (100.0f * static_cast<float>(GetSuccessPathsCount()) /
                           static_cast<float>(total));
-    
+
         LOG(WARNING) << "The documentation of the REST API contains " << GetSuccessPathsCount()
                      << " paths over a total of " << GetTotalPathsCount() << " paths "
                      << "(coverage: " << static_cast<unsigned int>(Math::iround(coverage)) << "%)";
@@ -376,29 +376,29 @@ namespace Orthanc
         if (call.GetDocumentation().FormatOpenApi(v, uriArgumentsNames, path))
         {
           std::string method;
-          
+
           switch (call.GetMethod())
           {
             case HttpMethod_Get:
               method = "get";
               break;
-            
+
             case HttpMethod_Post:
               method = "post";
               break;
-            
+
             case HttpMethod_Delete:
               method = "delete";
               break;
-            
+
             case HttpMethod_Put:
               method = "put";
               break;
-            
+
             default:
               throw OrthancException(ErrorCode_ParameterOutOfRange);
           }
-          
+
           if ((paths_.isMember(path) &&
                paths_[path].type() != Json::objectValue) ||
               paths_[path].isMember(method))
@@ -407,22 +407,22 @@ namespace Orthanc
           }
 
           paths_[path][method] = v;
-          
+
           return true;
         }
         else
         {
           return false;
         }
-      }      
-  
+      }
+
     public:
       explicit OpenApiVisitor(RestApi& restApi) :
         DocumentationVisitor(restApi),
         paths_(Json::objectValue)
       {
       }
-  
+
       const Json::Value& GetPaths() const
       {
         return paths_;
@@ -476,40 +476,40 @@ namespace Orthanc
               {
                 THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
               }
-              
+
               hasGet_ = true;
               getTag_ = tag;
               getDeprecated_ = deprecated;
               break;
-              
+
             case HttpMethod_Post:
               if (hasPost_)
               {
                 THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
               }
-              
+
               hasPost_ = true;
               postTag_ = tag;
               postDeprecated_ = deprecated;
               break;
-              
+
             case HttpMethod_Delete:
               if (hasDelete_)
               {
                 THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
               }
-              
+
               hasDelete_ = true;
               deleteTag_ = tag;
               deleteDeprecated_ = deprecated;
               break;
-              
+
             case HttpMethod_Put:
               if (hasPut_)
               {
                 THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
               }
-              
+
               hasPut_ = true;
               putTag_ = tag;
               putDeprecated_ = deprecated;
@@ -618,7 +618,7 @@ namespace Orthanc
 
           std::string verb;
           std::string url;
-          
+
           switch (method)
           {
             case HttpMethod_Get:
@@ -628,7 +628,7 @@ namespace Orthanc
                 url = openApiUrl + "#tag/" + FormatTag(getTag_) + "/paths/" + p + "/get";
               }
               break;
-              
+
             case HttpMethod_Post:
               if (hasPost_)
               {
@@ -636,7 +636,7 @@ namespace Orthanc
                 url = openApiUrl + "#tag/" + FormatTag(postTag_) + "/paths/" + p + "/post";
               }
               break;
-              
+
             case HttpMethod_Delete:
               if (hasDelete_)
               {
@@ -644,14 +644,14 @@ namespace Orthanc
                 url = openApiUrl + "#tag/" + FormatTag(deleteTag_) + "/paths/" + p + "/delete";
               }
               break;
-              
+
             case HttpMethod_Put:
               if (hasPut_)
               {
                 verb = (putDeprecated_ ? "(put)" : "PUT");
                 url = openApiUrl + "#tag/" + FormatTag(putTag_) + "/paths/" + p + "/put";
               }
-              break;              
+              break;
 
             default:
               THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
@@ -697,10 +697,10 @@ namespace Orthanc
         {
           path.SetSummary(call.GetDocumentation().GetSummary(), call.GetMethod());
         }
-        
+
         return true;
-      }      
-  
+      }
+
     public:
       explicit ReStructuredTextCheatSheet(RestApi& restApi) :
         DocumentationVisitor(restApi)
@@ -718,14 +718,14 @@ namespace Orthanc
           target += it->second.Format(openApiUrl, HttpMethod_Post, it->first) + ",";
           target += it->second.Format(openApiUrl, HttpMethod_Delete, it->first) + ",";
           target += it->second.Format(openApiUrl, HttpMethod_Put, it->first) + ",";
-          
+
           if (it->second.HasDeprecated())
           {
             target += "*(deprecated)* ";
           }
-          
+
           target += it->second.GetSummary() + "\n";
-        }        
+        }
       }
     };
   }
@@ -825,7 +825,7 @@ namespace Orthanc
     HttpToolbox::Arguments compiled;
     HttpToolbox::CompileGetArguments(compiled, getArguments);
 
-    HttpHandlerVisitor visitor(*this, wrappedOutput, origin, remoteIp, username, 
+    HttpHandlerVisitor visitor(*this, wrappedOutput, origin, remoteIp, username,
                                method, headers, compiled, bodyData, bodySize);
 
     if (root_.LookupResource(uri, visitor))
@@ -843,7 +843,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(INFO) << "REST method " << EnumerationToString(method) 
+      LOG(INFO) << "REST method " << EnumerationToString(method)
                 << " not allowed on: " << Toolbox::FlattenUri(uri);
 
       output.SendMethodNotAllowed(MethodsToString(methods));
@@ -875,9 +875,9 @@ namespace Orthanc
   {
     root_.Register(path, handler);
   }
-  
+
   void RestApi::AutoListChildren(RestApiGetCall& call)
-  {    
+  {
     call.GetDocumentation()
       .SetTag("Other")
       .SetSummary("List operations")
@@ -898,7 +898,7 @@ namespace Orthanc
         for (std::set<std::string>::const_iterator it = c.begin(); it != c.end(); ++it)
         {
           call.GetDocumentation().SetUriArgument(*it, RestApiCallDocumentation::Type_String, "");
-        }    
+        }
       }
       else
       {
@@ -911,7 +911,7 @@ namespace Orthanc
   void RestApi::GenerateOpenApiDocumentation(Json::Value& target)
   {
     OpenApiVisitor visitor(*this);
-    
+
     UriComponents root;
     std::set<std::string> uriArgumentsNames;
     root_.ExploreAllResources(visitor, root, uriArgumentsNames);
@@ -931,13 +931,13 @@ namespace Orthanc
                                                    const std::string& openApiUrl)
   {
     ReStructuredTextCheatSheet visitor(*this);
-    
+
     UriComponents root;
     std::set<std::string> uriArgumentsNames;
     root_.ExploreAllResources(visitor, root, uriArgumentsNames);
 
     visitor.Format(target, openApiUrl);
-    
+
     visitor.LogStatistics();
   }
 }

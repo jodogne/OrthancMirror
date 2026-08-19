@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -53,7 +53,7 @@ namespace Orthanc
      * Some handy templates to reduce the verbosity in the definitions
      * of the internal classes.
      **/
-    
+
     template <typename Operations,
               typename Tuple>
     class TupleOperationsWrapper : public StatelessDatabaseOperations::IReadOnlyOperations
@@ -61,7 +61,7 @@ namespace Orthanc
     protected:
       Operations&   operations_;
       const Tuple&  tuple_;
-    
+
     public:
       TupleOperationsWrapper(Operations& operations,
                              const Tuple& tuple) :
@@ -69,7 +69,7 @@ namespace Orthanc
         tuple_(tuple)
       {
       }
-    
+
       virtual void Apply(StatelessDatabaseOperations::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
       {
         operations_.ApplyTuple(transaction, tuple_);
@@ -82,7 +82,7 @@ namespace Orthanc
     {
     public:
       typedef typename boost::tuple<T1>  Tuple;
-      
+
       virtual ~ReadOnlyOperationsT1()
       {
       }
@@ -106,7 +106,7 @@ namespace Orthanc
     {
     public:
       typedef typename boost::tuple<T1, T2>  Tuple;
-      
+
       virtual ~ReadOnlyOperationsT2()
       {
       }
@@ -132,7 +132,7 @@ namespace Orthanc
     {
     public:
       typedef typename boost::tuple<T1, T2, T3>  Tuple;
-      
+
       virtual ~ReadOnlyOperationsT3()
       {
       }
@@ -160,7 +160,7 @@ namespace Orthanc
     {
     public:
       typedef typename boost::tuple<T1, T2, T3, T4>  Tuple;
-      
+
       virtual ~ReadOnlyOperationsT4()
       {
       }
@@ -190,7 +190,7 @@ namespace Orthanc
     {
     public:
       typedef typename boost::tuple<T1, T2, T3, T4, T5>  Tuple;
-      
+
       virtual ~ReadOnlyOperationsT5()
       {
       }
@@ -222,7 +222,7 @@ namespace Orthanc
     {
     public:
       typedef typename boost::tuple<T1, T2, T3, T4, T5, T6>  Tuple;
-      
+
       virtual ~ReadOnlyOperationsT6()
       {
       }
@@ -280,7 +280,7 @@ namespace Orthanc
         last = log.back().GetSeq();
       }
     }
-    
+
     target["Last"] = static_cast<int>(last);
     if (!log.empty())
     {
@@ -326,7 +326,7 @@ namespace Orthanc
       {
         return SeriesStatus_Unknown;
       }
-      
+
       if (!(index > 0 && index <= expectedNumberOfInstances))
       {
         // Out-of-range instance index
@@ -360,7 +360,7 @@ namespace Orthanc
     std::unique_ptr<IDatabaseWrapper::ITransaction>  transaction_;
     std::unique_ptr<ITransactionContext>             context_;
     bool                                             isCommitted_;
-    
+
   public:
     Transaction(IDatabaseWrapper& db,
                 ITransactionContextFactory& factory,
@@ -372,8 +372,8 @@ namespace Orthanc
       if (context_.get() == NULL)
       {
         throw OrthancException(ErrorCode_NullPointer);
-      }      
-      
+      }
+
       transaction_.reset(db_.StartTransaction(type, *context_));
       if (transaction_.get() == NULL)
       {
@@ -424,7 +424,7 @@ namespace Orthanc
       return *context_;
     }
   };
-  
+
 
   void StatelessDatabaseOperations::ApplyInternal(IReadOnlyOperations* readOperations,
                                                   IReadWriteOperations* writeOperations)
@@ -439,9 +439,9 @@ namespace Orthanc
 
     if (factory_.get() == NULL)
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls, "No transaction context was provided");     
+      throw OrthancException(ErrorCode_BadSequenceOfCalls, "No transaction context was provided");
     }
-    
+
     unsigned int attempt = 0;
 
     for (;;)
@@ -455,7 +455,7 @@ namespace Orthanc
            * in this case. This was OK because of the presence of the
            * global mutex that was protecting the database.
            **/
-          
+
           Transaction transaction(db_, *factory_, TransactionType_ReadOnly);  // TODO - Only if not "TransactionType_Implicit"
           {
             ReadOnlyTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext());
@@ -470,7 +470,7 @@ namespace Orthanc
           {
             throw OrthancException(ErrorCode_ReadOnly, "The DB is trying to execute a ReadWrite transaction while Orthanc has been started in ReadOnly mode.");
           }
-          
+
           Transaction transaction(db_, *factory_, TransactionType_ReadWrite);
           {
             ReadWriteTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext());
@@ -478,7 +478,7 @@ namespace Orthanc
           }
           transaction.Commit();
         }
-        
+
         return;  // Success
       }
       catch (OrthancException& e)
@@ -496,7 +496,7 @@ namespace Orthanc
 
             // The "rand()" adds some jitter to de-synchronize writers
             boost::this_thread::sleep(boost::posix_time::milliseconds(100 * attempt + 5 * (rand() % 10)));
-          }          
+          }
         }
         else
         {
@@ -506,8 +506,8 @@ namespace Orthanc
     }
   }
 
-  
-  StatelessDatabaseOperations::StatelessDatabaseOperations(IDatabaseWrapper& db, bool readOnly) : 
+
+  StatelessDatabaseOperations::StatelessDatabaseOperations(IDatabaseWrapper& db, bool readOnly) :
     db_(db),
     mainDicomTagsRegistry_(new MainDicomTagsRegistry),
     maxRetries_(0),
@@ -546,20 +546,20 @@ namespace Orthanc
       factory_.reset(factory);
     }
   }
-    
+
 
   void StatelessDatabaseOperations::SetMaxDatabaseRetries(unsigned int maxRetries)
   {
     boost::unique_lock<boost::shared_mutex> lock(mutex_);
     maxRetries_ = maxRetries;
   }
-  
+
 
   void StatelessDatabaseOperations::Apply(IReadOnlyOperations& operations)
   {
     ApplyInternal(&operations, NULL);
   }
-  
+
 
   void StatelessDatabaseOperations::Apply(IReadWriteOperations& operations)
   {
@@ -641,7 +641,7 @@ namespace Orthanc
 
     FindResponse response;
     ExecuteFind(response, request);
-    
+
     if (response.GetSize() == 0)
     {
       return false;
@@ -680,9 +680,9 @@ namespace Orthanc
 
   void StatelessDatabaseOperations::GetGlobalStatistics(/* out */ uint64_t& diskSize,
                                                         /* out */ uint64_t& uncompressedSize,
-                                                        /* out */ uint64_t& countPatients, 
-                                                        /* out */ uint64_t& countStudies, 
-                                                        /* out */ uint64_t& countSeries, 
+                                                        /* out */ uint64_t& countPatients,
+                                                        /* out */ uint64_t& countStudies,
+                                                        /* out */ uint64_t& countSeries,
                                                         /* out */ uint64_t& countInstances)
   {
     // Code introduced in Orthanc 1.12.3 that updates and gets all statistics.
@@ -712,9 +712,9 @@ namespace Orthanc
 
       void GetValues(uint64_t& diskSize,
                      uint64_t& uncompressedSize,
-                     uint64_t& countPatients, 
-                     uint64_t& countStudies, 
-                     uint64_t& countSeries, 
+                     uint64_t& countPatients,
+                     uint64_t& countStudies,
+                     uint64_t& countSeries,
                      uint64_t& countInstances) const
       {
         diskSize = static_cast<uint64_t>(diskSize_);
@@ -753,9 +753,9 @@ namespace Orthanc
       Apply(operations);
 
       operations.GetValues(diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances);
-    } 
+    }
     else
-    {   
+    {
       LegacyOperations operations;
       operations.Apply(*this, diskSize, uncompressedSize, countPatients,
                        countStudies, countSeries, countInstances);
@@ -764,7 +764,7 @@ namespace Orthanc
 
 
   void StatelessDatabaseOperations::GetChanges(Json::Value& target,
-                                               int64_t since,                               
+                                               int64_t since,
                                                unsigned int maxResults)
   {
     class Operations : public ReadOnlyOperationsT3<Json::Value&, int64_t, unsigned int>
@@ -791,7 +791,7 @@ namespace Orthanc
         FormatLog(tuple.get<0>(), changes, "Changes", done, tuple.get<1>(), hasLast, last);
       }
     };
-    
+
     Operations operations;
     operations.Apply(*this, target, since, maxResults);
   }
@@ -799,7 +799,7 @@ namespace Orthanc
 
   void StatelessDatabaseOperations::GetChangesExtended(Json::Value& target,
                                                        int64_t since,
-                                                       int64_t to,                               
+                                                       int64_t to,
                                                        unsigned int maxResults,
                                                        const std::set<ChangeType>& changeType)
   {
@@ -824,7 +824,7 @@ namespace Orthanc
         FormatLog(tuple.get<0>(), changes, "Changes", done, tuple.get<1>(), hasLast, last);
       }
     };
-    
+
     Operations operations;
     operations.Apply(*this, target, since, to, maxResults, changeType);
   }
@@ -855,7 +855,7 @@ namespace Orthanc
         FormatLog(tuple.get<0>(), changes, "Changes", true, 0, hasLast, last);
       }
     };
-    
+
     Operations operations;
     operations.Apply(*this, target);
   }
@@ -879,7 +879,7 @@ namespace Orthanc
         FormatLog(tuple.get<0>(), exported, "Exports", done, tuple.get<1>(), false, -1);
       }
     };
-    
+
     Operations operations;
     operations.Apply(*this, target, since, maxResults);
   }
@@ -900,7 +900,7 @@ namespace Orthanc
         FormatLog(tuple.get<0>(), exported, "Exports", true, 0, false, -1);
       }
     };
-    
+
     Operations operations;
     operations.Apply(*this, target);
   }
@@ -1086,38 +1086,38 @@ namespace Orthanc
   }
 
 
-  void StatelessDatabaseOperations::GetResourceStatistics(/* out */ uint64_t& diskSize, 
-                                                          /* out */ uint64_t& uncompressedSize, 
-                                                          /* out */ unsigned int& countStudies, 
-                                                          /* out */ unsigned int& countSeries, 
-                                                          /* out */ unsigned int& countInstances, 
-                                                          /* out */ uint64_t& dicomDiskSize, 
+  void StatelessDatabaseOperations::GetResourceStatistics(/* out */ uint64_t& diskSize,
+                                                          /* out */ uint64_t& uncompressedSize,
+                                                          /* out */ unsigned int& countStudies,
+                                                          /* out */ unsigned int& countSeries,
+                                                          /* out */ unsigned int& countInstances,
+                                                          /* out */ uint64_t& dicomDiskSize,
                                                           /* out */ uint64_t& dicomUncompressedSize,
-                                                          ResourceType type, 
+                                                          ResourceType type,
                                                           const std::string& publicId)
   {
     class Operations : public IReadOnlyOperations
     {
     private:
-      uint64_t&          diskSize_; 
-      uint64_t&          uncompressedSize_; 
-      unsigned int&      countStudies_; 
-      unsigned int&      countSeries_; 
-      unsigned int&      countInstances_; 
-      uint64_t&          dicomDiskSize_; 
-      uint64_t&          dicomUncompressedSize_; 
+      uint64_t&          diskSize_;
+      uint64_t&          uncompressedSize_;
+      unsigned int&      countStudies_;
+      unsigned int&      countSeries_;
+      unsigned int&      countInstances_;
+      uint64_t&          dicomDiskSize_;
+      uint64_t&          dicomUncompressedSize_;
       const std::string& publicId_;
       ResourceType       type_;
       IDatabaseWrapper::Capabilities dbCapabilities_;
 
     public:
-      explicit Operations(uint64_t& diskSize, 
-                          uint64_t& uncompressedSize, 
-                          unsigned int& countStudies, 
-                          unsigned int& countSeries, 
-                          unsigned int& countInstances, 
-                          uint64_t& dicomDiskSize, 
-                          uint64_t& dicomUncompressedSize, 
+      explicit Operations(uint64_t& diskSize,
+                          uint64_t& uncompressedSize,
+                          unsigned int& countStudies,
+                          unsigned int& countSeries,
+                          unsigned int& countInstances,
+                          uint64_t& dicomDiskSize,
+                          uint64_t& dicomUncompressedSize,
                           ResourceType type,
                           const std::string& publicId,
                           const IDatabaseWrapper::Capabilities& dbCapabilities) :
@@ -1194,7 +1194,7 @@ namespace Orthanc
                   dicomDiskSize_ += attachment.GetCompressedSize();
                   dicomUncompressedSize_ += attachment.GetUncompressedSize();
                 }
-          
+
                 diskSize_ += attachment.GetCompressedSize();
                 uncompressedSize_ += attachment.GetUncompressedSize();
               }
@@ -1223,7 +1223,7 @@ namespace Orthanc
               // Tag all the children of this resource as to be explored
               std::list<int64_t> tmp;
               transaction.GetChildrenInternalId(tmp, resource);
-              for (std::list<int64_t>::const_iterator 
+              for (std::list<int64_t>::const_iterator
                      it = tmp.begin(); it != tmp.end(); ++it)
               {
                 toExplore.push(*it);
@@ -1372,7 +1372,7 @@ namespace Orthanc
     operations.Apply(*this, found, value, property, shared);
     return found;
   }
-  
+
 
   std::string StatelessDatabaseOperations::GetGlobalProperty(GlobalProperty property,
                                                              bool shared,
@@ -1588,7 +1588,7 @@ namespace Orthanc
       Json::Value&        remainingAncestor_;
       const std::string&  uuid_;
       ResourceType        expectedType_;
-      
+
     public:
       Operations(Json::Value& remainingAncestor,
                  const std::string& uuid,
@@ -1641,7 +1641,7 @@ namespace Orthanc
                   content.AddMetadata(parentId, MetadataType_LastUpdate, now);
                 }
                 while (transaction.LookupParent(parentId, parentId));
-    
+
                 transaction.SetResourcesContent(content);
               }
             }
@@ -1676,7 +1676,7 @@ namespace Orthanc
         remoteModality_(remoteModality)
       {
       }
-      
+
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         int64_t id;
@@ -1749,7 +1749,7 @@ namespace Orthanc
           }
         }
 
-        ExportedResource resource(-1, 
+        ExportedResource resource(-1,
                                   type,
                                   publicId_,
                                   remoteModality_,
@@ -1876,9 +1876,9 @@ namespace Orthanc
                   expectedMD5 != oldMD5_)
               {
                 throw OrthancException(ErrorCode_Revision);
-              }              
+              }
             }
-            
+
             newRevision_ = expectedRevision + 1;
           }
           else
@@ -1889,7 +1889,7 @@ namespace Orthanc
           }
 
           transaction.SetMetadata(id, type_, value_, newRevision_);
-          
+
           if (IsUserMetadata(type_))
           {
             transaction.LogChange(id, ChangeType_UpdatedMetadata, resourceType, publicId_);
@@ -1973,10 +1973,10 @@ namespace Orthanc
                 throw OrthancException(ErrorCode_Revision);
               }
             }
-            
+
             found_ = true;
             transaction.DeleteMetadata(id, type_);
-            
+
             if (IsUserMetadata(type_))
             {
               transaction.LogChange(id, ChangeType_UpdatedMetadata, resourceType, publicId_);
@@ -2036,7 +2036,7 @@ namespace Orthanc
           if (transaction.LookupGlobalProperty(oldString, sequence_, shared_))
           {
             uint64_t oldValue;
-        
+
             try
             {
               oldValue = boost::lexical_cast<uint64_t>(oldString);
@@ -2083,7 +2083,7 @@ namespace Orthanc
     Apply(operations);
   }
 
-  
+
   void StatelessDatabaseOperations::DeleteExportedResources()
   {
     class Operations : public IReadWriteOperations
@@ -2110,7 +2110,7 @@ namespace Orthanc
       GlobalProperty      property_;
       bool                shared_;
       const std::string&  value_;
-      
+
     public:
       Operations(GlobalProperty property,
                  bool shared,
@@ -2120,7 +2120,7 @@ namespace Orthanc
         value_(value)
       {
       }
-        
+
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         transaction.SetGlobalProperty(property_, shared_, value_);
@@ -2162,12 +2162,12 @@ namespace Orthanc
         found_(false)
       {
       }
-        
+
       bool HasFound() const
       {
         return found_;
       }
-      
+
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         ResourceType resourceType;
@@ -2188,10 +2188,10 @@ namespace Orthanc
             {
               throw OrthancException(ErrorCode_Revision);
             }
-            
+
             found_ = true;
             transaction.DeleteAttachment(id, type_);
-          
+
             if (IsUserContentType(type_))
             {
               transaction.LogChange(id, ChangeType_UpdatedAttachment, resourceType, publicId_);
@@ -2223,7 +2223,7 @@ namespace Orthanc
       ChangeType          changeType_;
       const std::string&  publicId_;
       ResourceType        level_;
-      
+
     public:
       Operations(int64_t internalId,
                  ChangeType changeType,
@@ -2235,7 +2235,7 @@ namespace Orthanc
         level_(level)
       {
       }
-        
+
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         int64_t id;
@@ -2311,7 +2311,7 @@ namespace Orthanc
       {
         std::string oldValue;
         int64_t oldRevision;
-        
+
         if (transaction.LookupMetadata(oldValue, oldRevision, instance, metadata))
         {
           transaction.SetMetadata(instance, metadata, value, oldRevision + 1);
@@ -2321,7 +2321,7 @@ namespace Orthanc
           transaction.SetMetadata(instance, metadata, value, 0);
         }
       }
-      
+
       static void SetMainDicomSequenceMetadata(ReadWriteTransaction& transaction,
                                                int64_t instance,
                                                const DicomMap& dicomSummary,
@@ -2338,7 +2338,7 @@ namespace Orthanc
         {
           transaction.DeleteMetadata(instance, MetadataType_MainDicomSequences);
         }
-        
+
       }
 
     public:
@@ -2350,12 +2350,12 @@ namespace Orthanc
         hasher_.reset(new DicomInstanceHasher(summary_));
         hasTransferSyntax_ = dicom.LookupTransferSyntax(transferSyntax_);
       }
-        
+
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         int64_t patient = -1, study = -1, series = -1, instance = -1;
 
-        ResourceType type1, type2, type3, type4;      
+        ResourceType type1, type2, type3, type4;
         if (!transaction.LookupResource(patient, type1, hasher_->HashPatient()) ||
             !transaction.LookupResource(study, type2, hasher_->HashStudy()) ||
             !transaction.LookupResource(series, type3, hasher_->HashSeries()) ||
@@ -2418,7 +2418,7 @@ namespace Orthanc
             ReplaceMetadata(transaction, study, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));        // New in Orthanc 1.11.0
             ReplaceMetadata(transaction, series, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));      // New in Orthanc 1.11.0
             ReplaceMetadata(transaction, instance, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
-          
+
             SetMainDicomSequenceMetadata(transaction, patient, summary_, ResourceType_Patient);
             SetMainDicomSequenceMetadata(transaction, study, summary_, ResourceType_Study);
             SetMainDicomSequenceMetadata(transaction, series, summary_, ResourceType_Series);
@@ -2458,7 +2458,7 @@ namespace Orthanc
                                " bytes in a storage area limited to " +
                                boost::lexical_cast<std::string>(maximumStorageSize));
       }
-      
+
       if (transaction_.IsDiskSizeAbove(maximumStorageSize - addedInstanceSize))
       {
         return true;
@@ -2466,7 +2466,7 @@ namespace Orthanc
     }
 
     return false;
-  }                                                                           
+  }
 
   bool StatelessDatabaseOperations::ReadOnlyTransaction::HasReachedMaxPatientCount(unsigned int maximumPatientCount,
                                                                                    const std::string& patientId)
@@ -2479,7 +2479,7 @@ namespace Orthanc
 
     return false;
   }
-  
+
   bool StatelessDatabaseOperations::ReadWriteTransaction::IsRecyclingNeeded(uint64_t maximumStorageSize,
                                                                             unsigned int maximumPatients,
                                                                             uint64_t addedInstanceSize,
@@ -2495,7 +2495,7 @@ namespace Orthanc
                                                                   const std::string& newPatientId)
   {
     // TODO - Performance: Avoid calls to "IsRecyclingNeeded()"
-    
+
     if (IsRecyclingNeeded(maximumStorageSize, maximumPatients, addedInstanceSize, newPatientId))
     {
       // Check whether other DICOM instances from this patient are
@@ -2527,12 +2527,12 @@ namespace Orthanc
         bool ok = (hasPatientToAvoid ?
                    transaction_.SelectPatientToRecycle(patientToRecycle, patientToAvoid) :
                    transaction_.SelectPatientToRecycle(patientToRecycle));
-        
+
         if (!ok)
         {
           throw OrthancException(ErrorCode_FullStorage, "Cannot recycle more patients");
         }
-      
+
         LOG(TRACE) << "Recycling one patient";
         transaction_.DeleteResource(patientToRecycle);
 
@@ -2555,7 +2555,7 @@ namespace Orthanc
     private:
       uint64_t        maximumStorageSize_;
       unsigned int    maximumPatientCount_;
-      
+
     public:
       Operations(uint64_t maximumStorageSize,
                  unsigned int maximumPatientCount) :
@@ -2563,14 +2563,14 @@ namespace Orthanc
         maximumPatientCount_(maximumPatientCount)
       {
       }
-        
+
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         transaction.Recycle(maximumStorageSize_, maximumPatientCount_, 0, "");
       }
     };
 
-    if (maximumStorageMode == MaxStorageMode_Recycle 
+    if (maximumStorageMode == MaxStorageMode_Recycle
         && (maximumStorageSize != 0 || maximumPatientCount != 0))
     {
       Operations operations(maximumStorageSize, maximumPatientCount);
@@ -2623,7 +2623,7 @@ namespace Orthanc
       std::string   hashSeries_;
       std::string   hashInstance_;
 
-      
+
       static void SetInstanceMetadata(ResourcesContent& content,
                                       std::map<MetadataType, std::string>& instanceMetadata,
                                       int64_t instance,
@@ -2647,7 +2647,7 @@ namespace Orthanc
           content.AddMetadata(resource, MetadataType_MainDicomSequences, serialized);
         }
       }
-      
+
       static bool ComputeExpectedNumberOfInstances(int64_t& target,
                                                    const DicomMap& dicomSummary)
       {
@@ -2655,7 +2655,7 @@ namespace Orthanc
         {
           const DicomValue* value;
           const DicomValue* value2;
-          
+
           if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL &&              // NOLINT(bugprone-assignment-in-if-condition)
               !value->IsNull() &&
               !value->IsBinary() &&
@@ -2736,7 +2736,7 @@ namespace Orthanc
         isReconstruct_(isReconstruct)
       {
         hasExpectedInstances_ = ComputeExpectedNumberOfInstances(expectedInstances_, dicomSummary);
-    
+
         instanceMetadata_.clear();
 
         DicomInstanceHasher hasher(dicomSummary);
@@ -2750,12 +2750,12 @@ namespace Orthanc
       {
         return storeStatus_;
       }
-        
+
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         IDatabaseWrapper::CreateInstanceResult status;
         int64_t instanceId;
-        
+
         bool isNewInstance = transaction.CreateInstance(status, instanceId, hashPatient_,
                                                         hashStudy_, hashSeries_, hashInstance_);
 
@@ -2780,7 +2780,7 @@ namespace Orthanc
             if (!transaction.CreateInstance(status, instanceId, hashPatient_,
                                             hashStudy_, hashSeries_, hashInstance_))
             {
-              // Note that, sometime, it does not create a new instance, 
+              // Note that, sometime, it does not create a new instance,
               // in very rare occasions in READ COMMITTED mode when multiple clients are pushing the same instance at the same time,
               // this thread will not create the instance because another thread has created it in the meantime.
               // At the end, there is always a thread that creates the instance and this is what we expect.
@@ -2815,18 +2815,18 @@ namespace Orthanc
           {
             transaction.LogChange(status.seriesId_, ChangeType_NewSeries, ResourceType_Series, hashSeries_);
           }
-      
+
           if (status.isNewStudy_)
           {
             transaction.LogChange(status.studyId_, ChangeType_NewStudy, ResourceType_Study, hashStudy_);
           }
-      
+
           if (status.isNewPatient_)
           {
             transaction.LogChange(status.patientId_, ChangeType_NewPatient, ResourceType_Patient, hashPatient_);
           }
-        }      
-    
+        }
+
         // Ensure there is enough room in the storage for the new instance
         uint64_t instanceSize = 0;
         for (Attachments::const_iterator it = attachments_.begin();
@@ -2857,8 +2857,8 @@ namespace Orthanc
             transaction.Recycle(maximumStorageSize_, maximumPatientCount_,
                                 instanceSize, hashPatient_ /* don't consider the current patient for recycling */);
           }
-        }  
-    
+        }
+
         // Attach the files to the newly created instance
         for (Attachments::const_iterator it = attachments_.begin();
              it != attachments_.end(); ++it)
@@ -2875,7 +2875,7 @@ namespace Orthanc
         ResourcesContent content(true /* new resource, metadata can be set */);
 
         // Attach the user-specified metadata (in case of reconstruction, metadata_ contains all past metadata, including the system ones we want to keep)
-        for (MetadataMap::const_iterator 
+        for (MetadataMap::const_iterator
                 it = metadata_.begin(); it != metadata_.end(); ++it)
         {
           switch (it->first.first)
@@ -2954,7 +2954,7 @@ namespace Orthanc
                               MetadataType_Instance_ReceptionDate, now);
           SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_RemoteAet,
                               origin_.GetRemoteAetC());
-          SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_Instance_Origin, 
+          SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_Instance_Origin,
                               EnumerationToString(origin_.GetRequestOrigin()));
 
           std::string s;
@@ -3008,7 +3008,7 @@ namespace Orthanc
                                 EnumerationToString(pixelDataVR_));
           }
         }
-    
+
         const DicomValue* value;
         if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&              // NOLINT(bugprone-assignment-in-if-condition)
             !value->IsNull() &&
@@ -3022,7 +3022,7 @@ namespace Orthanc
         if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||           // NOLINT(bugprone-assignment-in-if-condition)
             (value = dicomSummary_.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)                 // NOLINT(bugprone-assignment-in-if-condition)
         {
-          if (!value->IsNull() && 
+          if (!value->IsNull() &&
               !value->IsBinary())
           {
             SetInstanceMetadata(content, instanceMetadata_, instanceId,
@@ -3030,7 +3030,7 @@ namespace Orthanc
           }
         }
 
-    
+
         transaction.SetResourcesContent(content);
 
 
@@ -3046,11 +3046,11 @@ namespace Orthanc
               transaction.LogChange(status.seriesId_, ChangeType_CompletedSeries, ResourceType_Series, hashSeries_);
             }
           }
-          
+
           transaction.LogChange(status.seriesId_, ChangeType_NewChildInstance, ResourceType_Series, hashSeries_);
           transaction.LogChange(status.studyId_, ChangeType_NewChildInstance, ResourceType_Study, hashStudy_);
           transaction.LogChange(status.patientId_, ChangeType_NewChildInstance, ResourceType_Patient, hashPatient_);
-          
+
           // Mark the parent resources of this instance as unstable
           transaction.GetTransactionContext().MarkAsUnstable(ResourceType_Series, status.seriesId_, hashSeries_);
           transaction.GetTransactionContext().MarkAsUnstable(ResourceType_Study, status.studyId_, hashStudy_);
@@ -3134,7 +3134,7 @@ namespace Orthanc
       {
         return status_;
       }
-        
+
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         ResourceType resourceType;
@@ -3243,7 +3243,7 @@ namespace Orthanc
     Operations operations;
     operations.Apply(*this, target);
   }
-  
+
 
   void StatelessDatabaseOperations::AddLabels(const std::string& publicId,
                                               ResourceType level,
@@ -3310,7 +3310,7 @@ namespace Orthanc
     };
 
     ServerToolbox::CheckValidLabel(label);
-    
+
     Operations operations(publicId, level, label, operation);
     Apply(operations);
   }

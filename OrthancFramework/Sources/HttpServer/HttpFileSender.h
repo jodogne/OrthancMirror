@@ -55,7 +55,7 @@ namespace Orthanc
                                                  bool /*deflateAllowed*/) ORTHANC_OVERRIDE;
 
     virtual bool HasContentFilename(std::string& filename) ORTHANC_OVERRIDE;
-    
+
     virtual std::string GetContentType() ORTHANC_OVERRIDE;
   };
 }

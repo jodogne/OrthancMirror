@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -86,7 +86,7 @@ namespace Orthanc
           sequences_.find(tag) != sequences_.end())
       {
         // A constraint already exists on this tag
-        throw OrthancException(ErrorCode_BadRequest);        
+        throw OrthancException(ErrorCode_BadRequest);
       }
 
       if (FromDcmtkBridge::LookupValueRepresentation(tag) == ValueRepresentation_Sequence)
@@ -105,7 +105,7 @@ namespace Orthanc
         }
         else
         {
-          throw OrthancException(ErrorCode_BadRequest);        
+          throw OrthancException(ErrorCode_BadRequest);
         }
       }
       else
@@ -158,7 +158,7 @@ namespace Orthanc
       s += c.Format() + "\n";
       tags.insert(c.GetTag());
     }
-    
+
     // Loop over the universal constraints
     for (std::set<DicomTag>::const_iterator it = flatTags_.begin();
          it != flatTags_.end(); ++it)
@@ -192,7 +192,7 @@ namespace Orthanc
   {
     bool hasCodeExtensions;
     Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
-    
+
     return MatchInternal(*dicom.GetDcmtkObject().getDataset(),
                          encoding, hasCodeExtensions);
   }
@@ -206,7 +206,7 @@ namespace Orthanc
     {
       return false;
     }
-    
+
     for (Sequences::const_iterator it = sequences_.begin();
          it != sequences_.end(); ++it)
     {
@@ -255,7 +255,7 @@ namespace Orthanc
          it != flatTags_.end(); ++it)
     {
       DcmTagKey tag = ToDcmtkBridge::Convert(*it);
-      
+
       DcmElement* element = NULL;
       if (source.findAndGetElement(tag, element).good() &&
           element != NULL)
@@ -318,7 +318,7 @@ namespace Orthanc
   {
     bool hasCodeExtensions;
     Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
-    
+
     std::unique_ptr<DcmDataset> dataset(ExtractInternal(*dicom.GetDcmtkObject().getDataset(),
                                                         encoding, hasCodeExtensions));
 

@@ -47,7 +47,7 @@ static OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeType changeTyp
     case OrthancPluginChangeType_OrthancStarted:
     {
       for (DicomServers::iterator it = dicomServers_.begin(); it != dicomServers_.end(); ++it)
-      {    
+      {
         if (*it != NULL)
         {
           try
@@ -63,11 +63,11 @@ static OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeType changeTyp
 
       break;
     }
-    
+
     case OrthancPluginChangeType_OrthancStopped:
     {
       for (DicomServers::iterator it = dicomServers_.begin(); it != dicomServers_.end(); ++it)
-      {    
+      {
         if (*it != NULL)
         {
           try
@@ -80,10 +80,10 @@ static OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeType changeTyp
           }
         }
       }
-      
+
       break;
     }
-    
+
     default:
       break;
   }
@@ -140,7 +140,7 @@ extern "C"
     OrthancPluginSetDescription2(context, ORTHANC_PLUGIN_NAME, "Multitenant plugin for Orthanc.");
 
     OrthancPluginRegisterOnChangeCallback(context, OnChangeCallback);
-    
+
     try
     {
       OrthancPlugins::OrthancConfiguration globalConfig;
@@ -166,7 +166,7 @@ extern "C"
           }
         }
       }
-      
+
       return 0;
     }
     catch (Orthanc::OrthancException& e)
@@ -180,7 +180,7 @@ extern "C"
   ORTHANC_PLUGINS_API void OrthancPluginFinalize()
   {
     for (DicomServers::iterator it = dicomServers_.begin(); it != dicomServers_.end(); ++it)
-    {    
+    {
       if (*it != NULL)
       {
         try

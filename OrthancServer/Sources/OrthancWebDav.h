@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -31,7 +31,7 @@
 namespace Orthanc
 {
   class ServerContext;
-  
+
   class OrthancWebDav : public IWebDavBucket
   {
   private:
@@ -64,7 +64,7 @@ namespace Orthanc
 
       virtual bool GetFileContent(MimeType& mime,
                                   std::string& content,
-                                  boost::posix_time::ptime& time, 
+                                  boost::posix_time::ptime& time,
                                   const UriComponents& path) = 0;
 
       virtual bool DeleteItem(const UriComponents& path) = 0;
@@ -74,13 +74,13 @@ namespace Orthanc
     void AddVirtualFile(Collection& collection,
                         const UriComponents& path,
                         const std::string& filename);
-    
+
     static void UploadWorker(OrthancWebDav* that);
 
     void Upload(const std::string& path);
 
     INode& GetRootNode(const std::string& rootPath);
-  
+
     ServerContext&          context_;
     bool                    allowDicomDelete_;
     bool                    allowUpload_;
@@ -93,7 +93,7 @@ namespace Orthanc
     SharedMessageQueue      uploadQueue_;
     boost::thread           uploadThread_;
     bool                    uploadRunning_;
-  
+
   public:
     OrthancWebDav(ServerContext& context,
                   bool allowDicomDelete,
@@ -111,9 +111,9 @@ namespace Orthanc
 
     virtual bool GetFileContent(MimeType& mime,
                                 std::string& content,
-                                boost::posix_time::ptime& modificationTime, 
+                                boost::posix_time::ptime& modificationTime,
                                 const UriComponents& path) ORTHANC_OVERRIDE;
-  
+
     virtual bool StoreFile(const std::string& content,
                            const UriComponents& path) ORTHANC_OVERRIDE;
 

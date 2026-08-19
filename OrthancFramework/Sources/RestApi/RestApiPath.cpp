@@ -57,7 +57,7 @@ namespace Orthanc
       size_t s = uri_[i].size();
       assert(s > 0);
 
-      if (uri_[i][0] == '{' && 
+      if (uri_[i][0] == '{' &&
           uri_[i][s - 1] == '}')
       {
         components_[i] = uri_[i].substr(1, s - 2);

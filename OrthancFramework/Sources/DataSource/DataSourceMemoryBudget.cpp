@@ -82,7 +82,7 @@ namespace Orthanc
     void DataSourceMemoryBudget::SetMetricsConfiguration(const MetricsConfiguration& configuration)
     {
       metricsConfiguration_ = configuration;
-      
+
       boost::mutex::scoped_lock lock(mutex_);
       metricsConfiguration_.Update(maximumMemory_, currentMemory_, reservations_);
     }
@@ -107,7 +107,7 @@ namespace Orthanc
 
       currentMemory_ += memory;
       reservations_++;
-      
+
       metricsConfiguration_.Update(maximumMemory_, currentMemory_, reservations_);
     }
 
@@ -121,9 +121,9 @@ namespace Orthanc
 
       assert(reservations_ > 0);
       reservations_--;
-      
+
       metricsConfiguration_.Update(maximumMemory_, currentMemory_, reservations_);
-      
+
       cond_.notify_all();
     }
 

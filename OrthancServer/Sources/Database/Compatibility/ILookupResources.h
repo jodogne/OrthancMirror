@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -35,21 +35,21 @@ namespace Orthanc
      * during the optimization of the database engine.
      **/
     class ILookupResources : public boost::noncopyable
-    {     
+    {
     public:
       virtual ~ILookupResources()
       {
       }
-      
+
       virtual void GetAllInternalIds(std::list<int64_t>& target,
                                      ResourceType resourceType) = 0;
-      
+
       virtual void LookupIdentifier(std::list<int64_t>& result,
                                     ResourceType level,
                                     const DicomTag& tag,
                                     IdentifierConstraintType type,
                                     const std::string& value) = 0;
- 
+
       virtual void LookupIdentifierRange(std::list<int64_t>& result,
                                          ResourceType level,
                                          const DicomTag& tag,

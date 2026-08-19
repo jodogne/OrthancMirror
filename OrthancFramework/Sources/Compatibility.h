@@ -67,7 +67,7 @@
 // We thus use an alternate way of checking for 'override' support
 #ifdef ORTHANC_OVERRIDE_SUPPORTED
 #  error ORTHANC_OVERRIDE_SUPPORTED cannot be defined at this point
-#endif 
+#endif
 
 #if __cplusplus >= 201103L   // C++11
 #  define ORTHANC_OVERRIDE_SUPPORTED 1
@@ -82,7 +82,7 @@
 
 #if ORTHANC_OVERRIDE_SUPPORTED
 // The override keyword (C++11) is enabled
-#  define ORTHANC_OVERRIDE  override 
+#  define ORTHANC_OVERRIDE  override
 #  define ORTHANC_FINAL     final
 #  define ORTHANC_NOEXCEPT  noexcept
 #else
@@ -109,7 +109,7 @@
 // To make this header more robust, we use the _MSVC_LANG equivalent macro.
 
 // please note that not all C++11 features are supported when _MSC_VER == 1600
-// (or higher). This header file can be made for fine-grained, if required, 
+// (or higher). This header file can be made for fine-grained, if required,
 // based on specific _MSC_VER values
 
 #  if _MSC_VER >= 1600  // Visual Studio 2010 (10.0)
@@ -152,12 +152,12 @@ namespace std
     explicit unique_ptr() :
       boost::movelib::unique_ptr<T>()
     {
-    }      
+    }
 
     explicit unique_ptr(T* p) :
       boost::movelib::unique_ptr<T>(p)
     {
-    }      
+    }
   };
 }
 #else

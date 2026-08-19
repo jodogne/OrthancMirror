@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -82,7 +82,7 @@ namespace Orthanc
       that_.CheckSuccess(code);
     }
 
-    
+
     static FileInfo Convert(const OrthancPluginAttachment& attachment)
     {
       return FileInfo(attachment.uuid,
@@ -121,7 +121,7 @@ namespace Orthanc
 
       if (type_ == _OrthancPluginDatabaseAnswerType_Int64)
       {
-        for (std::list<int64_t>::const_iterator 
+        for (std::list<int64_t>::const_iterator
                it = answerInt64_.begin(); it != answerInt64_.end(); ++it)
         {
           target.push_back(*it);
@@ -142,7 +142,7 @@ namespace Orthanc
 
       if (type_ == _OrthancPluginDatabaseAnswerType_String)
       {
-        for (std::list<std::string>::const_iterator 
+        for (std::list<std::string>::const_iterator
                it = answerStrings_.begin(); it != answerStrings_.end(); ++it)
         {
           target.push_back(*it);
@@ -161,7 +161,7 @@ namespace Orthanc
                answerStrings_.size() == 1)
       {
         target = answerStrings_.front();
-        return true; 
+        return true;
       }
       else
       {
@@ -180,7 +180,7 @@ namespace Orthanc
                answerInt64_.size() == 1)
       {
         target = answerInt64_.front();
-        return true; 
+        return true;
       }
       else
       {
@@ -195,19 +195,19 @@ namespace Orthanc
       {
         case _OrthancPluginDatabaseAnswerType_DeletedAttachment:
         {
-          const OrthancPluginAttachment& attachment = 
+          const OrthancPluginAttachment& attachment =
             *reinterpret_cast<const OrthancPluginAttachment*>(answer.valueGeneric);
           listener_.SignalAttachmentDeleted(Convert(attachment));
           break;
         }
-        
+
         case _OrthancPluginDatabaseAnswerType_RemainingAncestor:
         {
           ResourceType type = Plugins::Convert(static_cast<OrthancPluginResourceType>(answer.valueInt32));
           listener_.SignalRemainingAncestor(type, answer.valueString);
           break;
         }
-      
+
         case _OrthancPluginDatabaseAnswerType_DeletedResource:
         {
           ResourceType type = Plugins::Convert(static_cast<OrthancPluginResourceType>(answer.valueInt32));
@@ -234,7 +234,7 @@ namespace Orthanc
       {
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
-      
+
       that_.activeTransaction_ = this;
 
       ResetAnswers();
@@ -242,7 +242,7 @@ namespace Orthanc
 
     virtual ~Transaction() ORTHANC_OVERRIDE
     {
-      assert(that_.activeTransaction_ != NULL);    
+      assert(that_.activeTransaction_ != NULL);
       that_.activeTransaction_ = NULL;
     }
 
@@ -350,7 +350,7 @@ namespace Orthanc
             {
               answerMatchingInstances_->clear();
             }
-          
+
             break;
 
           case _OrthancPluginDatabaseAnswerType_Metadata:
@@ -393,7 +393,7 @@ namespace Orthanc
 
         case _OrthancPluginDatabaseAnswerType_Attachment:
         {
-          const OrthancPluginAttachment& attachment = 
+          const OrthancPluginAttachment& attachment =
             *reinterpret_cast<const OrthancPluginAttachment*>(answer.valueGeneric);
 
           answerAttachments_.push_back(Convert(attachment));
@@ -450,7 +450,7 @@ namespace Orthanc
                                  static_cast<ChangeType>(change.changeType),
                                  Plugins::Convert(change.resourceType),
                                  change.publicId,
-                                 change.date));                                   
+                                 change.date));
           }
 
           break;
@@ -469,7 +469,7 @@ namespace Orthanc
           }
           else
           {
-            const OrthancPluginExportedResource& exported = 
+            const OrthancPluginExportedResource& exported =
               *reinterpret_cast<const OrthancPluginExportedResource*>(answer.valueGeneric);
             assert(answerExportedResources_ != NULL);
             answerExportedResources_->push_back
@@ -489,7 +489,7 @@ namespace Orthanc
 
         case _OrthancPluginDatabaseAnswerType_MatchingResource:
         {
-          const OrthancPluginMatchingResource& match = 
+          const OrthancPluginMatchingResource& match =
             *reinterpret_cast<const OrthancPluginMatchingResource*>(answer.valueGeneric);
 
           if (match.resourceId == NULL)
@@ -509,7 +509,7 @@ namespace Orthanc
 
             answerMatchingInstances_->push_back(match.someInstanceId);
           }
- 
+
           break;
         }
 
@@ -537,7 +537,7 @@ namespace Orthanc
                                  boost::lexical_cast<std::string>(answer.type));
       }
     }
-    
+
 
     // From the "ILookupResources" interface
     virtual void LookupIdentifier(std::list<int64_t>& result,
@@ -563,7 +563,7 @@ namespace Orthanc
       ForwardAnswers(result);
     }
 
-    
+
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId,
                                       const DatabaseDicomTagConstraints& lookup,
@@ -576,7 +576,7 @@ namespace Orthanc
       {
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // "HasLabelsSupport()" has returned "false"
       }
-      
+
       if (that_.extensions_.lookupResources == NULL)
       {
         // Fallback to compatibility mode
@@ -599,7 +599,7 @@ namespace Orthanc
         ResetAnswers();
         answerMatchingResources_ = &resourcesId;
         answerMatchingInstances_ = instancesId;
-      
+
         CheckSuccess(that_.extensions_.lookupResources(that_.GetContext(), that_.payload_, lookup.GetSize(),
                                                        (lookup.IsEmpty() ? NULL : &constraints[0]),
                                                        Plugins::Convert(queryLevel),
@@ -630,7 +630,7 @@ namespace Orthanc
                                                       study.c_str(), series.c_str(), instance.c_str()));
 
         instanceId = output.instanceId;
-      
+
         if (output.isNewInstance)
         {
           result.isNewPatient_ = output.isNewPatient;
@@ -647,7 +647,7 @@ namespace Orthanc
         }
       }
     }
-    
+
 
     virtual void AddAttachment(int64_t id,
                                const FileInfo& attachment,
@@ -767,7 +767,7 @@ namespace Orthanc
 
         if (type_ == _OrthancPluginDatabaseAnswerType_Int32)
         {
-          for (std::list<int32_t>::const_iterator 
+          for (std::list<int32_t>::const_iterator
                  it = answerInt32_.begin(); it != answerInt32_.end(); ++it)
           {
             MetadataType type = static_cast<MetadataType>(*it);
@@ -787,7 +787,7 @@ namespace Orthanc
 
         answerMetadata_ = &target;
         target.clear();
-      
+
         CheckSuccess(that_.extensions_.getAllMetadata(that_.GetContext(), that_.payload_, id));
 
         if (type_ != _OrthancPluginDatabaseAnswerType_None &&
@@ -834,7 +834,7 @@ namespace Orthanc
 
         std::list<std::string> tmp;
         GetAllPublicIds(tmp, resourceType);
-    
+
         if (tmp.size() <= static_cast<size_t>(since))
         {
           // Not enough results => empty answer
@@ -946,7 +946,7 @@ namespace Orthanc
       }
     }
 
-  
+
     virtual void GetLastExportedResource(std::list<ExportedResource>& target /*out*/) ORTHANC_OVERRIDE
     {
       answerDoneIgnored_ = false;
@@ -1008,14 +1008,14 @@ namespace Orthanc
       return size;
     }
 
-    
+
     virtual uint64_t GetTotalUncompressedSize() ORTHANC_OVERRIDE
     {
       uint64_t size;
       CheckSuccess(that_.backend_.getTotalUncompressedSize(&size, that_.payload_));
       return size;
     }
-    
+
 
     virtual bool IsDiskSizeAbove(uint64_t threshold) ORTHANC_OVERRIDE
     {
@@ -1027,7 +1027,7 @@ namespace Orthanc
       {
         assert(GetTotalCompressedSize() == that_.currentDiskSize_);
         return that_.currentDiskSize_ > threshold;
-      }      
+      }
     }
 
 
@@ -1056,7 +1056,7 @@ namespace Orthanc
 
       if (type_ == _OrthancPluginDatabaseAnswerType_Int32)
       {
-        for (std::list<int32_t>::const_iterator 
+        for (std::list<int32_t>::const_iterator
                it = answerInt32_.begin(); it != answerInt32_.end(); ++it)
         {
           target.insert(static_cast<FileContentType>(*it));
@@ -1098,7 +1098,7 @@ namespace Orthanc
       CheckSuccess(that_.backend_.logExportedResource(that_.payload_, &tmp));
     }
 
-    
+
     virtual bool LookupAttachment(FileInfo& attachment,
                                   int64_t& revision,
                                   int64_t id,
@@ -1108,7 +1108,7 @@ namespace Orthanc
 
       CheckSuccess(that_.backend_.lookupAttachment
                    (that_.GetContext(), that_.payload_, id, static_cast<int32_t>(contentType)));
-      
+
       revision = 0;  // Dummy value, as revisions were added in Orthanc 1.9.2
 
       if (type_ == _OrthancPluginDatabaseAnswerType_None)
@@ -1119,7 +1119,7 @@ namespace Orthanc
                answerAttachments_.size() == 1)
       {
         attachment = answerAttachments_.front();
-        return true; 
+        return true;
       }
       else
       {
@@ -1134,7 +1134,7 @@ namespace Orthanc
     {
       // "shared" is unused, as database plugins using Orthanc SDK <=
       // 1.9.1 are not compatible with multiple readers/writers
-      
+
       ResetAnswers();
 
       CheckSuccess(that_.backend_.lookupGlobalProperty
@@ -1211,7 +1211,7 @@ namespace Orthanc
       {
         id = answerResources_.front().first;
         type = answerResources_.front().second;
-        return true; 
+        return true;
       }
       else
       {
@@ -1235,7 +1235,7 @@ namespace Orthanc
 
         uint8_t isExisting;
         OrthancPluginResourceType pluginType = OrthancPluginResourceType_Patient;
-      
+
         ResetAnswers();
         CheckSuccess(that_.extensions_.lookupResourceAndParent
                      (that_.GetContext(), &isExisting, &id, &pluginType, that_.payload_, publicId.c_str()));
@@ -1302,7 +1302,7 @@ namespace Orthanc
     {
       // "shared" is unused, as database plugins using Orthanc SDK <=
       // 1.9.1 are not compatible with multiple readers/writers
-      
+
       CheckSuccess(that_.backend_.setGlobalProperty
                    (that_.payload_, static_cast<int32_t>(property), value.c_str()));
     }
@@ -1347,7 +1347,7 @@ namespace Orthanc
     }
 
 
-    virtual void SetProtectedPatient(int64_t internalId, 
+    virtual void SetProtectedPatient(int64_t internalId,
                                      bool isProtected) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.setProtectedPatient(that_.payload_, internalId, isProtected));
@@ -1402,7 +1402,7 @@ namespace Orthanc
 
         assert(identifierTags.size() + mainDicomTags.size() == content.GetListTags().size() &&
                metadata.size() == content.GetListMetadata().size());
-       
+
         CheckSuccess(that_.extensions_.setResourcesContent(
                        that_.payload_,
                        identifierTags.size(),
@@ -1444,7 +1444,7 @@ namespace Orthanc
     {
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
-    
+
 
     virtual void ListAllLabels(std::set<std::string>& target) ORTHANC_OVERRIDE
     {
@@ -1502,14 +1502,14 @@ namespace Orthanc
     }
 
     virtual bool ReserveQueueValue(std::string& value,
-                                   uint64_t& valueId, 
+                                   uint64_t& valueId,
                                    const std::string& queueId,
                                    QueueOrigin origin,
                                    uint32_t releaseTimeout) ORTHANC_OVERRIDE
     {
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);  // Not supported
     }
-      
+
     virtual void AcknowledgeQueueValue(const std::string& queueId,
                                        uint64_t valueId) ORTHANC_OVERRIDE
     {
@@ -1546,7 +1546,7 @@ namespace Orthanc
                                                const OrthancPluginDatabaseBackend& backend,
                                                const OrthancPluginDatabaseExtensions* extensions,
                                                size_t extensionsSize,
-                                               void *payload) : 
+                                               void *payload) :
     library_(library),
     errorDictionary_(errorDictionary),
     backend_(backend),
@@ -1556,7 +1556,7 @@ namespace Orthanc
     currentDiskSize_(0)
   {
     static const char* const MISSING = "  Missing extension in database index plugin: ";
-    
+
     memset(&extensions_, 0, sizeof(extensions_));
 
     size_t size = sizeof(extensions_);
@@ -1647,7 +1647,7 @@ namespace Orthanc
     }
 
     VoidDatabaseListener listener;
-    
+
     {
       Transaction transaction(*this, listener);
       transaction.Begin();
@@ -1656,7 +1656,7 @@ namespace Orthanc
       fastGetTotalSize_ =
         (transaction.LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast, true /* unused in old databases */) &&
          tmp == "1");
-      
+
       if (fastGetTotalSize_)
       {
         currentDiskSize_ = 0;   // Unused
@@ -1713,14 +1713,14 @@ namespace Orthanc
                                       IPluginStorageArea& storageArea)
   {
     VoidDatabaseListener listener;
-    
+
     if (extensions_.upgradeDatabase != NULL)
     {
       Transaction transaction(*this, listener);
       transaction.Begin();
 
       OrthancPluginErrorCode code = extensions_.upgradeDatabase(
-        payload_, targetVersion, 
+        payload_, targetVersion,
         reinterpret_cast<OrthancPluginStorageArea*>(&storageArea));
 
       if (code == OrthancPluginErrorCode_Success)

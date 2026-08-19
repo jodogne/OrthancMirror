@@ -50,14 +50,14 @@ namespace Orthanc
                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
                           TranscodingSopInstanceUidMode mode,
                           unsigned int lossyQuality);
-    
+
   public:
     explicit DcmtkTranscoder(unsigned int maxConcurrentExecutions);
 
     void SetDefaultLossyQuality(unsigned int quality);
 
     unsigned int GetDefaultLossyQuality() const;
-    
+
     static bool IsSupported(DicomTransferSyntax syntax);
 
     virtual bool Transcode(DicomImage& target,

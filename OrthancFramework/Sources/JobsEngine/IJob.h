@@ -41,7 +41,7 @@ namespace Orthanc
 
     // Method called once the job enters the jobs engine
     virtual void Start() = 0;
-    
+
     virtual JobStepResult Step(const std::string& jobId) = 0;
 
     // Method called once the job is resubmitted after a failure
@@ -58,7 +58,7 @@ namespace Orthanc
     }
 
     virtual void GetJobType(std::string& target) const = 0;
-    
+
     virtual void GetPublicContent(Json::Value& value) const = 0;
 
     virtual bool Serialize(Json::Value& value) const = 0;

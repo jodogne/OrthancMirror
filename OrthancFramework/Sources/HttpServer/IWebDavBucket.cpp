@@ -91,7 +91,7 @@ namespace Orthanc
     else
     {
       creationTime_ = t;
-      
+
       if (!hasModificationTime_)
       {
         modificationTime_ = t;
@@ -148,7 +148,7 @@ namespace Orthanc
     prop.append_child("D:quota-available-bytes");
     prop.append_child("D:quota-used-bytes");
 #endif
-    
+
 #if 0
     prop.append_child("D:lockdiscovery");
     pugi::xml_node lock = prop.append_child("D:supportedlock");
@@ -163,7 +163,7 @@ namespace Orthanc
 #endif
   }
 
-  
+
   IWebDavBucket::File::File(const std::string& displayName) :
     Resource(displayName),
     hasContentLength_(false),
@@ -172,7 +172,7 @@ namespace Orthanc
   {
   }
 
-  
+
   void IWebDavBucket::File::SetContentLength(uint64_t contentLength)
   {
     hasContentLength_ = true;
@@ -221,7 +221,7 @@ namespace Orthanc
     href = AddLeadingSlash(href);
 
     FormatInternal(node, href, GetDisplayName(), GetCreationTime(), GetModificationTime());
-        
+
     pugi::xml_node prop = node.first_element_by_path("D:propstat/D:prop");
     prop.append_child("D:resourcetype").append_child("D:collection");
 
@@ -275,13 +275,13 @@ namespace Orthanc
 
       std::vector<std::string> tokens;
       Toolbox::SplitUriComponents(tokens, parentPath);
-      
+
       std::string folder;
       if (!tokens.empty())
       {
         folder = tokens.back();
       }
-       
+
       std::string href;
       Toolbox::UriEncode(href, tokens);
       href = AddTrailingSlash(AddLeadingSlash(href));
@@ -316,7 +316,7 @@ namespace Orthanc
      * This is a fake implementation. The goal is to make happy the
      * WebDAV clients that set properties (such as Windows >= 7).
      **/
-            
+
     pugi::xml_document doc;
 
     pugi::xml_node root = doc.append_child("D:multistatus");
@@ -335,7 +335,7 @@ namespace Orthanc
     Toolbox::XmlToString(s, doc);
 
     output.AddHeader("Content-Type", "application/xml");
-    output.SendStatus(HttpStatus_207_MultiStatus, s);    
+    output.SendStatus(HttpStatus_207_MultiStatus, s);
   }
 
 
@@ -347,7 +347,7 @@ namespace Orthanc
      * created. The goal is to make happy the WebDAV clients
      * that use locking (such as Windows >= 7).
      **/
-            
+
     pugi::xml_document doc;
 
     pugi::xml_node root = doc.append_child("D:prop");
@@ -366,10 +366,10 @@ namespace Orthanc
     std::string token = Toolbox::GenerateUuid();
     boost::erase_all(token, "-");
     token = "opaquelocktoken:0x" + token;
-            
+
     activelock.append_child("D:locktoken").append_child("D:href").
       append_child(pugi::node_pcdata).set_value(token.c_str());
-            
+
     pugi::xml_node decl = doc.prepend_child(pugi::node_declaration);
     decl.append_attribute("version").set_value("1.0");
     decl.append_attribute("encoding").set_value("UTF-8");

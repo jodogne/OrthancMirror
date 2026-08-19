@@ -100,7 +100,7 @@ namespace
     LoggingMementoScope()
     {
     }
-    
+
     ~LoggingMementoScope()
     {
       Orthanc::Logging::Reset();
@@ -220,7 +220,7 @@ TEST(FuncStreamBuf, BasicTest)
 TEST(Logging, Categories)
 {
   using namespace Orthanc::Logging;
-  
+
   // Unit tests are running in "--verbose" mode (not "--trace")
   ASSERT_FALSE(IsTraceLevelEnabled());
   ASSERT_TRUE(IsInfoLevelEnabled());
@@ -260,7 +260,7 @@ TEST(Logging, Categories)
   ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
   ASSERT_FALSE(IsTraceLevelEnabled());
   ASSERT_TRUE(IsInfoLevelEnabled());   // At least one category is verbose
-  
+
   SetCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC, true);
   ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
   ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
@@ -268,7 +268,7 @@ TEST(Logging, Categories)
   ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
   ASSERT_FALSE(IsTraceLevelEnabled());
   ASSERT_TRUE(IsInfoLevelEnabled());
-  
+
   SetCategoryEnabled(LogLevel_INFO, LogCategory_DICOM, false);
   ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
   ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
@@ -276,7 +276,7 @@ TEST(Logging, Categories)
   ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
   ASSERT_FALSE(IsTraceLevelEnabled());
   ASSERT_TRUE(IsInfoLevelEnabled());  // "GENERIC" is still verbose
-  
+
   SetCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC, false);
   ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
   ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
@@ -294,7 +294,7 @@ TEST(Logging, Categories)
   ASSERT_TRUE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
   ASSERT_TRUE(IsTraceLevelEnabled());
   ASSERT_TRUE(IsInfoLevelEnabled());
-  
+
   SetCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC, true);
   ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
   ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
@@ -302,7 +302,7 @@ TEST(Logging, Categories)
   ASSERT_TRUE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
   ASSERT_TRUE(IsTraceLevelEnabled());
   ASSERT_TRUE(IsInfoLevelEnabled());
-  
+
   SetCategoryEnabled(LogLevel_INFO, LogCategory_DICOM, false);
   ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
   ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
@@ -310,7 +310,7 @@ TEST(Logging, Categories)
   ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
   ASSERT_TRUE(IsTraceLevelEnabled());  // "GENERIC" is still at trace level
   ASSERT_TRUE(IsInfoLevelEnabled());
-  
+
   SetCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC, false);
   ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
   ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
@@ -318,7 +318,7 @@ TEST(Logging, Categories)
   ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
   ASSERT_FALSE(IsTraceLevelEnabled());
   ASSERT_TRUE(IsInfoLevelEnabled());
-  
+
   SetCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC, false);
   ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
   ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
@@ -379,7 +379,7 @@ TEST(Logging, Categories)
 TEST(Logging, Enumerations)
 {
   using namespace Orthanc;
-  
+
   Logging::LogCategory c;
   ASSERT_TRUE(Logging::LookupCategory(c, "generic"));  ASSERT_EQ(Logging::LogCategory_GENERIC, c);
   ASSERT_TRUE(Logging::LookupCategory(c, "plugins"));  ASSERT_EQ(Logging::LogCategory_PLUGINS, c);

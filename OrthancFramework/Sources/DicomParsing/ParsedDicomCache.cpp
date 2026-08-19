@@ -74,7 +74,7 @@ namespace Orthanc
     }
   }
 
-  
+
   size_t ParsedDicomCache::GetNumberOfItems()
   {
     Mutex::ScopedLock lock(mutex_);
@@ -108,11 +108,11 @@ namespace Orthanc
     }
   }
 
-  
+
   void ParsedDicomCache::Invalidate(const std::string& id)
   {
     Mutex::ScopedLock lock(mutex_);
-      
+
     if (cache_.get() != NULL)
     {
       cache_->Invalidate(id);
@@ -125,13 +125,13 @@ namespace Orthanc
     }
   }
 
-  
+
   void ParsedDicomCache::Acquire(const std::string& id,
                                  ParsedDicomFile* dicom,  // Takes ownership
                                  size_t fileSize)
   {
     Mutex::ScopedLock lock(mutex_);
-      
+
     if (fileSize >= cacheSize_)
     {
       cache_.reset(NULL);
@@ -173,7 +173,7 @@ namespace Orthanc
       accessor_.reset(new MemoryObjectCache::Accessor(
                         *that.cache_, id, true /* unique */));
       if (accessor_->IsValid())
-      {            
+      {
         const Item& item = dynamic_cast<const Item&>(accessor_->GetValue());
         file_ = &item.GetDicom();
         fileSize_ = item.GetMemoryUsage();

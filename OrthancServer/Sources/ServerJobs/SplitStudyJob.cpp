@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -44,18 +44,18 @@ namespace Orthanc
     }
   }
 
-  
+
   void SplitStudyJob::Setup()
   {
     SetPermissive(false);
-    
+
     DicomTag::AddTagsForModule(allowedTags_, DicomModule_Patient);
     DicomTag::AddTagsForModule(allowedTags_, DicomModule_Study);
     allowedTags_.erase(DICOM_TAG_STUDY_INSTANCE_UID);
     allowedTags_.erase(DICOM_TAG_SERIES_INSTANCE_UID);
   }
 
-  
+
   bool SplitStudyJob::HandleInstance(const std::string& instance)
   {
     if (!HasTrailingStep())
@@ -63,11 +63,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls,
                              "AddTrailingStep() should have been called after AddSourceSeries()");
     }
-    
+
     /**
      * Retrieve the DICOM instance to be modified
      **/
-    
+
     std::unique_ptr<ParsedDicomFile> modified;
 
     try
@@ -107,7 +107,7 @@ namespace Orthanc
     {
       modified->Remove(*it);
     }
-    
+
     for (Replacements::const_iterator it = replacements_.begin();
          it != replacements_.end(); ++it)
     {
@@ -118,7 +118,7 @@ namespace Orthanc
     /**
      * Store the new instance into Orthanc
      **/
-    
+
     modified->ReplacePlainString(DICOM_TAG_STUDY_INSTANCE_UID, targetStudyUid_);
     modified->ReplacePlainString(DICOM_TAG_SERIES_INSTANCE_UID, targetSeriesUid->second);
 
@@ -129,7 +129,7 @@ namespace Orthanc
     {
       targetStudy_ = modified->GetHasher().HashStudy();
     }
-    
+
     std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*modified));
     toStore->SetOrigin(origin_);
 
@@ -144,7 +144,7 @@ namespace Orthanc
     return true;
   }
 
-  
+
   SplitStudyJob::SplitStudyJob(ServerContext& context,
                                const std::string& sourceStudy) :
     CleaningInstancesJob(context, false /* by default, remove source instances */),
@@ -152,9 +152,9 @@ namespace Orthanc
     targetStudyUid_(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study))
   {
     Setup();
-    
+
     ResourceType type;
-    
+
     if (!GetContext().GetIndex().LookupResourceType(type, sourceStudy) ||
         type != ResourceType_Study)
     {
@@ -162,7 +162,7 @@ namespace Orthanc
                              "Cannot split unknown study " + sourceStudy);
     }
   }
-  
+
 
   void SplitStudyJob::SetOrigin(const DicomInstanceOrigin& origin)
   {
@@ -176,7 +176,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void SplitStudyJob::SetOrigin(const RestApiCall& call)
   {
     SetOrigin(DicomInstanceOrigin::FromRest(call));
@@ -192,7 +192,7 @@ namespace Orthanc
       target[series] = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series);
     }
   }
-  
+
 
   void SplitStudyJob::AddSourceSeries(const std::string& series)
   {
@@ -221,7 +221,7 @@ namespace Orthanc
       {
         AddInstance(*it);
       }
-    }    
+    }
   }
 
 
@@ -244,7 +244,7 @@ namespace Orthanc
     {
       RegisterSeries(seriesUidMap_, series);
       AddInstance(instance);
-    }    
+    }
   }
 
 
@@ -276,7 +276,7 @@ namespace Orthanc
     removals_.insert(tag);
   }
 
-  
+
   void SplitStudyJob::Replace(const DicomTag& tag,
                               const std::string& value)
   {
@@ -305,8 +305,8 @@ namespace Orthanc
       return true;
     }
   }
-  
-    
+
+
   void SplitStudyJob::GetPublicContent(Json::Value& value) const
   {
     CleaningInstancesJob::GetPublicContent(value);
@@ -315,7 +315,7 @@ namespace Orthanc
     {
       value["TargetStudy"] = targetStudy_;
     }
-    
+
     value["TargetStudyUID"] = targetStudyUid_;
   }
 
@@ -351,7 +351,7 @@ namespace Orthanc
     SerializationToolbox::ReadSetOfTags(removals_, serialized, REMOVALS);
   }
 
-  
+
   bool SplitStudyJob::Serialize(Json::Value& target) const
   {
     if (!CleaningInstancesJob::Serialize(target))

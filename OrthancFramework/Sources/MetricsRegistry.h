@@ -47,13 +47,13 @@ namespace Orthanc
     MetricsUpdatePolicy_MinOver10Seconds,
     MetricsUpdatePolicy_MinOver1Minute
   };
-  
+
   enum MetricsDataType
   {
     MetricsDataType_Float,
     MetricsDataType_Integer
   };
-  
+
   class ORTHANC_PUBLIC MetricsRegistry : public boost::noncopyable
   {
   private:
@@ -88,23 +88,23 @@ namespace Orthanc
     void SetFloatValue(const std::string& name,
                        float value,
                        MetricsUpdatePolicy policy /* only used if this is a new metrics */);
-    
+
     void SetFloatValue(const std::string& name,
                        float value)
     {
       SetFloatValue(name, value, MetricsUpdatePolicy_Directly);
     }
-    
+
     void SetIntegerValue(const std::string& name,
                          int64_t value,
                          MetricsUpdatePolicy policy /* only used if this is a new metrics */);
-    
+
     void SetIntegerValue(const std::string& name,
                          int64_t value)
     {
       SetIntegerValue(name, value, MetricsUpdatePolicy_Directly);
     }
-    
+
     void SetInitialValue(const std::string& name,
                          int64_t value);
 

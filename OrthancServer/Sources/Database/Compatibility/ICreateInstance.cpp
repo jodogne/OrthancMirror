@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -44,7 +44,7 @@ namespace Orthanc
       {
         ResourceType type;
         int64_t tmp;
-        
+
         if (database.LookupResource(tmp, type, hashInstance))
         {
           // The instance already exists
@@ -62,7 +62,7 @@ namespace Orthanc
       result.patientId_ = -1;
       result.studyId_ = -1;
       result.seriesId_ = -1;
-      
+
       // Detect up to which level the patient/study/series/instance
       // hierarchy must be created
 
@@ -139,7 +139,7 @@ namespace Orthanc
       }
 
       database.TagMostRecentPatient(result.patientId_);
-      
+
       // Sanity checks
       assert(result.patientId_ != -1);
       assert(result.studyId_ != -1);

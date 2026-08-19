@@ -37,7 +37,7 @@ namespace Orthanc
                                  size_t size,
                                  const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                  bool allowNewSopInstanceUid) = 0;
-    
+
   public:
     virtual bool Transcode(DicomImage& target /* out */,
                            DicomImage& source,

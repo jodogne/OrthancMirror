@@ -90,7 +90,7 @@ namespace Orthanc
     bool LookupPresentationContext(uint8_t& presentationContextId,
                                    const std::string& sopClassUid,
                                    DicomTransferSyntax transferSyntax);
-    
+
     bool NegotiatePresentationContext(uint8_t& presentationContextId,
                                       const std::string& sopClassUid,
                                       DicomTransferSyntax transferSyntax,
@@ -107,7 +107,7 @@ namespace Orthanc
 
   public:
     explicit DicomStoreUserConnection(const DicomAssociationParameters& params);
-    
+
     const DicomAssociationParameters& GetParameters() const;
 
     void SetCommonClassesProposed(bool proposed);
@@ -156,7 +156,7 @@ namespace Orthanc
                    const std::string& moveOriginatorAET,
                    uint16_t moveOriginatorID);
 #endif
-    
+
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     void Transcode(std::string& sopClassUid /* out */,
                    std::string& sopInstanceUid /* out */,

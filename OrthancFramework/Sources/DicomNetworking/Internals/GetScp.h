@@ -31,7 +31,7 @@ namespace Orthanc
   namespace Internals
   {
     OFCondition getScp(T_ASC_Association * assoc,
-                       T_DIMSE_Message * msg, 
+                       T_DIMSE_Message * msg,
                        T_ASC_PresentationContextID presID,
                        IGetRequestHandler& handler,
                        const std::string& remoteIp,

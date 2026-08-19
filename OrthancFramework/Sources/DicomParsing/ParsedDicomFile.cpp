@@ -165,7 +165,7 @@ namespace Orthanc
     key = DcmTagKey(t.GetGroup(), t.GetElement());
   }
 
-  
+
   static unsigned int GetPixelDataBlockCount(DcmPixelData& pixelData,
                                              E_TransferSyntax transferSyntax)
   {
@@ -181,7 +181,7 @@ namespace Orthanc
     }
   }
 
-  
+
   static void SendPathValueForDictionary(RestApiOutput& output,
                                          DcmItem& dicom)
   {
@@ -227,7 +227,7 @@ namespace Orthanc
       uint32_t     offset_;
       std::string  chunk_;
       size_t       chunkSize_;
-      
+
     public:
       DicomFieldStream(DcmElement& element,
                        E_TransferSyntax transferSyntax) :
@@ -262,7 +262,7 @@ namespace Orthanc
       {
         return length_;
       }
- 
+
       virtual bool ReadNextChunk() ORTHANC_OVERRIDE
       {
         assert(offset_ <= length_);
@@ -296,12 +296,12 @@ namespace Orthanc
           return true;
         }
       }
- 
+
       virtual const char *GetChunkContent() ORTHANC_OVERRIDE
       {
         return chunk_.c_str();
       }
- 
+
       virtual size_t GetChunkSize() ORTHANC_OVERRIDE
       {
         return chunkSize_;
@@ -338,13 +338,13 @@ namespace Orthanc
         {
           result.append(boost::lexical_cast<std::string>(i));
         }
-        
+
         output.AnswerJson(result);
         return true;
       }
 
       unsigned int block;
-      
+
       if (!SerializationToolbox::ParseUnsignedInteger(block, *blockUri))
       {
         throw OrthancException(ErrorCode_BadFileFormat, "Invalid Block URI: not a number");
@@ -404,7 +404,7 @@ namespace Orthanc
     ParseTagAndGroup(k, tag);
 
     DcmSequenceOfItems* sequence = NULL;
-    if (dicom.findAndGetSequence(k, sequence).good() && 
+    if (dicom.findAndGetSequence(k, sequence).good() &&
         sequence != NULL &&
         sequence->getVR() == EVR_SQ)
     {
@@ -413,7 +413,7 @@ namespace Orthanc
     }
 
     DcmElement* element = NULL;
-    if (dicom.findAndGetElement(k, element).good() && 
+    if (dicom.findAndGetElement(k, element).good() &&
         element != NULL &&
         //element->getVR() != EVR_UNKNOWN &&  // This would forbid private tags
         element->getVR() != EVR_SQ)
@@ -424,7 +424,7 @@ namespace Orthanc
   }
 #endif
 
-  
+
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void ParsedDicomFile::SendPathValue(RestApiOutput& output,
                                       const UriComponents& uri) const
@@ -433,7 +433,7 @@ namespace Orthanc
     E_TransferSyntax transferSyntax = GetDcmtkObjectConst().getDataset()->getCurrentXfer();
 
     // Special case: Accessing the pixel data
-    if (uri.size() == 1 || 
+    if (uri.size() == 1 ||
         uri.size() == 2)
     {
       DcmTagKey tag;
@@ -445,7 +445,7 @@ namespace Orthanc
         AnswerPixelData(output, *dicom, transferSyntax, uri.size() == 1 ? NULL : &uri[1]);
         return;
       }
-    }        
+    }
 
     // Go down in the tag hierarchy according to the URI
     for (size_t pos = 0; pos < uri.size() / 2; pos++)
@@ -479,7 +479,7 @@ namespace Orthanc
     }
   }
 #endif
-  
+
 
   void ParsedDicomFile::Remove(const DicomTag& tag)
   {
@@ -523,7 +523,7 @@ namespace Orthanc
             remove = false;  // Keep it
           }
         }
-            
+
         if (remove)
         {
           privateTags.push_back(element);
@@ -532,7 +532,7 @@ namespace Orthanc
     }
 
     // Loop over the detected private tags to remove them
-    for (Tags::iterator it = privateTags.begin(); 
+    for (Tags::iterator it = privateTags.begin();
          it != privateTags.end(); ++it)
     {
       DcmElement* tmp = dataset.remove(*it);
@@ -714,7 +714,7 @@ namespace Orthanc
     if (tag == DICOM_TAG_SOP_INSTANCE_UID)
     {
       ReplacePlainString(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID, *decoded);
-    }    
+    }
   }
 
 
@@ -786,7 +786,7 @@ namespace Orthanc
     }
   }
 
-    
+
   void ParsedDicomFile::Replace(const DicomTag& tag,
                                 const Json::Value& value,
                                 bool decodeDataUriScheme,
@@ -827,7 +827,7 @@ namespace Orthanc
     }
   }
 
-    
+
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void ParsedDicomFile::Answer(RestApiOutput& output) const
   {
@@ -884,12 +884,12 @@ namespace Orthanc
 
       bool hasCodeExtensions;
       Encoding encoding = DetectEncoding(hasCodeExtensions);
-      
+
       std::set<DicomTag> tmp;
       std::unique_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
-                                    (*element, DicomToJsonFlags_Default, 
+                                    (*element, DicomToJsonFlags_Default,
                                      0, 0, encoding, hasCodeExtensions, tmp, FromDcmtkBridge::Convert(element->getVR())));
-      
+
       if (v.get() == NULL ||
           v->IsNull())
       {
@@ -900,7 +900,7 @@ namespace Orthanc
         // TODO v->IsBinary()
         value = v->GetContent();
       }
-      
+
       return true;
     }
   }
@@ -920,8 +920,8 @@ namespace Orthanc
        * https://orthanc.uclouvain.be/hg/orthanc/rev/4c45e018bd3de3cfa21d6efc6734673aaaee4435
        **/
       patientId.clear();
-    }        
-    
+    }
+
     if (!GetTagValue(studyUid, DICOM_TAG_STUDY_INSTANCE_UID) ||
         !GetTagValue(seriesUid, DICOM_TAG_SERIES_INSTANCE_UID) ||
         !GetTagValue(instanceUid, DICOM_TAG_SOP_INSTANCE_UID))
@@ -1013,7 +1013,7 @@ namespace Orthanc
       }
     }
 
-    for (DicomMap::Content::const_iterator 
+    for (DicomMap::Content::const_iterator
            it = source.content_.begin(); it != source.content_.end(); ++it)
     {
       if (it->first != DICOM_TAG_SPECIFIC_CHARACTER_SET &&
@@ -1025,7 +1025,7 @@ namespace Orthanc
           const std::string& utf8Value = it->second->GetContent();
 
           std::map<uint16_t, std::string>::const_iterator found = privateCreators.find(it->first.GetGroup());
-          
+
           if (it->first.IsPrivate() &&
               found != privateCreators.end())
           {
@@ -1068,7 +1068,7 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile::ParsedDicomFile(const void* content, 
+  ParsedDicomFile::ParsedDicomFile(const void* content,
                                    size_t size) : pimpl_(new PImpl)
   {
     pimpl_->file_.reset(FromDcmtkBridge::LoadFromMemoryBuffer(content, size));
@@ -1088,7 +1088,7 @@ namespace Orthanc
 
 
   ParsedDicomFile::ParsedDicomFile(const ParsedDicomFile& other,
-                                   bool keepSopInstanceUid) : 
+                                   bool keepSopInstanceUid) :
     pimpl_(new PImpl)
   {
     pimpl_->file_.reset(dynamic_cast<DcmFileFormat*>(other.GetDcmtkObjectConst().clone()));
@@ -1210,7 +1210,7 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_BadFileFormat, "Not a PDF file");
         }
-        
+
         EncapsulateDocument(MimeType_Pdf, content);
 
         // In Orthanc <= 1.9.7, the "Modality" would have always be overwritten as "OT"
@@ -1266,7 +1266,7 @@ namespace Orthanc
   {
     switch (mime)
     {
-    
+
 #if ORTHANC_ENABLE_JPEG == 1
       case MimeType_Jpeg:
       {
@@ -1276,7 +1276,7 @@ namespace Orthanc
         break;
       }
 #endif
-    
+
 #if ORTHANC_ENABLE_PNG == 1
       case MimeType_Png:
       {
@@ -1413,7 +1413,7 @@ namespace Orthanc
     unsigned int bytesPerPixel = 0;
     ConfigureTagsForUncompressedImage(bytesPerPixel, accessor);
 
-    DcmTag key(DICOM_TAG_PIXEL_DATA.GetGroup(), 
+    DcmTag key(DICOM_TAG_PIXEL_DATA.GetGroup(),
                DICOM_TAG_PIXEL_DATA.GetElement());
 
     std::unique_ptr<DcmPixelData> pixels(new DcmPixelData(key));
@@ -1471,7 +1471,7 @@ namespace Orthanc
 
             break;
           }
-          
+
           default:
             THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
@@ -1491,12 +1491,12 @@ namespace Orthanc
     if (!GetDcmtkObject().getDataset()->insert(pixels.release(), false, false).good())
     {
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
-    }    
+    }
   }
 
   void ParsedDicomFile::EmbedRawPixelData(const std::string& content)
   {
-    DcmTag key(DICOM_TAG_PIXEL_DATA.GetGroup(), 
+    DcmTag key(DICOM_TAG_PIXEL_DATA.GetGroup(),
                DICOM_TAG_PIXEL_DATA.GetElement());
 
     std::unique_ptr<DcmPixelData> pixels(new DcmPixelData(key));
@@ -1533,7 +1533,7 @@ namespace Orthanc
     ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, s);
   }
 
-  void ParsedDicomFile::DatasetToJson(Json::Value& target, 
+  void ParsedDicomFile::DatasetToJson(Json::Value& target,
                                       DicomToJsonFormat format,
                                       DicomToJsonFlags flags,
                                       unsigned int maxStringLength) const
@@ -1544,7 +1544,7 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::DatasetToJson(Json::Value& target, 
+  void ParsedDicomFile::DatasetToJson(Json::Value& target,
                                       DicomToJsonFormat format,
                                       DicomToJsonFlags flags,
                                       unsigned int maxStringLength,
@@ -1555,7 +1555,7 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::HeaderToJson(Json::Value& target, 
+  void ParsedDicomFile::HeaderToJson(Json::Value& target,
                                      DicomToJsonFormat format) const
   {
     FromDcmtkBridge::ExtractHeaderAsJson(target, *GetDcmtkObjectConst().getMetaInfo(), format, DicomToJsonFlags_None, 0);
@@ -1598,7 +1598,7 @@ namespace Orthanc
     }
 
     memcpy(bytes, document.c_str(), document.size());
-      
+
     DcmPolymorphOBOW* obj = element.release();
     result = GetDcmtkObject().getDataset()->insert(obj);
 
@@ -1613,7 +1613,7 @@ namespace Orthanc
   bool ParsedDicomFile::ExtractPdf(std::string& pdf) const
   {
     std::string sop, mime;
-    
+
     if (!GetTagValue(sop, DICOM_TAG_SOP_CLASS_UID) ||
         !GetTagValue(mime, FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument)) ||
         sop != UID_EncapsulatedPDFStorage ||
@@ -1657,7 +1657,7 @@ namespace Orthanc
     result->SetEncoding(FromDcmtkBridge::ExtractEncoding(json, GetDefaultDicomEncoding()));
 
     const Json::Value::Members tags = json.getMemberNames();
-    
+
     for (size_t i = 0; i < tags.size(); i++)
     {
       DicomTag tag = FromDcmtkBridge::ParseTag(tags[i]);
@@ -1716,7 +1716,7 @@ namespace Orthanc
       case EXS_JPEGProcess1:
         mime = MimeType_Jpeg;
         break;
-       
+
       case EXS_JPEG2000LosslessOnly:
       case EXS_JPEG2000:
         mime = MimeType_Jpeg2000;
@@ -1864,11 +1864,11 @@ namespace Orthanc
 
     DicomImageInformation info(m);
     PixelFormat format;
-    
+
     if (!info.ExtractPixelFormat(format, false))
     {
-      LOG(WARNING) << "Unsupported DICOM image: " << info.GetBitsStored() 
-                   << "bpp, " << info.GetChannelCount() << " channels, " 
+      LOG(WARNING) << "Unsupported DICOM image: " << info.GetBitsStored()
+                   << "bpp, " << info.GetChannelCount() << " channels, "
                    << (info.IsSigned() ? "signed" : "unsigned")
                    << (info.IsPlanar() ? ", planar, " : ", non-planar, ")
                    << EnumerationToString(info.GetPhotometricInterpretation())
@@ -1890,10 +1890,10 @@ namespace Orthanc
         return true;
       }
     }
-    
+
     return (path.GetFinalTag().GetElement() == 0x0000);
   }
-  
+
 
   void ParsedDicomFile::ReplacePath(const DicomPath& path,
                                     const Json::Value& value,
@@ -1923,7 +1923,7 @@ namespace Orthanc
       FromDcmtkBridge::ReplacePath(*GetDcmtkObject().getDataset(), path, *element, mode);
     }
   }
-  
+
 
   void ParsedDicomFile::RemovePath(const DicomPath& path)
   {
@@ -1956,7 +1956,7 @@ namespace Orthanc
     DcmDataset& dataset = *const_cast<ParsedDicomFile&>(*this).GetDcmtkObject().getDataset();
     return FromDcmtkBridge::LookupSequenceItem(target, dataset, path, sequenceIndex);
   }
-  
+
 
   void ParsedDicomFile::GetDefaultWindowing(double& windowCenter,
                                             double& windowWidth,
@@ -2007,7 +2007,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void ParsedDicomFile::GetRescale(double& rescaleIntercept,
                                    double& rescaleSlope,
                                    unsigned int frame) const
@@ -2089,7 +2089,7 @@ namespace Orthanc
       return a / b + 1;
     }
   }
-  
+
 
   ImageAccessor* ParsedDicomFile::DecodeOverlay(int& originX,
                                                 int& originY,
@@ -2104,7 +2104,7 @@ namespace Orthanc
     unsigned long originSize = 0;
     DcmElement* overlayElement = NULL;
     Uint8* overlayData = NULL;
-    
+
     if (dataset.findAndGetUint16(DcmTagKey(group, 0x0010), rows).good() &&
         dataset.findAndGetUint16(DcmTagKey(group, 0x0011), columns).good() &&
         dataset.findAndGetSint16Array(DcmTagKey(group, 0x0050), origin, &originSize).good() &&
@@ -2153,7 +2153,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_CorruptedFile, "Overlay doesn't have a valid number of bits");
       }
-      
+
       originX = origin[1];
       originY = origin[0];
 
@@ -2163,7 +2163,7 @@ namespace Orthanc
       for (int y = 0; y < rows; y++)
       {
         uint8_t* target = reinterpret_cast<uint8_t*>(overlay->GetRow(y));
-        
+
         for (int x = 0; x < columns; x++)
         {
           uint8_t source = overlayData[posBit / 8];
@@ -2175,7 +2175,7 @@ namespace Orthanc
           posBit++;
         }
       }
-      
+
       return overlay.release();
     }
     else
@@ -2184,7 +2184,7 @@ namespace Orthanc
     }
   }
 
-  
+
   ImageAccessor* ParsedDicomFile::DecodeAllOverlays(int& originX,
                                                     int& originY) const
   {
@@ -2201,7 +2201,7 @@ namespace Orthanc
     {
       std::set<uint16_t>::const_iterator it = groups.begin();
       assert(it != groups.end());
-      
+
       std::unique_ptr<ImageAccessor> result(DecodeOverlay(originX, originY, *it));
       assert(result.get() != NULL);
       ++it;
@@ -2223,7 +2223,7 @@ namespace Orthanc
         assert(right >= mergedX && bottom >= mergedY);
         unsigned int width = static_cast<unsigned int>(right - mergedX);
         unsigned int height = static_cast<unsigned int>(bottom - mergedY);
-        
+
         std::unique_ptr<ImageAccessor> merged(new Image(PixelFormat_Grayscale8, width, height, false));
         ImageProcessing::Set(*merged, 0);
 
@@ -2237,7 +2237,7 @@ namespace Orthanc
         originX = mergedX;
         originY = mergedY;
         result.reset(merged.release());
-        
+
         ++it;
       }
 
@@ -2245,7 +2245,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void ParsedDicomFile::InjectEmptyPixelData(ValueRepresentation vr)
   {
     DcmItem& dataset = *GetDcmtkObject().getDataset();
@@ -2299,7 +2299,7 @@ namespace Orthanc
       }
     }
   }
-  
+
 
   ValueRepresentation ParsedDicomFile::GuessPixelDataValueRepresentation() const
   {

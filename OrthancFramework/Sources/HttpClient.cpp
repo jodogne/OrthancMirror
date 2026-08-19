@@ -66,7 +66,7 @@ extern "C"
 // This is a dummy wrapper function to suppress any OpenSSL-related
 // problem in valgrind. Inlining is prevented.
 #if defined(__GNUC__) || defined(__clang__)
-__attribute__((noinline)) 
+__attribute__((noinline))
 #endif
 static CURLcode OrthancHttpClientPerformSSL(CURL* curl, long* status, const std::string& url)
 {
@@ -180,11 +180,11 @@ namespace Orthanc
       {
         isChunkedTransfer_ = true;
       }
-        
+
       std::string item = key + ": " + value;
 
       struct curl_slist *tmp = curl_slist_append(content_, item.c_str());
-        
+
       if (tmp == NULL)
       {
         throw OrthancException(ErrorCode_NotEnoughMemory);
@@ -248,10 +248,10 @@ namespace Orthanc
         {
           buffer.AddChunk(&pending_[pendingPos_], pending_.size() - pendingPos_);
         }
-        
+
         // Read chunks from the body stream so as to fill the target buffer
         std::string chunk;
-        
+
         while (buffer.GetNumBytes() < curlBufferSize &&
                body_->ReadNextChunk(chunk))
         {
@@ -269,7 +269,7 @@ namespace Orthanc
         return pendingPos_;
       }
     }
-    
+
   public:
     CurlRequestBody() :
       body_(NULL),
@@ -446,7 +446,7 @@ namespace Orthanc
         (*headers_) [key] = value;
       }
     }
-      
+
     virtual void AddChunk(const void* data,
                           size_t size) ORTHANC_OVERRIDE
     {
@@ -465,7 +465,7 @@ namespace Orthanc
     long            timeout_;
     bool            verbose_;
 
-    GlobalParameters() : 
+    GlobalParameters() :
       httpsVerifyPeers_(true),
       timeout_(DEFAULT_HTTP_TIMEOUT),
       verbose_(false)
@@ -549,7 +549,7 @@ namespace Orthanc
       return verbose_;
     }
 
-    void SetDefaultVerbose(bool verbose) 
+    void SetDefaultVerbose(bool verbose)
     {
       verbose_ = verbose;
     }
@@ -640,7 +640,7 @@ namespace Orthanc
     SetVerbose(GlobalParameters::GetInstance().IsDefaultVerbose());
     timeout_ = GlobalParameters::GetInstance().GetDefaultTimeout();
     GlobalParameters::GetInstance().GetDefaultProxy(proxy_);
-    GlobalParameters::GetInstance().GetSslConfiguration(verifyPeers_, caCertificates_);    
+    GlobalParameters::GetInstance().GetSslConfiguration(verifyPeers_, caCertificates_);
 
     hasExternalBody_ = false;
     externalBodyData_ = NULL;
@@ -648,7 +648,7 @@ namespace Orthanc
   }
 
 
-  HttpClient::HttpClient() : 
+  HttpClient::HttpClient() :
     pimpl_(new PImpl),
     verifyPeers_(true),
     pkcs11Enabled_(false),
@@ -660,7 +660,7 @@ namespace Orthanc
 
 
   HttpClient::HttpClient(const WebServiceParameters& service,
-                         const std::string& uri) : 
+                         const std::string& uri) :
     pimpl_(new PImpl),
     verifyPeers_(true),
     headersToLowerCase_(true),
@@ -668,10 +668,10 @@ namespace Orthanc
   {
     Setup();
 
-    if (service.GetUsername().size() != 0 && 
+    if (service.GetUsername().size() != 0 &&
         service.GetPassword().size() != 0)
     {
-      SetCredentials(service.GetUsername().c_str(), 
+      SetCredentials(service.GetUsername().c_str(),
                      service.GetPassword().c_str());
     }
 
@@ -686,7 +686,7 @@ namespace Orthanc
 
     SetUrl(Toolbox::JoinUri(service.GetUrl(), uri));
 
-    for (WebServiceParameters::Dictionary::const_iterator 
+    for (WebServiceParameters::Dictionary::const_iterator
            it = service.GetHttpHeaders().begin();
          it != service.GetHttpHeaders().end(); ++it)
     {
@@ -773,7 +773,7 @@ namespace Orthanc
     hasExternalBody_ = false;
   }
 
-  
+
   void HttpClient::SetExternalBody(const void* data,
                                    size_t size)
   {
@@ -791,7 +791,7 @@ namespace Orthanc
       externalBodySize_ = size;
     }
   }
-  
+
 
   void HttpClient::SetExternalBody(const std::string& data)
   {
@@ -853,7 +853,7 @@ namespace Orthanc
     CLOG(INFO, HTTP) << "New HTTP request to: " << url_ << " (timeout: "
                      << (timeout_ <= 0 ? "no timeout" : boost::lexical_cast<std::string>(timeout_) + "s")
                      << ")";
-    
+
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_URL, url_.c_str()));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERDATA, &answer));
 
@@ -862,25 +862,25 @@ namespace Orthanc
 
     if (verifyPeers_)
     {
-#if defined(CURLSSLOPT_NATIVE_CA)   // from curl v 8.2.0     
+#if defined(CURLSSLOPT_NATIVE_CA)   // from curl v 8.2.0
       if (caCertificates_.empty())  // use native CA store (equivalent to --ca-native)
       {
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA));
       }
-      else 
+      else
 #endif
       {
         // use provided CA file (equivalent to --cacert)
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CAINFO, caCertificates_.c_str()));
       }
-      
+
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYHOST, 2));  // libcurl default is strict verifyhost
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 1)); 
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 1));
     }
     else
     {
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYHOST, 0)); 
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 0)); 
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYHOST, 0));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 0));
     }
 #endif
 
@@ -1019,7 +1019,7 @@ namespace Orthanc
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_READDATA, &pimpl_->requestBody_));
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 1L));
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, -1L));
-    
+
         if (pimpl_->userHeaders_.IsEmpty())
         {
           pimpl_->defaultChunkedHeaders_.Assign(pimpl_->curl_);
@@ -1073,7 +1073,7 @@ namespace Orthanc
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEDATA, &answer));
 
     const boost::posix_time::ptime start = boost::posix_time::microsec_clock::universal_time();
-    
+
     if (boost::starts_with(url_, "https://"))
     {
       code = OrthancHttpClientPerformSSL(pimpl_->curl_, &status, url_);
@@ -1084,7 +1084,7 @@ namespace Orthanc
     }
 
     const boost::posix_time::ptime end = boost::posix_time::microsec_clock::universal_time();
-    
+
     CLOG(INFO, HTTP) << "HTTP status code " << status << " in "
                      << ((end - start).total_milliseconds()) << " ms after "
                      << EnumerationToString(method_) << " request on: " << url_;
@@ -1112,7 +1112,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(ERROR) << "Error in HTTP request, received HTTP status " << status 
+      LOG(ERROR) << "Error in HTTP request, received HTTP status " << status
                  << " (" << EnumerationToString(lastStatus_) << ") after "
                  << EnumerationToString(method_) << " request on: " << url_;
       return false;
@@ -1219,7 +1219,7 @@ namespace Orthanc
     GlobalParameters::GetInstance().ConfigureSsl(httpsVerifyPeers, httpsVerifyCertificates);
   }
 
-  
+
   void HttpClient::GlobalInitialize()
   {
 #if ORTHANC_ENABLE_SSL == 1
@@ -1238,7 +1238,7 @@ namespace Orthanc
     Pkcs11::Finalize();
 #endif
   }
-  
+
 
   void HttpClient::SetDefaultVerbose(bool verbose)
   {
@@ -1311,7 +1311,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void HttpClient::ApplyAndThrowException(Json::Value& answerBody)
   {
     if (!Apply(answerBody))
@@ -1329,7 +1329,7 @@ namespace Orthanc
       ThrowException(GetLastStatus());
     }
   }
-  
+
 
   void HttpClient::ApplyAndThrowException(Json::Value& answerBody,
                                           HttpHeaders& answerHeaders)
@@ -1341,7 +1341,7 @@ namespace Orthanc
   }
 
 
-  void HttpClient::SetClientCertificate(const boost::filesystem::path& certificateFile, 
+  void HttpClient::SetClientCertificate(const boost::filesystem::path& certificateFile,
                                         const boost::filesystem::path &certificateKeyFile,
                                         const std::string& certificateKeyPassword)
   {
@@ -1356,7 +1356,7 @@ namespace Orthanc
                              "Cannot open certificate file: " + SystemToolbox::PathToUtf8(certificateFile));
     }
 
-    if (!certificateKeyFile.empty() && 
+    if (!certificateKeyFile.empty() &&
         !SystemToolbox::IsRegularFile(certificateKeyFile))
     {
       throw OrthancException(ErrorCode_InexistentFile,
@@ -1419,9 +1419,9 @@ namespace Orthanc
                                     bool verbose)
   {
 #if ORTHANC_ENABLE_PKCS11 == 1
-    CLOG(INFO, HTTP) << "Initializing PKCS#11 using " << module 
+    CLOG(INFO, HTTP) << "Initializing PKCS#11 using " << module
                      << (pin.empty() ? " (no PIN provided)" : " (PIN is provided)");
-    GlobalParameters::GetInstance().InitializePkcs11(module, pin, verbose);    
+    GlobalParameters::GetInstance().InitializePkcs11(module, pin, verbose);
 #else
     throw OrthancException(ErrorCode_InternalError,
                            "This version of Orthanc is compiled without support for PKCS#11");

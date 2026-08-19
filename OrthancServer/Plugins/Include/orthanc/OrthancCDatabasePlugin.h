@@ -14,7 +14,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -178,7 +178,7 @@ extern "C"
     uint16_t     element;
     const char*  value;
   } OrthancPluginResourcesContentTags;
-    
+
   typedef struct  /* New in Orthanc 1.5.2 */
   {
     int64_t      resource;
@@ -424,45 +424,45 @@ extern "C"
       void* payload,
       int64_t id,
       const OrthancPluginAttachment* attachment);
-                             
+
     OrthancPluginErrorCode  (*attachChild) (
       /* inputs */
       void* payload,
       int64_t parent,
       int64_t child);
-                             
+
     OrthancPluginErrorCode  (*clearChanges) (
       /* inputs */
       void* payload);
-                             
+
     OrthancPluginErrorCode  (*clearExportedResources) (
       /* inputs */
       void* payload);
 
     OrthancPluginErrorCode  (*createResource) (
       /* outputs */
-      int64_t* id, 
+      int64_t* id,
       /* inputs */
       void* payload,
       const char* publicId,
-      OrthancPluginResourceType resourceType);           
-                   
+      OrthancPluginResourceType resourceType);
+
     OrthancPluginErrorCode  (*deleteAttachment) (
       /* inputs */
       void* payload,
       int64_t id,
       int32_t contentType);
-   
+
     OrthancPluginErrorCode  (*deleteMetadata) (
       /* inputs */
       void* payload,
       int64_t id,
       int32_t metadataType);
-   
+
     OrthancPluginErrorCode  (*deleteResource) (
       /* inputs */
       void* payload,
-      int64_t id);    
+      int64_t id);
 
     /* Output: Use OrthancPluginDatabaseAnswerString() */
     OrthancPluginErrorCode  (*getAllPublicIds) (
@@ -489,7 +489,7 @@ extern "C"
       /* inputs */
       void* payload,
       int64_t id);
-                   
+
     /* Output: Use OrthancPluginDatabaseAnswerString() */
     OrthancPluginErrorCode  (*getChildrenPublicId) (
       /* outputs */
@@ -507,7 +507,7 @@ extern "C"
       void* payload,
       int64_t  since,
       uint32_t  maxResult);
-                   
+
     /* Output: Use OrthancPluginDatabaseAnswerChange() */
     OrthancPluginErrorCode  (*getLastChange) (
       /* outputs */
@@ -521,7 +521,7 @@ extern "C"
       OrthancPluginDatabaseContext* context,
       /* inputs */
       void* payload);
-                   
+
     /* Output: Use OrthancPluginDatabaseAnswerDicomTag() */
     OrthancPluginErrorCode  (*getMainDicomTags) (
       /* outputs */
@@ -529,7 +529,7 @@ extern "C"
       /* inputs */
       void* payload,
       int64_t id);
-                   
+
     /* Output: Use OrthancPluginDatabaseAnswerString() */
     OrthancPluginErrorCode  (*getPublicId) (
       /* outputs */
@@ -544,7 +544,7 @@ extern "C"
       /* inputs */
       void* payload,
       OrthancPluginResourceType  resourceType);
-                   
+
     OrthancPluginErrorCode  (*getResourceType) (
       /* outputs */
       OrthancPluginResourceType* resourceType,
@@ -557,13 +557,13 @@ extern "C"
       uint64_t* target,
       /* inputs */
       void* payload);
-                   
+
     OrthancPluginErrorCode  (*getTotalUncompressedSize) (
       /* outputs */
       uint64_t* target,
       /* inputs */
       void* payload);
-                   
+
     OrthancPluginErrorCode  (*isExistingResource) (
       /* outputs */
       int32_t* existing,
@@ -585,7 +585,7 @@ extern "C"
       /* inputs */
       void* payload,
       int64_t id);
-                   
+
     /* Output: Use OrthancPluginDatabaseAnswerInt32() */
     OrthancPluginErrorCode  (*listAvailableAttachments) (
       /* outputs */
@@ -598,12 +598,12 @@ extern "C"
       /* inputs */
       void* payload,
       const OrthancPluginChange* change);
-                   
+
     OrthancPluginErrorCode  (*logExportedResource) (
       /* inputs */
       void* payload,
       const OrthancPluginExportedResource* exported);
-                   
+
     /* Output: Use OrthancPluginDatabaseAnswerAttachment() */
     OrthancPluginErrorCode  (*lookupAttachment) (
       /* outputs */
@@ -621,7 +621,7 @@ extern "C"
       void* payload,
       int32_t property);
 
-    /* Use "OrthancPluginDatabaseExtensions::lookupIdentifier3" 
+    /* Use "OrthancPluginDatabaseExtensions::lookupIdentifier3"
        instead of this function as of Orthanc 0.9.5 (db v6), can be set to NULL.
        Output: Use OrthancPluginDatabaseAnswerInt64() */
     OrthancPluginErrorCode  (*lookupIdentifier) (
@@ -739,7 +739,7 @@ extern "C"
     /**
      * Base extensions since Orthanc 1.0.0
      **/
-    
+
     /* Output: Use OrthancPluginDatabaseAnswerString() */
     OrthancPluginErrorCode  (*getAllPublicIdsWithLimit) (
       /* outputs */
@@ -761,7 +761,7 @@ extern "C"
       void* payload,
       uint32_t targetVersion,
       OrthancPluginStorageArea* storageArea);
- 
+
     OrthancPluginErrorCode  (*clearMainDicomTags) (
       /* inputs */
       void* payload,
@@ -789,7 +789,7 @@ extern "C"
     /**
      * Extensions since Orthanc 1.4.0
      **/
-    
+
     /* Output: Use OrthancPluginDatabaseAnswerInt64() */
     OrthancPluginErrorCode  (*lookupIdentifierRange) (
       /* outputs */
@@ -802,11 +802,11 @@ extern "C"
       const char* start,
       const char* end);
 
-    
+
     /**
      * Extensions since Orthanc 1.5.2
      **/
-    
+
     /* Ouput: Use OrthancPluginDatabaseAnswerMatchingResource */
     OrthancPluginErrorCode  (*lookupResources) (
       /* outputs */
@@ -818,7 +818,7 @@ extern "C"
       OrthancPluginResourceType queryLevel,
       uint32_t limit,
       uint8_t requestSomeInstance);
-    
+
     OrthancPluginErrorCode  (*createInstance) (
       /* output */
       OrthancPluginCreateInstanceResult* output,
@@ -853,13 +853,13 @@ extern "C"
       int64_t* target,
       /* inputs */
       void* payload);
-                   
+
     OrthancPluginErrorCode  (*tagMostRecentPatient) (
       /* inputs */
       void* payload,
       int64_t patientId);
-                   
-    
+
+
     /**
      * Extensions since Orthanc 1.5.4
      **/
@@ -871,8 +871,8 @@ extern "C"
       /* inputs */
       void* payload,
       int64_t resourceId);
-    
-    /* Ouput: Use OrthancPluginDatabaseAnswerString to send 
+
+    /* Ouput: Use OrthancPluginDatabaseAnswerString to send
        the public ID of the parent (if the resource is not a patient) */
     OrthancPluginErrorCode  (*lookupResourceAndParent) (
       /* outputs */
@@ -880,7 +880,7 @@ extern "C"
       uint8_t* isExisting,
       int64_t* id,
       OrthancPluginResourceType* type,
-      
+
       /* inputs */
       void* payload,
       const char* publicId);
@@ -1018,18 +1018,18 @@ extern "C"
 
       /* For "DeletedAttachment" */
       OrthancPluginAttachment  attachment;
-      
+
     } content;
-    
+
   } OrthancPluginDatabaseEvent;
 
-  
+
   typedef struct
   {
     /**
      * Functions to read the answers inside a transaction
      **/
-    
+
     OrthancPluginErrorCode (*readAnswersCount) (OrthancPluginDatabaseTransaction* transaction,
                                                 uint32_t* target /* out */);
 
@@ -1062,7 +1062,7 @@ extern "C"
     OrthancPluginErrorCode (*readAnswerMatchingResource) (OrthancPluginDatabaseTransaction* transaction,
                                                           OrthancPluginMatchingResource* target /* out */,
                                                           uint32_t index);
-    
+
     OrthancPluginErrorCode (*readAnswerMetadata) (OrthancPluginDatabaseTransaction* transaction,
                                                   int32_t* metadata /* out */,
                                                   const char** value /* out */,
@@ -1071,7 +1071,7 @@ extern "C"
     OrthancPluginErrorCode (*readAnswerString) (OrthancPluginDatabaseTransaction* transaction,
                                                 const char** target /* out */,
                                                 uint32_t index);
-    
+
     OrthancPluginErrorCode (*readEventsCount) (OrthancPluginDatabaseTransaction* transaction,
                                                uint32_t* target /* out */);
 
@@ -1079,8 +1079,8 @@ extern "C"
                                          OrthancPluginDatabaseEvent* event /* out */,
                                          uint32_t index);
 
-    
-    
+
+
     /**
      * Functions to access the global database object
      * (cf. "IDatabaseWrapper" class in Orthanc)
@@ -1115,7 +1115,7 @@ extern "C"
      **/
 
     OrthancPluginErrorCode (*rollback) (OrthancPluginDatabaseTransaction* transaction);
-    
+
     OrthancPluginErrorCode (*commit) (OrthancPluginDatabaseTransaction* transaction,
                                       int64_t fileSizeDelta);
 
@@ -1126,9 +1126,9 @@ extern "C"
                                              int64_t revision);
 
     OrthancPluginErrorCode (*clearChanges) (OrthancPluginDatabaseTransaction* transaction);
-    
+
     OrthancPluginErrorCode (*clearExportedResources) (OrthancPluginDatabaseTransaction* transaction);
-    
+
     OrthancPluginErrorCode (*clearMainDicomTags) (OrthancPluginDatabaseTransaction* transaction,
                                                   int64_t resourceId);
 
@@ -1142,7 +1142,7 @@ extern "C"
     OrthancPluginErrorCode (*deleteAttachment) (OrthancPluginDatabaseTransaction* transaction,
                                                 int64_t id,
                                                 int32_t contentType);
-    
+
     OrthancPluginErrorCode (*deleteMetadata) (OrthancPluginDatabaseTransaction* transaction,
                                               int64_t id,
                                               int32_t metadataType);
@@ -1153,11 +1153,11 @@ extern "C"
     /* Answers are read using "readAnswerMetadata()" */
     OrthancPluginErrorCode (*getAllMetadata) (OrthancPluginDatabaseTransaction* transaction,
                                               int64_t id);
-    
+
     /* Answers are read using "readAnswerString()" */
     OrthancPluginErrorCode (*getAllPublicIds) (OrthancPluginDatabaseTransaction* transaction,
                                                OrthancPluginResourceType resourceType);
-    
+
     /* Answers are read using "readAnswerString()" */
     OrthancPluginErrorCode (*getAllPublicIdsWithLimit) (OrthancPluginDatabaseTransaction* transaction,
                                                         OrthancPluginResourceType resourceType,
@@ -1169,11 +1169,11 @@ extern "C"
                                           uint8_t* targetDone /* out */,
                                           int64_t since,
                                           uint32_t maxResults);
-    
+
     /* Answers are read using "readAnswerInt64()" */
     OrthancPluginErrorCode (*getChildrenInternalId) (OrthancPluginDatabaseTransaction* transaction,
                                                      int64_t id);
-    
+
     /* Answers are read using "readAnswerString()" */
     OrthancPluginErrorCode  (*getChildrenMetadata) (OrthancPluginDatabaseTransaction* transaction,
                                                     int64_t resourceId,
@@ -1188,50 +1188,50 @@ extern "C"
                                                     uint8_t* targetDone /* out */,
                                                     int64_t since,
                                                     uint32_t maxResults);
-    
+
     /* Answer is read using "readAnswerChange()" */
     OrthancPluginErrorCode (*getLastChange) (OrthancPluginDatabaseTransaction* transaction);
-    
+
     OrthancPluginErrorCode (*getLastChangeIndex) (OrthancPluginDatabaseTransaction* transaction,
                                                   int64_t* target /* out */);
-    
+
     /* Answer is read using "readAnswerExportedResource()" */
     OrthancPluginErrorCode (*getLastExportedResource) (OrthancPluginDatabaseTransaction* transaction);
-    
+
     /* Answers are read using "readAnswerDicomTag()" */
     OrthancPluginErrorCode (*getMainDicomTags) (OrthancPluginDatabaseTransaction* transaction,
                                                 int64_t id);
-    
+
     /* Answer is read using "readAnswerString()" */
     OrthancPluginErrorCode (*getPublicId) (OrthancPluginDatabaseTransaction* transaction,
                                            int64_t internalId);
-    
+
     OrthancPluginErrorCode (*getResourcesCount) (OrthancPluginDatabaseTransaction* transaction,
                                                  uint64_t* target /* out */,
                                                  OrthancPluginResourceType resourceType);
-    
+
     OrthancPluginErrorCode (*getResourceType) (OrthancPluginDatabaseTransaction* transaction,
                                                OrthancPluginResourceType* target /* out */,
                                                uint64_t resourceId);
-    
+
     OrthancPluginErrorCode (*getTotalCompressedSize) (OrthancPluginDatabaseTransaction* transaction,
                                                       uint64_t* target /* out */);
-    
+
     OrthancPluginErrorCode (*getTotalUncompressedSize) (OrthancPluginDatabaseTransaction* transaction,
                                                         uint64_t* target /* out */);
-    
+
     OrthancPluginErrorCode (*isDiskSizeAbove) (OrthancPluginDatabaseTransaction* transaction,
                                                uint8_t* target /* out */,
                                                uint64_t threshold);
-    
+
     OrthancPluginErrorCode (*isExistingResource) (OrthancPluginDatabaseTransaction* transaction,
                                                   uint8_t* target /* out */,
                                                   int64_t resourceId);
-    
+
     OrthancPluginErrorCode (*isProtectedPatient) (OrthancPluginDatabaseTransaction* transaction,
                                                   uint8_t* target /* out */,
                                                   int64_t resourceId);
-    
+
     /* Answers are read using "readAnswerInt32()" */
     OrthancPluginErrorCode (*listAvailableAttachments) (OrthancPluginDatabaseTransaction* transaction,
                                                         int64_t internalId);
@@ -1262,24 +1262,24 @@ extern "C"
     OrthancPluginErrorCode (*lookupGlobalProperty) (OrthancPluginDatabaseTransaction* transaction,
                                                     const char* serverIdentifier,
                                                     int32_t property);
-    
+
     /* Answer is read using "readAnswerString()" */
     OrthancPluginErrorCode (*lookupMetadata) (OrthancPluginDatabaseTransaction* transaction,
                                               int64_t* revision /* out */,
                                               int64_t id,
                                               int32_t metadata);
-    
+
     OrthancPluginErrorCode (*lookupParent) (OrthancPluginDatabaseTransaction* transaction,
                                             uint8_t* isExisting /* out */,
                                             int64_t* parentId /* out */,
                                             int64_t id);
-    
+
     OrthancPluginErrorCode (*lookupResource) (OrthancPluginDatabaseTransaction* transaction,
                                               uint8_t* isExisting /* out */,
                                               int64_t* id /* out */,
                                               OrthancPluginResourceType* type /* out */,
                                               const char* publicId);
-    
+
     /* Answers are read using "readAnswerMatchingResource()" */
     OrthancPluginErrorCode  (*lookupResources) (OrthancPluginDatabaseTransaction* transaction,
                                                 uint32_t constraintsCount,
@@ -1298,7 +1298,7 @@ extern "C"
     OrthancPluginErrorCode (*selectPatientToRecycle) (OrthancPluginDatabaseTransaction* transaction,
                                                       uint8_t* patientAvailable /* out */,
                                                       int64_t* patientId /* out */);
-    
+
     OrthancPluginErrorCode (*selectPatientToRecycle2) (OrthancPluginDatabaseTransaction* transaction,
                                                        uint8_t* patientAvailable /* out */,
                                                        int64_t* patientId /* out */,
@@ -1315,7 +1315,7 @@ extern "C"
                                            int32_t metadata,
                                            const char* value,
                                            int64_t revision);
-    
+
     OrthancPluginErrorCode (*setProtectedPatient) (OrthancPluginDatabaseTransaction* transaction,
                                                    int64_t id,
                                                    uint8_t isProtected);
@@ -1327,7 +1327,7 @@ extern "C"
                                                     const OrthancPluginResourcesContentTags* mainDicomTags,
                                                     uint32_t countMetadata,
                                                     const OrthancPluginResourcesContentMetadata* metadata);
-    
+
 
   } OrthancPluginDatabaseBackendV3;
 

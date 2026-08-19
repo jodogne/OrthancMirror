@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -43,7 +43,7 @@ namespace Orthanc
                                int64_t child) = 0;
 
       virtual void TagMostRecentPatient(int64_t patientId) = 0;
-      
+
       static bool Apply(ICreateInstance& database,
                         IDatabaseWrapper::CreateInstanceResult& result,
                         int64_t& instanceId,

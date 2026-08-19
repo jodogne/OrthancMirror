@@ -51,10 +51,10 @@ namespace Orthanc
     std::vector<boost::thread*>  workers_;
 
     bool IsRunning();
-    
+
     bool ExecuteStep(JobsRegistry::RunningJob& running,
                      size_t workerIndex);
-    
+
     static void RetryHandler(JobsEngine* engine);
 
     static void Worker(JobsEngine* engine,

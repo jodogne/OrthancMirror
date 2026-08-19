@@ -37,8 +37,8 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(stateMutex_);
     return (state_ == State_Running);
   }
-  
-  
+
+
   bool JobsEngine::ExecuteStep(JobsRegistry::RunningJob& running,
                                size_t workerIndex)
   {
@@ -100,13 +100,13 @@ namespace Orthanc
       case JobStepCode_Continue:
         running.UpdateStatus(ErrorCode_Success, "");
         return true;
-            
+
       default:
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
 
-    
+
   void JobsEngine::RetryHandler(JobsEngine* engine)
   {
     Logging::ScopedCurrentThreadNameSetter setter("JOBS-RETRY");
@@ -120,7 +120,7 @@ namespace Orthanc
     }
   }
 
-    
+
   void JobsEngine::Worker(JobsEngine* engine,
                           size_t workerIndex)
   {
@@ -150,7 +150,7 @@ namespace Orthanc
           }
         }
       }
-    }      
+    }
   }
 
 
@@ -162,7 +162,7 @@ namespace Orthanc
   {
   }
 
-    
+
   JobsEngine::~JobsEngine()
   {
     if (state_ != State_Setup &&
@@ -173,7 +173,7 @@ namespace Orthanc
     }
   }
 
- 
+
   JobsRegistry& JobsEngine::GetRegistry()
   {
     if (registry_.get() == NULL)
@@ -183,13 +183,13 @@ namespace Orthanc
 
     return *registry_;
   }
-  
-   
+
+
   void JobsEngine::LoadRegistryFromJson(IJobUnserializer& unserializer,
                                         const Json::Value& serialized)
   {
     boost::mutex::scoped_lock lock(stateMutex_);
-      
+
     if (state_ != State_Setup)
     {
       // Can only be invoked before calling "Start()"
@@ -241,7 +241,7 @@ namespace Orthanc
   void JobsEngine::SetThreadSleep(unsigned int sleep)
   {
     boost::mutex::scoped_lock lock(stateMutex_);
-      
+
     if (state_ != State_Setup)
     {
       // Can only be invoked before calling "Start()"
@@ -286,17 +286,17 @@ namespace Orthanc
       {
         return;
       }
-        
+
       state_ = State_Stopping;
     }
 
     CLOG(INFO, JOBS) << "Stopping the jobs engine";
-      
+
     if (retryHandler_.joinable())
     {
       retryHandler_.join();
     }
-      
+
     for (size_t i = 0; i < workers_.size(); i++)
     {
       assert(workers_[i] != NULL);
@@ -308,7 +308,7 @@ namespace Orthanc
 
       delete workers_[i];
     }
-      
+
     {
       boost::mutex::scoped_lock lock(stateMutex_);
       state_ = State_Done;

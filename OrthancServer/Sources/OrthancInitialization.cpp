@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -77,7 +77,7 @@ namespace Orthanc
   static void RegisterUserMetadata(const Json::Value& config)
   {
     static const char* const USER_METADATA = "UserMetadata";
-    
+
     if (config.isMember(USER_METADATA))
     {
       const Json::Value& parameter = config[USER_METADATA];
@@ -93,9 +93,9 @@ namespace Orthanc
                                  "Not a number in this user-defined metadata: " + name);
         }
 
-        int metadata = parameter[name].asInt();        
+        int metadata = parameter[name].asInt();
 
-        LOG(INFO) << "Registering user-defined metadata: " << name << " (index " 
+        LOG(INFO) << "Registering user-defined metadata: " << name << " (index "
                   << metadata << ")";
 
         try
@@ -115,7 +115,7 @@ namespace Orthanc
   static void RegisterUserContentType(const Json::Value& config)
   {
     static const char* const USER_CONTENT_TYPE = "UserContentType";
-    
+
     if (config.isMember(USER_CONTENT_TYPE))
     {
       const Json::Value& parameter = config[USER_CONTENT_TYPE];
@@ -147,7 +147,7 @@ namespace Orthanc
                                  "Not a number in this user-defined attachment type: " + name);
         }
 
-        LOG(INFO) << "Registering user-defined attachment type: " << name << " (index " 
+        LOG(INFO) << "Registering user-defined attachment type: " << name << " (index "
                   << contentType << ") with MIME type \"" << mime << "\"";
 
         try
@@ -166,7 +166,7 @@ namespace Orthanc
   static void LoadExternalDictionaries(const Json::Value& configuration)
   {
     static const char* const EXTERNAL_DICTIONARIES = "ExternalDictionaries";
-    
+
     if (configuration.type() == Json::objectValue &&
         configuration.isMember(EXTERNAL_DICTIONARIES))
     {
@@ -180,7 +180,7 @@ namespace Orthanc
   static void LoadCustomDictionary(const Json::Value& configuration)
   {
     static const char* const DICTIONARY = "Dictionary";
-    
+
     if (configuration.type() != Json::objectValue ||
         !configuration.isMember(DICTIONARY) ||
         configuration[DICTIONARY].type() != Json::objectValue)
@@ -219,7 +219,7 @@ namespace Orthanc
   static void LoadMainDicomTags(const Json::Value& configuration)
   {
     static const char* const EXTRA_MAIN_DICOM_TAGS = "ExtraMainDicomTags";
-    
+
     DicomMap::ResetDefaultMainDicomTags();
 
     if (configuration.type() != Json::objectValue ||
@@ -275,8 +275,8 @@ namespace Orthanc
             {
               LOG(WARNING) << "  - !!! " << tagName << " is already defined as a standard MainDicomTags, it is useless to include it in the ExtraMainDicomTags";
             }
-            
-            
+
+
           }
         }
       }
@@ -288,7 +288,7 @@ namespace Orthanc
     static const char* const MODULE = "Module";
     static const char* const VERBOSE = "Verbose";
     static const char* const PIN = "Pin";
-    
+
     if (config.type() != Json::objectValue ||
         !config.isMember(MODULE) ||
         config[MODULE].type() != Json::stringValue)
@@ -338,13 +338,13 @@ namespace Orthanc
     static const char* const DEFAULT_ENCODING = "DefaultEncoding";
     static const char* const MALLOC_ARENA_MAX = "MallocArenaMax";
     static const char* const LOAD_PRIVATE_DICTIONARY = "LoadPrivateDictionary";
-    
+
     OrthancConfiguration::WriterLock lock;
 
 #if ORTHANC_ENABLE_PLUGINS == 1
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 #endif
-    
+
     InitializeServerEnumerations();
 
     // Read the user-provided configuration
@@ -427,7 +427,7 @@ namespace Orthanc
   {
     OrthancConfiguration::ReaderLock lock;
 
-    std::string storageDirectoryStr = 
+    std::string storageDirectoryStr =
       lock.GetConfiguration().GetStringParameter(ORTHANC_CONFIG_STORAGE_DIRECTORY);
 
     std::string indexDirectoryStr;
@@ -471,7 +471,7 @@ namespace Orthanc
       }
 
       virtual void Create(const std::string& uuid,
-                          const void* content, 
+                          const void* content,
                           size_t size,
                           FileContentType type) ORTHANC_OVERRIDE
       {
@@ -517,13 +517,13 @@ namespace Orthanc
   {
     static const char* const SYNC_STORAGE_AREA = "SyncStorageArea";
     static const char* const STORE_DICOM = "StoreDicom";
-    
+
     OrthancConfiguration::ReaderLock lock;
 
-    std::string storageDirectoryStr = 
+    std::string storageDirectoryStr =
       lock.GetConfiguration().GetStringParameter(ORTHANC_CONFIG_STORAGE_DIRECTORY);
 
-    boost::filesystem::path storageDirectory = 
+    boost::filesystem::path storageDirectory =
       lock.GetConfiguration().InterpretStringParameterAsPath(storageDirectoryStr);
 
     LOG(WARNING) << "Storage directory: " << SystemToolbox::PathToUtf8(storageDirectory);
@@ -557,7 +557,7 @@ namespace Orthanc
 
   static void SetDcmtkVerbosity(Verbosity verbosity)
   {
-    // INFO_LOG_LEVEL was the DCMTK log level in Orthanc <= 1.8.0    
+    // INFO_LOG_LEVEL was the DCMTK log level in Orthanc <= 1.8.0
     // https://support.dcmtk.org/docs-dcmrt/classOFLogger.html#ae20bf2616f15313c1f089da2eefb8245
 
     OFLogger::LogLevel dataLevel, networkLevel;
@@ -586,7 +586,7 @@ namespace Orthanc
 
     OFLog::configure(dataLevel);
     assert(dcmtk::log4cplus::Logger::getRoot().getChainedLogLevel() == dataLevel);
-    
+
     DCM_dcmdataLogger.setLogLevel(dataLevel);    // This seems to be implied by "OFLog::configure()"
     DCM_dcmnetLogger.setLogLevel(networkLevel);  // This will display PDU in DICOM networking
   }
@@ -595,7 +595,7 @@ namespace Orthanc
   void SetGlobalVerbosity(Verbosity verbosity)
   {
     SetDcmtkVerbosity(verbosity);
-    
+
     switch (verbosity)
     {
       case Verbosity_Default:
@@ -618,7 +618,7 @@ namespace Orthanc
     }
   }
 
-  
+
   Verbosity GetGlobalVerbosity()
   {
     if (Logging::IsTraceLevelEnabled())
@@ -635,7 +635,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void SetCategoryVerbosity(Logging::LogCategory category,
                             Verbosity verbosity)
   {
@@ -665,7 +665,7 @@ namespace Orthanc
       SetDcmtkVerbosity(verbosity);
     }
   }
-  
+
 
   Verbosity GetCategoryVerbosity(Logging::LogCategory category)
   {

@@ -77,7 +77,7 @@ TEST(Toolbox, JsonComments)
   std::string c;
   Toolbox::WriteFastJson(c, b);
   ASSERT_EQ(Toolbox::StripSpaces(c), "{\"hello\":\"world\"}");
-  
+
   Toolbox::WriteStyledJson(c, b);
   ASSERT_EQ(Toolbox::StripSpaces(c), "{\n   \"hello\" : \"world\"\n}");
 }
@@ -250,7 +250,7 @@ TEST(Toolbox, IsSetInSet)
     std::set<int> missings;
 
     needles.insert(5);
-    
+
     ASSERT_FALSE(Toolbox::IsSetInSet<int>(needles, haystack));
     ASSERT_EQ(1u, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
     ASSERT_TRUE(missings.count(5) == 1);

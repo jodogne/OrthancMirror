@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -82,7 +82,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-    
+
     if (instancesLoader_.get() == NULL ||
         !instancesLoader_->HasNext())
     {
@@ -117,7 +117,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_InternalError);
       }
-    
+
       OFString a, b;
       if (!dicom.GetDcmtkObject().getDataset()->findAndGetOFString(DCM_SOPClassUID, a).good() ||
           !dicom.GetDcmtkObject().getDataset()->findAndGetOFString(DCM_SOPInstanceUID, b).good())
@@ -134,7 +134,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void OrthancGetRequestHandler::AddFailedUIDInstance(const std::string& sopInstance)
   {
     if (failedUIDs_.empty())
@@ -174,7 +174,7 @@ namespace Orthanc
         if (pc->result == ASC_P_ACCEPTANCE)
         {
           DicomTransferSyntax transferSyntax;
-          
+
           if (LookupTransferSyntax(transferSyntax, pc->acceptedTransferSyntax))
           {
             /*CLOG(TRACE, DICOM) << "C-GET SCP accepted: SOP class " << pc->abstractSyntax
@@ -190,19 +190,19 @@ namespace Orthanc
                                  << pc->acceptedTransferSyntax;
           }
         }
-            
+
         pc = reinterpret_cast<DUL_PRESENTATIONCONTEXT*>(LST_Next(l));
       }
     }
 
-    
+
     /**
      * 2. Select the preferred transfer syntaxes, which corresponds to
      * the source transfer syntax, plus all the uncompressed transfer
      * syntaxes if transcoding is enabled.
      * This way, we minimize the transcoding on our side.
      **/
-    
+
     std::list<DicomTransferSyntax> preferred;
     preferred.push_back(sourceSyntax);
 
@@ -231,7 +231,7 @@ namespace Orthanc
      * 3. Lookup whether one of the preferred transfer syntaxes was
      * accepted.
      **/
-    
+
     for (std::list<DicomTransferSyntax>::const_iterator
            it = preferred.begin(); it != preferred.end(); ++it)
     {
@@ -255,7 +255,7 @@ namespace Orthanc
     }
 
     return false;
-  }                                                           
+  }
 
 
   bool OrthancGetRequestHandler::PerformGetSubOp(T_ASC_Association* assoc,
@@ -268,7 +268,7 @@ namespace Orthanc
     {
       failedCount_++;
       AddFailedUIDInstance(sopInstanceUid);
-      throw OrthancException(ErrorCode_NetworkProtocol, 
+      throw OrthancException(ErrorCode_NetworkProtocol,
                              "C-GET SCP: Unknown transfer syntax: (" +
                              std::string(dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT")) +
                              ") " + sopClassUid);
@@ -313,7 +313,7 @@ namespace Orthanc
     }
 
     const DIC_US msgId = assoc->nextMsgID++;
-    
+
     T_DIMSE_C_StoreRQ req;
     memset(&req, 0, sizeof(req));
     req.MessageID = msgId;
@@ -322,13 +322,13 @@ namespace Orthanc
     req.DataSetType = DIMSE_DATASET_PRESENT;
     req.Priority = DIMSE_PRIORITY_MEDIUM;
     req.opts = 0;
-    
+
     T_DIMSE_C_StoreRSP rsp;
     memset(&rsp, 0, sizeof(rsp));
 
     CLOG(INFO, DICOM) << "Store SCU RQ: MsgID " << msgId << ", ("
                       << dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT") << ")";
-    
+
     T_DIMSE_DetectedCancelParameters cancelParameters;
     memset(&cancelParameters, 0, sizeof(cancelParameters));
 
@@ -362,7 +362,7 @@ namespace Orthanc
 
       std::set<DicomTransferSyntax> ts;
       ts.insert(selectedSyntax);
-      
+
       if (context_.GetTranscoder()->Transcode(transcoded, source, ts, TranscodingSopInstanceUidMode_AllowNew))
       {
         // Transcoding has succeeded
@@ -384,11 +384,11 @@ namespace Orthanc
                                "C-GET SCP: Cannot transcode " + sopClassUid +
                                " from transfer syntax " + GetTransferSyntaxUid(sourceSyntax) +
                                " to " + GetTransferSyntaxUid(selectedSyntax));
-      }      
+      }
     }
 
     bool isContinue;
-    
+
     if (cond.good())
     {
       {
@@ -396,7 +396,7 @@ namespace Orthanc
         CLOG(TRACE, DICOM) << "Received Store Response following a C-GET:" << std::endl
                            << DIMSE_dumpMessage(str, rsp, DIMSE_INCOMING);
       }
-      
+
       if (cancelParameters.cancelEncountered)
       {
         CLOG(INFO, DICOM) << "C-GET SCP: Received C-Cancel RQ";
@@ -435,14 +435,14 @@ namespace Orthanc
                          << DimseCondition::dump(temp_str, cond);
       isContinue = true;
     }
-    
+
     if (stDetail.get() != NULL)
     {
       std::stringstream s;  // DcmObject::PrintHelper cannot be used with VS2008
       stDetail->print(s);
       CLOG(INFO, DICOM) << "  Status Detail: " << s.str();
     }
-    
+
     return isContinue;
   }
 
@@ -462,11 +462,11 @@ namespace Orthanc
         tag = (input.HasTag(DICOM_TAG_ACCESSION_NUMBER) ?
                DICOM_TAG_ACCESSION_NUMBER : DICOM_TAG_STUDY_INSTANCE_UID);
         break;
-        
+
       case ResourceType_Series:
         tag = DICOM_TAG_SERIES_INSTANCE_UID;
         break;
-        
+
       case ResourceType_Instance:
         tag = DICOM_TAG_SOP_INSTANCE_UID;
         break;
@@ -511,7 +511,7 @@ namespace Orthanc
         }
       }
 
-      return true;      
+      return true;
     }
   }
 
@@ -564,7 +564,7 @@ namespace Orthanc
                              "C-GET request without the tag 0008,0052 (QueryRetrieveLevel)");
     }
 
-    ResourceType level = StringToResourceType(levelTmp->GetContent().c_str());      
+    ResourceType level = StringToResourceType(levelTmp->GetContent().c_str());
 
 
     /**
@@ -576,7 +576,7 @@ namespace Orthanc
     if (!LookupIdentifiers(publicIds, level, input))
     {
       CLOG(ERROR, DICOM) << "Cannot determine what resources are requested by C-GET";
-      return false; 
+      return false;
     }
 
     localAet_ = context_.GetDefaultLocalApplicationEntityTitle();

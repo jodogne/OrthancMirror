@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -44,7 +44,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
-    
+
     if (parameters_.target == NULL ||
         parameters_.finalize == NULL ||
         parameters_.type == NULL ||
@@ -59,13 +59,13 @@ namespace Orthanc
       {
         parameters_.finalize(parameters_.job);
       }
-      
+
       throw OrthancException(ErrorCode_NullPointer);
     }
 
     type_.assign(parameters_.type);
   }
-  
+
   PluginsJob::PluginsJob(const _OrthancPluginCreateJob2& parameters) :
     parameters_(parameters),
     deprecatedGetContent_(NULL),
@@ -92,7 +92,7 @@ namespace Orthanc
 
     deprecatedGetContent_ = parameters.getContent;
     deprecatedGetSerialized_ = parameters.getSerialized;
-    
+
     Setup();
   }
 
@@ -216,7 +216,7 @@ namespace Orthanc
         target.ToJsonObject(value);
 
         static const char* KEY_TYPE = "Type";
-      
+
         if (value.isMember(KEY_TYPE))
         {
           throw OrthancException(ErrorCode_Plugin,
@@ -247,7 +247,7 @@ namespace Orthanc
 
 
         static const char* KEY_TYPE = "Type";
-      
+
         if (value.isMember(KEY_TYPE))
         {
           throw OrthancException(ErrorCode_Plugin,

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -66,7 +66,7 @@ namespace Orthanc
       target = GetNow();
     }
   }
-  
+
 
   static void LookupTime(boost::posix_time::ptime& target,
                          ServerContext& context,
@@ -85,7 +85,7 @@ namespace Orthanc
     }
   }
 
-  
+
   class OrthancWebDav::DicomIdentifiersVisitorV2 : public ResourceFinder::IVisitor
   {
   private:
@@ -264,7 +264,7 @@ namespace Orthanc
         assert(pathToResource_[it->second] == it->first);
       }
 #endif
-    }      
+    }
 
     void AddTags(DicomMap& target,
                  const std::string& resourceId,
@@ -287,12 +287,12 @@ namespace Orthanc
         DicomMap tags;
 
         AddTags(tags, resourceId, level_);
-        
+
         if (level_ == ResourceType_Study)
         {
           AddTags(tags, resourceId, ResourceType_Patient);
         }
-        
+
         DicomArray arr(tags);
         for (size_t i = 0; i < arr.GetSize(); i++)
         {
@@ -302,7 +302,7 @@ namespace Orthanc
           {
             const std::string tag = FromDcmtkBridge::GetTagName(element.GetTag(), "");
             boost::replace_all(name, "{{" + tag + "}}", element.GetValue().GetContent());
-          } 
+          }
         }
 
         // Blank the tags that were not matched
@@ -365,17 +365,17 @@ namespace Orthanc
       // Detect the resources that have been removed since last refresh
       removedPaths.clear();
       std::set<std::string> removedResources;
-      
+
       for (Map::iterator it = resourceToPath_.begin(); it != resourceToPath_.end(); ++it)
       {
         if (resources.find(it->first) == resources.end())
         {
           const std::string& path = it->second;
-          
+
           assert(pathToResource_.find(path) != pathToResource_.end());
           pathToResource_.erase(path);
           removedPaths.insert(path);
-          
+
           removedResources.insert(it->first);  // Delay the removal to avoid disturbing the iterator
         }
       }
@@ -464,9 +464,9 @@ namespace Orthanc
             resource->SetContentLength(info.GetUncompressedSize());
             resource->SetCreationTime(time);
             target.AddResource(resource.release());
-          }          
+          }
         }
-        
+
         return true;
       }
       else
@@ -477,7 +477,7 @@ namespace Orthanc
 
     virtual bool GetFileContent(MimeType& mime,
                                 std::string& content,
-                                boost::posix_time::ptime& time, 
+                                boost::posix_time::ptime& time,
                                 const UriComponents& path) ORTHANC_OVERRIDE
     {
       std::string instanceId;
@@ -553,7 +553,7 @@ namespace Orthanc
   /**
    * The "InternalNode" class corresponds to a non-leaf node in the
    * WebDAV tree, that only contains subfolders (no file).
-   * 
+   *
    * TODO: Implement a LRU index to dynamically remove the oldest
    * children on high RAM usage.
    **/
@@ -570,7 +570,7 @@ namespace Orthanc
       if (child == children_.end())
       {
         INode* node = CreateSubfolder(path);
-        
+
         if (node == NULL)
         {
           return NULL;
@@ -599,11 +599,11 @@ namespace Orthanc
         children_.erase(child);
       }
     }
-    
+
     virtual void Refresh() = 0;
-    
+
     virtual bool ListSubfolders(IWebDavBucket::Collection& target) = 0;
-    
+
     virtual INode* CreateSubfolder(const std::string& path) = 0;
 
   public:
@@ -621,7 +621,7 @@ namespace Orthanc
       ORTHANC_OVERRIDE ORTHANC_FINAL
     {
       Refresh();
-      
+
       if (path.empty())
       {
         return ListSubfolders(target);
@@ -646,7 +646,7 @@ namespace Orthanc
 
     virtual bool GetFileContent(MimeType& mime,
                                 std::string& content,
-                                boost::posix_time::ptime& time, 
+                                boost::posix_time::ptime& time,
                                 const UriComponents& path)
       ORTHANC_OVERRIDE ORTHANC_FINAL
     {
@@ -658,7 +658,7 @@ namespace Orthanc
       {
         // Recursivity
         Refresh();
-      
+
         INode* child = GetChild(path[0]);
         if (child == NULL)
         {
@@ -718,7 +718,7 @@ namespace Orthanc
       }
     }
   };
-  
+
 
   class OrthancWebDav::ListOfResources : public InternalNode
   {
@@ -755,7 +755,7 @@ namespace Orthanc
       else
       {
         const ResourcesIndex::Map& paths = index_->GetPathToResource();
-        
+
         for (ResourcesIndex::Map::const_iterator it = paths.begin(); it != paths.end(); ++it)
         {
           boost::posix_time::ptime time;
@@ -791,7 +791,7 @@ namespace Orthanc
     virtual void GetCurrentResources(std::list<std::string>& resources) = 0;
 
     virtual INode* CreateResourceNode(const std::string& resource) = 0;
-    
+
   public:
     ListOfResources(ServerContext& context,
                     ResourceType level,
@@ -804,9 +804,9 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
-      
+
       index_.reset(new ResourcesIndex(context, level, t->second));
-      
+
       if (level == ResourceType_Instance)
       {
         timeMetadata_ = MetadataType_Instance_ReceptionDate;
@@ -828,15 +828,15 @@ namespace Orthanc
     }
   };
 
-  
+
 
   class OrthancWebDav::SingleDicomResource : public ListOfResources
   {
   private:
     ResourceType parentLevel_;
     std::string  parentId_;
-    
-  protected: 
+
+  protected:
     virtual void GetCurrentResources(std::list<std::string>& resources) ORTHANC_OVERRIDE
     {
       try
@@ -878,11 +878,11 @@ namespace Orthanc
     {
     }
   };
-  
-  
+
+
   class OrthancWebDav::RootNode : public ListOfResources
   {
-  protected:   
+  protected:
     virtual void GetCurrentResources(std::list<std::string>& resources) ORTHANC_OVERRIDE
     {
       GetContext().GetIndex().GetAllUuids(resources, GetLevel());
@@ -938,8 +938,8 @@ namespace Orthanc
         resources_.push_back(resource.GetIdentifier());
       }
     };
-    
-  protected:   
+
+  protected:
     virtual void GetCurrentResources(std::list<std::string>& resources) ORTHANC_OVERRIDE
     {
       DatabaseLookup query;
@@ -987,13 +987,13 @@ namespace Orthanc
     {
     private:
       std::set<std::string> months_;
-      
+
     public:
       const std::set<std::string>& GetMonths() const
       {
         return months_;
       }
-      
+
       virtual void MarkAsComplete() ORTHANC_OVERRIDE
       {
       }
@@ -1068,7 +1068,7 @@ namespace Orthanc
     }
   };
 
-  
+
   class OrthancWebDav::ListOfStudiesByYear : public InternalNode
   {
   private:
@@ -1086,7 +1086,7 @@ namespace Orthanc
       context_.GetIndex().GetAllUuids(resources, ResourceType_Study);
 
       std::set<std::string> years;
-      
+
       for (std::list<std::string>::const_iterator it = resources.begin(); it != resources.end(); ++it)
       {
         DicomMap tags;
@@ -1098,7 +1098,7 @@ namespace Orthanc
           years.insert(studyDate.substr(0, 4)); // Get the year from "YYYYMMDD"
         }
       }
-      
+
       for (std::set<std::string>::const_iterator it = years.begin(); it != years.end(); ++it)
       {
         target.AddResource(new IWebDavBucket::Folder(*it));
@@ -1147,7 +1147,7 @@ namespace Orthanc
       context_.DeleteResource(info, resource.GetIdentifier(), level_);
     }
   };
-  
+
 
   void OrthancWebDav::AddVirtualFile(Collection& collection,
                                      const UriComponents& path,
@@ -1201,12 +1201,12 @@ namespace Orthanc
     }
   }
 
-  
+
   void OrthancWebDav::Upload(const std::string& path)
   {
     UriComponents uri;
     Toolbox::SplitUriComponents(uri, path);
-        
+
     LOG(INFO) << "Upload from WebDAV: " << path;
 
     MimeType mime;
@@ -1227,14 +1227,14 @@ namespace Orthanc
           if (!uncompressedFile.empty())
           {
             LOG(INFO) << "Uploading DICOM file extracted from a ZIP archive in WebDAV: " << filename;
-          
+
             std::unique_ptr<DicomInstanceToStore> instance(DicomInstanceToStore::CreateFromBuffer(uncompressedFile));
             instance->SetOrigin(DicomInstanceOrigin::FromWebDav());
 
             try
             {
               std::string publicId;
-              
+
               context_.Store(publicId, *instance);
             }
             catch (OrthancException& e)
@@ -1300,7 +1300,7 @@ namespace Orthanc
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
   }
-  
+
 
   OrthancWebDav::OrthancWebDav(ServerContext& context,
                                bool allowDicomDelete,
@@ -1324,7 +1324,7 @@ namespace Orthanc
   }
 
 
-  bool OrthancWebDav::IsExistingFolder(const UriComponents& path) 
+  bool OrthancWebDav::IsExistingFolder(const UriComponents& path)
   {
     if (path.empty())
     {
@@ -1353,9 +1353,9 @@ namespace Orthanc
     }
   }
 
-  
+
   bool OrthancWebDav::ListCollection(Collection& collection,
-                                     const UriComponents& path) 
+                                     const UriComponents& path)
   {
     if (path.empty())
     {
@@ -1368,9 +1368,9 @@ namespace Orthanc
       {
         collection.AddResource(new Folder(UPLOADS));
       }
-      
+
       return true;
-    }   
+    }
     else if (path[0] == BY_UIDS)
     {
       DatabaseLookup query;
@@ -1388,7 +1388,7 @@ namespace Orthanc
         level = ResourceType_Series;
         query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
                                 true /* case sensitive */, true /* mandatory tag */);
-      }      
+      }
       else if (path.size() == 3)
       {
         AddVirtualFile(collection, path, SERIES_INFO);
@@ -1449,7 +1449,7 @@ namespace Orthanc
     }
   }
 
-  
+
   static bool GetOrthancJson(std::string& target,
                              ServerContext& context,
                              ResourceType level,
@@ -1479,8 +1479,8 @@ namespace Orthanc
 
   bool OrthancWebDav::GetFileContent(MimeType& mime,
                                      std::string& content,
-                                     boost::posix_time::ptime& modificationTime, 
-                                     const UriComponents& path) 
+                                     boost::posix_time::ptime& modificationTime,
+                                     const UriComponents& path)
   {
     if (path.empty())
     {
@@ -1506,7 +1506,7 @@ namespace Orthanc
                                 true /* case sensitive */, true /* mandatory tag */);
         query.AddRestConstraint(DICOM_TAG_SERIES_INSTANCE_UID, path[2],
                                 true /* case sensitive */, true /* mandatory tag */);
-      
+
         mime = MimeType_Json;
         return GetOrthancJson(content, context_, ResourceType_Series, query);
       }
@@ -1514,7 +1514,7 @@ namespace Orthanc
                boost::ends_with(path[3], ".dcm"))
       {
         const std::string sopInstanceUid = path[3].substr(0, path[3].size() - 4);
-        
+
         DatabaseLookup query;
         query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
                                 true /* case sensitive */, true /* mandatory tag */);
@@ -1522,7 +1522,7 @@ namespace Orthanc
                                 true /* case sensitive */, true /* mandatory tag */);
         query.AddRestConstraint(DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUid,
                                 true /* case sensitive */, true /* mandatory tag */);
-      
+
         mime = MimeType_Dicom;
 
         ResourceFinder finder(ResourceType_Instance, ResponseContentFlags_ID, context_.GetFindStorageAccessMode(), context_.GetIndex().HasFindSupport());
@@ -1557,9 +1557,9 @@ namespace Orthanc
     }
   }
 
-  
+
   bool OrthancWebDav::StoreFile(const std::string& content,
-                                const UriComponents& path) 
+                                const UriComponents& path)
   {
     if (allowUpload_ &&
         path.size() >= 1 &&
@@ -1601,8 +1601,8 @@ namespace Orthanc
     }
   }
 
-  
-  bool OrthancWebDav::DeleteItem(const std::vector<std::string>& path) 
+
+  bool OrthancWebDav::DeleteItem(const std::vector<std::string>& path)
   {
     if (path.empty())
     {
@@ -1627,7 +1627,7 @@ namespace Orthanc
           {
             return true;  // Allow deletion of virtual files (to avoid blocking recursive DELETE)
           }
-          
+
           query.AddRestConstraint(DICOM_TAG_SERIES_INSTANCE_UID, path[2],
                                   true /* case sensitive */, true /* mandatory tag */);
           level = ResourceType_Series;
@@ -1689,8 +1689,8 @@ namespace Orthanc
     }
   }
 
-  
-  void OrthancWebDav::Start() 
+
+  void OrthancWebDav::Start()
   {
     if (uploadRunning_)
     {
@@ -1704,8 +1704,8 @@ namespace Orthanc
     }
   }
 
-  
-  void OrthancWebDav::Stop() 
+
+  void OrthancWebDav::Stop()
   {
     if (uploadRunning_)
     {

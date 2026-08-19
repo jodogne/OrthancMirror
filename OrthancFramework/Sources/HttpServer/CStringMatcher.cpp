@@ -81,7 +81,7 @@ namespace Orthanc
   {
     return valid_;
   }
-  
+
 
   bool CStringMatcher::Apply(const char* start,
                              const char* end)
@@ -94,7 +94,7 @@ namespace Orthanc
     }
 
     matchBegin_ = search_->Apply(start, end);
-    
+
     if (matchBegin_ == end)
     {
       valid_ = false;
@@ -109,7 +109,7 @@ namespace Orthanc
     return valid_;
   }
 
-  
+
   bool CStringMatcher::Apply(const std::string& corpus)
   {
     if (corpus.empty())

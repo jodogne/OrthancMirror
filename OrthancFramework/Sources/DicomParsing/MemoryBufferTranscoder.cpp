@@ -56,7 +56,7 @@ namespace Orthanc
     }
 #endif
   }
-    
+
   bool MemoryBufferTranscoder::Transcode(DicomImage& target,
                                          DicomImage& source,
                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
@@ -72,7 +72,7 @@ namespace Orthanc
                                          TranscodingSopInstanceUidMode mode)
   {
     target.Clear();
-    
+
 #if !defined(NDEBUG)
     // Don't run this code in release mode, as it implies parsing the DICOM file
     DicomTransferSyntax sourceSyntax;
@@ -81,7 +81,7 @@ namespace Orthanc
       LOG(ERROR) << "Unsupport transfer syntax for transcoding";
       return false;
     }
-    
+
     const std::string sourceSopInstanceUid = GetSopInstanceUid(source.GetParsed());
 #endif
 
@@ -96,7 +96,7 @@ namespace Orthanc
       CheckTargetSyntax(buffer, allowedSyntaxes);  // For debug only
 
       target.AcquireBuffer(buffer);
-      
+
 #if !defined(NDEBUG)
       // Only run the sanity check in debug mode
       CheckTranscoding(target, sourceSyntax, sourceSopInstanceUid,

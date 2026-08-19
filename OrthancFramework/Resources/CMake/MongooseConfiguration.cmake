@@ -35,17 +35,17 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
       "e718fc287b4eb1bd523be3fa00942bb0"
       "https://orthanc.uclouvain.be/downloads/third-party-downloads/mongoose-3.1.tgz"
       "${MONGOOSE_SOURCES_DIR}")
-    
+
     add_definitions(-DMONGOOSE_USE_CALLBACKS=0)
     set(MONGOOSE_PATCH ${CMAKE_CURRENT_LIST_DIR}/../Patches/mongoose-3.1-patch.diff)
 
-  else() 
+  else()
     # Use Mongoose 3.8
     DownloadPackage(
       "7e3296295072792cdc3c633f9404e0c3"
       "https://orthanc.uclouvain.be/downloads/third-party-downloads/mongoose-3.8.tgz"
       "${MONGOOSE_SOURCES_DIR}")
-    
+
     add_definitions(-DMONGOOSE_USE_CALLBACKS=1)
     set(MONGOOSE_PATCH ${CMAKE_CURRENT_LIST_DIR}/../Patches/mongoose-3.8-patch.diff)
   endif()

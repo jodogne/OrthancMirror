@@ -54,7 +54,7 @@ namespace Orthanc
                                                      const char* ip,
                                                      const HttpToolbox::Arguments& httpHeaders,
                                                      const HttpToolbox::GetArguments& getArguments) const = 0;
-    
+
     // This method corresponds to HTTP authorization alone
     virtual bool IsAllowed(HttpMethod method,
                            const char* uri,

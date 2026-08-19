@@ -34,7 +34,7 @@ namespace Orthanc
     const HttpToolbox::Arguments& getArguments_;
 
   public:
-    typedef void (*Handler) (RestApiGetCall& call);   
+    typedef void (*Handler) (RestApiGetCall& call);
 
     RestApiGetCall(RestApiOutput& output,
                    RestApi& context,
@@ -66,9 +66,9 @@ namespace Orthanc
     bool GetBooleanArgument(const std::string& name,
                             bool defaultValue) const;
 
-    uint32_t GetUnsignedInteger32Argument(const std::string& name,      
+    uint32_t GetUnsignedInteger32Argument(const std::string& name,
                                           uint32_t defaultValue) const;
-  
+
     virtual bool ParseJsonRequest(Json::Value& result) const ORTHANC_OVERRIDE;
   };
 }

@@ -33,7 +33,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
   ##  $ rm -rf civetweb-1.16/src/third_party/ civetweb-1.16/test/
   ##  $ tar cvfz civetweb-1.16-fixed.tar.gz civetweb-1.16
   ##
-  
+
   set(CIVETWEB_SOURCES_DIR ${CMAKE_BINARY_DIR}/civetweb-1.16)
   set(CIVETWEB_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/civetweb-1.16-fixed.tar.gz")
   set(CIVETWEB_MD5 "038edf77ea37e47def9458e8903cd53d")
@@ -70,7 +70,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
 
   # New in Orthanc 1.6.0: Enable support of compression in civetweb
   set(tmp "USE_ZLIB=1")
-    
+
   if (ENABLE_SSL)
     add_definitions(
       -DNO_SSL_DL=1
@@ -98,7 +98,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
     ${CIVETWEB_SOURCES}
     PROPERTIES COMPILE_DEFINITIONS "${tmp}"
     )
-  
+
   source_group(ThirdParty\\Civetweb REGULAR_EXPRESSION ${CIVETWEB_SOURCES_DIR}/.*)
 
   add_definitions(

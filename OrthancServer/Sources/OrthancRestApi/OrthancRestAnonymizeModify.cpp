@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -69,7 +69,7 @@ namespace Orthanc
 {
   // Modification of DICOM instances ------------------------------------------
 
-  
+
   static std::string GeneratePatientName(ServerContext& context)
   {
     uint64_t seq = context.GetIndex().IncrementGlobalSequence(GlobalProperty_AnonymizationSequence, true /* shared */);
@@ -163,7 +163,7 @@ namespace Orthanc
       OrthancConfiguration::ReaderLock lock;
       target.SetPrivateCreator(lock.GetConfiguration().GetDefaultPrivateCreator());
     }
-    
+
     if (call.ParseJsonRequest(request))
     {
       target.ParseModifyRequest(request);
@@ -185,7 +185,7 @@ namespace Orthanc
       OrthancConfiguration::ReaderLock lock;
       target.SetPrivateCreator(lock.GetConfiguration().GetDefaultPrivateCreator());
     }
-    
+
     if (call.ParseJsonRequest(request) &&
         request.isObject())
     {
@@ -230,7 +230,7 @@ namespace Orthanc
       std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(id));
       modified.reset(dicom->Clone());
     }
-    
+
     modification.Apply(modified);
     modified->Answer(call.GetOutput());
   }
@@ -264,7 +264,7 @@ namespace Orthanc
       lossyQuality = lock.GetConfiguration().GetDicomLossyTranscodingQuality();
     }
 
-    if (request.isMember(LOSSY_QUALITY)) 
+    if (request.isMember(LOSSY_QUALITY))
     {
       lossyQuality = SerializationToolbox::ReadUnsignedInteger(request, LOSSY_QUALITY);
     }
@@ -404,7 +404,7 @@ namespace Orthanc
     {
       job->SetMultipleResourcesModification(modification.release(), isAnonymization);
     }
-    
+
     job->SetOrigin(call);
     SetKeepSource(*job, body);
 
@@ -442,12 +442,12 @@ namespace Orthanc
     // This was the only flavor in Orthanc <= 1.9.3
     std::set<std::string> resources;
     resources.insert(call.GetUriComponent("id", ""));
-    
+
     SubmitModificationJob(modification, isAnonymization, call, body, outputLevel,
                           true /* single resource */, resources);
   }
 
-  
+
   static void SubmitBulkJob(std::unique_ptr<DicomModification>& modification,
                             bool isAnonymization,
                             RestApiPostCall& call,
@@ -469,7 +469,7 @@ namespace Orthanc
     {
       OrthancRestApi::DocumentSubmitCommandsJob(call);
       DocumentModifyOptions(call);
-      const std::string r = GetResourceTypeText(resourceType, false /* plural */, false /* lower case */);      
+      const std::string r = GetResourceTypeText(resourceType, false /* plural */, false /* lower case */);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
         .SetSummary("Modify " + r)
@@ -480,14 +480,14 @@ namespace Orthanc
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest");
       return;
     }
-    
+
     std::unique_ptr<DicomModification> modification(new DicomModification);
 
     Json::Value body;
     ParseModifyRequest(body, *modification, call);
 
     modification->SetLevel(resourceType);
-    
+
     SubmitModificationJob(modification, false /* not an anonymization */,
                           call, body, resourceType);
   }
@@ -515,7 +515,7 @@ namespace Orthanc
         .AddAnswerType(MimeType_Json, "The list of all the resources that have been altered by this modification");
       return;
     }
-    
+
     std::unique_ptr<DicomModification> modification(new DicomModification);
 
     Json::Value body;
@@ -542,7 +542,7 @@ namespace Orthanc
     {
       OrthancRestApi::DocumentSubmitCommandsJob(call);
       DocumentAnonymizationOptions(call);
-      const std::string r = GetResourceTypeText(resourceType, false /* plural */, false /* lower case */);      
+      const std::string r = GetResourceTypeText(resourceType, false /* plural */, false /* lower case */);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
         .SetSummary("Anonymize " + r)
@@ -757,7 +757,7 @@ namespace Orthanc
     catch (OrthancException&)
     {
       // Error: Remove the newly-created series
-      
+
       std::string series;
       if (context.GetIndex().LookupParent(series, someInstance))
       {
@@ -782,7 +782,7 @@ namespace Orthanc
     static const char* const SPECIFIC_CHARACTER_SET_2 = "SpecificCharacterSet";
     static const char* const TYPE = "Type";
     static const char* const VALUE = "Value";
-    
+
     assert(request.isObject());
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -881,7 +881,7 @@ namespace Orthanc
       for (;;)
       {
         DicomTag::AddTagsForModule(moduleTags, GetModule(type));
-      
+
         if (type == ResourceType_Patient)
         {
           break;   // We're done
@@ -1139,7 +1139,7 @@ namespace Orthanc
                          "These instances must all be children of the same source study, that is specified in the URI.", false);
       return;
     }
-    
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value request;
@@ -1151,7 +1151,7 @@ namespace Orthanc
 
     const std::string study = call.GetUriComponent("id", "");
 
-    std::unique_ptr<SplitStudyJob> job(new SplitStudyJob(context, study));    
+    std::unique_ptr<SplitStudyJob> job(new SplitStudyJob(context, study));
     job->SetOrigin(call);
 
     bool ok = false;
@@ -1182,8 +1182,8 @@ namespace Orthanc
     if (!ok)
     {
       throw OrthancException(ErrorCode_BadRequest, "Both the \"Series\" and the \"Instances\" fields are missing");
-    }    
-    
+    }
+
     job->AddTrailingStep();
 
     SetKeepSource(*job, request);
@@ -1220,7 +1220,7 @@ namespace Orthanc
       for (size_t i = 0; i < tags.size(); i++)
       {
         const Json::Value& value = request[REPLACE][tags[i]];
-        
+
         if (value.type() != Json::stringValue)
         {
           throw OrthancException(ErrorCode_BadFileFormat);
@@ -1268,7 +1268,7 @@ namespace Orthanc
 
     const std::string study = call.GetUriComponent("id", "");
 
-    std::unique_ptr<MergeStudyJob> job(new MergeStudyJob(context, study));    
+    std::unique_ptr<MergeStudyJob> job(new MergeStudyJob(context, study));
     job->SetOrigin(call);
 
     std::vector<std::string> resources;
@@ -1286,7 +1286,7 @@ namespace Orthanc
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, request);
   }
-  
+
 
   void OrthancRestApi::RegisterAnonymizeModify()
   {

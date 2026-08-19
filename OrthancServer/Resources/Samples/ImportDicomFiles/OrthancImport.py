@@ -11,7 +11,7 @@
 # modify it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -36,7 +36,7 @@ from requests.auth import HTTPBasicAuth
 
 
 parser = argparse.ArgumentParser(description = 'Command-line tool to import files or archives into Orthanc.')
-parser.add_argument('--url', 
+parser.add_argument('--url',
                     default = 'http://localhost:8042',
                     help = 'URL to the REST API of the Orthanc server')
 parser.add_argument('--username',
@@ -99,7 +99,7 @@ def UploadBuffer(dicom):
     if IsJson(dicom):
         COUNT_JSON += 1
         return
-    
+
     auth = HTTPBasicAuth(args.username, args.password)
     r = requests.post('%s/instances' % args.url, auth = auth, data = dicom)
 
@@ -113,14 +113,14 @@ def UploadBuffer(dicom):
             return
         else:
             raise
-        
+
     info = r.json()
     COUNT_DICOM += 1
 
     if (isinstance(info, dict) and
         not info['ParentStudy'] in IMPORTED_STUDIES):
         IMPORTED_STUDIES.add(info['ParentStudy'])
-        
+
         r2 = requests.get('%s/instances/%s/tags?short' % (args.url, info['ID']),
                           auth = auth)
         r2.raise_for_status()
@@ -145,7 +145,7 @@ def UploadFile(path):
 
         UploadBuffer(dicom)
 
-        
+
 def UploadBzip2(path):
     with bz2.BZ2File(path, 'rb') as f:
         dicom = f.read()
@@ -154,7 +154,7 @@ def UploadBzip2(path):
 
         UploadBuffer(dicom)
 
-        
+
 def UploadGzip(path):
     with gzip.open(path, 'rb') as f:
         dicom = f.read()
@@ -163,7 +163,7 @@ def UploadGzip(path):
 
         UploadBuffer(dicom)
 
-        
+
 def UploadTar(path, decoder):
     if args.verbose:
         print('Uncompressing tar archive: %s' % path)
@@ -179,7 +179,7 @@ def UploadTar(path, decoder):
 
                 UploadBuffer(dicom)
 
-        
+
 def UploadZip(path):
     if args.verbose:
         print('Uncompressing ZIP archive: %s' % path)
@@ -197,11 +197,11 @@ def UploadZip(path):
 
 def DecodeFile(path):
     extension = os.path.splitext(path) [1]
-    
+
     if path.endswith('.tar.bz2'):
         UploadTar(path, 'r:bz2')
     elif path.endswith('.tar.gz'):
-        UploadTar(path, 'r:gz')        
+        UploadTar(path, 'r:gz')
     elif extension == '.zip':
         UploadZip(path)
     elif extension == '.tar':
@@ -212,7 +212,7 @@ def DecodeFile(path):
         UploadGzip(path)
     else:
         UploadFile(path)
-                
+
 
 if args.clear:
     print('Removing the content of Orthanc')
@@ -222,14 +222,14 @@ if args.clear:
     r.raise_for_status()
 
     print('  %d studies are being removed...' % len(r.json()))
-    
+
     for study in r.json():
         requests.delete('%s/studies/%s' % (args.url, study), auth = auth).raise_for_status()
 
     print('Orthanc is now empty')
     print('')
-        
-    
+
+
 for path in args.files:
     if os.path.isfile(path):
         DecodeFile(path)
@@ -239,7 +239,7 @@ for path in args.files:
                 DecodeFile(os.path.join(root, name))
     else:
         raise Exception('Missing file or directory: %s' % path)
-        
+
 
 print('')
 
@@ -247,7 +247,7 @@ if COUNT_ERROR == 0:
     print('SUCCESS:')
 else:
     print('WARNING:')
-    
+
 print('  %d DICOM instances properly imported' % COUNT_DICOM)
 print('  %d DICOM studies properly imported' % len(IMPORTED_STUDIES))
 print('  %d JSON files ignored' % COUNT_JSON)

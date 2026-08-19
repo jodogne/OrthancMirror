@@ -73,9 +73,9 @@ namespace Orthanc
       std::string h = Toolbox::FlattenUri(uri) + "/" + f;
       if (fs::is_directory(it->status()))
         s += "<li><a href=\"" + h + "\">" + f + "</a></li>";
-    }      
+    }
 
-    s += "    </ul>";      
+    s += "    </ul>";
     s += "    <h1>Files</h1>";
     s += "    <ul>";
 
@@ -92,7 +92,7 @@ namespace Orthanc
       {
         s += "<li><a href=\"" + h + "\">" + f + "</a></li>";
       }
-    }      
+    }
 
     s += "    </ul>";
     s += "  </body>";
@@ -109,9 +109,9 @@ namespace Orthanc
     Toolbox::SplitUriComponents(pimpl_->baseUri_, baseUri);
     pimpl_->root_ = root;
     listDirectoryContent_ = false;
-    
+
     namespace fs = boost::filesystem;
-    if (!fs::exists(pimpl_->root_) || 
+    if (!fs::exists(pimpl_->root_) ||
         !fs::is_directory(pimpl_->root_))
     {
       throw OrthancException(ErrorCode_DirectoryExpected);
@@ -158,7 +158,7 @@ namespace Orthanc
       output.Answer(sender);
     }
     else if (listDirectoryContent_ &&
-             fs::exists(p) && 
+             fs::exists(p) &&
              fs::is_directory(p))
     {
       OutputDirectoryContent(output, headers, uri, p);
@@ -169,5 +169,5 @@ namespace Orthanc
     }
 
     return true;
-  } 
+  }
 }

@@ -86,7 +86,7 @@
 /*=========================================================================
   The section below comes from the Boost 1.68.0 project:
   https://github.com/boostorg/program_options/blob/boost-1.68.0/src/parsers.cpp
-  
+
   Copyright Vladimir Prus 2002-2004.
   Distributed under the Boost Software License, Version 1.0.
   (See accompanying file LICENSE_1_0.txt
@@ -94,9 +94,9 @@
   =========================================================================*/
 
 // The 'environ' should be declared in some cases. E.g. Linux man page says:
-// (This variable must be declared in the user program, but is declared in 
-// the header file unistd.h in case the header files came from libc4 or libc5, 
-// and in case they came from glibc and _GNU_SOURCE was defined.) 
+// (This variable must be declared in the user program, but is declared in
+// the header file unistd.h in case the header files came from libc4 or libc5,
+// and in case they came from glibc and _GNU_SOURCE was defined.)
 // To be safe, declare it here.
 
 // It appears that on Mac OS X the 'environ' variable is not
@@ -111,7 +111,7 @@ extern "C"
 {
   extern char ***_NSGetEnviron(void);
 }
-#  define environ (*_NSGetEnviron()) 
+#  define environ (*_NSGetEnviron())
 #else
 #  if defined(__MWERKS__)
 #    include <crtl.h>
@@ -163,7 +163,7 @@ namespace Orthanc
     signal(SIGTERM, SignalHandler);
     signal(SIGHUP, SignalHandler);
 #endif
-  
+
     // Active loop that awakens every 100ms
     finish_ = false;
     barrierEvent_ = ServerBarrierEvent_Stop;
@@ -227,7 +227,7 @@ namespace Orthanc
   {
     if (!IsRegularFile(path))
     {
-      throw OrthancException(ErrorCode_RegularFileExpected, 
+      throw OrthancException(ErrorCode_RegularFileExpected,
                              "Not a regular file or file not found: " + PathToUtf8(path), log);
     }
 
@@ -248,7 +248,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError,
                                "Reading a file that is too large for a 32bit architecture");
       }
-    
+
       if (size != 0)
       {
         f.read(&content[0], size);
@@ -258,12 +258,12 @@ namespace Orthanc
     }
     catch (boost::filesystem::filesystem_error&)
     {
-      throw OrthancException(ErrorCode_InexistentFile, 
+      throw OrthancException(ErrorCode_InexistentFile,
                              "File not found: " + PathToUtf8(path));
     }
     catch (...)  // To catch "std::system_error&" in C++11
     {
-      throw OrthancException(ErrorCode_InexistentFile, 
+      throw OrthancException(ErrorCode_InexistentFile,
                              "File not found: " + PathToUtf8(path));
     }
   }
@@ -275,7 +275,7 @@ namespace Orthanc
   {
     if (!IsRegularFile(path))
     {
-      throw OrthancException(ErrorCode_RegularFileExpected, 
+      throw OrthancException(ErrorCode_RegularFileExpected,
                              "Not a regular file or file not found: " + PathToUtf8(path));
     }
 
@@ -317,19 +317,19 @@ namespace Orthanc
     }
     catch (boost::filesystem::filesystem_error&)
     {
-      throw OrthancException(ErrorCode_InexistentFile, 
+      throw OrthancException(ErrorCode_InexistentFile,
                              "File not found: " + PathToUtf8(path));
     }
     catch (...)  // To catch "std::system_error&" in C++11
     {
-      throw OrthancException(ErrorCode_InexistentFile, 
+      throw OrthancException(ErrorCode_InexistentFile,
                              "File not found: " + PathToUtf8(path));
     }
   }
 
-  
-  void SystemToolbox::WriteFile(const void *content, 
-                                size_t size, 
+
+  void SystemToolbox::WriteFile(const void *content,
+                                size_t size,
                                 const boost::filesystem::path& path,
                                 bool callFsync)
   {
@@ -402,10 +402,10 @@ namespace Orthanc
 
 
   void SystemToolbox::WriteFile(const std::string& content,
-                                const boost::filesystem::path& path) 
-  { 
-    WriteFile(content.size() > 0 ? content.c_str() : NULL, 
-              content.size(), path, false /* don't automatically call fsync */); 
+                                const boost::filesystem::path& path)
+  {
+    WriteFile(content.size() > 0 ? content.c_str() : NULL,
+              content.size(), path, false /* don't automatically call fsync */);
   }
 
 
@@ -419,7 +419,7 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_RegularFileExpected, 
+        throw OrthancException(ErrorCode_RegularFileExpected,
                                "Not a regular file or file not found: " + PathToUtf8(path));
       }
     }
@@ -439,7 +439,7 @@ namespace Orthanc
     }
     catch (...)  // To catch "std::system_error&" in C++11
     {
-      throw OrthancException(ErrorCode_InexistentFile, 
+      throw OrthancException(ErrorCode_InexistentFile,
                              "File not found: " + PathToUtf8(path));
     }
   }
@@ -467,7 +467,7 @@ namespace Orthanc
 
     context.Export(result);
   }
-  
+
 
   void SystemToolbox::ComputeFileMD5(std::string& result,
                                      const boost::filesystem::path& path)
@@ -494,7 +494,7 @@ namespace Orthanc
     else
     {
       std::string path1md5, path2md5;
-    
+
       ComputeFileMD5(path1md5, path1);
       ComputeFileMD5(path2md5, path2);
 
@@ -526,7 +526,7 @@ namespace Orthanc
 #if defined(_WIN32)
   static std::string GetPathToExecutableInternal()
   {
-    // Yes, this is ugly, but there is no simple way to get the 
+    // Yes, this is ugly, but there is no simple way to get the
     // required buffer size, so we use a big constant
     std::vector<char> buffer(32768);
     /*int bytes =*/ GetModuleFileNameA(NULL, &buffer[0], static_cast<DWORD>(buffer.size() - 1));
@@ -570,7 +570,7 @@ namespace Orthanc
     const int mib[4] = { CTL_KERN, KERN_PROC_ARGS, getpid(), KERN_PROC_ARGV };
 
     size_t len;
-    if (sysctl(mib, 4, NULL, &len, NULL, 0) == -1) 
+    if (sysctl(mib, 4, NULL, &len, NULL, 0) == -1)
     {
       throw OrthancException(ErrorCode_PathToExecutable);
     }
@@ -580,7 +580,7 @@ namespace Orthanc
 
     char** buffer = reinterpret_cast<char**>(&tmp[0]);
 
-    if (sysctl(mib, 4, buffer, &len, NULL, 0) == -1) 
+    if (sysctl(mib, 4, buffer, &len, NULL, 0) == -1)
     {
       throw OrthancException(ErrorCode_PathToExecutable);
     }
@@ -817,7 +817,7 @@ namespace Orthanc
     return boost::posix_time::to_iso_string(GetNow(utc));
   }
 
-  
+
   void SystemToolbox::GetNowDicom(std::string& date,
                                   std::string& time,
                                   bool utc)
@@ -834,13 +834,13 @@ namespace Orthanc
     time.assign(s);
   }
 
-  
+
   unsigned int SystemToolbox::GetHardwareConcurrency()
   {
     // Get the number of available hardware threads (e.g. number of
     // CPUs or cores or hyperthreading units)
     unsigned int threads = boost::thread::hardware_concurrency();
-    
+
     if (threads == 0)
     {
       return 1;
@@ -872,7 +872,7 @@ namespace Orthanc
         return false;
     }
   }
-  
+
   bool SystemToolbox::IsContentCompressible(const std::string& contentType)
   {
     if (contentType.empty())
@@ -1023,7 +1023,7 @@ namespace Orthanc
   void SystemToolbox::GetEnvironmentVariables(std::map<std::string, std::string>& env)
   {
     env.clear();
-    
+
     for (char **p = environ; *p != NULL; p++)
     {
       std::string v(*p);
@@ -1034,7 +1034,7 @@ namespace Orthanc
         std::string key = v.substr(0, pos);
         std::string value = v.substr(pos + 1);
         env[key] = value;
-      } 
+      }
     }
   }
 
@@ -1043,7 +1043,7 @@ namespace Orthanc
                                                                const boost::filesystem::path& relativePath)
   {
     /**
-       The following lines should be equivalent to this one: 
+       The following lines should be equivalent to this one:
 
        return (baseDirectory / relativePath);
 
@@ -1063,7 +1063,7 @@ namespace Orthanc
   }
 
 
-  void SystemToolbox::ReadFileRange(std::string& content,                              
+  void SystemToolbox::ReadFileRange(std::string& content,
                                     const boost::filesystem::path& path,
                                     uint64_t start,  // Inclusive
                                     uint64_t end,    // Exclusive
@@ -1073,10 +1073,10 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-    
+
     if (!IsRegularFile(path))
     {
-      throw OrthancException(ErrorCode_RegularFileExpected, 
+      throw OrthancException(ErrorCode_RegularFileExpected,
                              "Not a regular file or file not found: " + PathToUtf8(path));
     }
 
@@ -1131,7 +1131,7 @@ namespace Orthanc
   void SystemToolbox::GetMacAddresses(std::set<std::string>& target)
   {
     target.clear();
-    
+
     // 15Ko is the recommanded size to start with
     std::vector<char> buffer(15 * 1024);
 
@@ -1139,13 +1139,13 @@ namespace Orthanc
     {
       ULONG outBufLen = static_cast<ULONG>(buffer.size());
       DWORD result = GetAdaptersAddresses
-        (AF_UNSPEC, 0, NULL, 
+        (AF_UNSPEC, 0, NULL,
          reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]), &outBufLen);
 
       if (result == NO_ERROR)
       {
         IP_ADAPTER_ADDRESSES* current =
-          reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]); 
+          reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]);
 
         while (current != NULL)
         {
@@ -1170,10 +1170,10 @@ namespace Orthanc
 
           current = current->Next;
         }
-        
+
         return;
-      }     
-      else if (result != ERROR_BUFFER_OVERFLOW || 
+      }
+      else if (result != ERROR_BUFFER_OVERFLOW ||
                iteration >= 3 ||
                outBufLen == 0)
       {
@@ -1270,7 +1270,7 @@ namespace Orthanc
     target.clear();
 
     SocketRaii socket;
-    
+
     if (socket.GetDescriptor() != 1)
     {
       NetworkInterfaces interfaces;
@@ -1316,20 +1316,20 @@ namespace Orthanc
         }
 
         strcpy(ifr.ifr_name, interfaces.GetCurrentName());  // NOLINT(clang-analyzer-security.insecureAPI.strcpy)
-          
+
         if (ioctl(socket.GetDescriptor(), SIOCGIFFLAGS, &ifr) == 0 &&
             !(ifr.ifr_flags & IFF_LOOPBACK) && // ignore loopback interface
             ioctl(socket.GetDescriptor(), SIOCGIFHWADDR, &ifr) == 0)
         {
           const unsigned char* mac = reinterpret_cast<const unsigned char*>(ifr.ifr_hwaddr.sa_data);
-            
+
           char tmp[32];
           sprintf(tmp, "%02x:%02x:%02x:%02x:%02x:%02x",
                   mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
           target.insert(tmp);
         }
 #endif
-        
+
         interfaces.Next();
       }
     }

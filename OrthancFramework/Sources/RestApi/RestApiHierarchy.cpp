@@ -32,10 +32,10 @@
 
 namespace Orthanc
 {
-  RestApiHierarchy::Resource::Resource() : 
-    getHandler_(NULL), 
+  RestApiHierarchy::Resource::Resource() :
+    getHandler_(NULL),
     postHandler_(NULL),
-    putHandler_(NULL), 
+    putHandler_(NULL),
     deleteHandler_(NULL)
   {
   }
@@ -259,7 +259,7 @@ namespace Orthanc
         if (child->second->LookupResource(subComponents, uri, visitor, level + 1))
         {
           return true;
-        }        
+        }
       }
     }
 
@@ -327,7 +327,7 @@ namespace Orthanc
       }
     }
 
-    for (child = wildcardChildren_.begin(); 
+    for (child = wildcardChildren_.begin();
          child != wildcardChildren_.end(); ++child)
     {
       if (child->second->GetDirectory(result, uri, level + 1))
@@ -338,7 +338,7 @@ namespace Orthanc
 
     return false;
   }
-                       
+
 
   RestApiHierarchy::~RestApiHierarchy()
   {
@@ -400,13 +400,13 @@ namespace Orthanc
       }
 
       target = s;*/
-      
+
     for (Children::const_iterator it = children_.begin();
          it != children_.end(); ++it)
     {
       it->second->CreateSiteMap(target[it->first]);
     }
-      
+
     for (Children::const_iterator it = wildcardChildren_.begin();
          it != wildcardChildren_.end(); ++it)
     {
@@ -425,7 +425,7 @@ namespace Orthanc
   {
     HttpToolbox::Arguments components;
     return LookupResource(components, uri, visitor, 0);
-  }    
+  }
 
 
 
@@ -503,7 +503,7 @@ namespace Orthanc
     {
       args[*it] = "";
     }
-    
+
     if (!handlers_.IsEmpty())
     {
       visitor.Visit(handlers_, path, false, args, UriComponents());
@@ -513,7 +513,7 @@ namespace Orthanc
     {
       visitor.Visit(handlersWithTrailing_, path, true, args, UriComponents());
     }
-    
+
     for (Children::const_iterator
            it = children_.begin(); it != children_.end(); ++it)
     {
@@ -522,7 +522,7 @@ namespace Orthanc
       c.push_back(it->first);
       it->second->ExploreAllResources(visitor, c, uriArguments);
     }
-    
+
     for (Children::const_iterator
            it = wildcardChildren_.begin(); it != wildcardChildren_.end(); ++it)
     {
@@ -533,7 +533,7 @@ namespace Orthanc
 
       std::set<std::string> d = uriArguments;
       d.insert(it->first);
-      
+
       assert(it->second != NULL);
       UriComponents c = path;
       c.push_back("{" + it->first + "}");

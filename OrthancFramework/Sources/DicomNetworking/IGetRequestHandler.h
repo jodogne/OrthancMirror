@@ -44,18 +44,18 @@ namespace Orthanc
                         const std::string& originatorAet,
                         const std::string& calledAet,
                         uint32_t timeout) = 0;
-    
+
     virtual unsigned int GetSubOperationCount() const = 0;
 
     // Must return "false" iff. a "Cancel" was returned by the remote SCU
     virtual bool DoNext(T_ASC_Association *) = 0;
-    
+
     virtual unsigned int GetCompletedCount() const = 0;
-    
+
     virtual unsigned int GetWarningCount() const = 0;
-    
+
     virtual unsigned int GetFailedCount() const = 0;
-    
+
     virtual const std::string& GetFailedUids() const = 0;
   };
 }

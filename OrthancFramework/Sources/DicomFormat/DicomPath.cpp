@@ -50,7 +50,7 @@ namespace Orthanc
     index_(index)
   {
   }
-      
+
 
   size_t DicomPath::PrefixItem::GetIndex() const
   {
@@ -64,7 +64,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void DicomPath::PrefixItem::SetIndex(size_t index)
   {
     isUniversal_ = false;
@@ -75,7 +75,7 @@ namespace Orthanc
   DicomTag DicomPath::ParseTag(const std::string& token)
   {
     DicomTag tag(0,0);
-            
+
     if (token[0] == '(' &&
         token[token.size() - 1] == ')')
     {
@@ -128,7 +128,7 @@ namespace Orthanc
     AddIndexedTagToPrefix(sequence, index);
   }
 
-  
+
   DicomPath::DicomPath(const Orthanc::DicomTag& sequence1,
                        size_t index1,
                        const Orthanc::DicomTag& sequence2,
@@ -171,7 +171,7 @@ namespace Orthanc
 
       for (size_t i = 0; i < parentTags.size(); i++)
       {
-        prefix_.push_back(PrefixItem::CreateIndexed(parentTags[i], parentIndexes[i]));        
+        prefix_.push_back(PrefixItem::CreateIndexed(parentTags[i], parentIndexes[i]));
       }
     }
   }
@@ -188,31 +188,31 @@ namespace Orthanc
   {
     prefix_.push_back(PrefixItem::CreateUniversal(tag));
   }
-  
+
 
   size_t DicomPath::GetPrefixLength() const
   {
     return prefix_.size();
   }
-  
+
 
   const Orthanc::DicomTag& DicomPath::GetFinalTag() const
   {
     return finalTag_;
   }
 
-  
+
   const Orthanc::DicomTag& DicomPath::GetPrefixTag(size_t level) const
   {
     return GetLevel(level).GetTag();
   }
 
-  
+
   bool DicomPath::IsPrefixUniversal(size_t level) const
   {
     return GetLevel(level).IsUniversal();
   }
-  
+
 
   size_t DicomPath::GetPrefixIndex(size_t level) const
   {
@@ -269,7 +269,7 @@ namespace Orthanc
     return s + "(" + finalTag_.Format() + ")";
   }
 
-  
+
   DicomPath DicomPath::Parse(const std::string& s)
   {
     std::vector<std::string> tokens;
@@ -299,7 +299,7 @@ namespace Orthanc
         if (left.empty())
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange, "Parent path doesn't contain a tag");
-        }            
+        }
         else if (right.empty() ||
                  right[right.size() - 1] != ']')
         {
@@ -385,7 +385,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-    
+
     if (prefixTags.size() < pattern.GetPrefixLength())
     {
       return false;
@@ -411,5 +411,5 @@ namespace Orthanc
         return (prefixTags[pattern.GetPrefixLength()] == pattern.GetFinalTag());
       }
     }
-  }    
+  }
 }

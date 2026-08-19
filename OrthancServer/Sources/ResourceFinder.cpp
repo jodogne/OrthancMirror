@@ -297,7 +297,7 @@ namespace Orthanc
         {
           uint32_t expectedNumberOfInstances;
           SeriesStatus status = GetSeriesStatus(expectedNumberOfInstances, resource);
-          
+
           if (responseContent_ & ResponseContentFlags_Status )
           {
             target["Status"] = EnumerationToString(status);
@@ -466,7 +466,7 @@ namespace Orthanc
 
       for (std::map<FileContentType, FileInfo>::const_iterator it = attachments.begin(); it != attachments.end(); ++it)
       {
-        Json::Value attachment = Json::objectValue;    
+        Json::Value attachment = Json::objectValue;
         attachment["Uuid"] = it->second.GetUuid();
         attachment["ContentType"] = it->second.GetContentType();
         attachment["UncompressedSize"] = Json::Value::UInt64(it->second.GetUncompressedSize());
@@ -585,13 +585,13 @@ namespace Orthanc
     {
       case ResourceType_Patient:
         request_.GetChildrenSpecification(ResourceType_Study).SetRetrieveIdentifiers(responseContent_ & ResponseContentFlags_Children);
-        request_.SetRetrieveAttachments(responseContent_ & ResponseContentFlags_Attachments); 
+        request_.SetRetrieveAttachments(responseContent_ & ResponseContentFlags_Attachments);
         break;
 
       case ResourceType_Study:
         request_.GetChildrenSpecification(ResourceType_Series).SetRetrieveIdentifiers(responseContent_ & ResponseContentFlags_Children);
         request_.SetRetrieveParentIdentifier(responseContent_ & ResponseContentFlags_Parent);
-        request_.SetRetrieveAttachments(responseContent_ & ResponseContentFlags_Attachments); 
+        request_.SetRetrieveAttachments(responseContent_ & ResponseContentFlags_Attachments);
         break;
 
       case ResourceType_Series:
@@ -601,12 +601,12 @@ namespace Orthanc
         }
         request_.GetChildrenSpecification(ResourceType_Instance).SetRetrieveIdentifiers(responseContent_ & ResponseContentFlags_Children);
         request_.SetRetrieveParentIdentifier(responseContent_ & ResponseContentFlags_Parent);
-        request_.SetRetrieveAttachments(responseContent_ & ResponseContentFlags_Attachments); 
+        request_.SetRetrieveAttachments(responseContent_ & ResponseContentFlags_Attachments);
         break;
 
       case ResourceType_Instance:
         request_.SetRetrieveAttachments((responseContent_ & ResponseContentFlags_AttachmentsLegacy) // for FileSize & FileUuid
-                                        || (responseContent_ & ResponseContentFlags_Attachments)); 
+                                        || (responseContent_ & ResponseContentFlags_Attachments));
         request_.SetRetrieveParentIdentifier(true);
         break;
 
@@ -852,7 +852,7 @@ namespace Orthanc
     {
       // This is neither a main DICOM tag, nor a computed DICOM tag:
       // We might need to access a DICOM file or the MainDicomSequences metadata
-      
+
       request_.SetRetrieveMetadata(true);
 
       if (request_.GetLevel() != ResourceType_Instance)
@@ -889,9 +889,9 @@ namespace Orthanc
       if (resource.GetMetadata(level).size() > 0)
       {
         GetMainDicomSequencesFromMetadata(m, resource, level);        // read DicomSequences from metadata
-      
+
         // check which tags have been saved in DB; that's the way to know if they are missing because they were not saved or because they have no value
-        
+
         std::string signature = DicomMap::GetDefaultMainDicomTagsSignatureFrom1_11(level); // default signature in case it's not in the metadata (= the signature for 1.11.0)
         if (resource.LookupMetadata(signature, level, MetadataType_MainDicomTagsSignature))
         {
@@ -1157,14 +1157,14 @@ namespace Orthanc
         // if SOPClassUID has been requested, we might still find it at metadata level (useful e.g. for StoneViewer)
         std::string sopClassUidFromMetadata;
         if (resource.GetLevel() == ResourceType_Instance &&
-            remainingRequestedTags.find(DICOM_TAG_SOP_CLASS_UID) != remainingRequestedTags.end() && 
+            remainingRequestedTags.find(DICOM_TAG_SOP_CLASS_UID) != remainingRequestedTags.end() &&
             resource.LookupMetadata(sopClassUidFromMetadata, ResourceType_Instance, MetadataType_Instance_SopClassUid))
         {
           outRequestedTags.SetValue(DICOM_TAG_SOP_CLASS_UID, sopClassUidFromMetadata, false);
           remainingRequestedTags.erase(DICOM_TAG_SOP_CLASS_UID);
         }
 
-        if (!remainingRequestedTags.empty() && 
+        if (!remainingRequestedTags.empty() &&
             !DicomMap::HasOnlyComputedTags(remainingRequestedTags)) // if the only remaining tags are computed tags, it is worthless to read them from disk
         {
           // If a lookup tag is not available from DB, it is included in remainingRequestedTags and it will always be included in the answer too
@@ -1192,7 +1192,7 @@ namespace Orthanc
                        << "/" << resource.GetIdentifier()
                        << "/reconstruct to update the list of tags saved in DB or run the Housekeeper plugin.  Some MainDicomTags might be missing from this answer.";
         }
-        else if (isWarning004Enabled && 
+        else if (isWarning004Enabled &&
                  request_.IsRetrieveMetadata() &&
                  !resource.LookupMetadata(mainDicomTagsSignature, resource.GetLevel(), MetadataType_MainDicomTagsSignature))
         {

@@ -37,8 +37,8 @@ namespace Orthanc
   {
     return Type_String;
   }
-    
-  IJobOperationValue* StringOperationValue::Clone() const 
+
+  IJobOperationValue* StringOperationValue::Clone() const
   {
     return new StringOperationValue(content_);
   }
@@ -48,7 +48,7 @@ namespace Orthanc
     return content_;
   }
 
-  void StringOperationValue::Serialize(Json::Value& target) const 
+  void StringOperationValue::Serialize(Json::Value& target) const
   {
     target = Json::objectValue;
     target["Type"] = "String";

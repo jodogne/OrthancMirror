@@ -149,7 +149,7 @@ namespace Orthanc
       // No instances to handle: We're done
       return JobStepResult::Success();
     }
-    
+
     try
     {
       if (currentStep_ == ThreadedJobStep_NotStarted)
@@ -268,7 +268,7 @@ namespace Orthanc
       }
 
       bool processed = false;
-      
+
       try
       {
         processed = that->HandleInstance(instanceId->GetValue());
@@ -297,12 +297,12 @@ namespace Orthanc
 
       {
         boost::recursive_mutex::scoped_lock lock(that->mutex_);
-        
+
         that->processedInstances_.insert(instanceId->GetValue());
 
         if (!processed)
         {
-          that->failedInstances_.insert(instanceId->GetValue()); 
+          that->failedInstances_.insert(instanceId->GetValue());
         }
       }
 
@@ -313,7 +313,7 @@ namespace Orthanc
   size_t ThreadedSetOfInstancesJob::GetInstancesCount() const
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
-    
+
     return instancesToProcess_.size();
   }
 
@@ -429,14 +429,14 @@ namespace Orthanc
     std::string type;
     GetJobType(type);
     target[KEY_TYPE] = type;
-    
+
     target[KEY_PERMISSIVE] = permissive_;
     target[KEY_USER_DATA] = userData_;
     target[KEY_CURRENT_STEP] = static_cast<unsigned int>(currentStep_);
     target[KEY_DESCRIPTION] = description_;
     target[KEY_KEEP_SOURCE] = keepSource_;
     target[KEY_WORKERS_COUNT] = static_cast<unsigned int>(workersCount_);
-    
+
     SerializationToolbox::WriteSetOfStrings(target, instancesToProcess_, KEY_INSTANCES);
     SerializationToolbox::WriteSetOfStrings(target, failedInstances_, KEY_FAILED_INSTANCES);
     SerializeResources(target, parentResources_, false);
@@ -485,7 +485,7 @@ namespace Orthanc
     {
       SerializationToolbox::ReadMapOfResourcesAndTypes(parentResources_, source, KEY_RESOURCES);
     }
-    
+
     if (source.isMember(KEY_KEEP_SOURCE))
     {
       keepSource_ = SerializationToolbox::ReadBoolean(source, KEY_KEEP_SOURCE);
@@ -550,7 +550,7 @@ namespace Orthanc
     {
       size_t totalProgress = GetInstancesCount();
       size_t currentProgress = processedInstances_.size();
-      
+
       if (HasPostProcessingStep())
       {
         ++totalProgress;

@@ -48,7 +48,7 @@ namespace Orthanc
       BinaryMode_InlineBinary,
       BinaryMode_ArrayOfValues  // New in Orthanc 1.13.0
     };
-    
+
     class IBinaryFormatter : public boost::noncopyable
     {
     public:
@@ -62,13 +62,13 @@ namespace Orthanc
                                 const DicomTag& tag,
                                 ValueRepresentation vr) = 0;
     };
-    
+
   private:
     Json::Value        result_;
     IBinaryFormatter  *formatter_;
 
     static std::string FormatTag(const DicomTag& tag);
-    
+
     Json::Value& CreateNode(const std::vector<DicomTag>& parentTags,
                             const std::vector<size_t>& parentIndexes,
                             const DicomTag& tag);
@@ -86,7 +86,7 @@ namespace Orthanc
     DicomWebJsonVisitor();
 
     void SetFormatter(IBinaryFormatter& formatter);
-    
+
     void Clear();
 
     const Json::Value& GetResult() const;

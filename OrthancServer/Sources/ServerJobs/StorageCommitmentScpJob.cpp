@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -55,7 +55,7 @@ namespace Orthanc
     virtual CommandType GetType() const = 0;
   };
 
-  
+
   class StorageCommitmentScpJob::SetupCommand : public StorageCommitmentCommand
   {
   private:
@@ -71,7 +71,7 @@ namespace Orthanc
     {
       return CommandType_Setup;
     }
-    
+
     virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
     {
       that_.Setup(jobId);
@@ -108,7 +108,7 @@ namespace Orthanc
     {
       return CommandType_Lookup;
     }
-    
+
     virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
     {
       failureReason_ = that_.Lookup(index_);
@@ -141,7 +141,7 @@ namespace Orthanc
     }
   };
 
-  
+
   class StorageCommitmentScpJob::AnswerCommand : public StorageCommitmentCommand
   {
   private:
@@ -165,7 +165,7 @@ namespace Orthanc
     {
       return CommandType_Answer;
     }
-    
+
     virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
     {
       that_.Answer();
@@ -178,7 +178,7 @@ namespace Orthanc
       target[TYPE] = ANSWER;
     }
   };
-    
+
 
   class StorageCommitmentScpJob::Unserializer : public SetOfCommandsJob::ICommandUnserializer
   {
@@ -223,11 +223,11 @@ namespace Orthanc
     {
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
-    
+
     for (size_t i = 0; i < n; i++)
     {
       const CommandType type = dynamic_cast<const StorageCommitmentCommand&>(GetCommand(i)).GetType();
-      
+
       if ((i == 0 && type != CommandType_Setup) ||
           (i >= 1 && i < n - 1 && type != CommandType_Lookup) ||
           (i == n - 1 && type != CommandType_Answer))
@@ -245,7 +245,7 @@ namespace Orthanc
       }
     }
   }
-    
+
 
   void StorageCommitmentScpJob::Setup(const std::string& jobId)
   {
@@ -277,7 +277,7 @@ namespace Orthanc
       bool success = false;
       StorageCommitmentFailureReason reason =
         StorageCommitmentFailureReason_NoSuchObjectInstance /* 0x0112 == 274 */;
-      
+
       try
       {
         std::vector<std::string> orthancId;
@@ -321,10 +321,10 @@ namespace Orthanc
       return reason;
     }
   }
-  
-  
+
+
   void StorageCommitmentScpJob::Answer()
-  {   
+  {
     CheckInvariants();
     LOG(INFO) << "  Storage commitment SCP job: Sending answer";
 
@@ -346,7 +346,7 @@ namespace Orthanc
     DicomAssociation::ReportStorageCommitment(
       parameters, transactionUid_, sopClassUids_, sopInstanceUids_, failureReasons);
   }
-    
+
 
   StorageCommitmentScpJob::StorageCommitmentScpJob(ServerContext& context,
                                                    const std::string& transactionUid,
@@ -367,7 +367,7 @@ namespace Orthanc
 
     AddCommand(new SetupCommand(*this));
   }
-    
+
 
   void StorageCommitmentScpJob::Reserve(size_t size)
   {
@@ -383,7 +383,7 @@ namespace Orthanc
       sopInstanceUids_.reserve(size);
     }
   }
-    
+
 
   void StorageCommitmentScpJob::AddInstance(const std::string& sopClassUid,
                                             const std::string& sopInstanceUid)
@@ -400,7 +400,7 @@ namespace Orthanc
       sopInstanceUids_.push_back(sopInstanceUid);
     }
   }
-    
+
 
   void StorageCommitmentScpJob::MarkAsReady()
   {
@@ -411,7 +411,7 @@ namespace Orthanc
   void StorageCommitmentScpJob::GetPublicContent(Json::Value& value) const
   {
     SetOfCommandsJob::GetPublicContent(value);
-      
+
     value["CalledAet"] = connection_->GetCalledAet();
     value["RemoteAet"] = connection_->GetRemoteAet();
     value["RemoteIp"] = connection_->GetRemoteIp();
@@ -437,7 +437,7 @@ namespace Orthanc
       std::string remoteAet = SerializationToolbox::ReadString(serialized[REMOTE_MODALITY], "AET");
       std::string remoteIp = SerializationToolbox::ReadString(serialized[REMOTE_MODALITY], "Host");
       connection_.reset(new DicomConnectionInfo(remoteIp, remoteAet, calledAet));
-    } 
+    }
 
     if (connection_.get() == NULL)
     {
@@ -456,7 +456,7 @@ namespace Orthanc
     SerializationToolbox::ReadArrayOfStrings(sopClassUids_, serialized, SOP_CLASS_UIDS);
     SerializationToolbox::ReadArrayOfStrings(sopInstanceUids_, serialized, SOP_INSTANCE_UIDS);
   }
-  
+
 
   bool StorageCommitmentScpJob::Serialize(Json::Value& target) const
   {

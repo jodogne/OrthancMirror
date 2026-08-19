@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -38,14 +38,14 @@
 
 namespace Orthanc
 {
-  static const DicomTag PATIENT_IDENTIFIERS[] = 
+  static const DicomTag PATIENT_IDENTIFIERS[] =
   {
     DICOM_TAG_PATIENT_ID,
     DICOM_TAG_PATIENT_NAME,
     DICOM_TAG_PATIENT_BIRTH_DATE
   };
 
-  static const DicomTag STUDY_IDENTIFIERS[] = 
+  static const DicomTag STUDY_IDENTIFIERS[] =
   {
     DICOM_TAG_PATIENT_ID,
     DICOM_TAG_PATIENT_NAME,
@@ -56,12 +56,12 @@ namespace Orthanc
     DICOM_TAG_STUDY_DATE
   };
 
-  static const DicomTag SERIES_IDENTIFIERS[] = 
+  static const DicomTag SERIES_IDENTIFIERS[] =
   {
     DICOM_TAG_SERIES_INSTANCE_UID
   };
 
-  static const DicomTag INSTANCE_IDENTIFIERS[] = 
+  static const DicomTag INSTANCE_IDENTIFIERS[] =
   {
     DICOM_TAG_SOP_INSTANCE_UID
   };
@@ -90,7 +90,7 @@ namespace Orthanc
         }
 
         resource = children.front();
-        type = GetChildResourceType(type);    
+        type = GetChildResourceType(type);
       }
     }
 
@@ -306,7 +306,7 @@ namespace Orthanc
       return false;
     }
 
-    
+
     void ReconstructResource(ServerContext& context,
                              const std::string& resource,
                              bool reconstructFiles,
@@ -314,7 +314,7 @@ namespace Orthanc
                              ResourceType limitToLevel)
     {
       LOG(WARNING) << "Reconstructing resource " << resource;
-      
+
       std::list<std::string> instances;
       context.GetIndex().GetChildInstances(instances, resource);
 
@@ -328,7 +328,7 @@ namespace Orthanc
       }
       else
       {
-        for (std::list<std::string>::const_iterator 
+        for (std::list<std::string>::const_iterator
               it = instances.begin(); it != instances.end(); ++it)
         {
           std::unique_ptr<DicomDataSource::Dicom> dicom(context.ReadParsedDicom(*it));
@@ -337,7 +337,7 @@ namespace Orthanc
           // Delay the reconstruction of DICOM-as-JSON to its next access through "ServerContext"
           context.GetIndex().DeleteAttachment(*it, FileContentType_DicomAsJson, false /* no revision */,
                                               -1 /* dummy revision */, "" /* dummy MD5 */);
-          
+
           context.GetIndex().ReconstructInstance(lock.GetContent(), false, ResourceType_Instance /* dummy */);
 
           if (reconstructFiles)
@@ -355,7 +355,7 @@ namespace Orthanc
       }
     }
 
-    
+
     bool IsValidLabel(const std::string& label)
     {
       if (label.empty())
@@ -369,7 +369,7 @@ namespace Orthanc
         // column of undefined length as a primary key
         return false;
       }
-      
+
       for (size_t i = 0; i < label.size(); i++)
       {
         if (!(label[i] == '_' ||

@@ -35,7 +35,7 @@
 namespace Orthanc
 {
   RestApiOutput::RestApiOutput(HttpOutput& output,
-                               HttpMethod method) : 
+                               HttpMethod method) :
     output_(output),
     method_(method),
     convertJsonToXml_(false)
@@ -61,7 +61,7 @@ namespace Orthanc
       }
     }
   }
-  
+
   void RestApiOutput::CheckStatus()
   {
     if (alreadySent_)
@@ -108,7 +108,7 @@ namespace Orthanc
     {
       std::string s;
       Toolbox::WriteStyledJson(s, value);
-      output_.SetContentType(MIME_JSON_UTF8);      
+      output_.SetContentType(MIME_JSON_UTF8);
       output_.Answer(s);
     }
 
@@ -140,7 +140,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_BadFileFormat,
                                "The REST API tries and answers with an invalid JSON file");
-      } 
+      }
     }
     else
     {
@@ -189,7 +189,7 @@ namespace Orthanc
 
     CheckStatus();
     output_.SendStatus(status, message, messageSize);
-    alreadySent_ = true;    
+    alreadySent_ = true;
   }
 
   void RestApiOutput::SignalError(HttpStatus status)

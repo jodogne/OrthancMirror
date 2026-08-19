@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -242,8 +242,8 @@ TEST(DicomMap, DicomAsJson)
 
     ASSERT_TRUE(dataset.insert(sequence.release(), false, false).good());
   }
-  
-                          
+
+
   // Check re-encoding
   DcmElement* element = NULL;
   ASSERT_TRUE(dataset.findAndGetElement(DCM_StudyDescription, element).good() &&
@@ -264,16 +264,16 @@ TEST(DicomMap, DicomAsJson)
 
   Json::Value dicomAsJson;
   OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, toStore->GetParsedDicomFile());
-  
+
   { // without parsing sequences
     DicomMap m;
     m.FromDicomAsJson(dicomAsJson);
 
     ASSERT_EQ("ISO_IR 100", m.GetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET).GetContent());
-    
+
     ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).IsBinary());
     ASSERT_EQ("Hello", m.GetValue(DICOM_TAG_PATIENT_NAME).GetContent());
-    
+
     ASSERT_FALSE(m.GetValue(DICOM_TAG_STUDY_DESCRIPTION).IsBinary());
     ASSERT_EQ(utf8, m.GetValue(DICOM_TAG_STUDY_DESCRIPTION).GetContent());
 
@@ -298,8 +298,8 @@ TEST(DicomMap, DicomAsJson)
     DicomArray a(m);
     ASSERT_EQ(6u, a.GetSize());
 
-    
-    //dicom.SaveToFile("/tmp/test.dcm"); 
+
+    //dicom.SaveToFile("/tmp/test.dcm");
     //std::cout << toStore.GetJson() << std::endl;
     //a.Print(stdout);
   }
@@ -341,7 +341,7 @@ namespace Orthanc
       a.append(b);
     }
   }
-  
+
   TEST(FromDcmtkBridge, FromJson)
   {
     std::unique_ptr<DcmElement> element;
@@ -415,7 +415,7 @@ namespace Orthanc
                                        DicomToJsonFlags_Default, 0, Encoding_Ascii, false, ignoreTagLength, 0);
         ASSERT_EQ(Json::arrayValue, b["0008,1110"].type());
         ASSERT_EQ(2u, b["0008,1110"].size());
-      
+
         Json::Value::ArrayIndex i = (b["0008,1110"][0]["0010,0010"].asString() == "Hello") ? 0 : 1;
 
         ASSERT_EQ(3u, b["0008,1110"][i].size());

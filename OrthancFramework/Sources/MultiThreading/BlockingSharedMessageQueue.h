@@ -58,7 +58,7 @@ namespace Orthanc
 
   public:
     explicit BlockingSharedMessageQueue(unsigned int maxSize = 0);
-    
+
     ~BlockingSharedMessageQueue();
 
     // This transfers the ownership of the message only if it is

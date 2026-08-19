@@ -92,7 +92,7 @@ MultitenantDicomServer::MultitenantDicomServer(const Json::Value& serverConfig)
     labelsStoreLevels_.insert(Orthanc::ResourceType_Series);
     labelsStoreLevels_.insert(Orthanc::ResourceType_Instance);
   }
-  
+
   server_.reset(new Orthanc::DicomServer("MULTI-DCM-SERVER", "MULTI-DCM"));
 
   {

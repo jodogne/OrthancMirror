@@ -68,7 +68,7 @@ namespace Orthanc
     ServerContext&          context_;
     bool                    keepSource_;
     ErrorCode               errorCode_;
-  
+
   protected:
     mutable boost::recursive_mutex      mutex_;
     std::map<std::string, ResourceType> parentResources_;
@@ -136,9 +136,9 @@ namespace Orthanc
     void SetPermissive(bool permissive);
 
     virtual void Reset() ORTHANC_OVERRIDE;
-    
+
     virtual void Start() ORTHANC_OVERRIDE;
-    
+
     virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
 
     virtual float GetProgress() const ORTHANC_OVERRIDE;
@@ -146,9 +146,9 @@ namespace Orthanc
     bool IsStarted() const;
 
     virtual JobStepResult Step(const std::string& jobId) ORTHANC_OVERRIDE;
-    
+
     virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;
-    
+
     virtual bool Serialize(Json::Value& target) const ORTHANC_OVERRIDE;
 
     virtual bool GetOutput(std::string& output,

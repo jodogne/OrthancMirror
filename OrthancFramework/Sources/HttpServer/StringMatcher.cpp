@@ -59,7 +59,7 @@ namespace Orthanc
 #endif
     }
   };
-    
+
 
   StringMatcher::StringMatcher(const std::string& pattern) :
     pattern_(pattern),
@@ -81,7 +81,7 @@ namespace Orthanc
   {
     return valid_;
   }
-  
+
 
   bool StringMatcher::Apply(Iterator start,
                             Iterator end)

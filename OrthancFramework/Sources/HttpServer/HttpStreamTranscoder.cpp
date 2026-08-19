@@ -41,7 +41,7 @@ namespace Orthanc
     {
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
-    
+
     uint64_t size = source_.GetContentLength();
     if (static_cast<uint64_t>(static_cast<size_t>(size)) != size)
     {
@@ -212,7 +212,7 @@ namespace Orthanc
       else if (s == remaining)
       {
         // We have skipped enough bytes, but we must read a new chunk
-        currentChunkOffset_ = 0;            
+        currentChunkOffset_ = 0;
         skipped_ = bytesToSkip_;
         return source_.ReadNextChunk();
       }

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -36,7 +36,7 @@
 #include "ServerContext.h"
 #include "ServerToolbox.h"
 
-#include <boost/regex.hpp> 
+#include <boost/regex.hpp>
 
 
 namespace Orthanc
@@ -116,7 +116,7 @@ namespace Orthanc
                                                  const DicomConnectionInfo& connection)
   {
     static const char* LUA_CALLBACK = "IncomingFindRequestFilter";
-    
+
     LuaScripting::Lock lock(context_.GetLuaScripting());
 
     if (!lock.GetLua().IsExistingFunction(LUA_CALLBACK))
@@ -387,7 +387,7 @@ namespace Orthanc
       // remove tags that are not used for matching
       if (tag == DICOM_TAG_QUERY_RETRIEVE_LEVEL ||
           tag == DICOM_TAG_SPECIFIC_CHARACTER_SET ||
-          tag == DICOM_TAG_TIMEZONE_OFFSET_FROM_UTC)  // time zone is not directly used for matching.  Once we support "Timezone query adjustment", we may use it to adjust date-time filters but for now, just ignore it 
+          tag == DICOM_TAG_TIMEZONE_OFFSET_FROM_UTC)  // time zone is not directly used for matching.  Once we support "Timezone query adjustment", we may use it to adjust date-time filters but for now, just ignore it
       {
         continue;
       }
@@ -430,7 +430,7 @@ namespace Orthanc
       }
       else
       {
-        CLOG(INFO, DICOM) << "Because of a patch for the manufacturer of the remote modality, " 
+        CLOG(INFO, DICOM) << "Because of a patch for the manufacturer of the remote modality, "
                           << "ignoring constraint on tag (" << tag.Format() << ") "
                           << FromDcmtkBridge::GetTagName(element);
       }

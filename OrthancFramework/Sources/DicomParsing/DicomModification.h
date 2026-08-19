@@ -52,7 +52,7 @@ namespace Orthanc
       virtual bool Apply(std::string& target,
                          const std::string& sourceIdentifier,
                          ResourceType level,
-                         const DicomMap& sourceDicom) = 0;                       
+                         const DicomMap& sourceDicom) = 0;
     };
 
     class ORTHANC_PUBLIC IDicomModifier : public boost::noncopyable
@@ -131,7 +131,7 @@ namespace Orthanc
         return value_;
       }
     };
-    
+
     typedef std::set<DicomTag>                SetOfTags;
     typedef std::map<DicomTag, Json::Value*>  Replacements;
     typedef std::list<DicomTagRange>          RemovedRanges;
@@ -139,7 +139,7 @@ namespace Orthanc
     typedef std::list<SequenceReplacement*>   SequenceReplacements;
 
     typedef std::map< std::pair<ResourceType, std::string>, std::string>  UidMap;
-    
+
     SetOfTags removals_;
     SetOfTags clearings_;
     SetOfTags keep_;

@@ -68,7 +68,7 @@ namespace Orthanc
     LeastRecentlyUsedIndex<std::string, Item*>  content_;
 
     void Recycle(size_t targetSize);
-    
+
   public:
     MemoryObjectCache();
 
@@ -95,7 +95,7 @@ namespace Orthanc
       WriterLock                 writerLock_;
       boost::mutex::scoped_lock  cacheLock_;
 #endif
-      
+
       Item*  item_;
 
     public:

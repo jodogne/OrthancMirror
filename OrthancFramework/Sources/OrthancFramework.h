@@ -76,7 +76,7 @@ namespace Orthanc
 {
   ORTHANC_PUBLIC void InitializeFramework(const std::string& locale,
                                           bool loadPrivateDictionary);
-  
+
   ORTHANC_PUBLIC void FinalizeFramework();
 }
 

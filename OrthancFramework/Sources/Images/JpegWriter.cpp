@@ -92,12 +92,12 @@ namespace Orthanc
     // https://github.com/simonfuhrmann/mve/issues/371
     jpeg_set_quality(&cinfo, quality, static_cast<boolean>(true));
     jpeg_start_compress(&cinfo, static_cast<boolean>(true));
-    
+
     jpeg_write_scanlines(&cinfo, &lines[0], height);
     jpeg_finish_compress(&cinfo);
     jpeg_destroy_compress(&cinfo);
   }
-                       
+
 
   JpegWriter::JpegWriter() : quality_(90)
   {
@@ -138,7 +138,7 @@ namespace Orthanc
     Internals::JpegErrorManager jerr;
     cinfo.err = jerr.GetPublic();
 
-    if (setjmp(jerr.GetJumpBuffer())) 
+    if (setjmp(jerr.GetJumpBuffer()))
     {
       /* If we get here, the JPEG code has signaled an error.
        * We need to clean up the JPEG object, close the input file, and return.
@@ -190,7 +190,7 @@ namespace Orthanc
     size_t size;
 #endif
 
-    if (setjmp(jerr.GetJumpBuffer())) 
+    if (setjmp(jerr.GetJumpBuffer()))
     {
       jpeg_destroy_compress(&cinfo);
 

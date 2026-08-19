@@ -594,7 +594,7 @@ namespace Orthanc
 
       case ResourceType_Instance:
         return "Instance";
-      
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -710,16 +710,16 @@ namespace Orthanc
         return "YBR_FULL_422";
 
       case PhotometricInterpretation_YBRPartial420:
-        return "YBR_PARTIAL_420"; 
+        return "YBR_PARTIAL_420";
 
       case PhotometricInterpretation_YBRPartial422:
-        return "YBR_PARTIAL_422"; 
+        return "YBR_PARTIAL_422";
 
       case PhotometricInterpretation_YBR_ICT:
-        return "YBR_ICT"; 
+        return "YBR_ICT";
 
       case PhotometricInterpretation_YBR_RCT:
-        return "YBR_RCT"; 
+        return "YBR_RCT";
 
       case PhotometricInterpretation_Unknown:
         return "Unknown";
@@ -813,13 +813,13 @@ namespace Orthanc
 
       case ModalityManufacturer_Vitrea:
         return "Vitrea";
-      
+
       case ModalityManufacturer_GE:
         return "GE";
 
       case ModalityManufacturer_SiemensSyngoCT:
         return "SiemensSyngoCT";
-        
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -862,7 +862,7 @@ namespace Orthanc
         return "N-EVENT-REPORT";
         break;
 
-      default: 
+      default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
@@ -884,7 +884,7 @@ namespace Orthanc
       case DicomVersion_2023b:
         return "2023b";
 
-      default: 
+      default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
@@ -999,7 +999,7 @@ namespace Orthanc
       case ValueRepresentation_NotSupported:
         return "Not supported";
 
-      default: 
+      default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
@@ -1011,22 +1011,22 @@ namespace Orthanc
     {
       case JobState_Pending:
         return "Pending";
-        
+
       case JobState_Running:
         return "Running";
-        
+
       case JobState_Success:
         return "Success";
-        
+
       case JobState_Failure:
         return "Failure";
-        
+
       case JobState_Paused:
         return "Paused";
-        
+
       case JobState_Retry:
         return "Retry";
-        
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1039,64 +1039,64 @@ namespace Orthanc
     {
       case MimeType_Binary:
         return MIME_BINARY;
-        
+
       case MimeType_Dicom:
         return MIME_DICOM;
-        
+
       case MimeType_Jpeg:
         return MIME_JPEG;
-        
+
       case MimeType_Jpeg2000:
         return MIME_JPEG2000;
-        
+
       case MimeType_Json:
         return MIME_JSON;
-        
+
       case MimeType_Pdf:
         return MIME_PDF;
-        
+
       case MimeType_Png:
         return MIME_PNG;
-        
+
       case MimeType_Xml:
         return MIME_XML;
-        
+
       case MimeType_PlainText:
         return MIME_PLAIN_TEXT;
-                
+
       case MimeType_Pam:
         return MIME_PAM;
-                
+
       case MimeType_Html:
         return MIME_HTML;
-                
+
       case MimeType_Gzip:
         return MIME_GZIP;
-                
+
       case MimeType_JavaScript:
         return MIME_JAVASCRIPT;
-                
+
       case MimeType_Css:
         return MIME_CSS;
-                
+
       case MimeType_WebAssembly:
         return MIME_WEB_ASSEMBLY;
-                
+
       case MimeType_Gif:
         return MIME_GIF;
-                
+
       case MimeType_Zip:
         return MIME_ZIP;
-                
+
       case MimeType_NaCl:
         return MIME_NACL;
-                
+
       case MimeType_PNaCl:
         return MIME_PNACL;
-                
+
       case MimeType_Svg:
         return MIME_SVG;
-                
+
       case MimeType_Woff:
         return MIME_WOFF;
 
@@ -1109,7 +1109,7 @@ namespace Orthanc
 
       case MimeType_DicomWebJson:
         return MIME_DICOM_WEB_JSON;
-                
+
       case MimeType_DicomWebXml:
         return MIME_DICOM_WEB_XML;
 
@@ -1129,7 +1129,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
-  
+
 
   const char* EnumerationToString(Endianness endianness)
   {
@@ -1143,7 +1143,7 @@ namespace Orthanc
 
       case Endianness_Unknown:
         return "Unknown endianness";
-                
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1163,7 +1163,7 @@ namespace Orthanc
       case StorageCommitmentFailureReason_NoSuchObjectInstance:
         return "One or more of the elements in the Referenced SOP "
           "Instance Sequence was not available";
-        
+
       case StorageCommitmentFailureReason_ResourceLimitation:
         return "The SCP does not currently have enough resources to "
           "store the requested SOP Instance(s)";
@@ -1336,7 +1336,7 @@ namespace Orthanc
     {
       return ResourceType_Series;
     }
-    else if (s == "INSTANCE"  || s == "IMAGE" || 
+    else if (s == "INSTANCE"  || s == "IMAGE" ||
              s == "INSTANCES" || s == "IMAGES")
     {
       return ResourceType_Instance;
@@ -1546,7 +1546,7 @@ namespace Orthanc
     {
       return PhotometricInterpretation_Monochrome1;
     }
-    
+
     if (s == "MONOCHROME2")
     {
       return PhotometricInterpretation_Monochrome2;
@@ -1556,52 +1556,52 @@ namespace Orthanc
     {
       return PhotometricInterpretation_Palette;
     }
-    
+
     if (s == "RGB")
     {
       return PhotometricInterpretation_RGB;
     }
-    
+
     if (s == "HSV")
     {
       return PhotometricInterpretation_HSV;
     }
-    
+
     if (s == "ARGB")
     {
       return PhotometricInterpretation_ARGB;
-    }    
+    }
 
     if (s == "CMYK")
     {
       return PhotometricInterpretation_CMYK;
-    }    
+    }
 
     if (s == "YBR_FULL")
     {
       return PhotometricInterpretation_YBRFull;
     }
-    
+
     if (s == "YBR_FULL_422")
     {
       return PhotometricInterpretation_YBRFull422;
     }
-    
+
     if (s == "YBR_PARTIAL_422")
     {
       return PhotometricInterpretation_YBRPartial422;
     }
-    
+
     if (s == "YBR_PARTIAL_420")
     {
       return PhotometricInterpretation_YBRPartial420;
     }
-    
+
     if (s == "YBR_ICT")
     {
       return PhotometricInterpretation_YBR_ICT;
     }
-    
+
     if (s == "YBR_RCT")
     {
       return PhotometricInterpretation_YBR_RCT;
@@ -1609,13 +1609,13 @@ namespace Orthanc
 
     throw OrthancException(ErrorCode_ParameterOutOfRange);
   }
-  
+
 
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer)
   {
     ModalityManufacturer result;
     bool obsolete = false;
-    
+
     if (manufacturer == "Generic")
     {
       return ModalityManufacturer_Generic;
@@ -1922,7 +1922,7 @@ namespace Orthanc
   }
 
 
-  
+
   MimeType StringToMimeType(const std::string& mime)
   {
     MimeType result;
@@ -1935,7 +1935,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
-  
+
 
   DicomToJsonFormat StringToDicomToJsonFormat(const std::string& format)
   {
@@ -2136,7 +2136,7 @@ namespace Orthanc
 
       case ResourceType_Study:
         return ResourceType_Series;
-        
+
       case ResourceType_Series:
         return ResourceType_Instance;
 
@@ -2152,7 +2152,7 @@ namespace Orthanc
     {
       case ResourceType_Study:
         return ResourceType_Patient;
-        
+
       case ResourceType_Series:
         return ResourceType_Study;
 
@@ -2203,7 +2203,7 @@ namespace Orthanc
 
       case ResourceType_Study:
         return DicomModule_Study;
-        
+
       case ResourceType_Series:
         return DicomModule_Series;
 
@@ -2432,12 +2432,12 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-  }  
+  }
 
 
   static Mutex     defaultEncodingMutex_;  // Should not be necessary
   static Encoding  defaultEncoding_ = ORTHANC_DEFAULT_DICOM_ENCODING;
-  
+
   Encoding GetDefaultDicomEncoding()
   {
     Mutex::ScopedLock lock(defaultEncodingMutex_);
@@ -2447,7 +2447,7 @@ namespace Orthanc
   void SetDefaultDicomEncoding(Encoding encoding)
   {
     std::string name = EnumerationToString(encoding);
-    
+
     {
       Mutex::ScopedLock lock(defaultEncodingMutex_);
       defaultEncoding_ = encoding;
@@ -2476,7 +2476,7 @@ namespace Orthanc
 
         case ResourceType_Instance:
           return "instances";
-      
+
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
@@ -2496,7 +2496,7 @@ namespace Orthanc
 
         case ResourceType_Instance:
           return "Instances";
-      
+
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
@@ -2516,7 +2516,7 @@ namespace Orthanc
 
         case ResourceType_Instance:
           return "instance";
-      
+
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
@@ -2536,7 +2536,7 @@ namespace Orthanc
 
         case ResourceType_Instance:
           return "Instance";
-      
+
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
@@ -2579,7 +2579,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange,
                              "RetrieveMethod can be \"C-MOVE\", \"C-GET\" or \"SystemDefault\": " + str);
-    }    
+    }
   }
 
   const char* EnumerationToString(RetrieveMethod method)

@@ -83,7 +83,7 @@ namespace Orthanc
 #if ORTHANC_ENABLE_PUGIXML == 1
     typedef std::map<std::string, IWebDavBucket*>  WebDavBuckets;
 #endif
-    
+
   private:
     // http://stackoverflow.com/questions/311166/stdauto-ptr-or-boostshared-ptr-for-pimpl-idiom
     struct PImpl;
@@ -130,7 +130,7 @@ namespace Orthanc
 #if ORTHANC_ENABLE_PUGIXML == 1
     WebDavBuckets webDavBuckets_;
 #endif
-    
+
     bool IsRunning() const;
 
   public:
@@ -168,7 +168,7 @@ namespace Orthanc
     void SetSslMinimumVersion(unsigned int version);
 
     void SetSslCiphers(const std::list<std::string>& ciphers);
-    
+
     void SetSslTrustedClientCertificates(const boost::filesystem::path& path);
 
     bool IsKeepAliveEnabled() const;

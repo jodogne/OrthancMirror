@@ -52,7 +52,7 @@
 #include "OrthancException.h"
 
 #if ORTHANC_ENABLE_DCMTK == 1
-// Headers from DCMTK used in Orthanc headers 
+// Headers from DCMTK used in Orthanc headers
 #  include <dcmtk/dcmdata/dcdatset.h>
 #  include <dcmtk/dcmdata/dcfilefo.h>
 #  include <dcmtk/dcmdata/dcmetinf.h>
@@ -60,7 +60,7 @@
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_NETWORKING == 1
-// Headers from DCMTK used in Orthanc headers 
+// Headers from DCMTK used in Orthanc headers
 #  include <dcmtk/dcmnet/dimse.h>
 #endif
 

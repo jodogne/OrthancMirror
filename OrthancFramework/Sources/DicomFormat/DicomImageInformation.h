@@ -32,7 +32,7 @@
 namespace Orthanc
 {
   class ORTHANC_PUBLIC DicomImageInformation
-  {  
+  {
   private:
     unsigned int width_;
     unsigned int height_;

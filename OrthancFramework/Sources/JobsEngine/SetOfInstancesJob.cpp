@@ -51,7 +51,7 @@ namespace Orthanc
     {
       return instance_;
     }
-      
+
     virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
     {
       if (!that_.HandleInstance(instance_))
@@ -81,8 +81,8 @@ namespace Orthanc
     explicit TrailingStepCommand(SetOfInstancesJob& that) :
       that_(that)
     {
-    }       
-      
+    }
+
     virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
     {
       return that_.HandleTrailingStep();
@@ -123,7 +123,7 @@ namespace Orthanc
       }
     }
   };
-    
+
 
   SetOfInstancesJob::SetOfInstancesJob() :
     hasTrailingStep_(false)
@@ -147,8 +147,8 @@ namespace Orthanc
     AddCommand(new TrailingStepCommand(*this));
     hasTrailingStep_ = true;
   }
-  
-  
+
+
   size_t SetOfInstancesJob::GetInstancesCount() const
   {
     if (hasTrailingStep_)
@@ -162,7 +162,7 @@ namespace Orthanc
     }
   }
 
-  
+
   const std::string& SetOfInstancesJob::GetInstance(size_t index) const
   {
     if (index >= GetInstancesCount())
@@ -215,7 +215,7 @@ namespace Orthanc
       if (includeParentResourcesField)
       {
         std::set<std::string> keys;
-        for (std::map<std::string, ResourceType>::const_iterator it = parentResources.begin(); it != parentResources.end(); ++it) 
+        for (std::map<std::string, ResourceType>::const_iterator it = parentResources.begin(); it != parentResources.end(); ++it)
         {
           keys.insert(it->first);
         }
@@ -230,11 +230,11 @@ namespace Orthanc
     SetOfCommandsJob::GetPublicContent(target);
     target["InstancesCount"] = static_cast<uint32_t>(GetInstancesCount());
     target["FailedInstancesCount"] = static_cast<uint32_t>(failedInstances_.size());
-    
+
     SerializeResources(target, parentResources_, true);
   }
 
-  bool SetOfInstancesJob::Serialize(Json::Value& target) const 
+  bool SetOfInstancesJob::Serialize(Json::Value& target) const
   {
     if (SetOfCommandsJob::Serialize(target))
     {
@@ -248,7 +248,7 @@ namespace Orthanc
       return false;
     }
   }
-  
+
 
   SetOfInstancesJob::SetOfInstancesJob(const Json::Value& source) :
     SetOfCommandsJob(new InstanceUnserializer(*this), source)
@@ -263,7 +263,7 @@ namespace Orthanc
     {
       SerializationToolbox::ReadMapOfResourcesAndTypes(parentResources_, source, KEY_RESOURCES);
     }
-    
+
     if (source.isMember(KEY_TRAILING_STEP))
     {
       hasTrailingStep_ = SerializationToolbox::ReadBoolean(source, KEY_TRAILING_STEP);

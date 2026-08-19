@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -40,15 +40,15 @@ namespace Orthanc
     {
       connection_.reset(new DicomControlUserConnection(parameters_, ScuOperationFlags_Move));
     }
-    
+
     connection_->SetProgressListener(this);
-    
+
     // we use a unique message ID in order to know to which Move request a stored instance relates to.
     connection_->Move(targetAet_, findAnswer, GetMessageId(GetParameters().GetLocalApplicationEntityTitle()));
   }
 
 
-  
+
   void DicomMoveScuJob::SetTargetAet(const std::string& aet)
   {
     if (IsStarted())
@@ -61,7 +61,7 @@ namespace Orthanc
     }
   }
 
-  
+
 
 
   void DicomMoveScuJob::GetPublicContent(Json::Value& value) const
@@ -79,7 +79,7 @@ namespace Orthanc
   {
   }
 
-  
+
   bool DicomMoveScuJob::Serialize(Json::Value& target) const
   {
     if (!DicomRetrieveScuBaseJob::Serialize(target))
@@ -89,7 +89,7 @@ namespace Orthanc
     else
     {
       target[TARGET_AET] = targetAet_;
-      
+
       return true;
     }
   }

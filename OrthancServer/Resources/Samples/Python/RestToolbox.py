@@ -57,7 +57,7 @@ def _ComputeGetUri(uri, data):
         d = '?' + urlencode(data)
 
     return uri + d
-        
+
 def DoGet(uri, data = {}, interpretAsJson = True):
     h = httplib2.Http()
     _SetupCredentials(h)
@@ -93,7 +93,7 @@ def _DoPutOrPost(uri, method, data, contentType):
     else:
         body = json.dumps(data)
         headers = { 'content-type' : 'application/json' }
-    
+
     resp, content = h.request(
         uri, method,
         body = body,

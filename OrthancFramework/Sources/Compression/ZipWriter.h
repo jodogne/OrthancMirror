@@ -80,12 +80,12 @@ namespace Orthanc
       std::string&   target_;
       ChunkedBuffer  chunked_;
       uint64_t       archiveSize_;
-      
+
     public:
       explicit MemoryStream(std::string& target);
-      
+
       virtual void Write(const std::string& chunk) ORTHANC_OVERRIDE;
-      
+
       virtual void Close() ORTHANC_OVERRIDE;
 
       virtual uint64_t GetArchiveSize() const ORTHANC_OVERRIDE;
@@ -102,14 +102,14 @@ namespace Orthanc
       std::string    flattened_;
 
       void CheckInvariants() const;
-  
+
     public:
       BufferWithSeek();
 
       ~BufferWithSeek();
 
       size_t GetPosition() const;
-  
+
       size_t GetSize() const;
 
       void Write(const void* data,
@@ -122,10 +122,10 @@ namespace Orthanc
       void Flush(std::string& target);
     };
 
-    
+
   private:
     class StreamBuffer;
-    
+
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
@@ -172,9 +172,9 @@ namespace Orthanc
     uint8_t GetCompressionLevel() const;
 
     void SetAppendToExisting(bool append);
-    
+
     bool IsAppendToExisting() const;
-    
+
     void Open();
 
     void Close();

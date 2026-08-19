@@ -61,7 +61,7 @@ namespace Orthanc
 
     // Possible return values from ColumnType in a statement. These
     // should match the values in sqlite3.h.
-    enum ColumnType 
+    enum ColumnType
     {
       COLUMN_TYPE_INTEGER = 1,
       COLUMN_TYPE_FLOAT = 2,
@@ -82,10 +82,10 @@ namespace Orthanc
     private:
       StatementReference  reference_;
 
-      int CheckError(int err, 
+      int CheckError(int err,
                      ErrorCode code) const;
 
-      void CheckOk(int err, 
+      void CheckOk(int err,
                    ErrorCode code) const;
 
       struct sqlite3_stmt* GetStatement() const

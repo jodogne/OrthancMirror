@@ -72,7 +72,7 @@ namespace Orthanc
 
     void SetCredentials(const std::string& username,
                         const std::string& password);
-    
+
     const std::string& GetUsername() const;
 
     const std::string& GetPassword() const;
@@ -100,10 +100,10 @@ namespace Orthanc
 
     const Dictionary& GetHttpHeaders() const;
 
-    void ListHttpHeaders(std::set<std::string>& target) const; 
+    void ListHttpHeaders(std::set<std::string>& target) const;
 
     bool LookupHttpHeader(std::string& value,
-                          const std::string& key) const; 
+                          const std::string& key) const;
 
     void AddUserProperty(const std::string& key,
                          const std::string& value);
@@ -112,7 +112,7 @@ namespace Orthanc
 
     const Dictionary& GetUserProperties() const;
 
-    void ListUserProperties(std::set<std::string>& target) const; 
+    void ListUserProperties(std::set<std::string>& target) const;
 
     bool LookupUserProperty(std::string& value,
                             const std::string& key) const;
@@ -139,6 +139,6 @@ namespace Orthanc
 
     uint32_t GetTimeout() const;
 
-    bool HasTimeout() const;    
+    bool HasTimeout() const;
   };
 }

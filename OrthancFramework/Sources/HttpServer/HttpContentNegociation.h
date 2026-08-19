@@ -97,7 +97,7 @@ namespace Orthanc
   public:
     void Register(const std::string& mime,
                   IHandler& handler);
-    
+
     bool Apply(const Dictionary& headers);
 
     bool Apply(const std::string& accept);

@@ -46,7 +46,7 @@ namespace Orthanc
       JpegErrorManager* that = reinterpret_cast<JpegErrorManager*>(cinfo->err);
       longjmp(that->setjmp_buffer, 1);
     }
-      
+
 
     JpegErrorManager::JpegErrorManager()
     {

@@ -7,7 +7,7 @@
     "DCMTK" : "EXS_LittleEndianImplicit",
     "GDCM" : "gdcm::TransferSyntax::ImplicitVRLittleEndian"
   },
-  
+
   {
     "UID" : "1.2.840.10008.1.2.1",
     "Name" : "Explicit VR Little Endian",
@@ -16,7 +16,7 @@
     "DCMTK" : "EXS_LittleEndianExplicit",
     "GDCM" : "gdcm::TransferSyntax::ExplicitVRLittleEndian"
   },
-  
+
   {
     "UID" : "1.2.840.10008.1.2.1.99",
     "Name" : "Deflated Explicit VR Little Endian",
@@ -24,7 +24,7 @@
     "Retired" : false,
     "DCMTK" : "EXS_DeflatedLittleEndianExplicit"
   },
-  
+
   {
     "UID" : "1.2.840.10008.1.2.2",
     "Name" : "Explicit VR Big Endian",
@@ -32,7 +32,7 @@
     "Retired" : false,
     "DCMTK" : "EXS_BigEndianExplicit"
   },
-  
+
   {
     "UID" : "1.2.840.10008.1.2.4.50",
     "Name" : "JPEG Baseline (process 1, lossy)",
@@ -43,7 +43,7 @@
     "DCMTK360" : "EXS_JPEGProcess1TransferSyntax",
     "GDCM" : "gdcm::TransferSyntax::JPEGBaselineProcess1"
   },
-  
+
   {
     "UID" : "1.2.840.10008.1.2.4.51",
     "Name" : "JPEG Extended Sequential (processes 2 & 4)",
@@ -118,7 +118,7 @@
     "DCMTK" : "EXS_JPEGProcess15",
     "DCMTK360" : "EXS_JPEGProcess15TransferSyntax"
   },
-  
+
   {
     "UID" : "1.2.840.10008.1.2.4.59",
     "Name" : "JPEG Extended Sequential, Hierarchical (lossy, 8/12 bit)",
@@ -127,7 +127,7 @@
     "DCMTK" : "EXS_JPEGProcess16_18",
     "DCMTK360" : "EXS_JPEGProcess16_18TransferSyntax"
   },
-  
+
   {
     "UID" : "1.2.840.10008.1.2.4.60",
     "Name" : "JPEG Extended Sequential, Hierarchical (lossy, 8/12 bit), arithmetic coding",
@@ -136,7 +136,7 @@
     "DCMTK" : "EXS_JPEGProcess17_19",
     "DCMTK360" : "EXS_JPEGProcess17_19TransferSyntax"
   },
-  
+
   {
     "UID" : "1.2.840.10008.1.2.4.61",
     "Name" : "JPEG Spectral Selection, Hierarchical (lossy, 8/12 bit)",
@@ -145,7 +145,7 @@
     "DCMTK" : "EXS_JPEGProcess20_22",
     "DCMTK360" : "EXS_JPEGProcess20_22TransferSyntax"
   },
-  
+
   {
     "UID" : "1.2.840.10008.1.2.4.62",
     "Name" : "JPEG Spectral Selection, Hierarchical (lossy, 8/12 bit), arithmetic coding",
@@ -154,7 +154,7 @@
     "DCMTK" : "EXS_JPEGProcess21_23",
     "DCMTK360" : "EXS_JPEGProcess21_23TransferSyntax"
   },
-  
+
   {
     "UID" : "1.2.840.10008.1.2.4.63",
     "Name" : "JPEG Full Progression, Hierarchical (lossy, 8/12 bit)",
@@ -163,7 +163,7 @@
     "DCMTK" : "EXS_JPEGProcess24_26",
     "DCMTK360" : "EXS_JPEGProcess24_26TransferSyntax"
   },
-  
+
   {
     "UID" : "1.2.840.10008.1.2.4.64",
     "Name" : "JPEG Full Progression, Hierarchical (lossy, 8/12 bit), arithmetic coding",
@@ -172,7 +172,7 @@
     "DCMTK" : "EXS_JPEGProcess25_27",
     "DCMTK360" : "EXS_JPEGProcess25_27TransferSyntax"
   },
-  
+
   {
     "UID" : "1.2.840.10008.1.2.4.65",
     "Name" : "JPEG Lossless, Hierarchical",
@@ -181,7 +181,7 @@
     "DCMTK" : "EXS_JPEGProcess28",
     "DCMTK360" : "EXS_JPEGProcess28TransferSyntax"
   },
-  
+
   {
     "UID" : "1.2.840.10008.1.2.4.66",
     "Name" : "JPEG Lossless, Hierarchical, arithmetic coding",

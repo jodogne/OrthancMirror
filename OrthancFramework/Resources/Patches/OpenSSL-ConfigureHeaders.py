@@ -88,16 +88,16 @@ with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
 
 
 CURRENT_HEADER = ''
-    
+
 def Parse(match):
     s = ''
-    
+
     for t in re.findall(r'generate_stack_macros\("(.+?)"\)', match.group(1)):
         s += (GENERATE_STACK_MACROS
               .replace('${nametype}', t)
               .replace('${realtype}', t)
               .replace('${plaintype}', t))
-        
+
     for t in re.findall(r'generate_const_stack_macros\("(.+?)"\)', match.group(1)):
         s += (GENERATE_STACK_MACROS
               .replace('${nametype}', t)
@@ -121,7 +121,7 @@ def Parse(match):
               .replace('${nametype}', 'OPENSSL_BLOCK')
               .replace('${realtype}', 'void')
               .replace('${plaintype}', 'void'))
-        
+
     for t in re.findall(r'generate_lhash_macros\("(.+?)"\)', match.group(1)):
         s += GENERATE_LHASH_MACROS.replace('${type}', t)
 
@@ -136,7 +136,7 @@ def Parse(match):
             s += '#define DER_OID_V_%s %s\n' % (name, ', '.join(definition))
             s += '#define DER_OID_SZ_%s %d\n' % (name, len(definition))
             s += 'extern const unsigned char ossl_der_oid_%s[DER_OID_SZ_%s];\n\n' % (name, name)
-        
+
     return s
 
 
@@ -146,7 +146,7 @@ for base in [ 'include/openssl',
     for source in os.listdir(directory):
         if source.endswith('.h.in'):
             target = re.sub(r'\.h\.in$', '.h', source)
-                            
+
             with open(os.path.join(directory, source), 'r') as f:
                 with open(os.path.join(directory, target), 'w') as g:
                     CURRENT_HEADER = source
@@ -159,7 +159,7 @@ with open(os.path.join(sys.argv[1], 'providers/common/der/orthanc_oids_gen.c'), 
         f.write('#include "prov/%s"\n' % re.sub(r'\.h\.in$', '.h', header))
 
     f.write('\n')
-        
+
     for (header, content) in OIDS.items():
         for (name, definition) in content.items():
             f.write('const unsigned char ossl_der_oid_%s[DER_OID_SZ_%s] = { DER_OID_V_%s };\n' % (

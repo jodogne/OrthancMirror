@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -118,7 +118,7 @@ namespace Orthanc
       if (value.get() == NULL ||
           value->IsNull())
       {
-        return isOptionalConstraint;        
+        return isOptionalConstraint;
       }
       else if (value->IsBinary() ||
                !constraints_[i]->IsMatch(value->GetContent()))
@@ -234,7 +234,7 @@ namespace Orthanc
      * whether matching is case-sensitive or case-insensitive.
      *
      * Reference: DICOM PS 3.4
-     *   - C.2.2.2.1 ("Single Value Matching") 
+     *   - C.2.2.2.1 ("Single Value Matching")
      *   - C.2.2.2.4 ("Wild Card Matching")
      * http://medical.nema.org/Dicom/2011/11_04pu.pdf
      *
@@ -245,7 +245,7 @@ namespace Orthanc
      * character sets where a letter may have multiple encodings (e.g.,
      * based on its case, its position in a word, or whether it is
      * accented)
-     * 
+     *
      * For Attributes with a PN Value Representation (e.g., Patient Name
      * (0010,0010)), an application may perform literal matching that is
      * either case-sensitive, or that is insensitive to some or all
@@ -258,7 +258,7 @@ namespace Orthanc
      * (0020,000D) UI StudyInstanceUID   => Case-sensitive
      * (0020,000E) UI SeriesInstanceUID  => Case-sensitive
      **/
-    
+
     if (vr == ValueRepresentation_PersonName)
     {
       AddDicomConstraintInternal(tag, vr, dicomQuery, caseSensitivePN, mandatoryTag);
@@ -283,7 +283,7 @@ namespace Orthanc
   bool DatabaseLookup::HasOnlyMainDicomTags() const
   {
     std::set<DicomTag> notUsed;
-    
+
     return HasOnlyMainDicomTags(notUsed);
   }
 
@@ -296,7 +296,7 @@ namespace Orthanc
     for (size_t i = 0; i < constraints_.size(); i++)
     {
       assert(constraints_[i] != NULL);
-      
+
       if (allMainTags.find(constraints_[i]->GetTag()) == allMainTags.end())
       {
         // This is not a main DICOM tag
@@ -311,7 +311,7 @@ namespace Orthanc
   std::string DatabaseLookup::Format() const
   {
     std::string s;
-    
+
     for (size_t i = 0; i < constraints_.size(); i++)
     {
       assert(constraints_[i] != NULL);
@@ -322,7 +322,7 @@ namespace Orthanc
     return s;
   }
 
-  
+
   bool DatabaseLookup::HasTag(const DicomTag& tag) const
   {
     for (size_t i = 0; i < constraints_.size(); i++)

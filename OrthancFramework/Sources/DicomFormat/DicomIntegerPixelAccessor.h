@@ -63,7 +63,7 @@ namespace Orthanc
 
     void SetCurrentFrame(unsigned int frame);
 
-    void GetExtremeValues(int32_t& min, 
+    void GetExtremeValues(int32_t& min,
                           int32_t& max) const;
 
     int32_t GetValue(unsigned int x,

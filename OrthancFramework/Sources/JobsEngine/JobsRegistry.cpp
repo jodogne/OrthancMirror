@@ -115,7 +115,7 @@ namespace Orthanc
       cancelScheduled_(false)
     {
       Logging::ScopedCurrentThreadContextSetter logContext(std::string("job ") + id_);
-      
+
       if (job == NULL)
       {
         throw OrthancException(ErrorCode_NullPointer);
@@ -316,14 +316,14 @@ namespace Orthanc
         // New in Orthanc 1.9.5
         target[ERROR_CODE] = static_cast<int>(lastStatus_.GetErrorCode());
         target[ERROR_DETAILS] = lastStatus_.GetDetails();
-        
+
         // New in Orthanc 1.12.9
         Json::Value userData;
         if (job_->GetUserData(userData))
         {
           target[USER_DATA] = userData;
         }
-        
+
         if (lastStatus_.GetErrorPayload().HasContent())
         {
           target[ERROR_PAYLOAD_TYPE] = lastStatus_.GetErrorPayload().GetType();
@@ -729,7 +729,7 @@ namespace Orthanc
         {
           found->second->GetJob().DeleteAllOutputs();
           delete found->second;
-          
+
           completedJobs_.erase(it);
           jobsIndex_.erase(id);
           return true;
@@ -930,7 +930,7 @@ namespace Orthanc
           {
             ErrorCode code = it->second->GetLastStatus().GetErrorCode();
             const std::string& details = it->second->GetLastStatus().GetDetails();
-            
+
             // Prefer the error payload from the job level if there is one since it should contain more information than the step error payload.
             ErrorPayload jobErrorPayload;
             it->second->GetJob().LookupErrorPayload(jobErrorPayload);
@@ -1680,7 +1680,7 @@ namespace Orthanc
   void JobsRegistry::GetLastModificationTime(boost::posix_time::ptime& modificationTime) const
   {
     boost::mutex::scoped_lock lock(mutex_);
-    
+
     modificationTime = lastModificationTime_;
   }
 }

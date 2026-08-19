@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -36,7 +36,7 @@ namespace Orthanc
     Verbosity_Verbose,
     Verbosity_Trace
   };
-  
+
   enum SeriesStatus
   {
     SeriesStatus_Complete,
@@ -140,25 +140,25 @@ namespace Orthanc
     ResponseContentFlags_IsProtected          = (1 << 13),
 
     ResponseContentFlags_INTERNAL_CountResources = (1 << 30),
-    
+
     // Some predefined combinations
     ResponseContentFlags_ExpandTrue  = (ResponseContentFlags_ID |
                                         ResponseContentFlags_Type |
                                         ResponseContentFlags_RequestedTags |
                                         ResponseContentFlags_MainDicomTags |
                                         ResponseContentFlags_MetadataLegacy |
-                                        ResponseContentFlags_AttachmentsLegacy | 
-                                        ResponseContentFlags_Status | 
-                                        ResponseContentFlags_Parent | 
-                                        ResponseContentFlags_Children | 
+                                        ResponseContentFlags_AttachmentsLegacy |
+                                        ResponseContentFlags_Status |
+                                        ResponseContentFlags_Parent |
+                                        ResponseContentFlags_Children |
                                         ResponseContentFlags_Labels |
                                         ResponseContentFlags_IsStable |
                                         ResponseContentFlags_IsProtected),  // equivalent to "Expand": true
-    
+
     ResponseContentFlags_Default = (ResponseContentFlags_ID |
                                     ResponseContentFlags_Type |
                                     ResponseContentFlags_RequestedTags) // minimal content as soon as you have a "ResponseContent"
-    
+
   };
 
   /**
@@ -213,7 +213,7 @@ namespace Orthanc
     MetadataType_Instance_PixelDataVR = 17,      // New in Orthanc 1.12.1
     MetadataType_Patient_IsProtected = 18,       // New in Orthanc 1.12.9 (used only by DB plugins)
     MetadataType_Patient_PatientRecyclingOrder = 19,  // New in Orthanc 1.12.9 (used only by DB plugins)
-    
+
     // Make sure that the value "65535" can be stored into this enumeration
     MetadataType_StartUser = 1024,
     MetadataType_EndUser = 65535
@@ -290,7 +290,7 @@ namespace Orthanc
   FindStorageAccessMode StringToFindStorageAccessMode(const std::string& str);
 
   MaxStorageMode StringToMaxStorageMode(const std::string& str);
-  
+
   bool IsStorageAccessAllowedForAnswers(FindStorageAccessMode mode);
 
   bool IsStorageAccessAllowedForLookup(FindStorageAccessMode mode);
@@ -313,7 +313,7 @@ namespace Orthanc
   const char* EnumerationToString(StoreStatus status);
 
   const char* EnumerationToString(ChangeType type);
-  
+
   ChangeType StringToChangeType(const std::string& value);
 
   const char* EnumerationToString(Verbosity verbosity);

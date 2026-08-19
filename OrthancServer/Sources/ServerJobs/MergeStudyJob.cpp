@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -42,7 +42,7 @@ namespace Orthanc
       target[series] = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series);
     }
   }
-  
+
 
   void MergeStudyJob::AddSourceSeriesInternal(const std::string& series)
   {
@@ -88,11 +88,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls,
                              "AddTrailingStep() should have been called after AddSourceXXX()");
     }
-    
+
     /**
      * Retrieve the DICOM instance to be modified
      **/
-    
+
     std::unique_ptr<ParsedDicomFile> modified;
 
     try
@@ -131,7 +131,7 @@ namespace Orthanc
     {
       modified->Remove(*it);
     }
-    
+
     for (Replacements::const_iterator it = replacements_.begin();
          it != replacements_.end(); ++it)
     {
@@ -142,7 +142,7 @@ namespace Orthanc
     /**
      * Store the new instance into Orthanc
      **/
-    
+
     modified->ReplacePlainString(DICOM_TAG_SERIES_INSTANCE_UID, targetSeriesUid->second);
 
     // Fix since Orthanc 1.5.8: Assign new "SOPInstanceUID", as the instance has been modified
@@ -162,7 +162,7 @@ namespace Orthanc
     return true;
   }
 
-  
+
   MergeStudyJob::MergeStudyJob(ServerContext& context,
                                const std::string& targetStudy) :
     CleaningInstancesJob(context, false /* by default, remove source instances */),
@@ -171,7 +171,7 @@ namespace Orthanc
     /**
      * Check the validity of the input ID
      **/
-    
+
     ResourceType type;
 
     if (!GetContext().GetIndex().LookupResourceType(type, targetStudy) ||
@@ -189,10 +189,10 @@ namespace Orthanc
 
     DicomTag::AddTagsForModule(removals_, DicomModule_Patient);
     DicomTag::AddTagsForModule(removals_, DicomModule_Study);
-    
+
     std::list<std::string> instances;
     GetContext().GetIndex().GetChildInstances(instances, targetStudy, ResourceType_Study);
-    
+
     if (instances.empty())
     {
       throw OrthancException(ErrorCode_UnknownResource);
@@ -213,7 +213,7 @@ namespace Orthanc
     {
       const DicomValue* value = dicom.TestAndGetValue(*it);
       std::string str;
-      
+
       if (value != NULL &&
           value->CopyToString(str, false))
       {
@@ -222,7 +222,7 @@ namespace Orthanc
       }
     }
   }
-  
+
 
   void MergeStudyJob::SetOrigin(const DicomInstanceOrigin& origin)
   {
@@ -236,7 +236,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void MergeStudyJob::SetOrigin(const RestApiCall& call)
   {
     SetOrigin(DicomInstanceOrigin::FromRest(call));
@@ -246,7 +246,7 @@ namespace Orthanc
   void MergeStudyJob::AddSource(const std::string& publicId)
   {
     ResourceType level;
-    
+
     if (IsStarted())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
@@ -263,23 +263,23 @@ namespace Orthanc
         case ResourceType_Study:
           AddSourceStudyInternal(publicId);
           break;
-          
+
         case ResourceType_Series:
           AddSourceSeries(publicId);
           break;
-          
+
         case ResourceType_Instance:
           AddSourceInstance(publicId);
           break;
-          
+
         default:
           throw OrthancException(ErrorCode_UnknownResource,
                                  "This resource is neither a study, nor a series, nor an instance: " +
                                  publicId + " is a " + std::string(EnumerationToString(level)));
       }
-    }    
+    }
   }
-  
+
 
   void MergeStudyJob::AddSourceSeries(const std::string& series)
   {
@@ -303,7 +303,7 @@ namespace Orthanc
     else
     {
       AddSourceSeriesInternal(series);
-    }    
+    }
   }
 
 
@@ -324,7 +324,7 @@ namespace Orthanc
     else
     {
       AddSourceStudyInternal(study);
-    }    
+    }
   }
 
 
@@ -352,9 +352,9 @@ namespace Orthanc
     {
       RegisterSeries(seriesUidMap_, parentSeries);
       AddInstance(instance);
-    }    
+    }
   }
-  
+
 
   void MergeStudyJob::GetPublicContent(Json::Value& value) const
   {
@@ -388,7 +388,7 @@ namespace Orthanc
     origin_ = DicomInstanceOrigin(serialized[ORIGIN]);
   }
 
-  
+
   bool MergeStudyJob::Serialize(Json::Value& target) const
   {
     if (!CleaningInstancesJob::Serialize(target))

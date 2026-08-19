@@ -76,7 +76,7 @@ namespace Orthanc
     while (currentSize_ > targetSize)
     {
       assert(!content_.IsEmpty());
-        
+
       Item* item = NULL;
       content_.RemoveOldest(item);
 
@@ -90,7 +90,7 @@ namespace Orthanc
 
     // Post-condition: "currentSize_ <= targetSize"
   }
-    
+
 
   MemoryObjectCache::MemoryObjectCache() :
     currentSize_(0),
@@ -123,7 +123,7 @@ namespace Orthanc
 
     return content_.GetSize();
   }
-  
+
 
   size_t MemoryObjectCache::GetCurrentSize()
   {
@@ -151,7 +151,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-      
+
 #if ORTHANC_ENABLE_THREADS == 1
     // Make sure no accessor is currently open (as its data may be
     // removed if recycling is needed)
@@ -228,7 +228,7 @@ namespace Orthanc
       delete item;
 
       content_.Invalidate(key);
-          
+
       assert(currentSize_ >= size);
       currentSize_ -= size;
     }
@@ -259,7 +259,7 @@ namespace Orthanc
     {
       cache.content_.MakeMostRecent(key);
     }
-    
+
 #if ORTHANC_ENABLE_THREADS == 1
     cacheLock_.unlock();
 
@@ -302,6 +302,6 @@ namespace Orthanc
     else
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }        
+    }
   }
 }

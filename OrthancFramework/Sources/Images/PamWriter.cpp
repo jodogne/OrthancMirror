@@ -49,7 +49,7 @@ namespace Orthanc
         bytesPerChannel = 1;
         tupleType = "GRAYSCALE";
         break;
-          
+
       case PixelFormat_SignedGrayscale16:
       case PixelFormat_Grayscale16:
         maxValue = 65535;
@@ -77,7 +77,7 @@ namespace Orthanc
     }
   }
 
-      
+
   void PamWriter::WriteToMemoryInternal(std::string& target,
                                         unsigned int width,
                                         unsigned int height,
@@ -90,11 +90,11 @@ namespace Orthanc
     GetPixelFormatInfo(format, maxValue, channelCount, bytesPerChannel, tupleType);
 
     target = (std::string("P7") +
-              std::string("\nWIDTH ")  + boost::lexical_cast<std::string>(width) + 
-              std::string("\nHEIGHT ") + boost::lexical_cast<std::string>(height) + 
-              std::string("\nDEPTH ")  + boost::lexical_cast<std::string>(channelCount) + 
-              std::string("\nMAXVAL ") + boost::lexical_cast<std::string>(maxValue) + 
-              std::string("\nTUPLTYPE ") + tupleType + 
+              std::string("\nWIDTH ")  + boost::lexical_cast<std::string>(width) +
+              std::string("\nHEIGHT ") + boost::lexical_cast<std::string>(height) +
+              std::string("\nDEPTH ")  + boost::lexical_cast<std::string>(channelCount) +
+              std::string("\nMAXVAL ") + boost::lexical_cast<std::string>(maxValue) +
+              std::string("\nTUPLTYPE ") + tupleType +
               std::string("\nENDHDR\n"));
 
     if (bytesPerChannel != 1 &&
@@ -138,7 +138,7 @@ namespace Orthanc
           uint8_t* b = reinterpret_cast<uint8_t*>(q);
           b[0] = a[1];
           b[1] = a[0];
-          
+
           p++;
           q++;
         }
@@ -149,7 +149,7 @@ namespace Orthanc
       // Either "bytesPerChannel == 1" (and endianness is not
       // relevant), or we run on a big endian architecture (and no
       // byte swapping is necessary, as PAM uses big endian)
-      
+
       for (unsigned int h = 0; h < height; ++h)
       {
         const void* p = reinterpret_cast<const uint8_t*>(buffer) + static_cast<size_t>(h) * sourcePitch;

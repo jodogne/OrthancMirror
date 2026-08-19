@@ -51,7 +51,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_JSONCPP)
   if (NOT ENABLE_LOCALE)
     add_definitions(-DJSONCPP_NO_LOCALE_SUPPORT=1)
   endif()
-    
+
   source_group(ThirdParty\\JsonCpp REGULAR_EXPRESSION ${JSONCPP_SOURCES_DIR}/.*)
 
 else()
@@ -72,16 +72,16 @@ else()
   # Detect if the version of JsonCpp is >= 1.0.0
   if (EXISTS ${JSONCPP_INCLUDE_DIR}/json/version.h)
     file(STRINGS
-      "${JSONCPP_INCLUDE_DIR}/json/version.h" 
+      "${JSONCPP_INCLUDE_DIR}/json/version.h"
       JSONCPP_VERSION_MAJOR1 REGEX
       ".*define JSONCPP_VERSION_MAJOR.*")
 
     if (NOT JSONCPP_VERSION_MAJOR1)
       message(FATAL_ERROR "Unable to extract the major version of JsonCpp")
     endif()
-    
+
     string(REGEX REPLACE
-      ".*JSONCPP_VERSION_MAJOR.*([0-9]+)$" "\\1" 
+      ".*JSONCPP_VERSION_MAJOR.*([0-9]+)$" "\\1"
       JSONCPP_VERSION_MAJOR ${JSONCPP_VERSION_MAJOR1})
     message("JsonCpp major version: ${JSONCPP_VERSION_MAJOR}")
 

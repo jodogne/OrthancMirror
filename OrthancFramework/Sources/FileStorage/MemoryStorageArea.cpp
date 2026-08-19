@@ -45,7 +45,7 @@ namespace Orthanc
       }
     }
   }
-    
+
   void MemoryStorageArea::Create(const std::string& uuid,
                                  const void* content,
                                  size_t size,
@@ -71,7 +71,7 @@ namespace Orthanc
     }
   }
 
-  
+
   IMemoryBuffer* MemoryStorageArea::ReadRange(const std::string& uuid,
                                               FileContentType type,
                                               uint64_t start /* inclusive */,
@@ -133,7 +133,7 @@ namespace Orthanc
     Mutex::ScopedLock lock(mutex_);
 
     Content::iterator found = content_.find(uuid);
-    
+
     if (found == content_.end())
     {
       // Ignore second removal

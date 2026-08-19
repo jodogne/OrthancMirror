@@ -37,7 +37,7 @@ namespace Orthanc
   {
   protected:
     uint16_t GetMessageId(const std::string& localAet);
-    
+
     class Command : public SetOfCommandsJob::ICommand
     {
     private:
@@ -89,7 +89,7 @@ namespace Orthanc
       DicomRetrieveScuBaseJob &that_;
 
     public:
-      explicit Unserializer(DicomRetrieveScuBaseJob &that) : 
+      explicit Unserializer(DicomRetrieveScuBaseJob &that) :
       that_(that)
       {
       }
@@ -170,8 +170,8 @@ namespace Orthanc
 
     void AddReceivedInstance(const std::string& instanceId);
 
-    static void AddReceivedInstanceFromCStore(uint16_t originatorMessageId, 
-                                              const std::string& originatorAet, 
+    static void AddReceivedInstanceFromCStore(uint16_t originatorMessageId,
+                                              const std::string& originatorAet,
                                               const std::string& instanceId);
 
     virtual void LookupErrorPayload(ErrorPayload& payload) const ORTHANC_OVERRIDE;

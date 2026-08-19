@@ -125,7 +125,7 @@ namespace Orthanc
           case MetricsUpdatePolicy_Directly:
             SetValue(value, now);
             break;
-          
+
           case MetricsUpdatePolicy_MaxOver10Seconds:
           case MetricsUpdatePolicy_MaxOver1Minute:
             if (IsLargerOverPeriod(value, GetPeriodDuration(policy), now))
@@ -165,7 +165,7 @@ namespace Orthanc
           case MetricsUpdatePolicy_Directly:
             // nothing to do
             break;
-          
+
           case MetricsUpdatePolicy_MaxOver10Seconds:
           case MetricsUpdatePolicy_MinOver10Seconds:
           case MetricsUpdatePolicy_MaxOver1Minute:
@@ -234,13 +234,13 @@ namespace Orthanc
   {
   private:
     MetricsUpdatePolicy   policy_;
-    
+
   public:
     explicit Item(MetricsUpdatePolicy policy) :
       policy_(policy)
     {
     }
-    
+
     virtual ~Item()
     {
     }
@@ -261,7 +261,7 @@ namespace Orthanc
     virtual bool HasValue() const = 0;
 
     virtual const boost::posix_time::ptime& GetTime() const = 0;
-    
+
     virtual std::string FormatValue() const = 0;
 
     virtual void Refresh() = 0;
@@ -269,7 +269,7 @@ namespace Orthanc
     virtual void SetInitialValue(int64_t value) = 0;
   };
 
-  
+
   class MetricsRegistry::FloatItem : public Item
   {
   private:
@@ -280,7 +280,7 @@ namespace Orthanc
       Item(policy)
     {
     }
-    
+
     virtual void UpdateFloat(float value) ORTHANC_OVERRIDE
     {
       value_.Update(value, GetPolicy());
@@ -310,7 +310,7 @@ namespace Orthanc
     {
       return value_.GetTime();
     }
-    
+
     virtual std::string FormatValue() const ORTHANC_OVERRIDE
     {
       return boost::lexical_cast<std::string>(value_.GetValue());
@@ -327,7 +327,7 @@ namespace Orthanc
     }
   };
 
-  
+
   class MetricsRegistry::IntegerItem : public Item
   {
   private:
@@ -338,7 +338,7 @@ namespace Orthanc
       Item(policy)
     {
     }
-    
+
     virtual void UpdateFloat(float value) ORTHANC_OVERRIDE
     {
       value_.Update(Orthanc::Math::llround(value), GetPolicy());
@@ -368,7 +368,7 @@ namespace Orthanc
     {
       return value_.GetTime();
     }
-    
+
     virtual std::string FormatValue() const ORTHANC_OVERRIDE
     {
       return boost::lexical_cast<std::string>(value_.GetValue());
@@ -434,7 +434,7 @@ namespace Orthanc
     if (found == content_.end())
     {
       Item* item = NULL;
-      
+
       switch (type)
       {
         case MetricsDataType_Float:
@@ -476,7 +476,7 @@ namespace Orthanc
       GetItemInternal(name, policy, MetricsDataType_Float).UpdateFloat(value);
     }
   }
-  
+
 
   void MetricsRegistry::SetIntegerValue(const std::string &name,
                                         int64_t value,
@@ -577,7 +577,7 @@ namespace Orthanc
         it->second->Refresh();
 
         std::string line = (it->first + " " +
-                            it->second->FormatValue() + " " + 
+                            it->second->FormatValue() + " " +
                             boost::lexical_cast<std::string>(diff.total_milliseconds()) + "\n");
 
         buffer.AddChunk(line);

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -152,7 +152,7 @@ namespace Orthanc
     mandatory_(other.mandatory_)
   {
   }
-    
+
 
   DicomTagConstraint::DicomTagConstraint(const DatabaseDicomTagConstraint& constraint) :
     tag_(constraint.GetTag()),
@@ -176,13 +176,13 @@ namespace Orthanc
      * tables in the database (since at least Orthanc 1.3.2), so this
      * shouldn't be an issue.
      **/
-    
+
     if (constraint.IsIdentifier())
     {
       // This conversion is only available for main DICOM tags, not for identifers
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-    
+
     if (constraintType_ == ConstraintType_List)
     {
       for (size_t i = 0; i < constraint.GetValuesCount(); i++)
@@ -386,7 +386,7 @@ namespace Orthanc
                                                                               DicomTagType tagType) const
   {
     bool isIdentifier, caseSensitive;
-    
+
     switch (tagType)
     {
       case DicomTagType_Identifier:
@@ -429,5 +429,5 @@ namespace Orthanc
 
     return new DatabaseDicomTagConstraint(level, tag_, isIdentifier, constraintType_,
                                           values, caseSensitive, mandatory_);
-  }  
+  }
 }

@@ -200,14 +200,14 @@ namespace Orthanc
     if (!dictionary.loadDictionary(SystemToolbox::PathToUtf8(tmp.GetPath()).c_str()))
     {
       throw OrthancException(ErrorCode_InternalError,
-                             "Cannot read embedded dictionary. Under Windows, make sure that " 
+                             "Cannot read embedded dictionary. Under Windows, make sure that "
                              "your TEMP directory does not contain special characters.");
     }
 #else
     if (!dictionary.loadFromMemory(content))
     {
       throw OrthancException(ErrorCode_InternalError,
-                             "Cannot read embedded dictionary. Under Windows, make sure that " 
+                             "Cannot read embedded dictionary. Under Windows, make sure that "
                              "your TEMP directory does not contain special characters.");
     }
 #endif
@@ -301,7 +301,7 @@ namespace Orthanc
        **/
 
       //return boost::lexical_cast<std::string>(v);  // This was used in Orthanc <= 1.9.0
-      
+
       std::ostringstream ss;
       ss << std::setprecision(17) << v;
       return ss.str();
@@ -312,7 +312,7 @@ namespace Orthanc
     static std::string DoubleToString(double v)
     {
       //return boost::lexical_cast<std::string>(v);  // This was used in Orthanc <= 1.9.0
-      
+
       std::ostringstream ss;
       ss << std::setprecision(17) << v;
       return ss.str();
@@ -1190,7 +1190,7 @@ namespace Orthanc
   void FromDcmtkBridge::InitializeDictionary(bool loadPrivateDictionary)
   {
     CLOG(INFO, DICOM) << "Using DCMTK version: " << DCMTK_VERSION_NUMBER;
-    
+
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
     {
       DictionaryWriterLock lock;
@@ -1220,7 +1220,7 @@ namespace Orthanc
 #else
     {
       std::vector<std::string> dictionaries;
-      
+
       const char* env = std::getenv(DCM_DICT_ENVIRONMENT_VARIABLE);
       if (env != NULL)
       {
@@ -1278,12 +1278,12 @@ namespace Orthanc
     for (size_t i = 0; i < dictionaries.size(); i++)
     {
       LOG(WARNING) << "Loading external DICOM dictionary: \"" << dictionaries[i] << "\"";
-        
+
       if (!lock.GetDictionary().loadDictionary(dictionaries[i].c_str()))
       {
         throw OrthancException(ErrorCode_InexistentFile);
       }
-    }    
+    }
 
     hasExternalDictionaries_ = true;
   }
@@ -1311,12 +1311,12 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-    
+
     DcmEVR evr = ToDcmtkBridge::Convert(vr);
 
     CLOG(INFO, DICOM) << "Registering tag in dictionary: (" << tag.Format() << ") "
-                      << (DcmVR(evr).getValidVRName()) << " " 
-                      << name << " (multiplicity: " << minMultiplicity << "-" 
+                      << (DcmVR(evr).getValidVRName()) << " "
+                      << name << " (multiplicity: " << minMultiplicity << "-"
                       << (arbitrary ? "n" : boost::lexical_cast<std::string>(maxMultiplicity)) << ")";
 
     std::unique_ptr<DcmDictEntry>  entry;
@@ -1326,7 +1326,7 @@ namespace Orthanc
       {
         char buf[128];
         sprintf(buf, "Warning: You are registering a private tag (%04x,%04x), "
-                "but no private creator was associated with it", 
+                "but no private creator was associated with it",
                 tag.GetGroup(), tag.GetElement());
         LOG(WARNING) << buf;
       }
@@ -1410,7 +1410,7 @@ namespace Orthanc
         if (!characterSet.empty())
         {
           Encoding encoding;
-          
+
           if (GetDicomEncoding(encoding, characterSet.c_str()))
           {
             // The specific character set is supported by the Orthanc core
@@ -1429,7 +1429,7 @@ namespace Orthanc
     {
       hasCodeExtensions = false;
     }
-    
+
     // No specific character set tag: Use the default encoding
     return defaultEncoding;
   }
@@ -1449,7 +1449,7 @@ namespace Orthanc
                                             const std::set<DicomTag>& ignoreTagLength)
   {
     const Encoding defaultEncoding = GetDefaultDicomEncoding();
-    
+
     bool hasCodeExtensions;
     Encoding encoding = DetectEncoding(hasCodeExtensions, dataset, defaultEncoding);
 
@@ -1461,13 +1461,13 @@ namespace Orthanc
       {
         target.SetValueInternal(element->getTag().getGTag(),
                                 element->getTag().getETag(),
-                                ConvertLeafElement(*element, DicomToJsonFlags_Default, maxStringLength, maxStringLength /* maxBinaryArrayLength: consider the same value as the maxStringLength */, 
+                                ConvertLeafElement(*element, DicomToJsonFlags_Default, maxStringLength, maxStringLength /* maxBinaryArrayLength: consider the same value as the maxStringLength */,
                                                    encoding, hasCodeExtensions, ignoreTagLength, Convert(element->getVR())));
       }
       else
       {
         DcmSequenceOfItems* sequence = dynamic_cast<DcmSequenceOfItems*>(element);
-        
+
         if (sequence)
         {
           Json::Value jsonSequence = Json::arrayValue;
@@ -1475,7 +1475,7 @@ namespace Orthanc
           {
             DcmItem* child = sequence->getItem(s);
             Json::Value& v = jsonSequence.append(Json::objectValue);
-            DatasetToJson(v, *child, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 
+            DatasetToJson(v, *child, DicomToJsonFormat_Full, DicomToJsonFlags_Default,
                           maxStringLength, encoding, hasCodeExtensions,
                           ignoreTagLength, 1);
           }
@@ -1567,7 +1567,7 @@ namespace Orthanc
       // The "entry" value is only valid while "lock" is active
       const DcmDictEntry* entry = lock.GetDictionary().findEntry(element.getTag().getXTag(),
                                                                  element.getTag().getPrivateCreator());
-      if (entry != NULL && 
+      if (entry != NULL &&
           entry->getVR().isaString())
       {
         Uint8* data = NULL;
@@ -1620,7 +1620,7 @@ namespace Orthanc
       }
     }
 
-    
+
     try
     {
       // http://support.dcmtk.org/docs/dcvr_8h-source.html
@@ -1671,11 +1671,11 @@ namespace Orthanc
 
           return new DicomValue;
         }
-    
+
         /**
          * Numeric types
-         **/ 
-      
+         **/
+
         case EVR_SL:  // signed long
         {
           return ApplyDcmtkToCTypeConverter<DcmtkToSint32Converter>(element);
@@ -1774,7 +1774,7 @@ namespace Orthanc
 
           /**
            * Internal to DCMTK.
-           **/ 
+           **/
 
         case EVR_xs:  // SS or US depending on context
         case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
@@ -1795,7 +1795,7 @@ namespace Orthanc
 
           /**
            * Default case.
-           **/ 
+           **/
 
         default:
           return new DicomValue;
@@ -1829,7 +1829,7 @@ namespace Orthanc
 
     // This code gives access to the name of the private tags
     std::string tagName = FromDcmtkBridge::GetTagName(element);
-    
+
     switch (format)
     {
       case DicomToJsonFormat_Human:
@@ -1884,7 +1884,7 @@ namespace Orthanc
         assert(target.type() == Json::nullValue);
         targetValue = &target;
         break;
-      }      
+      }
 
       case DicomToJsonFormat_Full:
       {
@@ -1946,7 +1946,7 @@ namespace Orthanc
         *targetType = "TooLong";
       }
     }
-  }                              
+  }
 
 
   void FromDcmtkBridge::ElementToJson(Json::Value& parent,
@@ -1970,7 +1970,7 @@ namespace Orthanc
     if (element.isLeaf())
     {
       // The "maxStringLength=0" below lets "LeafValueToJson()" take care of "TooLong" values
-      // And the "maxBinaryArrayLength=maxStringLength" is there to limit the size of binary arrays that are actually returned 
+      // And the "maxBinaryArrayLength=maxStringLength" is there to limit the size of binary arrays that are actually returned
       // as string that is later clipped in LeafValueToJson.
       // Since we have seen files with 100M float values, we don't want to generate a 1GB string that would be clipped to 256 bytes
       // in LeafValueToJson.
@@ -2052,7 +2052,7 @@ namespace Orthanc
 
       /*element->getTag().isPrivate()*/
       if (tag.IsPrivate() &&
-          !(flags & DicomToJsonFlags_IncludePrivateTags))    
+          !(flags & DicomToJsonFlags_IncludePrivateTags))
       {
         continue;
       }
@@ -2082,7 +2082,7 @@ namespace Orthanc
   }
 
 
-  void FromDcmtkBridge::ExtractDicomAsJson(Json::Value& target, 
+  void FromDcmtkBridge::ExtractDicomAsJson(Json::Value& target,
                                            DcmDataset& dataset,
                                            DicomToJsonFormat format,
                                            DicomToJsonFlags flags,
@@ -2090,7 +2090,7 @@ namespace Orthanc
                                            const std::set<DicomTag>& ignoreTagLength)
   {
     const Encoding defaultEncoding = GetDefaultDicomEncoding();
-    
+
     bool hasCodeExtensions;
     Encoding encoding = DetectEncoding(hasCodeExtensions, dataset, defaultEncoding);
 
@@ -2099,7 +2099,7 @@ namespace Orthanc
   }
 
 
-  void FromDcmtkBridge::ExtractHeaderAsJson(Json::Value& target, 
+  void FromDcmtkBridge::ExtractHeaderAsJson(Json::Value& target,
                                             DcmMetaInfo& dataset,
                                             DicomToJsonFormat format,
                                             DicomToJsonFlags flags,
@@ -2122,7 +2122,7 @@ namespace Orthanc
        * loaded, notably for compatibility with DICONDE. In Orthanc <=
        * 1.9.3, this was done by method "DicomTag::GetMainTagsName()".
        **/
-      
+
       DicomTag tmp(tag.getGroup(), tag.getElement());
 
       if (tmp == DICOM_TAG_ACCESSION_NUMBER)
@@ -2138,7 +2138,7 @@ namespace Orthanc
         return "SeriesInstanceUID";
 
       if (tmp == DICOM_TAG_STUDY_INSTANCE_UID)
-        return "StudyInstanceUID"; 
+        return "StudyInstanceUID";
 
       if (tmp == DICOM_TAG_PIXEL_DATA)
         return "PixelData";
@@ -2219,7 +2219,7 @@ namespace Orthanc
   std::string FromDcmtkBridge::GetTagName(const DicomTag& t,
                                           const std::string& privateCreator)
   {
-    
+
     DcmTag tag(t.GetGroup(), t.GetElement());
 
     if (!privateCreator.empty())
@@ -2235,7 +2235,7 @@ namespace Orthanc
   {
     // Copy the tag to ensure const-correctness of DcmElement. Note
     // that the private creator information is also copied.
-    DcmTag tag(element.getTag());  
+    DcmTag tag(element.getTag());
 
     return GetTagNameInternal(tag);
   }
@@ -2393,7 +2393,7 @@ namespace Orthanc
 
     result.clear();
 
-    for (DicomMap::Content::const_iterator 
+    for (DicomMap::Content::const_iterator
            it = values.content_.begin(); it != values.content_.end(); ++it)
     {
       switch (format)
@@ -2669,7 +2669,7 @@ namespace Orthanc
     {
       DicomTransferSyntax sourceSyntax;
       bool known = LookupOrthancTransferSyntax(sourceSyntax, dicom);
-      
+
       if (!dicom.chooseRepresentation(xfer, representation).good() ||
           !dicom.canWriteXfer(xfer) ||
           !dicom.validateMetaInfo(xfer, EWM_updateMeta).good())
@@ -2691,7 +2691,7 @@ namespace Orthanc
           CLOG(INFO, DICOM) << "Transcoded an image from unknown transfer syntax to "
                             << GetTransferSyntaxUid(syntax);
         }
-        
+
         return true;
       }
     }
@@ -2843,7 +2843,7 @@ namespace Orthanc
       // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=140
       LOG(WARNING) << "Private creator should not be empty while creating a private tag: " << tag.Format();
     }
-    
+
 #if DCMTK_VERSION_NUMBER >= 362
     DcmTag key(tag.GetGroup(), tag.GetElement());
     if (tag.IsPrivate())
@@ -2854,7 +2854,7 @@ namespace Orthanc
     {
       return DcmItem::newDicomElement(key, NULL);
     }
-    
+
 #else
     DcmTag key(tag.GetGroup(), tag.GetElement());
     if (tag.IsPrivate())
@@ -2869,7 +2869,7 @@ namespace Orthanc
     {
       return newDicomElement(key);
     }
-#endif      
+#endif
   }
 
 
@@ -2930,7 +2930,7 @@ namespace Orthanc
     }
 
     bool ok = false;
-    
+
     try
     {
       switch (element.getTag().getEVR())
@@ -2950,7 +2950,7 @@ namespace Orthanc
           /**
            * String types.
            **/
-      
+
         case EVR_DS:  // decimal string
         case EVR_IS:  // integer string
         case EVR_AS:  // age string
@@ -2975,11 +2975,11 @@ namespace Orthanc
           break;
         }
 
-        
+
         /**
          * Numerical types
-         **/ 
-      
+         **/
+
         case EVR_SL:  // signed long
           ok = IElementFiller::Apply(element, ValueRepresentationFiller_SL(), *decoded);
           break;
@@ -3013,7 +3013,7 @@ namespace Orthanc
           }
           else
           {
-            ok = element.putUint16(boost::lexical_cast<Uint16>(*decoded)).good();  
+            ok = element.putUint16(boost::lexical_cast<Uint16>(*decoded)).good();
           }
           break;
         }
@@ -3049,13 +3049,13 @@ namespace Orthanc
         /**
          * Other types
          **/
-        
+
         case EVR_AT:  // attribute tag, new in Orthanc 1.9.4
           // Multiple values are supported since Orthanc 1.13.0
           ok = IElementFiller::Apply(element, ValueRepresentationFiller_AT(), *decoded);
           break;
 
-          
+
         /**
          * Sequence types, should never occur at this point.
          **/
@@ -3069,7 +3069,7 @@ namespace Orthanc
 
         /**
          * Internal to DCMTK.
-         **/ 
+         **/
 
         case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
         case EVR_na:  // na="not applicable", for data which has no VR
@@ -3133,7 +3133,7 @@ namespace Orthanc
         {
           p = privateCreator.c_str();
         }
-        
+
         DcmTag key(tag.GetGroup(), tag.GetElement(), p);
         if (key.getEVR() != EVR_SQ)
         {
@@ -3143,7 +3143,7 @@ namespace Orthanc
 
         DcmSequenceOfItems* sequence = new DcmSequenceOfItems(key);
         element.reset(sequence);
-        
+
         for (Json::Value::ArrayIndex i = 0; i < value.size(); i++)
         {
           std::unique_ptr<DcmItem> item(new DcmItem);
@@ -3202,7 +3202,7 @@ namespace Orthanc
     E_TransferSyntax repType;
     const DcmRepresentationParameter *repParam = NULL;
     pixelData.getCurrentRepresentationKey(repType, repParam);
-    
+
     DcmPixelSequence* pixelSequence = NULL;
     if (!pixelData.getEncapsulatedRepresentation(repType, repParam, pixelSequence).good())
     {
@@ -3226,7 +3226,7 @@ namespace Orthanc
     Encoding encoding = defaultEncoding;
 
     const Json::Value::Members tags = json.getMemberNames();
-    
+
     // Look for SpecificCharacterSet (0008,0005) in the JSON file
     for (size_t i = 0; i < tags.size(); i++)
     {
@@ -3251,7 +3251,7 @@ namespace Orthanc
     }
 
     return encoding;
-  } 
+  }
 
 
   static void SetString(DcmDataset& target,
@@ -3277,7 +3277,7 @@ namespace Orthanc
     SetString(*result, DCM_SpecificCharacterSet, GetDicomSpecificCharacterSet(encoding));
 
     const Json::Value::Members tags = json.getMemberNames();
-    
+
     bool hasPatientId = false;
     bool hasStudyInstanceUid = false;
     bool hasSeriesInstanceUid = false;
@@ -3389,7 +3389,7 @@ namespace Orthanc
   {
     if (source.type() != Json::objectValue)
     {
-      if (fieldName != NULL) 
+      if (fieldName != NULL)
       {
         throw OrthancException(ErrorCode_BadFileFormat, std::string("Expecting an object in field '") + std::string(fieldName) + std::string("'"));
       }
@@ -3411,7 +3411,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_BadFileFormat, std::string("Expecting a string in field '") + members[i] + std::string("'"));
       }
-      
+
       target.SetValue(ParseTag(members[i]), value.asString(), false);
     }
   }
@@ -3441,7 +3441,7 @@ namespace Orthanc
         {
           char *c = NULL;
           if (element->isaString() &&
-              element->getString(c).good() && 
+              element->getString(c).good() &&
               c != NULL)
           {
             std::string a = Toolbox::ConvertDicomStringToUtf8(c, source, hasSourceCodeExtensions, Convert(element->getVR()));
@@ -3485,7 +3485,7 @@ namespace Orthanc
 #endif
 
     CLOG(INFO, DICOM) << "Registering RLE codecs in DCMTK";
-    DcmRLEDecoderRegistration::registerCodecs(); 
+    DcmRLEDecoderRegistration::registerCodecs();
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     DcmRLEEncoderRegistration::registerCodecs();
 #endif
@@ -3510,7 +3510,7 @@ namespace Orthanc
 # endif
 #endif
 
-    DcmRLEDecoderRegistration::cleanup(); 
+    DcmRLEDecoderRegistration::cleanup();
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     DcmRLEEncoderRegistration::cleanup();
 #endif
@@ -3525,7 +3525,7 @@ namespace Orthanc
                                     const std::vector<size_t>& parentIndexes,
                                     Encoding encoding,
                                     bool hasCodeExtensions);
- 
+
   static void ApplyVisitorToDataset(DcmItem& dataset,
                                     ITagVisitor& visitor,
                                     const std::vector<DicomTag>& parentTags,
@@ -3536,7 +3536,7 @@ namespace Orthanc
     assert(parentTags.size() == parentIndexes.size());
 
     std::set<DcmTagKey> toRemove;
-    
+
     if (dataset.card() > 0)
     {
       for (unsigned long i = 0; i < dataset.card(); i++)
@@ -3552,7 +3552,7 @@ namespace Orthanc
           {
             toRemove.insert(element->getTag());
           }
-        }      
+        }
       }
     }
     else
@@ -3584,9 +3584,9 @@ namespace Orthanc
 
     DcmEVR evr = element.getTag().getEVR();
 
-    
+
     /**
-     * Fix the EVR for types internal to DCMTK 
+     * Fix the EVR for types internal to DCMTK
      **/
 
     if (evr == EVR_ox)  // OB or OW depending on context
@@ -3599,12 +3599,12 @@ namespace Orthanc
       // However, e.g. in a LUTDescriptor (3 values), the middle value can be a SS depending on other tag values while first and third value are always US.
       // This patch, although not perfect fixes  https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=214.
       // It might need some rework once we encounter a LUTDescriptor with a SS value. ref: https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.11.2.html#sect_C.11.2.1.1
-      evr = EVR_US;  
+      evr = EVR_US;
     }
     else if (evr == EVR_lt) // US, SS or OW depending on context, used for LUT Data (thus the name)
     {
       // best guess is OW: final user should be able to interpret it correctly depending on the context
-      evr = EVR_OW;      
+      evr = EVR_OW;
     }
 
     if (evr == EVR_UNKNOWN ||  // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
@@ -3630,7 +3630,7 @@ namespace Orthanc
 
     const ValueRepresentation vr = FromDcmtkBridge::Convert(evr);
 
-    
+
     /**
      * Deal with binary data (including PixelData).
      **/
@@ -3641,7 +3641,7 @@ namespace Orthanc
       Uint8* data = NULL;
 
       ITagVisitor::Action action;
-      
+
       if (evr == EVR_OW &&
           element.getUint16Array(data16).good())
       {
@@ -3727,7 +3727,7 @@ namespace Orthanc
 
 
     ITagVisitor::Action action;
-    
+
     try
     {
       // http://support.dcmtk.org/docs/dcvr_8h-source.html
@@ -3757,7 +3757,7 @@ namespace Orthanc
         case EVR_UC:  // Unlimited Characters
         {
           Uint8* data = NULL;
-          
+
           if (element.getUint8Array(data).good())
           {
             const Uint32 length = element.getLength();
@@ -3788,11 +3788,11 @@ namespace Orthanc
 
           break;
         }
-    
+
         /**
          * Numeric types
-         **/ 
-      
+         **/
+
         case EVR_SL:  // signed long
         {
           DcmSignedLong& content = dynamic_cast<DcmSignedLong&>(element);
@@ -4053,11 +4053,11 @@ namespace Orthanc
         {
           return true;
         }
-        
-        
+
+
         /**
          * Internal to DCMTK.
-         **/ 
+         **/
 
         case EVR_xs:  // SS or US depending on context
         case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
@@ -4077,11 +4077,11 @@ namespace Orthanc
           action = visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
           break;
         }
-        
+
 
         /**
          * Default case.
-         **/ 
+         **/
 
         default:
           return true;
@@ -4250,7 +4250,7 @@ namespace Orthanc
     {
       sopInstanceUid.assign(c);
     }
-    
+
     return DicomMap::FormatMissingTagsForStore(patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
   }
 
@@ -4261,7 +4261,7 @@ namespace Orthanc
                                                          const DicomPath& actualPath)
   {
     const size_t level = actualPath.GetPrefixLength();
-      
+
     if (level == pattern.GetPrefixLength())
     {
       visitor.Visit(item, actualPath);
@@ -4287,7 +4287,7 @@ namespace Orthanc
             {
               DicomPath childPath = actualPath;
               childPath.AddIndexedTagToPrefix(pattern.GetPrefixTag(level), static_cast<size_t>(i));
-              
+
               ApplyInternal(visitor, *child, pattern, childPath);
             }
           }
@@ -4319,11 +4319,11 @@ namespace Orthanc
         std::unique_ptr<DcmElement> removed(item.remove(key));
       }
     };
-    
+
     Visitor visitor;
     IDicomPathVisitor::Apply(visitor, dataset, path);
   }
-  
+
 
   void FromDcmtkBridge::ClearPath(DcmDataset& dataset,
                                   const DicomPath& path,
@@ -4333,13 +4333,13 @@ namespace Orthanc
     {
     public:
       bool  onlyIfExists_;
-      
+
     public:
       explicit Visitor(bool onlyIfExists) :
         onlyIfExists_(onlyIfExists)
       {
       }
-      
+
       virtual void Visit(DcmItem& item,
                          const DicomPath& path) ORTHANC_OVERRIDE
       {
@@ -4359,11 +4359,11 @@ namespace Orthanc
         }
       }
     };
-    
+
     Visitor visitor(onlyIfExists);
     IDicomPathVisitor::Apply(visitor, dataset, path);
   }
-  
+
 
   void FromDcmtkBridge::ReplacePath(DcmDataset& dataset,
                                     const DicomPath& path,
@@ -4375,7 +4375,7 @@ namespace Orthanc
     private:
       std::unique_ptr<DcmElement> element_;
       DicomReplaceMode            mode_;
-    
+
     public:
       Visitor(const DcmElement& element,
               DicomReplaceMode mode) :
@@ -4387,7 +4387,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError, "Cannot clone DcmElement");
         }
       }
-    
+
       virtual void Visit(DcmItem& item,
                          const DicomPath& path) ORTHANC_OVERRIDE
       {
@@ -4397,7 +4397,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError, "Cannot clone DcmElement");
         }
         else
-        {      
+        {
           DcmTagKey key(path.GetFinalTag().GetGroup(), path.GetFinalTag().GetElement());
 
           if (!item.tagExists(key))
@@ -4406,18 +4406,18 @@ namespace Orthanc
             {
               case DicomReplaceMode_InsertIfAbsent:
                 break;  // Fine, we can proceed with insertion
-                
+
               case DicomReplaceMode_ThrowIfAbsent:
                 throw OrthancException(ErrorCode_InexistentItem, "Cannot replace inexistent tag: " + GetTagName(*element_));
-                
+
               case DicomReplaceMode_IgnoreIfAbsent:
                 return;  // Don't proceed with insertion
-                
+
               default:
                 throw OrthancException(ErrorCode_ParameterOutOfRange);
             }
           }
-          
+
           if (!item.insert(cloned.release(), OFTrue /* replace old */).good())
           {
             throw OrthancException(ErrorCode_InternalError, "Cannot replace an element: " + GetTagName(*element_));
@@ -4427,7 +4427,7 @@ namespace Orthanc
     };
 
     DcmTagKey key(path.GetFinalTag().GetGroup(), path.GetFinalTag().GetElement());
-  
+
     if (element.getTag() != key)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange,
@@ -4452,7 +4452,7 @@ namespace Orthanc
       bool       found_;
       DicomMap&  target_;
       size_t     sequenceIndex_;
-      
+
     public:
       Visitor(DicomMap& target,
               size_t sequenceIndex) :
@@ -4461,14 +4461,14 @@ namespace Orthanc
         sequenceIndex_(sequenceIndex)
       {
       }
-      
+
       virtual void Visit(DcmItem& item,
                          const DicomPath& path) ORTHANC_OVERRIDE
       {
         DcmTagKey tag(path.GetFinalTag().GetGroup(), path.GetFinalTag().GetElement());
 
         DcmSequenceOfItems *sequence = NULL;
-        
+
         if (item.findAndGetSequence(tag, sequence).good() &&
             sequence != NULL &&
             sequenceIndex_ < sequence->card())
@@ -4496,7 +4496,7 @@ namespace Orthanc
                                           const DicomTag& key)
   {
     DcmTagKey dcmkey(key.GetGroup(), key.GetElement());
-    
+
     const char* str = NULL;
     const Uint8* data = NULL;
     unsigned long size = 0;

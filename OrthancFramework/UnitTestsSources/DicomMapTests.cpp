@@ -170,7 +170,7 @@ namespace Orthanc
 
     DicomMap::AddMainDicomTag(DICOM_TAG_BITS_ALLOCATED, ResourceType_Instance);
     instanceSignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Instance);
-    
+
     ASSERT_NE(defaultInstanceSignature, instanceSignature);
   }
 
@@ -212,12 +212,12 @@ TEST(DicomMap, Tags)
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, *s.begin());
 
   std::unique_ptr<DicomMap> mm(m.Clone());
-  ASSERT_EQ("PatientName", mm->GetValue(DICOM_TAG_PATIENT_NAME).GetContent());  
+  ASSERT_EQ("PatientName", mm->GetValue(DICOM_TAG_PATIENT_NAME).GetContent());
 
   m.SetValue(DICOM_TAG_PATIENT_ID, "Hello", false);
   ASSERT_THROW(mm->GetValue(DICOM_TAG_PATIENT_ID), OrthancException);
   mm->CopyTagIfExists(m, DICOM_TAG_PATIENT_ID);
-  ASSERT_EQ("Hello", mm->GetValue(DICOM_TAG_PATIENT_ID).GetContent());  
+  ASSERT_EQ("Hello", mm->GetValue(DICOM_TAG_PATIENT_ID).GetContent());
 
   DicomValue v;
   ASSERT_TRUE(v.IsNull());
@@ -256,7 +256,7 @@ static void TestModule(ResourceType level,
 
   std::set<DicomTag> moduleTags;
   DicomTag::AddTagsForModule(moduleTags, module);
-  
+
   // The main dicom tags are a subset of the module
   for (std::set<DicomTag>::const_iterator it = main.begin(); it != main.end(); ++it)
   {
@@ -335,7 +335,7 @@ TEST(DicomMap, Parse)
   uint64_t l;
   unsigned int ui;
   std::string s;
-  
+
   m.SetValue(DICOM_TAG_PATIENT_NAME, "      ", false);  // Empty value
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseDouble(d));
@@ -343,7 +343,7 @@ TEST(DicomMap, Parse)
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger64(j));
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger32(k));
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger64(l));
-  
+
   m.SetValue(DICOM_TAG_PATIENT_NAME, "0", true);  // Binary value
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseDouble(d));
@@ -355,7 +355,7 @@ TEST(DicomMap, Parse)
   ASSERT_FALSE(m.LookupStringValue(s, DICOM_TAG_PATIENT_NAME, false));
   ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_PATIENT_NAME, true));
   ASSERT_EQ("0", s);
-               
+
 
   // 2**31-1
   m.SetValue(DICOM_TAG_PATIENT_NAME, "2147483647", false);
@@ -391,8 +391,8 @@ TEST(DicomMap, Parse)
   ASSERT_EQ("42", s);
   ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_PATIENT_NAME, true));
   ASSERT_EQ("42", s);
-               
-  
+
+
   // 2**31
   m.SetValue(DICOM_TAG_PATIENT_NAME, "2147483648", false);
   ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
@@ -420,7 +420,7 @@ TEST(DicomMap, Parse)
   ASSERT_EQ(4294967295ll, j);
   ASSERT_EQ(4294967295u, k);
   ASSERT_EQ(4294967295ull, l);
-  
+
   // 2**32
   m.SetValue(DICOM_TAG_PATIENT_NAME, "4294967296", false);
   ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
@@ -433,7 +433,7 @@ TEST(DicomMap, Parse)
   ASSERT_DOUBLE_EQ(4294967296.0, d);
   ASSERT_EQ(4294967296ll, j);
   ASSERT_EQ(4294967296ull, l);
-  
+
   m.SetValue(DICOM_TAG_PATIENT_NAME, "-1", false);
   ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
   ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseDouble(d));
@@ -458,7 +458,7 @@ TEST(DicomMap, Parse)
   ASSERT_DOUBLE_EQ(-2147483648.0, d);
   ASSERT_EQ(static_cast<int32_t>(-2147483648ll), i);
   ASSERT_EQ(-2147483648ll, j);
-  
+
   // -2**31 - 1
   m.SetValue(DICOM_TAG_PATIENT_NAME, "-2147483649", false);
   ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
@@ -468,7 +468,7 @@ TEST(DicomMap, Parse)
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger32(k));
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger64(l));
   ASSERT_FLOAT_EQ(-2147483649.0f, f);
-  ASSERT_DOUBLE_EQ(-2147483649.0, d); 
+  ASSERT_DOUBLE_EQ(-2147483649.0, d);
   ASSERT_EQ(-2147483649ll, j);
 
 
@@ -485,7 +485,7 @@ TEST(DicomMap, Parse)
 TEST(DicomMap, Serialize)
 {
   Json::Value s;
-  
+
   {
     DicomMap m;
     m.SetValue(DICOM_TAG_PATIENT_NAME, "Hello", false);
@@ -670,7 +670,7 @@ TEST(DicomMap, FromDicomAsJsonAndSequences)
 
   Json::Value parsedJson;
   bool ret = Toolbox::ReadJson(parsedJson, jsonFullString);
-  
+
   m.FromDicomAsJson(parsedJson, false /* append */, true /* parseSequences*/);
   ASSERT_TRUE(ret);
 
@@ -749,17 +749,17 @@ TEST(DicomMap, ExtractSummary)
       item["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.719";
       a.append(item);
     }
-      
+
     {
       Json::Value item = Json::objectValue;
       item["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";  // ReferencedSOPClassUID
       item["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.726";
       a.append(item);
     }
-      
+
     v["ReferencedImageSequence"] = a;
   }
-    
+
   {
     Json::Value a = Json::arrayValue;
 
@@ -779,10 +779,10 @@ TEST(DicomMap, ExtractSummary)
 
         item["PurposeOfReferenceCodeSequence"] = b;
       }
-        
+
       a.append(item);
     }
-      
+
     v["RelatedSeriesSequence"] = a;
   }
 
@@ -814,7 +814,7 @@ TEST(DicomWebJson, Multiplicity)
   {
     const Json::Value& tag = visitor.GetResult() ["00200037"];  // ImageOrientationPatient
     const Json::Value& value = tag["Value"];
-  
+
     ASSERT_EQ(EnumerationToString(ValueRepresentation_DecimalString), tag["vr"].asString());
     ASSERT_EQ(2u, tag.getMemberNames().size());
     ASSERT_EQ(3u, value.size());
@@ -878,7 +878,7 @@ TEST(DicomWebJson, NullValue)
   {
     const Json::Value& tag = visitor.GetResult() ["00200037"];
     const Json::Value& value = tag["Value"];
-  
+
     ASSERT_EQ(EnumerationToString(ValueRepresentation_DecimalString), tag["vr"].asString());
     ASSERT_EQ(2u, tag.getMemberNames().size());
     ASSERT_EQ(4u, value.size());
@@ -892,7 +892,7 @@ TEST(DicomWebJson, NullValue)
 
   std::string xml;
   visitor.FormatXml(xml);
-  
+
   {
     DicomMap m;
     m.FromDicomWeb(visitor.GetResult());
@@ -937,7 +937,7 @@ TEST(DicomWebJson, PixelSpacing)
 TEST(DicomMap, MainTagNames)
 {
   ASSERT_EQ(3, ResourceType_Instance - ResourceType_Patient);
-  
+
   for (int i = ResourceType_Patient; i <= ResourceType_Instance; i++)
   {
     ResourceType level = static_cast<ResourceType>(i);
@@ -1088,12 +1088,12 @@ TEST(DicomMap, SetupFindTemplates)
    * servers, and must not be altered by the "ExtraMainDicomTags"
    * configuration option that was introduced in Orthanc 1.11.0.
    **/
-  
+
   {
     DicomMap m;
     m.SetValue(DICOM_TAG_ENCAPSULATED_DOCUMENT, "nope", false);
     m.SetValue(DICOM_TAG_PATIENT_ID, "patient_id", false);
-    
+
     DicomMap::SetupFindPatientTemplate(m);
     std::set<DicomTag> tags;
     m.GetTags(tags);
@@ -1107,12 +1107,12 @@ TEST(DicomMap, SetupFindTemplates)
     ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_NAME, "nope", false));
     ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_SEX, "nope", false));
   }
-  
+
   {
     DicomMap m;
     m.SetValue(DICOM_TAG_ENCAPSULATED_DOCUMENT, "nope", false);
     m.SetValue(DICOM_TAG_PATIENT_ID, "patient_id", false);
-    
+
     DicomMap::SetupFindStudyTemplate(m);
     std::set<DicomTag> tags;
     m.GetTags(tags);
@@ -1129,12 +1129,12 @@ TEST(DicomMap, SetupFindTemplates)
     ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_ID, "nope", false));
     ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_TIME, "nope", false));
   }
-  
+
   {
     DicomMap m;
     m.SetValue(DICOM_TAG_ENCAPSULATED_DOCUMENT, "nope", false);
     m.SetValue(DICOM_TAG_PATIENT_ID, "patient_id", false);
-    
+
     DicomMap::SetupFindSeriesTemplate(m);
     std::set<DicomTag> tags;
     m.GetTags(tags);
@@ -1156,12 +1156,12 @@ TEST(DicomMap, SetupFindTemplates)
     ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SERIES_NUMBER, "nope", false));
     ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SERIES_TIME, "nope", false));
   }
-  
+
   {
     DicomMap m;
     m.SetValue(DICOM_TAG_ENCAPSULATED_DOCUMENT, "nope", false);
     m.SetValue(DICOM_TAG_PATIENT_ID, "patient_id", false);
-    
+
     DicomMap::SetupFindInstanceTemplate(m);
     std::set<DicomTag> tags;
     m.GetTags(tags);
@@ -1949,7 +1949,7 @@ TEST(DicomWebJson, BinaryModes)
 TEST(DicomMap, DISABLED_ParseDicomMetaInformation)
 {
   static const std::string PATH = "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/";
-  
+
   std::map<std::string, DicomTransferSyntax> f;
   f.insert(std::make_pair(PATH + "../ColorTestMalaterre.dcm", DicomTransferSyntax_LittleEndianImplicit));  // 1.2.840.10008.1.2
   f.insert(std::make_pair(PATH + "1.2.840.10008.1.2.1.dcm", DicomTransferSyntax_LittleEndianExplicit));
@@ -1967,7 +1967,7 @@ TEST(DicomMap, DISABLED_ParseDicomMetaInformation)
   for (std::map<std::string, DicomTransferSyntax>::const_iterator it = f.begin(); it != f.end(); ++it)
   {
     printf("\n== %s ==\n\n", it->first.c_str());
-    
+
     std::string dicom;
     SystemToolbox::ReadFile(dicom, it->first, false);
 
@@ -1977,7 +1977,7 @@ TEST(DicomMap, DISABLED_ParseDicomMetaInformation)
 
     std::string s;
     ASSERT_TRUE(d.LookupStringValue(s, DICOM_TAG_TRANSFER_SYNTAX_UID, false));
-    
+
     DicomTransferSyntax ts;
     ASSERT_TRUE(LookupTransferSyntax(ts, s));
     ASSERT_EQ(ts, it->second);
@@ -1992,18 +1992,18 @@ namespace
   private:
     DicomMap  map_;
     uint64_t  pixelDataOffset_;
-    
+
   public:
     V() :
       pixelDataOffset_(0)
     {
     }
-    
+
     const DicomMap& GetDicomMap() const
     {
       return map_;
     }
-    
+
     virtual void VisitMetaHeaderTag(const DicomTag& tag,
                                     const ValueRepresentation& vr,
                                     const std::string& value) ORTHANC_OVERRIDE
@@ -2015,7 +2015,7 @@ namespace
     {
       printf("TRANSFER SYNTAX: %s\n", GetTransferSyntaxUid(transferSyntax));
     }
-    
+
     virtual bool VisitDatasetTag(const DicomTag& tag,
                                  const ValueRepresentation& vr,
                                  const std::string& value,
@@ -2040,7 +2040,7 @@ namespace
       }
 
       map_.SetValue(tag, value, Toolbox::IsAsciiString(value));
-                                                            
+
       return true;
     }
 
@@ -2092,7 +2092,7 @@ TEST(DicomStreamReader, DISABLED_Tutu)
     SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.dcm", false);
     ASSERT_FALSE(DicomStreamReader::LookupPixelDataOffset(offset, vr, dicom));
   }
-  
+
   for (Sources::const_iterator it = sources.begin(); it != sources.end(); ++it)
   {
     std::string dicom;
@@ -2105,7 +2105,7 @@ TEST(DicomStreamReader, DISABLED_Tutu)
       ASSERT_EQ(it->get<1>(), offset);
       ASSERT_EQ(it->get<2>(), vr);
     }
-    
+
     {
       uint64_t offset;
       ValueRepresentation vr;
@@ -2113,14 +2113,14 @@ TEST(DicomStreamReader, DISABLED_Tutu)
       ASSERT_EQ(it->get<1>(), offset);
       ASSERT_EQ(it->get<2>(), vr);
     }
-    
+
     ParsedDicomFile a(dicom);
     Json::Value aa;
     a.DatasetToJson(aa, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0);
 
     std::stringstream stream;
     size_t pos = 0;
-  
+
     DicomStreamReader r(stream);
     V visitor;
 
@@ -2157,9 +2157,9 @@ TEST(DicomStreamReader, DISABLED_Tutu2)
   //const std::string path = PATH + "1.2.840.10008.1.2.4.50.dcm";
   //const std::string path = PATH + "1.2.840.10008.1.2.2.dcm";
   const std::string path = "/home/jodogne/Subversion/orthanc-tests/Database/HierarchicalAnonymization/RTH/RT.dcm";
-  
+
   std::ifstream stream(path.c_str());
-  
+
   DicomStreamReader r(stream);
   V visitor;
 
@@ -2177,7 +2177,7 @@ TEST(DicomStreamReader, DISABLED_Tutu3)
 
   std::set<std::string> errors;
   unsigned int success = 0;
-  
+
   for (boost::filesystem::recursive_directory_iterator current(PATH), end;
        current != end ; ++current)
   {
@@ -2194,10 +2194,10 @@ TEST(DicomStreamReader, DISABLED_Tutu3)
 
           {
             std::ifstream stream(path.c_str());
-            
+
             DicomStreamReader r(stream);
             V visitor;
-            
+
             try
             {
               r.Consume(visitor, DICOM_TAG_PIXEL_DATA);
@@ -2217,11 +2217,11 @@ TEST(DicomStreamReader, DISABLED_Tutu3)
 
 
           DicomMap m2;
-          
+
           {
             std::string dicom;
             SystemToolbox::ReadFile(dicom, current->path());
-            
+
             ParsedDicomFile f(dicom);
             f.ExtractDicomSummary(m2, 256);
           }
@@ -2239,7 +2239,7 @@ TEST(DicomStreamReader, DISABLED_Tutu3)
                 fprintf(stderr, "[%s]\n", path.c_str());
                 first = false;
               }
-              
+
               std::cerr << "ERROR: " << it->Format() << std::endl;
             }
             else if (!m2.GetValue(*it).IsNull() &&
@@ -2248,7 +2248,7 @@ TEST(DicomStreamReader, DISABLED_Tutu3)
             {
               const std::string& v1 = m1.GetValue(*it).GetContent();
               const std::string& v2 = m2.GetValue(*it).GetContent();
-              
+
               if (v1 != v2 &&
                   (v1.size() != v2.size() + 1 ||
                    v1.substr(0, v2.size()) != v2))

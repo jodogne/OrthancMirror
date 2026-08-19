@@ -78,12 +78,12 @@ for root, dirs, files in os.walk(os.path.join(ROOT, '..', 'Sources')):
             SOURCES.append(os.path.join(root, name))
 
 AMALGAMATION = '/tmp/CheckOrthancFrameworkSymbols.cpp'
-            
+
 with open(AMALGAMATION, 'w') as f:
     f.write('#include "%s"\n' % os.path.join(ROOT, '..', 'Sources', 'OrthancFramework.h'))
     for source in SOURCES:
         f.write('#include "%s"\n' % source)
-            
+
 
 tu = index.parse(AMALGAMATION, [
     '--std=c++11',
@@ -147,7 +147,7 @@ def ExploreClass(child, fqn):
     # Ignore forward declaration of classes
     if not child.is_definition():
         return
-    
+
 
     ##
     ## Verify that the class is publicly exported (its visibility must
@@ -165,8 +165,8 @@ def ExploreClass(child, fqn):
 
     global ALL_TYPES
     ALL_TYPES.append('::'.join(fqn))
-    
-    
+
+
     ##
     ## Ignore pure abstract interfaces, by checking the following
     ## criteria:
@@ -175,7 +175,7 @@ def ExploreClass(child, fqn):
     ##   - All its methods must be pure virtual (abstract) and public
     ##   - Its destructor must be public, virtual, and must do nothing
     ##
-    
+
     if (child.kind == clang.cindex.CursorKind.CLASS_DECL and
         child.spelling[0] == 'I' and
         child.spelling[1].isupper()):
@@ -223,12 +223,12 @@ def ExploreClass(child, fqn):
             ReportProblem('Not a pure interface', fqn, child)
 
         return
-                  
+
 
     ##
     ## We are facing a standard C++ class or struct
     ##
-    
+
     isPublic = (child.kind == clang.cindex.CursorKind.STRUCT_DECL)
 
     membersCount = 0
@@ -238,7 +238,7 @@ def ExploreClass(child, fqn):
         if (i.kind == clang.cindex.CursorKind.VISIBILITY_ATTR or    # "default"
             i.kind == clang.cindex.CursorKind.CXX_BASE_SPECIFIER):  # base class
             pass
-        
+
         elif i.kind == clang.cindex.CursorKind.CXX_ACCESS_SPEC_DECL:
             isPublic = (i.access_specifier == clang.cindex.AccessSpecifier.PUBLIC)
 
@@ -294,7 +294,7 @@ def ExploreClass(child, fqn):
             if i.type.get_size() > 0:
                 membersSize += i.type.get_size()
             membersCount += 1
-            
+
         else:
             if isPublic:
                 raise Exception('Unsupported: %s, %s' % (i.kind, i.location))
@@ -305,7 +305,7 @@ def ExploreClass(child, fqn):
 def ExploreNamespace(node, namespace):
     for child in node.get_children():
         fqn = namespace + [ child.spelling ]
-        
+
         if child.kind == clang.cindex.CursorKind.NAMESPACE:
             ExploreNamespace(child, fqn)
 

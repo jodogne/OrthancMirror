@@ -59,7 +59,7 @@ namespace Orthanc
       case Endianness_Little:
         datatype = "<";
         break;
-        
+
       case Endianness_Big:
         datatype = ">";
         break;
@@ -67,7 +67,7 @@ namespace Orthanc
       default:
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
-    
+
     unsigned int channels;
 
     switch (format)
@@ -106,7 +106,7 @@ namespace Orthanc
     {
       depthString = boost::lexical_cast<std::string>(depth) + ", ";
     }
-    
+
     const std::string info = ("{'descr': '" + datatype + "', 'fortran_order': False, " +
                               "'shape': (" + depthString + boost::lexical_cast<std::string>(height) +
                               "," + boost::lexical_cast<std::string>(width) +
@@ -127,7 +127,7 @@ namespace Orthanc
     uint16_t headerLength = info.size() + countZeros + 1 /* trailing '\n' */;
     uint8_t highByte = headerLength / 256;
     uint8_t lowByte = headerLength % 256;
-    
+
     target.AddChunk(VERSION, sizeof(VERSION));
     target.AddChunk(&lowByte, 1);
     target.AddChunk(&highByte, 1);
@@ -147,7 +147,7 @@ namespace Orthanc
       target.AddChunk(image.GetConstRow(y), rowSize);
     }
   }
-  
+
 
   void NumpyWriter::Finalize(std::string& target,
                              ChunkedBuffer& source,
@@ -160,7 +160,7 @@ namespace Orthanc
       // specified as positional arguments in "numpy.savez()"
       // https://numpy.org/doc/stable/reference/generated/numpy.savez.html
       const char* ARRAY_NAME = "arr_0";
-      
+
       std::string uncompressed;
       source.Flatten(uncompressed);
 
@@ -193,12 +193,12 @@ namespace Orthanc
   {
     std::string content;
     WriteToMemoryInternal(content, width, height, pitch, format, buffer);
-    
+
     SystemToolbox::WriteFile(content, filename);
   }
 #endif
 
-  
+
   void NumpyWriter::WriteToMemoryInternal(std::string& content,
                                           unsigned int width,
                                           unsigned int height,
@@ -222,7 +222,7 @@ namespace Orthanc
     compressed_ = false;
   }
 
-  
+
   void NumpyWriter::SetCompressed(bool compressed)
   {
 #if ORTHANC_ENABLE_ZLIB == 1

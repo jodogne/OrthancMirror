@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -101,19 +101,19 @@ namespace Orthanc
     OrthancConfiguration();
 
     void LoadModalitiesFromJson(const Json::Value& source);
-    
+
     void LoadPeersFromJson(const Json::Value& source);
-    
+
     void LoadModalities();
-    
+
     void LoadPeers();
-    
+
     void SaveModalitiesToJson(Json::Value& target);
-    
+
     void SavePeersToJson(Json::Value& target);
-    
+
     void SaveModalities();
-    
+
     void SavePeers();
 
     static OrthancConfiguration& GetInstance();
@@ -199,7 +199,7 @@ namespace Orthanc
 
     // If the parameter is not part of the user configuration, it it retrieved from the default configuration
     std::string GetStringParameter(const std::string& parameter) const;
-    
+
     bool LookupIntegerParameter(int& target,
                                 const std::string& parameter) const;
 
@@ -234,7 +234,7 @@ namespace Orthanc
                                                bool& hasInsecureUser) const;
 
     boost::filesystem::path InterpretStringParameterAsPath(const std::string& parameter) const;
-    
+
     void GetListOfStringsParameter(std::list<std::string>& target,
                                    const std::string& key) const;
 
@@ -254,14 +254,14 @@ namespace Orthanc
                         const std::string& ip) const;
 
     RemoteModalityParameters GetModalityUsingSymbolicName(const std::string& name) const;
-    
+
     RemoteModalityParameters GetModalityUsingAet(const std::string& aet) const;
-    
+
     void UpdateModality(const std::string& symbolicName,
                         const RemoteModalityParameters& modality);
 
     void RemoveModality(const std::string& symbolicName);
-    
+
     void UpdatePeer(const std::string& symbolicName,
                     const WebServiceParameters& peer);
 
@@ -280,7 +280,7 @@ namespace Orthanc
     }
 
     void Format(std::string& result) const;
-    
+
     void SetDefaultEncoding(Encoding encoding);
 
     bool HasConfigurationChanged() const;
@@ -323,7 +323,7 @@ namespace Orthanc
     {
       return GetUnsignedIntegerParameter(ORTHANC_CONFIG_MAXIMUM_PATIENT_COUNT);
     }
-    
+
     unsigned int GetDicomPort() const
     {
       return GetUnsignedIntegerParameter(ORTHANC_CONFIG_DICOM_PORT);
@@ -359,18 +359,18 @@ namespace Orthanc
 
     static void DefaultExtractDicomSummary(DicomMap& target,
                                            DcmDataset& dicom);
-    
+
     static void DefaultDicomDatasetToJson(Json::Value& target,
                                           const ParsedDicomFile& dicom);
-    
+
     static void DefaultDicomDatasetToJson(Json::Value& target,
                                           DcmDataset& dicom,
                                           const std::set<DicomTag>& ignoreTagLength);
-    
+
     static void DefaultDicomDatasetToJson(Json::Value& target,
                                           const ParsedDicomFile& dicom,
                                           const std::set<DicomTag>& ignoreTagLength);
-    
+
     static void DefaultDicomHeaderToJson(Json::Value& target,
                                          const ParsedDicomFile& dicom);
 

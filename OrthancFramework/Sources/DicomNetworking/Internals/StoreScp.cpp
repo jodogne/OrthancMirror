@@ -93,7 +93,7 @@
 namespace Orthanc
 {
   namespace
-  {  
+  {
     struct StoreCallbackData
     {
       IStoreRequestHandler* handler;
@@ -105,7 +105,7 @@ namespace Orthanc
       uint32_t messageID;
     };
 
-    
+
     static void
     storeScpCallback(
       void *callbackData,
@@ -161,7 +161,7 @@ namespace Orthanc
           if (rsp->DimseStatus == STATUS_Success)
           {
             // which SOP class and SOP instance ?
-	    
+
 #if DCMTK_VERSION_NUMBER >= 364
 	            if (!DU_findSOPClassAndInstanceInDataSet(*imageDataSet, sopClass, sizeof(sopClass),
 						      sopInstance, sizeof(sopInstance), /*opt_correctUIDPadding*/ OFFalse))
@@ -216,8 +216,8 @@ namespace Orthanc
  *   presID - [in] The ID of the presentation context which was specified in the PDV which contained
  *                 the DIMSE command.
  */
-  OFCondition Internals::storeScp(T_ASC_Association * assoc, 
-                                  T_DIMSE_Message * msg, 
+  OFCondition Internals::storeScp(T_ASC_Association * assoc,
+                                  T_DIMSE_Message * msg,
                                   T_ASC_PresentationContextID presID,
                                   IStoreRequestHandler& handler,
                                   const std::string& remoteIp,
@@ -263,7 +263,7 @@ namespace Orthanc
     DcmDataset *dset = dcmff.getDataset();
 
     cond = DIMSE_storeProvider(assoc, presID, req, NULL, /*opt_useMetaheader*/OFFalse, &dset,
-                               storeScpCallback, &data, 
+                               storeScpCallback, &data,
                                /*opt_blockMode*/ (timeout ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                                /*opt_dimse_timeout*/ timeout);
 

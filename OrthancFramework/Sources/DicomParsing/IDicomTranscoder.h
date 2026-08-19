@@ -40,7 +40,7 @@ class DcmFileFormat;
 namespace Orthanc
 {
   class ParsedDicomFile;
-  
+
   /**
    * WARNING: This class might be called from several threads at
    * once. Make sure to implement proper locking.
@@ -63,12 +63,12 @@ namespace Orthanc
 
     public:
       DicomImage();
-      
+
       void Clear();
-      
+
       // Calling this method will invalidate the "ParsedDicomFile" object
       void AcquireParsed(ParsedDicomFile& parsed);
-      
+
       void AcquireParsed(DcmFileFormat* parsed);
 
       void AcquireParsed(DicomImage& other);
@@ -122,8 +122,8 @@ namespace Orthanc
                                  const std::string& sourceSopInstanceUid,
                                  const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                  bool allowNewSopInstanceUid);
-    
-  public:    
+
+  public:
     virtual ~IDicomTranscoder()
     {
     }

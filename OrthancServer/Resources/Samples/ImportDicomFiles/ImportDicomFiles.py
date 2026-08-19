@@ -11,7 +11,7 @@
 # modify it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -99,7 +99,7 @@ def UploadFile(path):
             creds_str_bytes_b64 = b'Basic ' + base64.b64encode(creds_str_bytes)
             headers['authorization'] = creds_str_bytes_b64.decode('ascii')
 
-        resp, content = h.request(URL, 'POST', 
+        resp, content = h.request(URL, 'POST',
                                   body = content,
                                   headers = headers)
 

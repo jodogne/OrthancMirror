@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -59,7 +59,7 @@ namespace Orthanc
     trailingTimeout_(5000)
   {
     unsigned int dicomTimeout;
-    
+
     {
       OrthancConfiguration::ReaderLock lock;
       dicomTimeout = lock.GetConfiguration().GetUnsignedIntegerParameter("DicomAssociationCloseDelay");
@@ -152,11 +152,11 @@ namespace Orthanc
   LuaJobManager::Lock::~Lock()
   {
     bool isEmpty;
-    
+
     assert(jobLock_.get() != NULL);
     isEmpty = (isNewJob_ &&
                jobLock_->GetOperationsCount() == 0);
-    
+
     jobLock_.reset(NULL);
 
     if (isNewJob_)
@@ -196,23 +196,23 @@ namespace Orthanc
   {
     assert(jobLock_.get() != NULL);
     return jobLock_->AddOperation(new StoreScuOperation(
-                                    context, that_.connectionManager_, localAet, modality));    
+                                    context, that_.connectionManager_, localAet, modality));
   }
 
 
   size_t LuaJobManager::Lock::AddStorePeerOperation(const WebServiceParameters& peer)
   {
     assert(jobLock_.get() != NULL);
-    return jobLock_->AddOperation(new StorePeerOperation(peer));    
+    return jobLock_->AddOperation(new StorePeerOperation(peer));
   }
 
 
   size_t LuaJobManager::Lock::AddSystemCallOperation(const std::string& command)
   {
     assert(jobLock_.get() != NULL);
-    return jobLock_->AddOperation(new SystemCallOperation(command));    
+    return jobLock_->AddOperation(new SystemCallOperation(command));
   }
- 
+
 
   size_t LuaJobManager::Lock::AddSystemCallOperation
   (const std::string& command,

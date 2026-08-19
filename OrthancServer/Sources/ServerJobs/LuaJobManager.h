@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -32,7 +32,7 @@
 namespace Orthanc
 {
   class ServerContext;
-  
+
   class LuaJobManager : private SequenceOfOperationsJob::IObserver
   {
   private:
@@ -96,7 +96,7 @@ namespace Orthanc
       size_t AddModifyInstanceOperation(ServerContext& context,
                                         DicomModification* modification);
 
-      void AddNullInput(size_t operation); 
+      void AddNullInput(size_t operation);
 
       void AddStringInput(size_t operation,
                           const std::string& content);

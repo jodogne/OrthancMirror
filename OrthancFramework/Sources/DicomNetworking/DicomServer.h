@@ -59,14 +59,14 @@ namespace Orthanc
       virtual ~IRemoteModalities()
       {
       }
-      
+
       virtual bool IsSameAETitle(const std::string& aet1,
                                  const std::string& aet2) = 0;
 
       virtual bool LookupAETitle(RemoteModalityParameters& modality,
                                  const std::string& aet) = 0;
     };
-    
+
   private:
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
@@ -123,7 +123,7 @@ namespace Orthanc
 
     void SetRemoteModalities(IRemoteModalities& modalities);
     IRemoteModalities& GetRemoteModalities() const;
-    
+
     void SetFindRequestHandlerFactory(IFindRequestHandlerFactory& handler);
     bool HasFindRequestHandlerFactory() const;
     IFindRequestHandlerFactory& GetFindRequestHandlerFactory() const;
@@ -153,7 +153,7 @@ namespace Orthanc
     IApplicationEntityFilter& GetApplicationEntityFilter() const;
 
     void Start();
-  
+
     void Stop();
 
     bool IsMyAETitle(const std::string& aet) const;
@@ -166,9 +166,9 @@ namespace Orthanc
 
     void SetOwnCertificatePath(const std::string& privateKeyPath,
                                const std::string& certificatePath);
-    const std::string& GetOwnPrivateKeyPath() const;    
+    const std::string& GetOwnPrivateKeyPath() const;
     const std::string& GetOwnCertificatePath() const;
-    
+
     void SetTrustedCertificatesPath(const std::string& path);
     const std::string& GetTrustedCertificatesPath() const;
 

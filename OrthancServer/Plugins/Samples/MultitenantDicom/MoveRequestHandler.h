@@ -47,7 +47,7 @@ private:
   void LookupIdentifiers(std::set<std::string>& publicIds,
                          Orthanc::ResourceType level,
                          const Orthanc::DicomMap& input) const;
-  
+
 public:
   MoveRequestHandler(const std::set<std::string>& labels,
                      LabelsConstraint constraint,

@@ -48,7 +48,7 @@ set(WASM_FLAGS "${WASM_FLAGS} -Wno-unused-command-line-argument")
 if (EMSCRIPTEN_TARGET_MODE STREQUAL "wasm")
   # WebAssembly
   set(WASM_FLAGS "${WASM_FLAGS} -s WASM=1")
-  
+
 elseif (EMSCRIPTEN_TARGET_MODE STREQUAL "asm.js")
   # asm.js targeting IE 11
   set(WASM_FLAGS "-s WASM=0 -s ASM_JS=2 -s LEGACY_VM_SUPPORT=1")

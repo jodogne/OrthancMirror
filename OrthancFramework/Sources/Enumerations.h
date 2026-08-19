@@ -112,7 +112,7 @@ namespace Orthanc
     MimeType_Stl              // STL - New in Orthanc 1.12.1
   };
 
-  
+
   enum Endianness
   {
     Endianness_Unknown,
@@ -324,19 +324,19 @@ namespace Orthanc
      * {description}{The image is graylevel. Each pixel is unsigned and stored in one byte.}
      **/
     PixelFormat_Grayscale8 = 3,
-      
+
     /**
      * {summary}{Graylevel, unsigned 16bpp image.}
      * {description}{The image is graylevel. Each pixel is unsigned and stored in two bytes.}
      **/
     PixelFormat_Grayscale16 = 4,
-      
+
     /**
      * {summary}{Graylevel, signed 16bpp image.}
      * {description}{The image is graylevel. Each pixel is signed and stored in two bytes.}
      **/
     PixelFormat_SignedGrayscale16 = 5,
-      
+
     /**
      * {summary}{Graylevel, floating-point image.}
      * {description}{The image is graylevel. Each pixel is floating-point and stored in 4 bytes.}
@@ -351,7 +351,7 @@ namespace Orthanc
      * {description}{The image is graylevel. Each pixel is unsigned and stored in 4 bytes.}
      **/
     PixelFormat_Grayscale32 = 8,
-    
+
     /**
      * {summary}{Color image in RGB48 format.}
      * {description}{This format describes a color image. The pixels are stored in 6
@@ -647,13 +647,13 @@ namespace Orthanc
     // Some predefined combinations
     DicomToJsonFlags_None     = 0,
     DicomToJsonFlags_Default  = (DicomToJsonFlags_IncludeBinary |
-                                 DicomToJsonFlags_IncludePixelData | 
-                                 DicomToJsonFlags_IncludePrivateTags | 
-                                 DicomToJsonFlags_IncludeUnknownTags | 
+                                 DicomToJsonFlags_IncludePixelData |
+                                 DicomToJsonFlags_IncludePrivateTags |
+                                 DicomToJsonFlags_IncludeUnknownTags |
                                  DicomToJsonFlags_ConvertBinaryToNull |
                                  DicomToJsonFlags_StopAfterPixelData /* added in 1.9.1 */)
   };
-  
+
   enum DicomFromJsonFlags
   {
     DicomFromJsonFlags_DecodeDataUriScheme = (1 << 0),
@@ -722,7 +722,7 @@ namespace Orthanc
     JobStopReason_Retry
   };
 
-  
+
   // http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.14.html#sect_C.14.1.1
   enum StorageCommitmentFailureReason
   {
@@ -917,23 +917,23 @@ namespace Orthanc
 
   ORTHANC_PUBLIC
   JobState StringToJobState(const std::string& state);
-  
+
   ORTHANC_PUBLIC
   RequestOrigin StringToRequestOrigin(const std::string& origin);
 
   ORTHANC_PUBLIC
   MimeType StringToMimeType(const std::string& mime);
-  
+
   ORTHANC_PUBLIC
   DicomToJsonFormat StringToDicomToJsonFormat(const std::string& format);
 
   ORTHANC_PUBLIC
   ErrorPayloadType StringToErrorPayloadType(const std::string& type);
-  
+
   ORTHANC_PUBLIC
   bool LookupMimeType(MimeType& target,
                       const std::string& source);
-  
+
   ORTHANC_PUBLIC
   unsigned int GetBytesPerPixel(PixelFormat format);
 
@@ -968,7 +968,7 @@ namespace Orthanc
 
   ORTHANC_PUBLIC
   bool IsBinaryValueRepresentation(ValueRepresentation vr);
-  
+
   ORTHANC_PUBLIC
   Encoding GetDefaultDicomEncoding();
 
@@ -996,6 +996,6 @@ namespace Orthanc
   ORTHANC_PUBLIC
   void GetAllDicomTransferSyntaxes(std::set<DicomTransferSyntax>& target);
 
-  ORTHANC_PUBLIC 
+  ORTHANC_PUBLIC
   RetrieveMethod StringToRetrieveMethod(const std::string& str);
 }

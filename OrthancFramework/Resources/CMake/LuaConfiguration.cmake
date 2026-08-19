@@ -56,13 +56,13 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LUA)
       add_definitions(
         -DLUA_DL_DLL=1       # Enable loading of shared libraries (for Microsoft Windows)
         )
-      
+
     elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
       add_definitions(
         -DLUA_USE_MACOSX=1
         -DLUA_DL_DYLD=1       # Enable loading of shared libraries (for Apple OS X)
         )
-      
+
     else()
       message(FATAL_ERROR "Support your platform here")
     endif()
@@ -144,7 +144,7 @@ elseif ((CMAKE_CROSSCOMPILING AND
   if (NOT LUA_VERSION)
     message(FATAL_ERROR "Please install the liblua-dev package")
   endif()
-  
+
   if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "CrossToolNg")
     set(LUA_INCLUDE_DIR ${CROSSTOOL_NG_IMAGE}/usr/include/lua${LUA_VERSION})
   else()
@@ -156,7 +156,7 @@ elseif ((CMAKE_CROSSCOMPILING AND
       /usr/local/include/lua${LUA_VERSION}
       )
   endif()
-  
+
   message("Lua include dir: ${LUA_INCLUDE_DIR}")
   include_directories(${LUA_INCLUDE_DIR})
 
@@ -164,17 +164,17 @@ elseif ((CMAKE_CROSSCOMPILING AND
   CHECK_LIBRARY_EXISTS(lua${LUA_VERSION} "lua_callk" "${LUA_LIB_DIR}" HAVE_LUA_LIB_2) # Lua 5.3
   if (NOT HAVE_LUA_LIB_1 AND NOT HAVE_LUA_LIB_2)
     message(FATAL_ERROR "Please install the liblua package")
-  endif()  
+  endif()
 
   link_libraries(lua${LUA_VERSION})
 
 else()
   include(FindLua)
-  
+
   if (NOT LUA_FOUND)
     message(FATAL_ERROR "Please install the liblua-dev package")
   endif()
-  
+
   include_directories(${LUA_INCLUDE_DIR})
   link_libraries(${LUA_LIBRARIES})
 endif()

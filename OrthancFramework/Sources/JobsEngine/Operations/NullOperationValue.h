@@ -34,7 +34,7 @@ namespace Orthanc
   {
   public:
     virtual Type GetType() const ORTHANC_OVERRIDE;
-    
+
     virtual IJobOperationValue* Clone() const ORTHANC_OVERRIDE;
 
     virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE;

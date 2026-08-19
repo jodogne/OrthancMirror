@@ -236,7 +236,7 @@ namespace Orthanc
     {
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
-    
+
     OFString a, b;
     if (!dicom.getDataset()->findAndGetOFString(DCM_SOPClassUID, a).good() ||
         !dicom.getDataset()->findAndGetOFString(DCM_SOPInstanceUID, b).good())
@@ -255,7 +255,7 @@ namespace Orthanc
                              "Unknown transfer syntax from DCMTK");
     }
   }
-  
+
 
   bool DicomStoreUserConnection::NegotiatePresentationContext(
     uint8_t& presentationContextId,
@@ -303,7 +303,7 @@ namespace Orthanc
     proposedOriginalClasses_.clear();
     RegisterStorageClass(sopClassUid, transferSyntax);  // (*)
 
-    
+
     /**
      * Step 2: Propose at least the mandatory SOP class.
      **/
@@ -327,12 +327,12 @@ namespace Orthanc
       }
     }
 
-      
+
     /**
      * Step 3: Propose all the previously spotted SOP classes, as
      * registered through the "RegisterStorageClass()" method.
      **/
-      
+
     for (RegisteredClasses::const_iterator it = registeredClasses_.begin();
          it != registeredClasses_.end(); ++it)
     {
@@ -341,7 +341,7 @@ namespace Orthanc
         ProposeStorageClass(it->first, it->second, hasPreferred, preferred);
       }
     }
-      
+
 
     /**
      * Step 4: As long as there is room left in the proposed
@@ -356,11 +356,11 @@ namespace Orthanc
       // The method "ProposeStorageClass()" will automatically add
       // "LittleEndianImplicit"
       std::set<DicomTransferSyntax> ts;
-        
+
       for (int i = 0; i < numberOfDcmShortSCUStorageSOPClassUIDs; i++)
       {
         std::string c(dcmShortSCUStorageSOPClassUIDs[i]);
-          
+
         if (c != sopClassUid &&
             registeredClasses_.find(c) == registeredClasses_.end())
         {
@@ -403,7 +403,7 @@ namespace Orthanc
                              "while sending to modality [" +
                              parameters_.GetRemoteModality().GetApplicationEntityTitle() + "]");
     }
-    
+
     // Prepare the transmission of data
     T_DIMSE_C_StoreRQ request;
     memset(&request, 0, sizeof(request));
@@ -414,8 +414,8 @@ namespace Orthanc
     strncpy(request.AffectedSOPInstanceUID, sopInstanceUid.c_str(), DIC_UI_LEN);
 
     if (hasMoveOriginator)
-    {    
-      strncpy(request.MoveOriginatorApplicationEntityTitle, 
+    {
+      strncpy(request.MoveOriginatorApplicationEntityTitle,
               moveOriginatorAET.c_str(), DIC_AE_LEN);
       request.opts = O_STORE_MOVEORIGINATORAETITLE;
 
@@ -439,7 +439,7 @@ namespace Orthanc
                       &response, &statusDetail, NULL),
       GetParameters(), "C-STORE");
 
-    if (statusDetail != NULL) 
+    if (statusDetail != NULL)
     {
       delete statusDetail;
     }
@@ -449,12 +449,12 @@ namespace Orthanc
       CLOG(TRACE, DICOM) << "Received Store Response:" << std::endl
                          << DIMSE_dumpMessage(str, response, DIMSE_INCOMING, NULL, presID);
     }
-    
+
     /**
      * New in Orthanc 1.6.0: Deal with failures during C-STORE.
      * http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_B.2.3.html#table_B.2-1
      **/
-    
+
     if (response.DimseStatus != 0x0000 &&  // Success
         response.DimseStatus != 0xB000 &&  // Warning - Coercion of Data Elements
         response.DimseStatus != 0xB007 &&  // Warning - Data Set does not match SOP Class
@@ -485,7 +485,7 @@ namespace Orthanc
     {
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
-    
+
     Store(sopClassUid, sopInstanceUid, *dicom, hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
   }
 
@@ -501,7 +501,7 @@ namespace Orthanc
     std::map<DicomTransferSyntax, uint8_t> contexts;
 
     // Make sure a negotiation has already occurred for this transfer
-    // syntax if we have not negotiated yet. 
+    // syntax if we have not negotiated yet.
     // We don't use the return code: Transcoding is possible even if the "sourceSyntax" is not supported.
     if (!association_->IsOpen() || !association_->LookupAcceptedPresentationContext(contexts, sopClassUid))
     {
@@ -519,7 +519,7 @@ namespace Orthanc
     }
   }
 #endif
-  
+
 
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
   void DicomStoreUserConnection::Transcode(std::string& sopClassUid /* out */,
@@ -547,7 +547,7 @@ namespace Orthanc
 
     if (accepted.size() == 0)
     {
-      throw OrthancException(ErrorCode_NoPresentationContext, "Cannot C-Store an instance of SOPClassUID " + 
+      throw OrthancException(ErrorCode_NoPresentationContext, "Cannot C-Store an instance of SOPClassUID " +
                              sopClassUid + ", the destination has not accepted any TransferSyntax for this SOPClassUID.");
     }
 
@@ -565,7 +565,7 @@ namespace Orthanc
       source.SetExternalBuffer(buffer, size);
 
       const std::string sourceUid = IDicomTranscoder::GetSopInstanceUid(source.GetParsed());
-        
+
       IDicomTranscoder::DicomImage transcoded;
       bool success = false;
       bool isDestructiveCompressionAllowed = false;
@@ -636,7 +636,7 @@ namespace Orthanc
         }
 
         DicomTransferSyntax transcodedSyntax;
-          
+
         // Sanity check
         if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transcodedSyntax, transcoded.GetParsed()) ||
             accepted.find(transcodedSyntax) == accepted.end())
@@ -657,8 +657,8 @@ namespace Orthanc
         {
           s += " " + std::string(GetTransferSyntaxUid(*it));
         }
-        
-        throw OrthancException(ErrorCode_InternalError, "Cannot transcode instance of SOPClassUID " + 
+
+        throw OrthancException(ErrorCode_InternalError, "Cannot transcode instance of SOPClassUID " +
                                sopClassUid + " from " +
                                std::string(GetTransferSyntaxUid(sourceSyntax)) +
                                " to one of [" + s + " ]");
@@ -666,8 +666,8 @@ namespace Orthanc
     }
   }
 #endif
-  
-  
+
+
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
   void DicomStoreUserConnection::Transcode(std::string& sopClassUid /* out */,
                                            std::string& sopInstanceUid /* out */,

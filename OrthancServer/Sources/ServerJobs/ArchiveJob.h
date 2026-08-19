@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -76,13 +76,13 @@ namespace Orthanc
     bool                 allowUtf8_;
 
     void FinalizeTarget();
-    
+
   public:
     ArchiveJob(ServerContext& context,
                bool isMedia,
                bool enableExtendedSopClass,
                ResourceType jobLevel);
-    
+
     virtual ~ArchiveJob() ORTHANC_OVERRIDE;
 
     void AcquireSynchronousTarget(ZipWriter::IOutputStream* synchronousTarget);
@@ -122,7 +122,7 @@ namespace Orthanc
     virtual float GetProgress() const ORTHANC_OVERRIDE;
 
     virtual void GetJobType(std::string& target) const ORTHANC_OVERRIDE;
-    
+
     virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;
 
     virtual bool Serialize(Json::Value& value) const ORTHANC_OVERRIDE

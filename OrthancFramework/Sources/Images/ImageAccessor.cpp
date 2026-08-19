@@ -83,22 +83,22 @@ namespace Orthanc
     for (unsigned int y = 0; y < height; y++)
     {
       const uint8_t* p = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
-      
+
       std::string s;
       s.reserve(static_cast<size_t>(width) * 3 * 8);
-      
+
       for (unsigned int x = 0; x < 3 * width; x++, p++)
       {
         s += boost::lexical_cast<std::string>(static_cast<int>(*p)) + " ";
       }
-      
+
       target.AddChunk(s);
     }
 
     target.AddChunk("], [ 3 " + boost::lexical_cast<std::string>(height) +
                     " " + boost::lexical_cast<std::string>(width) + " ]), [ 3 2 1 ]))");
   }
-  
+
 
   ImageAccessor::ImageAccessor()
   {
@@ -318,7 +318,7 @@ namespace Orthanc
 
       default:
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
-    }   
+    }
 
     buffer.Flatten(target);
   }
@@ -336,7 +336,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-    
+
     if (width == 0 ||
         height == 0)
     {
@@ -344,7 +344,7 @@ namespace Orthanc
     }
     else
     {
-      uint8_t* p = (buffer_ + 
+      uint8_t* p = (buffer_ +
                     static_cast<size_t>(y) * static_cast<size_t>(pitch_) +
                     static_cast<size_t>(x) * static_cast<size_t>(GetBytesPerPixel()));
 

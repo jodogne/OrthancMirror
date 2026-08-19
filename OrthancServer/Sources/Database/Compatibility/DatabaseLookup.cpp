@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -73,15 +73,15 @@ namespace Orthanc
             return *constraints_[i];
           }
         }
-        
+
         void Add(const DatabaseDicomTagConstraint& constraint)
         {
           constraints_.push_back(new DicomTagConstraint(constraint));
-        }          
+        }
       };
     }
-    
-    
+
+
     static void ApplyIdentifierConstraint(SetOfResources& candidates,
                                           ILookupResources& compatibility,
                                           const DatabaseDicomTagConstraint& constraint,
@@ -95,24 +95,24 @@ namespace Orthanc
           compatibility.LookupIdentifier(matches, level, constraint.GetTag(),
                                     IdentifierConstraintType_Equal, constraint.GetSingleValue());
           break;
-          
+
         case ConstraintType_SmallerOrEqual:
           compatibility.LookupIdentifier(matches, level, constraint.GetTag(),
                                     IdentifierConstraintType_SmallerOrEqual, constraint.GetSingleValue());
           break;
-          
+
         case ConstraintType_GreaterOrEqual:
           compatibility.LookupIdentifier(matches, level, constraint.GetTag(),
                                     IdentifierConstraintType_GreaterOrEqual, constraint.GetSingleValue());
 
           break;
-          
+
         case ConstraintType_Wildcard:
           compatibility.LookupIdentifier(matches, level, constraint.GetTag(),
                                     IdentifierConstraintType_Wildcard, constraint.GetSingleValue());
 
           break;
-          
+
         case ConstraintType_List:
           for (size_t i = 0; i < constraint.GetValuesCount(); i++)
           {
@@ -123,7 +123,7 @@ namespace Orthanc
           }
 
           break;
-          
+
         default:
           THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
@@ -131,7 +131,7 @@ namespace Orthanc
       candidates.Intersect(matches);
     }
 
-    
+
     static void ApplyIdentifierRange(SetOfResources& candidates,
                                      ILookupResources& compatibility,
                                      const DatabaseDicomTagConstraint& smaller,
@@ -149,7 +149,7 @@ namespace Orthanc
       candidates.Intersect(matches);
     }
 
-    
+
     static void ApplyLevel(SetOfResources& candidates,
                            IDatabaseWrapper::ITransaction& transaction,
                            ILookupResources& compatibility,
@@ -165,7 +165,7 @@ namespace Orthanc
 
       Identifiers       identifiers;
       SetOfConstraints  mainTags;
-      
+
       for (size_t i = 0; i < lookup.GetSize(); i++)
       {
         const DatabaseDicomTagConstraint& constraint = lookup.GetConstraint(i);
@@ -183,9 +183,9 @@ namespace Orthanc
         }
       }
 
-      
+
       // (2) Apply the constraints over the identifiers
-      
+
       for (Identifiers::const_iterator it = identifiers.begin();
            it != identifiers.end(); ++it)
       {
@@ -193,12 +193,12 @@ namespace Orthanc
         // present at this level
         const DatabaseDicomTagConstraint* smaller = NULL;
         const DatabaseDicomTagConstraint* greater = NULL;
-        
+
         for (SetOfConstraints::const_iterator it2 = it->second.begin();
              it2 != it->second.end(); ++it2)
         {
           assert(*it2 != NULL);
-        
+
           if ((*it2)->GetConstraintType() == ConstraintType_SmallerOrEqual)
           {
             smaller = *it2;
@@ -242,7 +242,7 @@ namespace Orthanc
       {
         MainTagsConstraints c;
         c.Reserve(mainTags.size());
-        
+
         for (SetOfConstraints::const_iterator it = mainTags.begin();
              it != mainTags.end(); ++it)
         {
@@ -255,7 +255,7 @@ namespace Orthanc
         candidates.Clear();
 
         std::list<int64_t>  filtered;
-        for (std::list<int64_t>::const_iterator candidate = source.begin(); 
+        for (std::list<int64_t>::const_iterator candidate = source.begin();
              candidate != source.end(); ++candidate)
         {
           DicomMap tags;
@@ -271,7 +271,7 @@ namespace Orthanc
               break;
             }
           }
-        
+
           if (match)
           {
             filtered.push_back(*candidate);
@@ -293,18 +293,18 @@ namespace Orthanc
 
         std::list<int64_t> children;
         compatibility.GetChildrenInternalId(children, resource);
-          
+
         if (children.empty())
         {
           throw OrthancException(ErrorCode_Database);
         }
-          
+
         resource = children.front();
       }
 
       return compatibility.GetPublicId(resource);
     }
-                           
+
 
     void DatabaseLookup::ApplyLookupResources(std::list<std::string>& resourcesId,
                                               std::list<std::string>* instancesId,
@@ -318,7 +318,7 @@ namespace Orthanc
       assert(ResourceType_Patient < ResourceType_Study &&
              ResourceType_Study < ResourceType_Series &&
              ResourceType_Series < ResourceType_Instance);
-    
+
       ResourceType upperLevel = queryLevel;
       ResourceType lowerLevel = queryLevel;
 

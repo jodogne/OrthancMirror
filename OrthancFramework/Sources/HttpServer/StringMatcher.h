@@ -40,13 +40,13 @@ namespace Orthanc
 
   private:
     class Search;
-      
+
     boost::shared_ptr<Search>  search_;  // PImpl pattern
     std::string                pattern_;
     bool                       valid_;
     Iterator                   matchBegin_;
     Iterator                   matchEnd_;
-    
+
   public:
     explicit StringMatcher(const std::string& pattern);
 

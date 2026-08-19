@@ -42,7 +42,7 @@ namespace Orthanc
   static const char* TYPE = "Type";
   static const char* WORK_INPUTS = "WorkInputs";
 
-  
+
   class SequenceOfOperationsJob::Operation : public boost::noncopyable
   {
   private:
@@ -162,7 +162,7 @@ namespace Orthanc
       target[CURRENT] = static_cast<unsigned int>(currentInput_);
       operation_->Serialize(target[OPERATION]);
       originalInputs_->Serialize(target[ORIGINAL_INPUTS]);
-      workInputs_->Serialize(target[WORK_INPUTS]);      
+      workInputs_->Serialize(target[WORK_INPUTS]);
 
       Json::Value tmp = Json::arrayValue;
       for (std::list<Operation*>::const_iterator it = nextOperations_.begin();
@@ -227,7 +227,7 @@ namespace Orthanc
   void SequenceOfOperationsJob::GetDescription(std::string& description)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    description = description_;    
+    description = description_;
   }
 
 
@@ -254,7 +254,7 @@ namespace Orthanc
     that_.trailingTimeout_ = boost::posix_time::milliseconds(timeout);
   }
 
-  
+
   size_t SequenceOfOperationsJob::Lock::AddOperation(IJobOperation* operation)
   {
     if (IsDone())
@@ -293,7 +293,7 @@ namespace Orthanc
       that_.operations_[index]->AddOriginalInput(value);
     }
   }
-      
+
 
   void SequenceOfOperationsJob::Lock::Connect(size_t input,
                                               size_t output)
@@ -332,7 +332,7 @@ namespace Orthanc
     {
       LOG(INFO) << "Executing the trailing timeout in the sequence of operations";
       operationAdded_.timed_wait(lock, trailingTimeout_);
-            
+
       if (current_ == operations_.size())  // Could have changed during the "timed_wait()"
       {
         // No operation was added during the trailing timeout: The
@@ -340,7 +340,7 @@ namespace Orthanc
         LOG(INFO) << "The sequence of operations is over";
         done_ = true;
 
-        for (std::list<IObserver*>::iterator it = observers_.begin(); 
+        for (std::list<IObserver*>::iterator it = observers_.begin();
              it != observers_.end(); ++it)
         {
           (*it)->SignalDone(*this);
@@ -374,7 +374,7 @@ namespace Orthanc
   void SequenceOfOperationsJob::Reset()
   {
     boost::mutex::scoped_lock lock(mutex_);
-      
+
     current_ = 0;
     done_ = false;
 
@@ -392,8 +392,8 @@ namespace Orthanc
   float SequenceOfOperationsJob::GetProgress() const
   {
     boost::mutex::scoped_lock lock(mutex_);
-      
-    return (static_cast<float>(current_) / 
+
+    return (static_cast<float>(current_) /
             static_cast<float>(operations_.size() + 1));
   }
 
@@ -421,11 +421,11 @@ namespace Orthanc
     std::string jobType;
     GetJobType(jobType);
     value[TYPE] = jobType;
-    
+
     value[DESCRIPTION] = description_;
     value[TRAILING_TIMEOUT] = static_cast<unsigned int>(trailingTimeout_.total_milliseconds());
     value[CURRENT] = static_cast<unsigned int>(current_);
-    
+
     Json::Value tmp = Json::arrayValue;
     for (size_t i = 0; i < operations_.size(); i++)
     {
@@ -452,7 +452,7 @@ namespace Orthanc
   {
     std::string jobType;
     SequenceOfOperationsJob::GetJobType(jobType);
-    
+
     if (SerializationToolbox::ReadString(serialized, TYPE) != jobType ||
         !serialized.isMember(OPERATIONS) ||
         serialized[OPERATIONS].type() != Json::arrayValue)
@@ -497,6 +497,6 @@ namespace Orthanc
           operations_[i]->AddNextOperation(*operations_[next[j].asUInt()], true);
         }
       }
-    }  
+    }
   }
 }

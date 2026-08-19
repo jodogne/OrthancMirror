@@ -112,7 +112,7 @@ namespace Orthanc
       CheckIndex(index);
       return sqlite3_value_type(argv_[index]) == SQLITE_NULL;
     }
-  
+
     void FunctionContext::SetNullResult()
     {
       sqlite3_result_null(context_);

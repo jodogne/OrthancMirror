@@ -41,7 +41,7 @@ namespace Orthanc
 
   TimeoutDicomConnectionManager::Lock::Lock(TimeoutDicomConnectionManager& that,
                                             const std::string& localAet,
-                                            const RemoteModalityParameters& remote) : 
+                                            const RemoteModalityParameters& remote) :
     that_(that),
     lock_(that_.mutex_)
   {
@@ -49,13 +49,13 @@ namespace Orthanc
     that_.OpenInternal(localAet, remote);
   }
 
-  
+
   TimeoutDicomConnectionManager::Lock::~Lock()
   {
     that_.TouchInternal();
   }
 
-  
+
   DicomStoreUserConnection& TimeoutDicomConnectionManager::Lock::GetConnection()
   {
     if (that_.connection_.get() == NULL)
@@ -82,7 +82,7 @@ namespace Orthanc
                                                    const RemoteModalityParameters& remote)
   {
     DicomAssociationParameters other(localAet, remote);
-    
+
     if (connection_.get() == NULL ||
         !connection_->GetParameters().IsEqual(other))
     {

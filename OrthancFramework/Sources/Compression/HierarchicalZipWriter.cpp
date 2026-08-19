@@ -67,7 +67,7 @@ namespace Orthanc
     {
       it->second++;
       return standardized + "-" + boost::lexical_cast<std::string>(it->second);
-    }    
+    }
   }
 
   HierarchicalZipWriter::Index::Index()
@@ -123,12 +123,12 @@ namespace Orthanc
     writer_.Open();
   }
 
-  
+
   HierarchicalZipWriter::HierarchicalZipWriter(ZipWriter::IOutputStream* stream,
                                                bool isZip64)
   {
     writer_.AcquireOutputStream(stream, isZip64);
-    writer_.Open();    
+    writer_.Open();
   }
 
 

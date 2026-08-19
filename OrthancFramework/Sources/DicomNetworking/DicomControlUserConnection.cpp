@@ -93,14 +93,14 @@ namespace Orthanc
       CLOG(TRACE, DICOM) << "Received Find Response " << responseCount << ":" << std::endl
                          << DIMSE_dumpMessage(str, *response, DIMSE_INCOMING);
     }
-      
+
     if (responseIdentifiers != NULL)
     {
       std::stringstream s;  // DcmObject::PrintHelper cannot be used with VS2008
       responseIdentifiers->print(s);
       CLOG(TRACE, DICOM) << "Response Identifiers "  << responseCount << ":" << std::endl << s.str();
     }
-    
+
     if (responseIdentifiers != NULL)
     {
       FindPayload& payload = *reinterpret_cast<FindPayload*>(callbackData);
@@ -115,7 +115,7 @@ namespace Orthanc
         DicomMap m;
         std::set<DicomTag> ignoreTagLength;
         FromDcmtkBridge::ExtractDicomSummary(m, *responseIdentifiers, 0 /* don't truncate tags */, ignoreTagLength);
-        
+
         if (!m.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
         {
           m.SetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL, payload.level, false);
@@ -228,7 +228,7 @@ namespace Orthanc
           {
             const DicomValue* value = fix->TestAndGetValue(*it);
 
-            if (value != NULL && 
+            if (value != NULL &&
                 !value->IsNull() &&
                 value->GetContent() == "*")
             {
@@ -309,7 +309,7 @@ namespace Orthanc
       }
     }
   }
-    
+
 
   void DicomControlUserConnection::FindInternal(DicomFindAnswers& answers,
                                                 DcmDataset* dataset,
@@ -370,7 +370,7 @@ namespace Orthanc
       /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
       /*opt_dimse_timeout*/ static_cast<int>(parameters_.GetTimeout()),
       &response, &statusDetail);
-    
+
     if (statusDetail)
     {
       delete statusDetail;
@@ -384,15 +384,15 @@ namespace Orthanc
                          << DIMSE_dumpMessage(str, response, DIMSE_INCOMING);
     }
 
-    
+
     /**
      * New in Orthanc 1.6.0: Deal with failures during C-FIND.
      * http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.4.html#table_C.4-1
      **/
-    
+
     if (response.DimseStatus != 0x0000 &&  // Success
-        response.DimseStatus != 0xFF00 &&  // Pending - Matches are continuing 
-        response.DimseStatus != 0xFF01)    // Pending - Matches are continuing 
+        response.DimseStatus != 0xFF00 &&  // Pending - Matches are continuing
+        response.DimseStatus != 0xFF01)    // Pending - Matches are continuing
     {
       if (response.DimseStatus == STATUS_FIND_Failed_UnableToProcess)
       {
@@ -416,7 +416,7 @@ namespace Orthanc
 
   void MoveProgressCallback(void *callbackData,
                             T_DIMSE_C_MoveRQ *request,
-                            int responseCount, 
+                            int responseCount,
                             T_DIMSE_C_MoveRSP *response)
   {
     DicomControlUserConnection::IProgressListener* listener = reinterpret_cast<DicomControlUserConnection::IProgressListener*>(callbackData);
@@ -433,7 +433,7 @@ namespace Orthanc
     }
   }
 
-    
+
   void DicomControlUserConnection::MoveInternal(const std::string& targetAet,
                                                 ResourceType level,
                                                 const DicomMap& fields,
@@ -467,7 +467,7 @@ namespace Orthanc
     {
       request.MessageID = messageId;
     }
-    
+
     strncpy(request.AffectedSOPClassUID, sopClass, DIC_UI_LEN);
     request.Priority = DIMSE_PRIORITY_MEDIUM;
     request.DataSetType = DIMSE_DATASET_PRESENT;
@@ -478,12 +478,12 @@ namespace Orthanc
       CLOG(TRACE, DICOM) << "Sending Move Request:" << std::endl
                          << DIMSE_dumpMessage(str, request, DIMSE_OUTGOING, NULL, presID);
     }
-    
+
     T_DIMSE_C_MoveRSP response;
     DcmDataset* statusDetail = NULL;
     DcmDataset* responseIdentifiers = NULL;
     OFCondition cond = DIMSE_moveUser(
-      &association_->GetDcmtkAssociation(), presID, &request, dataset, 
+      &association_->GetDcmtkAssociation(), presID, &request, dataset,
       (progressListener_ != NULL ? MoveProgressCallback : NULL), progressListener_,
       /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
       /*opt_dimse_timeout*/ static_cast<int>(parameters_.GetTimeout()),
@@ -515,12 +515,12 @@ namespace Orthanc
                                              response.NumberOfWarningSubOperations);
       }
     }
-    
+
     /**
      * New in Orthanc 1.6.0: Deal with failures during C-MOVE.
      * http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.4.2.html#table_C.4-2
      **/
-    
+
     if (response.DimseStatus != STATUS_MOVE_Success_SubOperationsCompleteNoFailures &&
         response.DimseStatus != STATUS_MOVE_Pending_SubOperationsAreContinuing)
     {
@@ -543,7 +543,7 @@ namespace Orthanc
       }
     }
   }
-    
+
 
   void DicomControlUserConnection::Get(const DicomMap& getQuery,
                                        CGetInstanceReceivedCallback instanceReceivedCallback,
@@ -602,11 +602,11 @@ namespace Orthanc
       CLOG(TRACE, DICOM) << "Sending Get Request:" << std::endl
                          << DIMSE_dumpMessage(str, *request, DIMSE_OUTGOING, NULL, cgetPresID);
     }
-    
+
     OFCondition cond = DIMSE_sendMessageUsingMemoryData(
           &(association_->GetDcmtkAssociation()), cgetPresID, &msgGetRequest, NULL /* statusDetail */, queryDataset,
           NULL, NULL, NULL /* commandSet */);
-      
+
     if (cond.bad())
     {
         OFString tempStr;
@@ -738,8 +738,8 @@ namespace Orthanc
               storeRsp.AffectedSOPInstanceUID, storeRequest->AffectedSOPInstanceUID, sizeof(storeRsp.AffectedSOPInstanceUID));
           storeRsp.opts = O_STORE_AFFECTEDSOPCLASSUID | O_STORE_AFFECTEDSOPINSTANCEUID;
 
-          result = DIMSE_sendMessageUsingMemoryData(&(association_->GetDcmtkAssociation()), 
-                                                    cmdPresId, 
+          result = DIMSE_sendMessageUsingMemoryData(&(association_->GetDcmtkAssociation()),
+                                                    cmdPresId,
                                                     &storeResponse, NULL /* statusDetail */, NULL /* dataObject */,
                                                     NULL, NULL, NULL /* commandSet */);
           if (result.bad())
@@ -761,7 +761,7 @@ namespace Orthanc
           CLOG(WARNING, DICOM) << "Expected C-GET response or C-STORE request but received DIMSE command 0x"
                                << std::hex << std::setfill('0') << std::setw(4)
                                << static_cast<unsigned int>(rsp.CommandField);
-          
+
           throw OrthancException(ErrorCode_NetworkProtocol, "C-GET SCU to AET \"" +
                                  parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                  "\": Expected C-GET response or C-STORE request but received DIMSE command " + DimseToHexString(rsp.CommandField));
@@ -783,8 +783,8 @@ namespace Orthanc
 
     SetupPresentationContexts(scuOperation, emptyStorageSopClasses, emptyStorageTransferSyntaxes);
   }
-    
-  DicomControlUserConnection::DicomControlUserConnection(const DicomAssociationParameters& params, 
+
+  DicomControlUserConnection::DicomControlUserConnection(const DicomAssociationParameters& params,
                                                          ScuOperationFlags scuOperation,
                                                          const std::set<std::string>& acceptedStorageSopClasses,
                                                          const std::list<DicomTransferSyntax>& proposedStorageTransferSyntaxes) :
@@ -794,7 +794,7 @@ namespace Orthanc
   {
     SetupPresentationContexts(scuOperation, acceptedStorageSopClasses, proposedStorageTransferSyntaxes);
   }
-    
+
 
   void DicomControlUserConnection::Close()
   {
@@ -811,12 +811,12 @@ namespace Orthanc
     DIC_US status;
     DicomAssociation::CheckCondition(
       DIMSE_echoUser(&association_->GetDcmtkAssociation(),
-                     association_->GetDcmtkAssociation().nextMsgID++, 
+                     association_->GetDcmtkAssociation().nextMsgID++,
                      /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                      /*opt_dimse_timeout*/ static_cast<int>(parameters_.GetTimeout()),
                      &status, NULL),
       parameters_, "C-ECHO");
-      
+
     return status == STATUS_Success;
   }
 
@@ -839,7 +839,7 @@ namespace Orthanc
       query.reset(new ParsedDicomFile(originalFields, GetDefaultDicomEncoding(),
                                       false /* be strict */));
     }
-    
+
     DcmDataset* dataset = query->GetDcmtkObject().getDataset();
     assert(dataset != NULL);
 
@@ -879,8 +879,8 @@ namespace Orthanc
     else
     {
       universal = "";
-    }      
-    
+    }
+
 
     // Add the expected tags for this query level.
     // WARNING: Do not reorder or add "break" in this switch-case!
@@ -914,7 +914,7 @@ namespace Orthanc
         {
           DU_putStringDOElement(dataset, DCM_PatientID, universal);
         }
-        
+
         break;
 
       default:
@@ -924,7 +924,7 @@ namespace Orthanc
     assert(clevel != NULL && sopClass != NULL);
     FindInternal(result, dataset, sopClass, false, clevel);
   }
-    
+
 
   void DicomControlUserConnection::Move(const std::string& targetAet,
                                         ResourceType level,

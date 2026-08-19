@@ -46,7 +46,7 @@ namespace Orthanc
     public:
       enum State
       {
-        State_WritingHeader,      
+        State_WritingHeader,
         State_WritingBody,
         State_WritingMultipart,
         State_Done,
@@ -103,7 +103,7 @@ namespace Orthanc
       void StartMultipart(const std::string& subType,
                           const std::string& contentType);
 
-      void SendMultipartItem(const void* item, 
+      void SendMultipartItem(const void* item,
                              size_t length,
                              const std::map<std::string, std::string>& headers);
 
@@ -167,7 +167,7 @@ namespace Orthanc
                     const std::string& message);
 
     void SetContentType(MimeType contentType);
-    
+
     void SetContentType(const std::string& contentType);
 
     void SetContentFilename(const char* filename);
@@ -178,7 +178,7 @@ namespace Orthanc
     void AddHeader(const std::string& key,
                    const std::string& value);
 
-    void Answer(const void* buffer, 
+    void Answer(const void* buffer,
                 size_t length);
 
     void Answer(const std::string& str);

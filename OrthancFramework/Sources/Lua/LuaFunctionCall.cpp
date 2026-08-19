@@ -46,7 +46,7 @@ namespace Orthanc
   }
 
   LuaFunctionCall::LuaFunctionCall(LuaContext& context,
-                                   const char* functionName) : 
+                                   const char* functionName) :
     context_(context),
     isExecuted_(false)
   {
@@ -93,10 +93,10 @@ namespace Orthanc
     int nargs = lua_gettop(context_.lua_) - 1;
     int error = lua_pcall(context_.lua_, nargs, numOutputs, 0);
 
-    if (error) 
+    if (error)
     {
       assert(lua_gettop(context_.lua_) >= 1);
-          
+
       std::string description(lua_tostring(context_.lua_, -1));
       lua_pop(context_.lua_, 1); /* pop error message from the stack */
 
@@ -114,7 +114,7 @@ namespace Orthanc
   bool LuaFunctionCall::ExecutePredicate()
   {
     ExecuteInternal(1);
-    
+
     if (!lua_isboolean(context_.lua_, 1))
     {
       throw OrthancException(ErrorCode_NotLuaPredicate);
@@ -135,7 +135,7 @@ namespace Orthanc
   void LuaFunctionCall::ExecuteToString(std::string& result)
   {
     ExecuteInternal(1);
-    
+
     int top = lua_gettop(context_.lua_);
     if (lua_isstring(context_.lua_, top))
     {
@@ -150,7 +150,7 @@ namespace Orthanc
   void LuaFunctionCall::ExecuteToInt(int& result)
   {
     ExecuteInternal(1);
-    
+
     int top = lua_gettop(context_.lua_);
     if (lua_isnumber(context_.lua_, top))
     {
@@ -208,7 +208,7 @@ namespace Orthanc
   {
     Json::Value output;
     ExecuteToJson(output, true /* keep strings */);
-    
+
     target.Clear();
 
     if (output.type() == Json::arrayValue &&
@@ -223,9 +223,9 @@ namespace Orthanc
       throw OrthancException(ErrorCode_LuaBadOutput,
                              "Lua: The script must return a table");
     }
-    
+
     Json::Value::Members members = output.getMemberNames();
-    
+
     for (size_t i = 0; i < members.size(); i++)
     {
       if (output[members[i]].type() != Json::stringValue)

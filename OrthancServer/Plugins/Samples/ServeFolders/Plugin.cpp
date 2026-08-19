@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -147,7 +147,7 @@ void ServeFolder(OrthancPluginRestOutput* output,
                  const char* url,
                  const OrthancPluginHttpRequest* request)
 {
-  namespace fs = boost::filesystem;  
+  namespace fs = boost::filesystem;
 
   if (request->method != OrthancPluginHttpMethod_Get)
   {
@@ -166,7 +166,7 @@ void ServeFolder(OrthancPluginRestOutput* output,
         fs::is_directory(parent) &&
         !fs::is_regular_file(Orthanc::SystemToolbox::PathFromUtf8(folder) / item))
     {
-      // On-the-fly generation of an "index.html" 
+      // On-the-fly generation of an "index.html"
       std::string s;
       s += "<html>\n";
       s += "  <body>\n";
@@ -254,7 +254,7 @@ void ListServedFolders(OrthancPluginRestOutput* output,
       // The URI is relative to INDEX_URI ("/app/plugin-serve-folders.html")
       s += "<li><a href=\"../" + it->first + "/index.html\">" + it->first + "</li>\n";
     }
-    
+
     s += "</ul>\n";
   }
 
@@ -275,12 +275,12 @@ static void ConfigureFolders(const Json::Value& folders)
   Json::Value::Members members = folders.getMemberNames();
 
   // Register the callback for each base URI
-  for (Json::Value::Members::const_iterator 
+  for (Json::Value::Members::const_iterator
          it = members.begin(); it != members.end(); ++it)
   {
     if (folders[*it].type() != Json::stringValue)
     {
-      ORTHANC_PLUGINS_LOG_ERROR("The folder to be served \"" + *it + 
+      ORTHANC_PLUGINS_LOG_ERROR("The folder to be served \"" + *it +
                                 "\" must be associated with a string value (its mapped URI)");
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
@@ -335,12 +335,12 @@ static void ConfigureExtensions(const Json::Value& extensions)
 
   Json::Value::Members members = extensions.getMemberNames();
 
-  for (Json::Value::Members::const_iterator 
+  for (Json::Value::Members::const_iterator
          it = members.begin(); it != members.end(); ++it)
   {
     if (extensions[*it].type() != Json::stringValue)
     {
-      ORTHANC_PLUGINS_LOG_ERROR("The file extension \"" + *it + 
+      ORTHANC_PLUGINS_LOG_ERROR("The file extension \"" + *it +
                                 "\" must be associated with a string value (its MIME type)");
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
@@ -367,7 +367,7 @@ static void ConfigureExtensions(const Json::Value& extensions)
       ORTHANC_PLUGINS_LOG_WARNING("ServeFolders: Associating file extension \"." + name +
                                   "\" with MIME type \"" + mime + "\"");
     }
-  }  
+  }
 }
 
 

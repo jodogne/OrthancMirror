@@ -111,7 +111,7 @@ namespace Orthanc
   }
 
 
-  OrthancException::OrthancException(const OrthancException& other) : 
+  OrthancException::OrthancException(const OrthancException& other) :
     errorCode_(other.errorCode_),
     httpStatus_(other.httpStatus_),
     logged_(other.logged_),
@@ -123,7 +123,7 @@ namespace Orthanc
     }
   }
 
-  OrthancException::OrthancException(ErrorCode errorCode) : 
+  OrthancException::OrthancException(ErrorCode errorCode) :
     errorCode_(errorCode),
     httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
     logged_(false)

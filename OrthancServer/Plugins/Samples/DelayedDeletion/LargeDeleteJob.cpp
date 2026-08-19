@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -73,7 +73,7 @@ void LargeDeleteJob::ScheduleChildrenResources(std::vector<std::string>& target,
     }
   }
 }
-  
+
 
 void LargeDeleteJob::ScheduleResource(Orthanc::ResourceType level,
                                       const std::string& id)
@@ -85,11 +85,11 @@ void LargeDeleteJob::ScheduleResource(Orthanc::ResourceType level,
     case Orthanc::ResourceType_Patient:
       ScheduleChildrenResources(instances_, "/patients/" + id + "/instances");
       break;
-            
+
     case Orthanc::ResourceType_Study:
       ScheduleChildrenResources(instances_, "/studies/" + id + "/instances");
       break;
-            
+
     case Orthanc::ResourceType_Series:
       ScheduleChildrenResources(instances_, "/series/" + id + "/instances");
       break;
@@ -112,11 +112,11 @@ void LargeDeleteJob::ScheduleResource(Orthanc::ResourceType level,
     case Orthanc::ResourceType_Patient:
       ScheduleChildrenResources(series_, "/patients/" + id + "/series");
       break;
-            
+
     case Orthanc::ResourceType_Study:
       ScheduleChildrenResources(series_, "/studies/" + id + "/series");
       break;
-            
+
     case Orthanc::ResourceType_Series:
       series_.push_back(id);
       break;
@@ -135,21 +135,21 @@ void LargeDeleteJob::ScheduleResource(Orthanc::ResourceType level,
 void LargeDeleteJob::DeleteResource(Orthanc::ResourceType level,
                                     const std::string& id)
 {
-  std::string uri;      
+  std::string uri;
   switch (level)
   {
     case Orthanc::ResourceType_Patient:
       uri = "/patients/" + id;
       break;
-          
+
     case Orthanc::ResourceType_Study:
       uri = "/studies/" + id;
       break;
-          
+
     case Orthanc::ResourceType_Series:
       uri = "/series/" + id;
       break;
-          
+
     case Orthanc::ResourceType_Instance:
       uri = "/instances/" + id;
       break;
@@ -161,7 +161,7 @@ void LargeDeleteJob::DeleteResource(Orthanc::ResourceType level,
   OrthancPlugins::RestApiDelete(uri, false);
 }
 
-  
+
 LargeDeleteJob::LargeDeleteJob(const std::vector<std::string>& resources,
                                const std::vector<Orthanc::ResourceType>& levels) :
   OrthancJob("LargeDelete"),
@@ -178,7 +178,7 @@ LargeDeleteJob::LargeDeleteJob(const std::vector<std::string>& resources,
   }
 }
 
-  
+
 OrthancPluginJobStepStatus LargeDeleteJob::Step()
 {
   if (posResources_ == 0)
@@ -192,17 +192,17 @@ OrthancPluginJobStepStatus LargeDeleteJob::Step()
       // LOG(WARNING) << "LargeDeleteJob has started";
     }
   }
-  
+
   if (posResources_ < resources_.size())
   {
     // First step: Discovering all the instances of the resources
 
     ScheduleResource(levels_[posResources_], resources_[posResources_]);
-      
+
     posResources_ += 1;
     UpdateDeleteProgress();
     return OrthancPluginJobStepStatus_Continue;
-  }    
+  }
   else if (posInstances_ < instances_.size())
   {
     // Second step: Deleting the instances one by one
@@ -248,7 +248,7 @@ OrthancPluginJobStepStatus LargeDeleteJob::Step()
 
     UpdateProgress(1);
     return OrthancPluginJobStepStatus_Success;
-  }                   
+  }
 }
 
 
@@ -266,7 +266,7 @@ void LargeDeleteJob::RestHandler(OrthancPluginRestOutput* output,
                                  const OrthancPluginHttpRequest* request)
 {
   static const char* KEY_RESOURCES = "Resources";
-  
+
   if (request->method != OrthancPluginHttpMethod_Post)
   {
     OrthancPluginSendMethodNotAllowed(OrthancPlugins::GetGlobalContext(), output, "POST");
@@ -319,7 +319,7 @@ void LargeDeleteJob::RestHandler(OrthancPluginRestOutput* output,
       resources.push_back(arr[i][1].asString());
     }
   }
-  
+
   OrthancPlugins::OrthancJob::SubmitFromRestApiPost(
     output, body, new LargeDeleteJob(resources, levels));
 }

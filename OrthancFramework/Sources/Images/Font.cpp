@@ -102,7 +102,7 @@ namespace Orthanc
       }
 
       std::unique_ptr<Character> c(new Character);
-      
+
       c->advance_ = info["Advance"].asUInt();
       c->height_ = info["Height"].asUInt();
       c->top_ = info["Top"].asUInt();
@@ -113,7 +113,7 @@ namespace Orthanc
       {
         maxHeight_ = c->height_;
       }
-      
+
       for (Json::Value::ArrayIndex j = 0; j < info["Bitmap"].size(); j++)
       {
         if (info["Bitmap"][j].type() != Json::intValue)
@@ -341,7 +341,7 @@ namespace Orthanc
         color[3] = 255;
         break;
     }
-    
+
     DrawInternal(target, utf8, x, y, color);
   }
 
@@ -352,7 +352,7 @@ namespace Orthanc
   {
     width = 0;
     height = 0;
-    
+
 #if ORTHANC_ENABLE_LOCALE == 1
     std::string s = Toolbox::ConvertFromUtf8(utf8, Encoding_Latin1);
 #else
@@ -364,7 +364,7 @@ namespace Orthanc
     // Compute the text extent
     unsigned int x = 0;
     unsigned int y = 0;
-    
+
     for (size_t i = 0; i < s.size(); i++)
     {
       if (s[i] == '\n')
@@ -385,7 +385,7 @@ namespace Orthanc
           {
             height = bottom;
           }
-          
+
           if (x > width)
           {
             width = x;
@@ -404,7 +404,7 @@ namespace Orthanc
   {
     unsigned int width, height;
     ComputeTextExtent(width, height, utf8);
-    
+
     std::unique_ptr<ImageAccessor>  target(new Image(format, width, height, false));
     ImageProcessing::Set(*target, 0, 0, 0, 255);
     Draw(*target, utf8, 0, 0, r, g, b);

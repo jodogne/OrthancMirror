@@ -88,7 +88,7 @@ namespace Orthanc
   {
   private:
     OrthancException();  // Forbidden
-    
+
     OrthancException& operator= (const OrthancException&);  // Forbidden
 
     ErrorCode  errorCode_;
@@ -97,7 +97,7 @@ namespace Orthanc
 
     // New in Orthanc 1.5.0
     std::unique_ptr<std::string>  details_;
-    
+
     // New in Orthanc 1.12.10
     ErrorPayload  payload_;
 

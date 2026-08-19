@@ -26,7 +26,7 @@ endif()
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   if (DCMTK_STATIC_VERSION STREQUAL "3.6.0")
-    include(${CMAKE_CURRENT_LIST_DIR}/DcmtkConfigurationStatic-3.6.0.cmake)   
+    include(${CMAKE_CURRENT_LIST_DIR}/DcmtkConfigurationStatic-3.6.0.cmake)
   elseif (DCMTK_STATIC_VERSION STREQUAL "3.6.2")
     include(${CMAKE_CURRENT_LIST_DIR}/DcmtkConfigurationStatic-3.6.2.cmake)
   elseif (DCMTK_STATIC_VERSION STREQUAL "3.6.4")
@@ -55,14 +55,14 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmdata/libsrc DCMTK_SOURCES)
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/ofstd/libsrc DCMTK_SOURCES)
 
-  LIST(REMOVE_ITEM DCMTK_SOURCES 
+  LIST(REMOVE_ITEM DCMTK_SOURCES
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdictbi.cc
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdeftag.cc
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict_orthanc.cc
     )
 
   if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-    list(REMOVE_ITEM DCMTK_SOURCES 
+    list(REMOVE_ITEM DCMTK_SOURCES
       ${DCMTK_SOURCES_DIR}/ofstd/libsrc/offilsys.cc
       ${DCMTK_SOURCES_DIR}/ofstd/libsrc/ofwhere.c   # Needed since DCMTK 3.6.9
       )
@@ -88,7 +88,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/dcmimgle/include
       )
   endif()
-  
+
   if (ENABLE_DCMTK_JPEG)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc DCMTK_SOURCES)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libijg8 DCMTK_SOURCES)
@@ -100,7 +100,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg12
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg16
       )
-    list(REMOVE_ITEM DCMTK_SOURCES 
+    list(REMOVE_ITEM DCMTK_SOURCES
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/ddpiimpl.cc
 
       # Solves linking problem in WebAssembly: "wasm-ld: error:
@@ -111,7 +111,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       )
 
     if (NOT ENABLE_DCMTK_TRANSCODING)
-      list(REMOVE_ITEM DCMTK_SOURCES 
+      list(REMOVE_ITEM DCMTK_SOURCES
         # Disable support for encoding JPEG (modification in Orthanc 1.0.1)
         ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djcodece.cc
         ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencsv1.cc
@@ -134,12 +134,12 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/dcmjpls/include
       ${DCMTK_SOURCES_DIR}/dcmjpls/libcharls
       )
-    list(APPEND DCMTK_SOURCES 
+    list(APPEND DCMTK_SOURCES
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djrplol.cc
       )
 
     if (NOT ENABLE_DCMTK_TRANSCODING)
-      list(REMOVE_ITEM DCMTK_SOURCES 
+      list(REMOVE_ITEM DCMTK_SOURCES
         ${DCMTK_SOURCES_DIR}/dcmjpls/libsrc/djcodece.cc
 
         # Disable support for encoding JPEG-LS (modification in Orthanc 1.0.1)
@@ -176,8 +176,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
 
     add_definitions(-DWITH_OPENSSL=1)
   endif()
-  
-  
+
+
   # This fixes crashes related to the destruction of the DCMTK OFLogger
   # http://support.dcmtk.org/docs-snapshot/file_macros.html
   add_definitions(
@@ -232,7 +232,7 @@ else()
     CHECK_LIBRARY_EXISTS(dcmdata "dcmDataDict" "" HAVE_DCMTK_LIB)
     if (NOT HAVE_DCMTK_LIB)
       message(FATAL_ERROR "Please install the libdcmtk package")
-    endif()  
+    endif()
 
     find_path(DCMTK_INCLUDE_DIRS dcmtk/config/osconfig.h
       /usr/include
@@ -265,17 +265,17 @@ else()
   endif()
 
   message("DCMTK configuration file: ${DCMTK_CONFIGURATION_FILE}")
-  
+
   # Autodetection of the version of DCMTK
   file(STRINGS
-    "${DCMTK_CONFIGURATION_FILE}" 
+    "${DCMTK_CONFIGURATION_FILE}"
     DCMTK_VERSION_NUMBER1 REGEX
-    ".*PACKAGE_VERSION .*")    
+    ".*PACKAGE_VERSION .*")
 
   string(REGEX REPLACE
     ".*PACKAGE_VERSION.*\"([0-9]*)\\.([0-9]*)\\.([0-9]*)\"$"
-    "\\1\\2\\3" 
-    DCMTK_VERSION_NUMBER 
+    "\\1\\2\\3"
+    DCMTK_VERSION_NUMBER
     ${DCMTK_VERSION_NUMBER1})
 
   set(DCMTK_USE_EMBEDDED_DICTIONARIES 0)

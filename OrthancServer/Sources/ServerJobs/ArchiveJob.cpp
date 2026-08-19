@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -47,7 +47,7 @@
 #define snprintf _snprintf
 #endif
 
-static const char* const MEDIA_IMAGES_FOLDER = "IMAGES"; 
+static const char* const MEDIA_IMAGES_FOLDER = "IMAGES";
 static const char* const KEY_DESCRIPTION = "Description";
 static const char* const KEY_INSTANCES_COUNT = "InstancesCount";
 static const char* const KEY_UNCOMPRESSED_SIZE_MB = "UncompressedSizeMB";
@@ -162,7 +162,7 @@ namespace Orthanc
 
       case ArchiveResourceType_Study:
         return ArchiveResourceType_Series;
-        
+
       case ArchiveResourceType_Series:
         return ArchiveResourceType_Instance;
 
@@ -212,7 +212,7 @@ namespace Orthanc
         case ResourceType_Instance:
           instance_ = current;
           GoToParent(index, current);
-            
+
         case ResourceType_Series:
           series_ = current;
           GoToParent(index, current);
@@ -356,7 +356,7 @@ namespace Orthanc
         uint32_t indexInSeries = 0;
         FileInfo fileInfo;
         int64_t revisionNotUsed;
-        
+
         if (index.LookupMetadata(strIndexInSeries, id, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
         {
           SerializationToolbox::ParseUnsignedInteger32(indexInSeries, strIndexInSeries);
@@ -413,7 +413,7 @@ namespace Orthanc
 
           if (level_ == ArchiveResourceType_Series)
           {
-            // Instances ordering is important !  
+            // Instances ordering is important !
             // From 1.12.6, when possible, the id in the filename will match the index in series.
             // Only if there are duplicate index in series, we'll use a simple counter
             SimpleInstanceOrdering orderedInstances(index, it->first);
@@ -428,7 +428,7 @@ namespace Orthanc
             std::list<std::string> children;
             index.GetChildren(children, GetResourceLevel(level_), it->first);
 
-            for (std::list<std::string>::const_iterator 
+            for (std::list<std::string>::const_iterator
                   it2 = children.begin(); it2 != children.end(); ++it2)
             {
               child->AddResourceToExpand(*it2);
@@ -440,7 +440,7 @@ namespace Orthanc
 
         assert(it->second != NULL);
         it->second->Expand(index);
-      }        
+      }
     }
 
 
@@ -448,11 +448,11 @@ namespace Orthanc
     {
       if (level_ == ArchiveResourceType_Instance)
       {
-        for (std::list<Instance>::const_iterator 
+        for (std::list<Instance>::const_iterator
                it = instances_.begin(); it != instances_.end(); ++it)
         {
           visitor.AddInstance(it->id_,  it->index_, it->fileInfo_);
-        }          
+        }
       }
       else
       {
@@ -591,18 +591,18 @@ namespace Orthanc
         }
       }
     };
-      
+
     std::deque<IZipCommand*>  commands_;
     uint64_t                  uncompressedSize_;
     unsigned int              instancesCount_;
-      
+
   public:
     explicit ZipCommands() :
       uncompressedSize_(0),
       instancesCount_(0)
     {
     }
-      
+
     ~ZipCommands()
     {
       for (std::deque<IZipCommand*>::iterator it = commands_.begin();
@@ -666,8 +666,8 @@ namespace Orthanc
       }
     }
   };
-    
-    
+
+
 
   class ArchiveJob::ArchiveIndexVisitor : public IArchiveVisitor
   {
@@ -704,7 +704,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_BadSequenceOfCalls);
       }
-        
+
       snprintf(instanceFormat_, sizeof(instanceFormat_) - 1, "%%08d.dcm");
     }
 
@@ -750,34 +750,34 @@ namespace Orthanc
             std::string seriesNumber = GetTag(tags, DICOM_TAG_SERIES_NUMBER);
             std::string modality = GetTag(tags, DICOM_TAG_MODALITY);
             std::string seriesDescription = GetTag(tags, DICOM_TAG_SERIES_DESCRIPTION);
-            
+
             if (!seriesNumber.empty())
             {
               pathParts.push_back(seriesNumber);
             }
-            
+
             if (!modality.empty())
             {
               pathParts.push_back(modality);
             }
-            
+
             if (!seriesDescription.empty())
             {
               pathParts.push_back(seriesDescription);
             }
-            
+
             if (modality.size() == 0)
             {
               snprintf(instanceFormat_, sizeof(instanceFormat_) - 1, "%%08d.dcm");
             }
             else if (modality.size() == 1)
             {
-              snprintf(instanceFormat_, sizeof(instanceFormat_) - 1, "%c%%07d.dcm", 
+              snprintf(instanceFormat_, sizeof(instanceFormat_) - 1, "%c%%07d.dcm",
                        toupper(modality[0]));
             }
             else if (modality.size() >= 2)
             {
-              snprintf(instanceFormat_, sizeof(instanceFormat_) - 1, "%c%c%%06d.dcm", 
+              snprintf(instanceFormat_, sizeof(instanceFormat_) - 1, "%c%c%%06d.dcm",
                        toupper(modality[0]), toupper(modality[1]));
             }
 
@@ -791,7 +791,7 @@ namespace Orthanc
       Toolbox::JoinStrings(path, pathParts, " - ");
       path =  Toolbox::StripSpaces(path);
 
-      if (path.empty() 
+      if (path.empty()
           || (static_cast<size_t>(boost::count(path, '^')) == path.size()))  // this happens with non ASCII patient names: only the '^' remains and this is not a valid zip folder name
       {
         path = std::string("Unknown ") + EnumerationToString(GetResourceLevel(level));
@@ -816,7 +816,7 @@ namespace Orthanc
     }
   };
 
-    
+
   class ArchiveJob::MediaIndexVisitor : public IArchiveVisitor
   {
   private:
@@ -881,7 +881,7 @@ namespace Orthanc
         MediaIndexVisitor visitor(commands_);
         archive.Expand(context.GetIndex());
 
-        commands_.AddOpenDirectory(MEDIA_IMAGES_FOLDER);        
+        commands_.AddOpenDirectory(MEDIA_IMAGES_FOLDER);
         archive.Apply(visitor);
         commands_.AddCloseDirectory();
 
@@ -1048,7 +1048,7 @@ namespace Orthanc
   {
   }
 
-  
+
   ArchiveJob::~ArchiveJob()
   {
     if (!mediaArchiveId_.empty())
@@ -1061,7 +1061,7 @@ namespace Orthanc
   void ArchiveJob::AcquireSynchronousTarget(ZipWriter::IOutputStream* target)
   {
     std::unique_ptr<ZipWriter::IOutputStream> protection(target);
-    
+
     if (target == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
@@ -1123,7 +1123,7 @@ namespace Orthanc
                                  "Missing resource while creating an archive: " + publicId);
         }
       }
-      
+
       ResourceIdentifiers resource(context_.GetIndex(), publicId);
       archive_->Add(context_.GetIndex(), resource);
     }
@@ -1177,7 +1177,7 @@ namespace Orthanc
                            "Cannot resubmit the creation of an archive");
   }
 
-  
+
   void ArchiveJob::Start()
   {
     if (writer_.get() != NULL)
@@ -1197,10 +1197,10 @@ namespace Orthanc
         {
           OrthancConfiguration::ReaderLock lock;
           asynchronousTarget_.reset(lock.GetConfiguration().CreateTemporaryFile());
-          
+
           assert(asynchronousTarget_.get() != NULL);
           asynchronousTarget_->Touch();  // Make sure we can write to the temporary file
-          
+
           writer_.reset(new ZipWriterIterator(context_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
           writer_->SetOutputFile(asynchronousTarget_->GetPath());
         }
@@ -1208,7 +1208,7 @@ namespace Orthanc
       else
       {
         assert(synchronousTarget_.get() != NULL);
-    
+
         writer_.reset(new ZipWriterIterator(context_, *archive_, isMedia_, enableExtendedSopClass_, allowUtf8_));
         writer_->AcquireOutputStream(synchronousTarget_.release());
       }
@@ -1257,7 +1257,7 @@ namespace Orthanc
       }
     };
   }
-  
+
 
   void ArchiveJob::FinalizeTarget()
   {
@@ -1277,7 +1277,7 @@ namespace Orthanc
         new DynamicTemporaryFile(asynchronousTarget_.release()));
     }
   }
-    
+
 
   JobStepResult ArchiveJob::Step(const std::string& jobId)
   {
@@ -1329,10 +1329,10 @@ namespace Orthanc
         reason == JobStopReason_Retry)
     {
       writer_->CancelStream();
-      
+
       // First delete the writer, as it holds a reference to "(a)synchronousTarget_", cf. (*)
       writer_.reset();
-      
+
       synchronousTarget_.reset();
       asynchronousTarget_.reset();
 
@@ -1356,7 +1356,7 @@ namespace Orthanc
     }
   }
 
-    
+
   void ArchiveJob::GetJobType(std::string& target) const
   {
     if (isMedia_)
@@ -1402,7 +1402,7 @@ namespace Orthanc
                              MimeType& mime,
                              std::string& filename,
                              const std::string& key)
-  {   
+  {
     if (key == "archive" &&
         !mediaArchiveId_.empty())
     {
@@ -1420,7 +1420,7 @@ namespace Orthanc
       {
         return false;
       }
-    }    
+    }
     else
     {
       return false;
@@ -1428,7 +1428,7 @@ namespace Orthanc
   }
 
   bool ArchiveJob::DeleteOutput(const std::string& key)
-  {   
+  {
     if (key == "archive" &&
         !mediaArchiveId_.empty())
     {

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -44,7 +44,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
-    
+
     modification_->SetAllowManualIdentifiers(true);
 
     if (modification_->IsReplaced(DICOM_TAG_PATIENT_ID))
@@ -85,7 +85,7 @@ namespace Orthanc
     LOG(INFO) << "Lua: Modifying instance " << instance.GetId();
 
     std::unique_ptr<ParsedDicomFile> modified;
-    
+
     {
       std::unique_ptr<DicomDataSource::Dicom> dicom(context_.ReadParsedDicom(instance.GetId()));
       modified.reset(dicom->Clone());

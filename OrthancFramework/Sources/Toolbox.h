@@ -111,15 +111,15 @@ namespace Orthanc
       size_t             lineEnd_;
 
       void FindEndOfLine();
-  
+
     public:
       explicit LinesIterator(const std::string& content);
-  
+
       bool GetLine(std::string& target) const;
 
       void Next();
     };
-    
+
     static void ToUpperCase(std::string& s);  // Inplace version
 
     static void ToLowerCase(std::string& s);  // Inplace version
@@ -132,11 +132,11 @@ namespace Orthanc
 
     static void SplitUriComponents(UriComponents& components,
                                    const std::string& uri);
-  
+
     static void TruncateUri(UriComponents& target,
                             const UriComponents& source,
                             size_t fromLevel);
-  
+
     static bool IsChildUri(const UriComponents& baseUri,
                            const UriComponents& testedUri);
 
@@ -144,7 +144,7 @@ namespace Orthanc
                                   size_t fromLevel = 0);
 
     static std::string JoinUri(const std::string& base, const std::string& uri);
-    
+
 #if ORTHANC_ENABLE_MD5 == 1
     static void ComputeMD5(std::string& result,
                            const std::string& data);
@@ -170,10 +170,10 @@ namespace Orthanc
     static bool IsSHA1(const std::string& s);
 
 #if ORTHANC_ENABLE_BASE64 == 1
-    static void DecodeBase64(std::string& result, 
+    static void DecodeBase64(std::string& result,
                              const std::string& data);
 
-    static void EncodeBase64(std::string& result, 
+    static void EncodeBase64(std::string& result,
                              const std::string& data);
 
     static bool DecodeDataUriScheme(std::string& mime,

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -45,7 +45,7 @@ namespace Orthanc
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
-    for (Handlers::const_iterator it = handlers_.begin(); it != handlers_.end(); ++it) 
+    for (Handlers::const_iterator it = handlers_.begin(); it != handlers_.end(); ++it)
     {
       if ((*it)->CreateChunkedRequestReader
           (target, origin, remoteIp, username, method, uri, headers, authenticationPayload))
@@ -75,9 +75,9 @@ namespace Orthanc
                                   size_t bodySize,
                                   const std::string& authenticationPayload)
   {
-    for (Handlers::const_iterator it = handlers_.begin(); it != handlers_.end(); ++it) 
+    for (Handlers::const_iterator it = handlers_.begin(); it != handlers_.end(); ++it)
     {
-      if ((*it)->Handle(output, origin, remoteIp, username, method, uri, 
+      if ((*it)->Handle(output, origin, remoteIp, username, method, uri,
                         headers, getArguments, bodyData, bodySize, authenticationPayload))
       {
         return true;

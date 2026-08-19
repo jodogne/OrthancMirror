@@ -41,7 +41,7 @@ namespace Orthanc
     ErrorCode     error_;
     std::string   failureDetails_;
     ErrorPayload  failurePayload_;
-    
+
     explicit JobStepResult(JobStepCode code) :
       code_(code),
       timeout_(0),

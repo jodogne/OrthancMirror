@@ -341,289 +341,289 @@ namespace Orthanc
       target = DicomTransferSyntax_LittleEndianImplicit;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.1")
     {
       target = DicomTransferSyntax_LittleEndianExplicit;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.1.99")
     {
       target = DicomTransferSyntax_DeflatedLittleEndianExplicit;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.2")
     {
       target = DicomTransferSyntax_BigEndianExplicit;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.50")
     {
       target = DicomTransferSyntax_JPEGProcess1;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.51")
     {
       target = DicomTransferSyntax_JPEGProcess2_4;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.52")
     {
       target = DicomTransferSyntax_JPEGProcess3_5;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.53")
     {
       target = DicomTransferSyntax_JPEGProcess6_8;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.54")
     {
       target = DicomTransferSyntax_JPEGProcess7_9;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.55")
     {
       target = DicomTransferSyntax_JPEGProcess10_12;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.56")
     {
       target = DicomTransferSyntax_JPEGProcess11_13;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.57")
     {
       target = DicomTransferSyntax_JPEGProcess14;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.58")
     {
       target = DicomTransferSyntax_JPEGProcess15;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.59")
     {
       target = DicomTransferSyntax_JPEGProcess16_18;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.60")
     {
       target = DicomTransferSyntax_JPEGProcess17_19;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.61")
     {
       target = DicomTransferSyntax_JPEGProcess20_22;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.62")
     {
       target = DicomTransferSyntax_JPEGProcess21_23;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.63")
     {
       target = DicomTransferSyntax_JPEGProcess24_26;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.64")
     {
       target = DicomTransferSyntax_JPEGProcess25_27;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.65")
     {
       target = DicomTransferSyntax_JPEGProcess28;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.66")
     {
       target = DicomTransferSyntax_JPEGProcess29;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.70")
     {
       target = DicomTransferSyntax_JPEGProcess14SV1;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.80")
     {
       target = DicomTransferSyntax_JPEGLSLossless;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.81")
     {
       target = DicomTransferSyntax_JPEGLSLossy;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.90")
     {
       target = DicomTransferSyntax_JPEG2000LosslessOnly;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.91")
     {
       target = DicomTransferSyntax_JPEG2000;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.92")
     {
       target = DicomTransferSyntax_JPEG2000MulticomponentLosslessOnly;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.93")
     {
       target = DicomTransferSyntax_JPEG2000Multicomponent;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.94")
     {
       target = DicomTransferSyntax_JPIPReferenced;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.95")
     {
       target = DicomTransferSyntax_JPIPReferencedDeflate;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.100")
     {
       target = DicomTransferSyntax_MPEG2MainProfileAtMainLevel;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.101")
     {
       target = DicomTransferSyntax_MPEG2MainProfileAtHighLevel;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.102")
     {
       target = DicomTransferSyntax_MPEG4HighProfileLevel4_1;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.103")
     {
       target = DicomTransferSyntax_MPEG4BDcompatibleHighProfileLevel4_1;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.104")
     {
       target = DicomTransferSyntax_MPEG4HighProfileLevel4_2_For2DVideo;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.105")
     {
       target = DicomTransferSyntax_MPEG4HighProfileLevel4_2_For3DVideo;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.106")
     {
       target = DicomTransferSyntax_MPEG4StereoHighProfileLevel4_2;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.107")
     {
       target = DicomTransferSyntax_HEVCMainProfileLevel5_1;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.108")
     {
       target = DicomTransferSyntax_HEVCMain10ProfileLevel5_1;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.5")
     {
       target = DicomTransferSyntax_RLELossless;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.6.1")
     {
       target = DicomTransferSyntax_RFC2557MimeEncapsulation;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.6.2")
     {
       target = DicomTransferSyntax_XML;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.110")
     {
       target = DicomTransferSyntax_JPEGXLLossless;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.111")
     {
       target = DicomTransferSyntax_JPEGXLJPEGRecompression;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.112")
     {
       target = DicomTransferSyntax_JPEGXL;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.201")
     {
       target = DicomTransferSyntax_HighThroughputJPEG2000LosslessOnly;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.202")
     {
       target = DicomTransferSyntax_HighThroughputJPEG2000withRPCLOptionsLosslessOnly;
       return true;
     }
-    
+
     if (uid == "1.2.840.10008.1.2.4.203")
     {
       target = DicomTransferSyntax_HighThroughputJPEG2000;
       return true;
     }
-    
+
     return false;
   }
 

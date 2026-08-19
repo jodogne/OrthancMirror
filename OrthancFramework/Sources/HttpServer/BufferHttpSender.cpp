@@ -50,7 +50,7 @@ namespace Orthanc
   BufferHttpSender::BufferHttpSender() :
     data_(NULL),
     size_(0),
-    position_(0), 
+    position_(0),
     chunkSize_(0),
     currentChunkSize_(0)
   {

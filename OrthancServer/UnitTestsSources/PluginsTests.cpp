@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -61,7 +61,7 @@ TEST(SharedLibrary, Basic)
   /**
    * On the Docker image "debian:buster-slim", the "libSegFault.so"
    * library does exist, but does not contain any public symbol:
-   * 
+   *
    *  $ sudo docker run -i -t --rm --entrypoint=bash debian:buster-slim
    *  # apt-get update && apt-get install -y binutils
    *  # nm -C /lib/x86_64-linux-gnu/libSegFault.so
@@ -72,10 +72,10 @@ TEST(SharedLibrary, Basic)
    * spread. Reference:
    * https://groups.google.com/d/msg/orthanc-users/v-QFzpOzgJY/4Hm5NgxKBwAJ
    **/
-  
+
   //ASSERT_TRUE(l.GetFunction("_init") != NULL);
   //ASSERT_TRUE(l.HasFunction("_init"));
-  
+
 #elif defined(__linux__) || defined(__FreeBSD_kernel__)
   /**
    * Since Orthanc 1.10.0, we test the "libdl.so.2" instead of the
@@ -97,7 +97,7 @@ TEST(SharedLibrary, Basic)
   catch (OrthancException&) // NOLINT(bugprone-empty-catch)
   {
   }
-  
+
   try
   {
     SharedLibrary l("libdl.so"); // Fallback for backward compat
@@ -110,7 +110,7 @@ TEST(SharedLibrary, Basic)
   catch (OrthancException&) // NOLINT(bugprone-empty-catch)
   {
   }
-  
+
   try
   {
     SharedLibrary l("libmemusage.so"); // Try another common library
@@ -123,7 +123,7 @@ TEST(SharedLibrary, Basic)
   catch (OrthancException&) // NOLINT(bugprone-empty-catch)
   {
   }
-  
+
   ASSERT_TRUE(0);
 
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)

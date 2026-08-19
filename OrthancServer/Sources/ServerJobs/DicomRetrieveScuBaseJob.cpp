@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -38,7 +38,7 @@ static const char* const QUERY_FORMAT = "QueryFormat";  // New in 1.9.5
 static const char* const REMOTE = "Remote";
 static const char* const TIMEOUT = "Timeout";
 
-static std::map<std::string, Orthanc::SetOfCommandsJob::ICommand*> messagesRegistry; 
+static std::map<std::string, Orthanc::SetOfCommandsJob::ICommand*> messagesRegistry;
 static uint16_t messageRegistryCurrentId = 1000;
 static boost::mutex messageRegistryMutex;
 
@@ -53,17 +53,17 @@ namespace Orthanc
   {
     assert(currentCommand_ != NULL);
     boost::mutex::scoped_lock lock(messageRegistryMutex);
-    
-    // Each resource retrieval (command) has its own messageId.  
+
+    // Each resource retrieval (command) has its own messageId.
     // We start at 1000 to clearly differentiate them from other messages.  We can actually use ANY value between 0 & 65535.
     messageRegistryCurrentId = std::max(1000, (messageRegistryCurrentId + 1) % 0xFFFF);
     messagesRegistry[GetKey(localAet, messageRegistryCurrentId)] = currentCommand_;
-    
+
     return messageRegistryCurrentId;
   }
 
-  void DicomRetrieveScuBaseJob::AddReceivedInstanceFromCStore(uint16_t originatorMessageId, 
-                                                              const std::string& originatorAet, 
+  void DicomRetrieveScuBaseJob::AddReceivedInstanceFromCStore(uint16_t originatorMessageId,
+                                                              const std::string& originatorAet,
                                                               const std::string& instanceId)
   {
     boost::mutex::scoped_lock lock(messageRegistryMutex);
@@ -157,7 +157,7 @@ namespace Orthanc
     query.GetAnswer(query.GetSize() - 1).Remove(DICOM_TAG_SPECIFIC_CHARACTER_SET);
   }
 
-  // this method is used to implement the retrieve part of a Q&R 
+  // this method is used to implement the retrieve part of a Q&R
   // it keeps only the main dicom tags from the C-Find answer
   void DicomRetrieveScuBaseJob::AddFindAnswer(const DicomMap& answer)
   {
@@ -169,7 +169,7 @@ namespace Orthanc
     item.CopyTagIfExists(answer, DICOM_TAG_SOP_INSTANCE_UID);
     item.CopyTagIfExists(answer, DICOM_TAG_ACCESSION_NUMBER);
     AddToQuery(query_, item);
-    
+
     AddCommand(new Command(*this, answer));
   }
 
@@ -179,7 +179,7 @@ namespace Orthanc
     DicomMap answer;
     query.GetAnswer(answer, i);
     AddFindAnswer(answer);
-  }    
+  }
 
   // this method is used to implement a C-Move
   // it keeps all tags from the C-Move query
@@ -188,7 +188,7 @@ namespace Orthanc
     AddToQuery(query_, query);
     AddCommand(new Command(*this, query));
   }
- 
+
 
   void DicomRetrieveScuBaseJob::SetLocalAet(const std::string& aet)
   {
@@ -202,7 +202,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void DicomRetrieveScuBaseJob::SetRemoteModality(const RemoteModalityParameters& remote)
   {
     if (IsStarted())
@@ -228,12 +228,12 @@ namespace Orthanc
     }
   }
 
-  
+
   void DicomRetrieveScuBaseJob::Stop(JobStopReason reason)
   {
     connection_.reset();
   }
-  
+
 
   void DicomRetrieveScuBaseJob::SetQueryFormat(DicomToJsonFormat format)
   {
@@ -259,7 +259,7 @@ namespace Orthanc
     query_.ToJson(value[QUERY], queryFormat_);
 
     value["Details"] = Json::arrayValue;
-    
+
     for (size_t i = 0; i < GetCommandsCount(); ++i)
     {
       const DicomRetrieveScuBaseJob::Command& command = dynamic_cast<const DicomRetrieveScuBaseJob::Command&>(GetCommand(i));
@@ -320,7 +320,7 @@ namespace Orthanc
     }
   }
 
-  
+
   bool DicomRetrieveScuBaseJob::Serialize(Json::Value& target) const
   {
     if (!SetOfCommandsJob::Serialize(target))
@@ -336,7 +336,7 @@ namespace Orthanc
       query_.ToJson(target[QUERY], DicomToJsonFormat_Short);
 
       target[QUERY_FORMAT] = EnumerationToString(queryFormat_);
-      
+
       return true;
     }
   }
@@ -357,7 +357,7 @@ namespace Orthanc
   float DicomRetrieveScuBaseJob::GetProgress() const
   {
     boost::mutex::scoped_lock lock(progressMutex_);
-    
+
     uint32_t totalOperations = nbRemainingSubOperations_ + nbCompletedSubOperations_ + nbFailedSubOperations_ + nbWarningSubOperations_;
     if (totalOperations == 0)
     {

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -45,7 +45,7 @@ namespace Orthanc
     DicomRetrieveScuBaseJob* job = reinterpret_cast<DicomRetrieveScuBaseJob*>(callbackContext);
 
     std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromDcmDataset(dataset));
-    
+
     if (toStore->GetBufferSize() > 0)
     {
       toStore->SetOrigin(DicomInstanceOrigin::FromDicomProtocol
@@ -76,28 +76,28 @@ namespace Orthanc
       if (sopClassesFromResourcesToRetrieve_.size() > 0)
       {
         std::set<std::string> acceptedSopClasses;
-        
-        context_.GetAcceptedSopClasses(acceptedSopClasses, 0); 
+
+        context_.GetAcceptedSopClasses(acceptedSopClasses, 0);
 
         // keep the sop classes from the resources to retrieve only if they are accepted by Orthanc
         Toolbox::GetIntersection(sopClassesToPropose, sopClassesFromResourcesToRetrieve_, acceptedSopClasses);
       }
       else
       {
-        // when we don't know what SOP Classes to use, we include the 120 most common SOP Classes because 
+        // when we don't know what SOP Classes to use, we include the 120 most common SOP Classes because
         // there are only 128 presentation contexts available
-        context_.GetAcceptedSopClasses(sopClassesToPropose, 120); 
+        context_.GetAcceptedSopClasses(sopClassesToPropose, 120);
       }
 
       if (sopClassesToPropose.size() == 0)
       {
-        throw OrthancException(ErrorCode_NoPresentationContext, "Cannot perform C-Get, no SOPClassUID have been accepted by Orthanc.");        
+        throw OrthancException(ErrorCode_NoPresentationContext, "Cannot perform C-Get, no SOPClassUID have been accepted by Orthanc.");
       }
 
       context_.GetProposedStorageTransferSyntaxes(proposedTransferSyntaxes);
 
-      connection_.reset(new DicomControlUserConnection(parameters_, 
-                                                       ScuOperationFlags_Get, 
+      connection_.reset(new DicomControlUserConnection(parameters_,
+                                                       ScuOperationFlags_Get,
                                                        sopClassesToPropose,
                                                        proposedTransferSyntaxes));
     }
@@ -111,7 +111,7 @@ namespace Orthanc
     DicomRetrieveScuBaseJob::AddFindAnswer(answer);
 
     std::set<std::string> sopClassesInStudy;
-    if (answer.HasTag(DICOM_TAG_SOP_CLASSES_IN_STUDY) 
+    if (answer.HasTag(DICOM_TAG_SOP_CLASSES_IN_STUDY)
         && answer.LookupStringValues(sopClassesInStudy, DICOM_TAG_SOP_CLASSES_IN_STUDY, false))
     {
       for (std::set<std::string>::const_iterator it = sopClassesInStudy.begin(); it != sopClassesInStudy.end(); ++it)

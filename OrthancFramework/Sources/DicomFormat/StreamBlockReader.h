@@ -62,7 +62,7 @@ namespace Orthanc
      * available from the stream yet: In this case, try again later.
      **/
     bool Read(std::string& block);
-    
+
     uint64_t GetProcessedBytes() const;
   };
 }

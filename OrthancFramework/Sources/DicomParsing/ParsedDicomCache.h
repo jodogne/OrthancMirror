@@ -64,7 +64,7 @@ namespace Orthanc
       size_t             fileSize_;
 
       std::unique_ptr<MemoryObjectCache::Accessor>  accessor_;
-      
+
     public:
       Accessor(ParsedDicomCache& that,
                const std::string& id);

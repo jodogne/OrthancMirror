@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -84,12 +84,12 @@ namespace Orthanc
     {
       origin_ = origin;
     }
-    
+
     const DicomInstanceOrigin& GetOrigin() const
     {
       return origin_;
-    } 
-    
+    }
+
     const MetadataMap& GetMetadata() const
     {
       return metadata_;
@@ -125,13 +125,13 @@ namespace Orthanc
     virtual void GetDicomAsJson(Json::Value& dicomAsJson,
                                 const std::set<DicomTag>& ignoreTagLength) const;
 
-    virtual void DatasetToJson(Json::Value& target, 
+    virtual void DatasetToJson(Json::Value& target,
                                DicomToJsonFormat format,
                                DicomToJsonFlags flags,
                                unsigned int maxStringLength) const;
 
     virtual unsigned int GetFramesCount() const;
-    
+
     virtual ImageAccessor* DecodeFrame(unsigned int frame) const;
   };
 }

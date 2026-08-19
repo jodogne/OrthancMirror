@@ -53,10 +53,10 @@ namespace Orthanc
       virtual ~ICommandUnserializer()
       {
       }
-      
+
       virtual ICommand* Unserialize(const Json::Value& source) const = 0;
     };
-    
+
   private:
     bool                    started_;
     std::vector<ICommand*>  commands_;
@@ -90,19 +90,19 @@ namespace Orthanc
     void SetPermissive(bool permissive);
 
     virtual void Reset() ORTHANC_OVERRIDE;
-    
+
     virtual void Start() ORTHANC_OVERRIDE;
-    
+
     virtual float GetProgress() const ORTHANC_OVERRIDE;
 
     bool IsStarted() const;
 
     const ICommand& GetCommand(size_t index) const;
-      
+
     virtual JobStepResult Step(const std::string& jobId) ORTHANC_OVERRIDE;
-    
+
     virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;
-    
+
     virtual bool Serialize(Json::Value& target) const ORTHANC_OVERRIDE;
 
     virtual bool GetOutput(std::string& output,

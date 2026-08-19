@@ -32,12 +32,12 @@ class StorageCommitmentSample : public OrthancPlugins::IStorageCommitmentScpHand
 {
 private:
   int count_;
-  
+
 public:
   StorageCommitmentSample() : count_(0)
   {
   }
-  
+
   virtual OrthancPluginStorageCommitmentFailureReason Lookup(const std::string& sopClassUid,
                                                              const std::string& sopInstanceUid)
   {
@@ -61,7 +61,7 @@ static OrthancPluginErrorCode StorageCommitmentScp(void**              handler /
 {
   /*std::string s;
     OrthancPlugins::RestApiPost(s, "/jobs/" + std::string(jobId) + "/pause", NULL, 0, false);*/
-  
+
   printf("[%s] [%s] [%s] [%s]\n", jobId, transactionUid, remoteAet, calledAet);
 
   for (uint32_t i = 0; i < countInstances; i++)
@@ -95,7 +95,7 @@ extern "C"
       c, StorageCommitmentScp,
       OrthancPlugins::IStorageCommitmentScpHandler::Destructor,
       OrthancPlugins::IStorageCommitmentScpHandler::Lookup);
-    
+
     return 0;
   }
 

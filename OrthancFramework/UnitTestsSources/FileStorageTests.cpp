@@ -66,7 +66,7 @@ TEST(FilesystemStorage, Basic)
   std::string d;
   {
     std::unique_ptr<IMemoryBuffer> buffer(s.ReadWhole(uid, FileContentType_Unknown));
-    buffer->MoveToString(d);    
+    buffer->MoveToString(d);
   }
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
@@ -90,7 +90,7 @@ TEST(FilesystemStorage, Basic2)
   std::string d;
   {
     std::unique_ptr<IMemoryBuffer> buffer(s.ReadWhole(uid, FileContentType_Unknown));
-    buffer->MoveToString(d);    
+    buffer->MoveToString(d);
   }
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
@@ -177,7 +177,7 @@ TEST(FilesystemStorage, EndToEnd)
   std::set<std::string> ss;
   s.ListAllFiles(ss);
   ASSERT_EQ(10u, ss.size());
-  
+
   unsigned int c = 0;
   for (std::list<std::string>::const_iterator
          i = u.begin(); i != u.end(); ++i, c++)

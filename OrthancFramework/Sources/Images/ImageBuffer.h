@@ -45,7 +45,7 @@ namespace Orthanc
     void *buffer_;
 
     void Initialize();
-    
+
     void Allocate();
 
     void Deallocate();

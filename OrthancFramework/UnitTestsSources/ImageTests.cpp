@@ -167,7 +167,7 @@ TEST(PngWriter, Gray8Pattern)
   accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale8, width, height, pitch, &image[0]);
 
   std::string f;
-  
+
 #if ORTHANC_SANDBOXED == 1
   Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
 #else
@@ -203,7 +203,7 @@ TEST(PngWriter, Gray16Pattern)
   accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale16, width, height, pitch, &image[0]);
 
   std::string f;
-  
+
 #if ORTHANC_SANDBOXED == 1
   Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
 #else
@@ -421,7 +421,7 @@ TEST(PamWriter, Gray8Pattern)
   Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray8Pattern.pam", accessor);
   Orthanc::SystemToolbox::ReadFile(f, Orthanc::SystemToolbox::PathFromUtf8("UnitTestsResults/Gray8Pattern.pam"));
 #endif
-  
+
   std::string md5;
   Orthanc::Toolbox::ComputeMD5(md5, f);
   ASSERT_EQ("7873c408d26a9d11dd1c1de5e69cc0a3", md5);
@@ -613,7 +613,7 @@ TEST(PngWriter, Gray16Then8)
     std::string s;
     Orthanc::IImageWriter::WriteToMemory(w, s, image8);
     Orthanc::IImageWriter::WriteToMemory(w, s, image16);  // No problem here
-  }  
+  }
 
   {
     // The following call leads to "Invalid read of size 1" in Orthanc <= 1.9.2
@@ -621,7 +621,7 @@ TEST(PngWriter, Gray16Then8)
     std::string s;
     Orthanc::IImageWriter::WriteToMemory(w, s, image16);
     Orthanc::IImageWriter::WriteToMemory(w, s, image8);  // Problem here
-  }  
+  }
 }
 
 

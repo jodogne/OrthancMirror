@@ -34,8 +34,8 @@ namespace Orthanc
   DicomArray::DicomArray(const DicomMap& map)
   {
     elements_.reserve(map.content_.size());
-    
-    for (DicomMap::Content::const_iterator it = 
+
+    for (DicomMap::Content::const_iterator it =
            map.content_.begin(); it != map.content_.end(); ++it)
     {
       elements_.push_back(new DicomElement(it->first, *it->second));
@@ -78,7 +78,7 @@ namespace Orthanc
     {
       tags.insert(elements_[i]->GetTag());
     }
-   
+
   }
 
   void DicomArray::Print(FILE* fp) const

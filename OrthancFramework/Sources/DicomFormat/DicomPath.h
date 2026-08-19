@@ -44,7 +44,7 @@ namespace Orthanc
       PrefixItem(DicomTag tag,
                  bool isUniversal,
                  size_t index);
-      
+
     public:
       static PrefixItem CreateUniversal(const DicomTag& tag)
       {
@@ -76,9 +76,9 @@ namespace Orthanc
     Orthanc::DicomTag        finalTag_;
 
     static DicomTag ParseTag(const std::string& token);
-    
+
     const PrefixItem& GetLevel(size_t i) const;
-    
+
   public:
     explicit DicomPath(const Orthanc::DicomTag& tag);
 

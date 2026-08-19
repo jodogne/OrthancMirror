@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -177,7 +177,7 @@ namespace Orthanc
   static const char* DICOM_REMOTE_AET = "RemoteAET";
   static const char* DICOM_CALLED_AET = "CalledAET";
   static const char* HTTP_USERNAME = "Username";
-  
+
 
   DicomInstanceOrigin::DicomInstanceOrigin(const Json::Value& serialized)
   {
@@ -187,8 +187,8 @@ namespace Orthanc
     dicomCalledAet_ = SerializationToolbox::ReadString(serialized, DICOM_CALLED_AET);
     httpUsername_ = SerializationToolbox::ReadString(serialized, HTTP_USERNAME);
   }
-  
-  
+
+
   void DicomInstanceOrigin::Serialize(Json::Value& result) const
   {
     result = Json::objectValue;

@@ -53,7 +53,7 @@ namespace Orthanc
     {
       requestTypes_[mime] = description;
     }
-        
+
     return *this;
   }
 
@@ -67,13 +67,13 @@ namespace Orthanc
         method_ != HttpMethod_Put)
     {
       throw OrthancException(ErrorCode_BadParameterType, "Request body is only allowed on POST and PUT");
-    }    
+    }
 
     if (requestTypes_.find(MimeType_Json) == requestTypes_.end())
     {
       requestTypes_[MimeType_Json] = "";
     }
-    
+
     if (requestFields_.find(name) != requestFields_.end())
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange, "Field \"" + name + "\" of JSON request is already documented");
@@ -82,7 +82,7 @@ namespace Orthanc
     {
       requestFields_[name] = Parameter(type, description, required);
       return *this;
-    }    
+    }
   }
 
 
@@ -102,7 +102,7 @@ namespace Orthanc
 
     return *this;
   }
-  
+
 
   RestApiCallDocumentation& RestApiCallDocumentation::SetUriArgument(const std::string& name,
                                                                      Type type,
@@ -144,7 +144,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError, "Cannot set a HTTP GET argument on HTTP method: " +
                              std::string(EnumerationToString(method_)));
-    }    
+    }
     else if (getArguments_.find(name) != getArguments_.end())
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange, "GET argument \"" + name + "\" is already documented");
@@ -156,7 +156,7 @@ namespace Orthanc
     }
   }
 
-  
+
   RestApiCallDocumentation& RestApiCallDocumentation::SetAnswerField(const std::string& name,
                                                                      Type type,
                                                                      const std::string& description)
@@ -165,7 +165,7 @@ namespace Orthanc
     {
       answerTypes_[MimeType_Json] = "";
     }
-    
+
     if (answerFields_.find(name) != answerFields_.end())
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange, "Field \"" + name + "\" of JSON answer is already documented");
@@ -174,7 +174,7 @@ namespace Orthanc
     {
       answerFields_[name] = Parameter(type, description, false);
       return *this;
-    }    
+    }
   }
 
 
@@ -259,7 +259,7 @@ namespace Orthanc
         // We use the "{" symbol, as it the last in the 7bit ASCII
         // table, which places "..." at the end of the object in OpenAPI
         v["{...}"] = "...";
-        
+
         value = v;
       }
 
@@ -270,7 +270,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void RestApiCallDocumentation::SetTruncatedJsonHttpGetSample(const std::string& url,
                                                                size_t size)
   {
@@ -314,7 +314,7 @@ namespace Orthanc
         target["type"] = "array";
         target["items"]["type"] = "object";
         return;
-        
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -333,7 +333,7 @@ namespace Orthanc
     else
     {
       target = Json::objectValue;
-    
+
       if (!tag_.empty())
       {
         target["tags"].append(tag_);
@@ -376,8 +376,8 @@ namespace Orthanc
               Json::Value p = Json::objectValue;
               TypeToSchema(p, field->second.GetType());
               p["description"] = field->second.GetDescription();
-              schema["properties"][field->first] = p;         
-            }        
+              schema["properties"][field->first] = p;
+            }
 
             if (!it->second.empty() &&
                 answerFields_.size() > 0)
@@ -405,7 +405,7 @@ namespace Orthanc
             Json::Value p = Json::objectValue;
             TypeToSchema(p, field->second.GetType());
             p["description"] = field->second.GetDescription();
-            schema["properties"][field->first] = p;         
+            schema["properties"][field->first] = p;
           }
 
           if (!it->second.empty() &&
@@ -416,7 +416,7 @@ namespace Orthanc
           }
         }
       }
-      
+
       for (AllowedTypes::const_iterator it = answerTypes_.begin();
            it != answerTypes_.end(); ++it)
       {
@@ -441,7 +441,7 @@ namespace Orthanc
       {
         target["responses"]["200"]["content"][EnumerationToString(MimeType_Json)]["schema"]["example"] = sampleJson_;
       }
-      
+
       if (hasSampleText_)
       {
         target["responses"]["200"]["content"][EnumerationToString(MimeType_PlainText)]["example"] = sampleText_;
@@ -454,7 +454,7 @@ namespace Orthanc
         for (Parameters::const_iterator it = answerHeaders_.begin(); it != answerHeaders_.end(); ++it)
         {
           Json::Value h = Json::objectValue;
-          h["description"] = it->second.GetDescription();          
+          h["description"] = it->second.GetDescription();
           answerHeaders[it->first] = h;
         }
 
@@ -462,7 +462,7 @@ namespace Orthanc
       }
 
       Json::Value parameters = Json::arrayValue;
-        
+
       for (Parameters::const_iterator it = getArguments_.begin();
            it != getArguments_.end(); ++it)
       {
@@ -472,7 +472,7 @@ namespace Orthanc
         p["required"] = it->second.IsRequired();
         TypeToSchema(p["schema"], it->second.GetType());
         p["description"] = it->second.GetDescription();
-        parameters.append(p);         
+        parameters.append(p);
       }
 
       for (Parameters::const_iterator it = httpHeaders_.begin();
@@ -484,7 +484,7 @@ namespace Orthanc
         p["required"] = it->second.IsRequired();
         TypeToSchema(p["schema"], it->second.GetType());
         p["description"] = it->second.GetDescription();
-        parameters.append(p);         
+        parameters.append(p);
       }
 
       for (Parameters::const_iterator it = uriArguments_.begin();
@@ -494,14 +494,14 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_InternalError, "Unexpected URI argument: " + it->first);
         }
-        
+
         Json::Value p = Json::objectValue;
         p["name"] = it->first;
         p["in"] = "path";
         p["required"] = it->second.IsRequired();
         TypeToSchema(p["schema"], it->second.GetType());
         p["description"] = it->second.GetDescription();
-        parameters.append(p);         
+        parameters.append(p);
       }
 
       for (std::set<std::string>::const_iterator it = expectedUriArguments.begin();

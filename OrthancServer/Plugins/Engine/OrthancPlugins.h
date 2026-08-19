@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -67,9 +67,9 @@ namespace Orthanc
   class ServerContext;
   class OutgoingDicomInstance;
 
-  class OrthancPlugins : 
-    public IHttpHandler, 
-    public IPluginServiceProvider, 
+  class OrthancPlugins :
+    public IHttpHandler,
+    public IPluginServiceProvider,
     public IServerListener,
     public IWorklistRequestHandlerFactory,
     public IFindRequestHandlerFactory,
@@ -165,7 +165,7 @@ private:
 
     void RestApiGet2(const void* parameters);
 
-    void RestApiPostPut(bool isPost, 
+    void RestApiPostPut(bool isPost,
                         const void* parameters,
                         bool afterPlugins);
 
@@ -177,7 +177,7 @@ private:
 
     void AccessDicomInstance(_OrthancPluginService service,
                              const void* parameters);
-    
+
     void AccessDicomInstance2(_OrthancPluginService service,
                               const void* parameters);
 
@@ -215,7 +215,7 @@ private:
     void CallRestApi(const void* parameters);
 
     static void CallPeerApi(const void* parameters);
-  
+
     static void GetFontInfo(const void* parameters);
 
     static void DrawText(const void* parameters);
@@ -291,7 +291,7 @@ private:
                                  size_t size,
                                  const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                  bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
-    
+
   public:
     explicit OrthancPlugins(const std::string& databaseServerIdentifier);
 

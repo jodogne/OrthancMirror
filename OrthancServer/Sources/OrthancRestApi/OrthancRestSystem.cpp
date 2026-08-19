@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -47,7 +47,7 @@ namespace Orthanc
   {
     call.GetOutput().Redirect("app/explorer.html");
   }
- 
+
   static void ServeFavicon(RestApiGetCall& call)
   {
     call.GetOutput().Redirect("app/images/favicon.ico");
@@ -283,9 +283,9 @@ namespace Orthanc
     }
 
     uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
-    OrthancRestApi::GetIndex(call).GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+    OrthancRestApi::GetIndex(call).GetGlobalStatistics(diskSize, uncompressedSize, countPatients,
                                                        countStudies, countSeries, countInstances);
-    
+
     Json::Value result = Json::objectValue;
     result["TotalDiskSize"] = boost::lexical_cast<std::string>(diskSize);
     result["TotalUncompressedSize"] = boost::lexical_cast<std::string>(uncompressedSize);
@@ -461,17 +461,17 @@ namespace Orthanc
   {
     std::set<DicomTransferSyntax> syntaxes;
     OrthancRestApi::GetContext(call).GetAcceptedTransferSyntaxes(syntaxes);
-    
+
     Json::Value json = Json::arrayValue;
     for (std::set<DicomTransferSyntax>::const_iterator
            syntax = syntaxes.begin(); syntax != syntaxes.end(); ++syntax)
     {
       json.append(GetTransferSyntaxUid(*syntax));
     }
-    
+
     call.GetOutput().AnswerJson(json);
   }
-  
+
 
   static void GetAcceptedTransferSyntaxes(RestApiGetCall& call)
   {
@@ -522,7 +522,7 @@ namespace Orthanc
     }
 
     OrthancRestApi::GetContext(call).SetAcceptedTransferSyntaxes(syntaxes);
-    
+
     AnswerAcceptedTransferSyntaxes(call);
   }
 
@@ -542,14 +542,14 @@ namespace Orthanc
 
     std::set<std::string> sopClasses;
     OrthancRestApi::GetContext(call).GetAcceptedSopClasses(sopClasses, 0);
-    
+
     Json::Value json = Json::arrayValue;
     for (std::set<std::string>::const_iterator
            sop = sopClasses.begin(); sop != sopClasses.end(); ++sop)
     {
       json.append(*sop);
     }
-    
+
     call.GetOutput().AnswerJson(json);
   }
 
@@ -588,7 +588,7 @@ namespace Orthanc
   }
 
 
-  
+
   // Plugins information ------------------------------------------------------
 
   static void ListPlugins(RestApiGetCall& call)
@@ -614,7 +614,7 @@ namespace Orthanc
       std::list<std::string> plugins;
       OrthancRestApi::GetContext(call).GetPlugins().GetManager().ListPlugins(plugins);
 
-      for (std::list<std::string>::const_iterator 
+      for (std::list<std::string>::const_iterator
              it = plugins.begin(); it != plugins.end(); ++it)
       {
         v.append(*it);
@@ -774,7 +774,7 @@ namespace Orthanc
         v.append(*it);
       }
     }
-    
+
     call.GetOutput().AnswerJson(v);
   }
 
@@ -798,7 +798,7 @@ namespace Orthanc
       sample["State"] = "Success";
       sample["Timestamp"] = "20201228T160340.253201";
       sample["Type"] = "Media";
-      
+
       call.GetDocumentation()
         .SetTag("Jobs")
         .SetSummary("Get job")
@@ -871,7 +871,7 @@ namespace Orthanc
     std::string value;
     MimeType mime;
     std::string filename;
-    
+
     if (OrthancRestApi::GetContext(call).GetJobsEngine().
         GetRegistry().GetJobOutput(value, mime, filename, job, key))
     {
@@ -943,7 +943,7 @@ namespace Orthanc
         case JobAction_Pause:
           verb = "Pause";
           break;
- 
+
         case JobAction_Resubmit:
           verb = "Resubmit";
           break;
@@ -954,8 +954,8 @@ namespace Orthanc
 
         default:
           THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
-      }      
-      
+      }
+
       call.GetDocumentation()
         .SetTag("Jobs")
         .SetSummary(verb + " job")
@@ -980,7 +980,7 @@ namespace Orthanc
       case JobAction_Pause:
         ok = OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Pause(id);
         break;
- 
+
       case JobAction_Resubmit:
         ok = OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Resubmit(id);
         break;
@@ -992,14 +992,14 @@ namespace Orthanc
       default:
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
-    
+
     if (ok)
     {
       call.GetOutput().AnswerBuffer("{}", MimeType_Json);
     }
   }
 
-  
+
   static void GetMetricsPrometheus(RestApiGetCall& call)
   {
     if (call.IsDocumentation())
@@ -1020,7 +1020,7 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
-    context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+    context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients,
                                            countStudies, countSeries, countInstances);
 
     unsigned int jobsPending, jobsRunning;
@@ -1120,7 +1120,7 @@ namespace Orthanc
     call.BodyToString(body);
 
     SetGlobalVerbosity(StringToVerbosity(body));
-    
+
     // Success
     LOG(WARNING) << "REST API call has switched the log level to: " << body;
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
@@ -1144,7 +1144,7 @@ namespace Orthanc
 
     THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
   }
-  
+
 
   static void GetLogLevelCategory(RestApiGetCall& call)
   {
@@ -1183,7 +1183,7 @@ namespace Orthanc
     Verbosity verbosity = StringToVerbosity(body);
     Logging::LogCategory category = GetCategory(call);
     SetCategoryVerbosity(category, verbosity);
-    
+
     // Success
     LOG(WARNING) << "REST API call has switched the log level of category \""
                  << Logging::GetCategoryName(category) << "\" to \""
@@ -1212,7 +1212,7 @@ namespace Orthanc
     {
       json.append(*it);
     }
-    
+
     call.GetOutput().AnswerJson(json);
    }
 
@@ -1224,7 +1224,7 @@ namespace Orthanc
       Register("/", ServeRoot);
       Register("/favicon.ico", ServeFavicon);  // New in Orthanc 1.9.0
     }
-    
+
     Register("/system", GetSystemInformation);
     Register("/statistics", GetStatistics);
     Register("/tools/generate-uid", GenerateUid);

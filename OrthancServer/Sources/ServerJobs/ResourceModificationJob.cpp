@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -45,7 +45,7 @@ namespace Orthanc
     target["ID"] = id;
     target["Path"] = GetBasePath(level, id);
   }
-  
+
   class ResourceModificationJob::SingleOutput : public IOutput
   {
   private:
@@ -64,7 +64,7 @@ namespace Orthanc
           level_ != ResourceType_Series)
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }            
+      }
     }
 
     virtual void Update(DicomInstanceHasher& hasher) ORTHANC_OVERRIDE
@@ -115,7 +115,7 @@ namespace Orthanc
       return level_;
     }
   };
-    
+
 
   class ResourceModificationJob::MultipleOutputs : public IOutput
   {
@@ -131,10 +131,10 @@ namespace Orthanc
       {
         Json::Value item = Json::objectValue;
         FormatResource(item, level, *it);
-        target.append(item);        
+        target.append(item);
       }
     }
-    
+
     std::set<std::string>  instances_;
     std::set<std::string>  series_;
     std::set<std::string>  studies_;
@@ -195,7 +195,7 @@ namespace Orthanc
         GetContext().GetIndex().ReconstructInstance(modifiedDicom, false, ResourceType_Instance /* dummy */);
       }
     }
-    
+
   }
 
   bool ResourceModificationJob::HandleInstance(const std::string& instance)
@@ -207,20 +207,20 @@ namespace Orthanc
                              "No modification was provided for this job");
     }
 
-      
+
     LOG(INFO) << "Modifying instance in a job: " << instance;
 
     /**
      * Retrieve the original instance from the DICOM cache.
      **/
-    
+
     std::unique_ptr<DicomInstanceHasher> originalHasher;
     std::unique_ptr<ParsedDicomFile> modified;
     std::set<std::string> instanceLabels;
     std::set<std::string> seriesLabels;
     std::set<std::string> studyLabels;
     std::set<std::string> patientLabels;
- 
+
     try
     {
       std::unique_ptr<DicomDataSource::Dicom> dicom(GetContext().ReadParsedDicom(instance));
@@ -258,7 +258,7 @@ namespace Orthanc
     }
 
     const std::string modifiedUid = IDicomTranscoder::GetSopInstanceUid(modified->GetDcmtkObject());
-    
+
     if (transcode_)
     {
       std::set<DicomTransferSyntax> syntaxes;
@@ -266,7 +266,7 @@ namespace Orthanc
 
       IDicomTranscoder::DicomImage source;
       source.AcquireParsed(*modified);  // "modified" is invalid below this point
-      
+
       IDicomTranscoder::DicomImage transcoded;
       if (GetContext().GetTranscoder()->Transcode(transcoded, source, syntaxes, TranscodingSopInstanceUidMode_AllowNew))
       {
@@ -303,7 +303,7 @@ namespace Orthanc
      **/
 
     DicomInstanceHasher modifiedHasher = modified->GetHasher();
-      
+
     MetadataType metadataType = (isAnonymization_ ?
                                  MetadataType_AnonymizedFrom :
                                  MetadataType_ModifiedFrom);
@@ -369,7 +369,7 @@ namespace Orthanc
         // add an instance to reconstruct for each series
         instancesToReconstruct_.insert(modifiedHasher.HashInstance());
       }
-      
+
     }
 
     return true;
@@ -438,7 +438,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void ResourceModificationJob::SetOrigin(const RestApiCall& call)
   {
     SetOrigin(DicomInstanceOrigin::FromRest(call));
@@ -470,7 +470,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
-  
+
 
   void ResourceModificationJob::SetTranscode(DicomTransferSyntax syntax)
   {
@@ -482,7 +482,7 @@ namespace Orthanc
     {
       transcode_ = true;
       transferSyntax_ = syntax;
-    }    
+    }
   }
 
 
@@ -529,7 +529,7 @@ namespace Orthanc
       return output_->IsSingleResource();
     }
   }
-  
+
 
   ResourceType ResourceModificationJob::GetOutputLevel() const
   {
@@ -575,7 +575,7 @@ namespace Orthanc
   static const char* TRANSCODE = "Transcode";
   static const char* OUTPUT_LEVEL = "OutputLevel";
   static const char* IS_SINGLE_RESOURCE = "IsSingleResource";
-  
+
 
   ResourceModificationJob::ResourceModificationJob(ServerContext& context,
                                                    const Json::Value& serialized) :
@@ -611,7 +611,7 @@ namespace Orthanc
     if (isSingleResource)
     {
       ResourceType outputLevel;
-      
+
       if (serialized.isMember(OUTPUT_LEVEL))
       {
         // New in Orthanc 1.9.4. This fixes an *incorrect* behavior in
@@ -633,7 +633,7 @@ namespace Orthanc
           outputLevel = ResourceType_Patient;
         }
       }
-      
+
       SetSingleResourceModification(modification.release(), outputLevel, isAnonymization);
     }
     else
@@ -642,7 +642,7 @@ namespace Orthanc
       SetMultipleResourcesModification(modification.release(), isAnonymization);
     }
   }
-  
+
   bool ResourceModificationJob::Serialize(Json::Value& value) const
   {
     if (modification_.get() == NULL)
@@ -656,7 +656,7 @@ namespace Orthanc
     else
     {
       assert(value.type() == Json::objectValue);
-      
+
       value[IS_ANONYMIZATION] = isAnonymization_;
 
       if (transcode_)
@@ -665,12 +665,12 @@ namespace Orthanc
       }
 
       origin_.Serialize(value[ORIGIN]);
-      
+
       Json::Value tmp;
 
       {
         boost::recursive_mutex::scoped_lock lock(mutex_);  // DicomModification object is not thread safe, we must protect it from here
-  
+
         modification_->Serialize(tmp);
       }
 
@@ -682,7 +682,7 @@ namespace Orthanc
       {
         value[OUTPUT_LEVEL] = EnumerationToString(GetOutputLevel());
       }
-      
+
       return true;
     }
   }
@@ -736,13 +736,13 @@ namespace Orthanc
       for (std::map<std::string, ResourceType>::const_iterator it = parentResources_.begin(); it != parentResources_.end(); ++it)
       {
         // When modifying a study, you may not modify patient tags as you wish.
-        // - If this is the patient's only study, you may modify all patient tags. This could be performed in 2 steps (modify the patient and then, the study) but, 
+        // - If this is the patient's only study, you may modify all patient tags. This could be performed in 2 steps (modify the patient and then, the study) but,
         //   for many use cases, it's helpful to be able to do it one step (e.g, to modify a name in a study that has just been acquired)
-        // - If the patient already has other studies, you may only 'attach' the study to an existing patient by modifying 
+        // - If the patient already has other studies, you may only 'attach' the study to an existing patient by modifying
         //   all patient tags from the study to match those of the target patient.
         // - Otherwise, you can't modify the patient tags
         const std::string& studyId = it->first;
-        
+
         std::string targetPatientId;
         if (modification_->IsReplaced(DICOM_TAG_PATIENT_ID))
         {
@@ -807,7 +807,7 @@ namespace Orthanc
 
               std::set<DicomTag> mainPatientTags;
               DicomMap::GetMainDicomTags(mainPatientTags, ResourceType_Patient);
-              
+
               for (std::set<DicomTag>::const_iterator mainPatientTag = mainPatientTags.begin();
                    mainPatientTag != mainPatientTags.end(); ++mainPatientTag)
               {
@@ -834,14 +834,14 @@ namespace Orthanc
                 else if (!targetPatientTags.HasTag(*mainPatientTag) && modification_->IsReplaced(*mainPatientTag) )
                 {
                   throw OrthancException(ErrorCode_BadRequest, std::string("Trying to change patient tags in a study.  "
-                    "The Patient already exists and has other studies.  You are trying to replace a tag that is not defined yet in this patient. " 
+                    "The Patient already exists and has other studies.  You are trying to replace a tag that is not defined yet in this patient. "
                     "Try using /patients/../modify instead to modify the patient. Failing tag: ") + mainPatientTag->Format());
                 }
               }
             }
           }
         }
-      }      
+      }
     }
   }
 }

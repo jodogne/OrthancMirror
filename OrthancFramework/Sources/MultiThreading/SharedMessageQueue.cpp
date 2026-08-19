@@ -31,7 +31,7 @@
 
 /**
  * FIFO (queue):
- * 
+ *
  *            back                         front
  *            +--+--+--+--+--+--+--+--+--+--+--+
  * Enqueue -> |  |  |  |  |  |  |  |  |  |  |  |
@@ -43,7 +43,7 @@
  *
  *
  * LIFO (stack):
- * 
+ *
  *            back                         front
  *            +--+--+--+--+--+--+--+--+--+--+--+
  *            |  |  |  |  |  |  |  |  |  |  |  | <- Enqueue
@@ -146,7 +146,7 @@ namespace Orthanc
   bool SharedMessageQueue::WaitEmpty(unsigned int millisecondsTimeout)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    
+
     // Wait for the queue to become empty
     while (!queue_.empty())
     {

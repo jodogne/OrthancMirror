@@ -106,7 +106,7 @@ namespace Orthanc
     dcmDisableGethostbyaddr.set(OFTrue);
 #endif
   }
-  
+
 
   void FinalizeFramework()
   {
@@ -117,13 +117,13 @@ namespace Orthanc
 #if ORTHANC_ENABLE_CURL == 1
     HttpClient::GlobalFinalize();
 #endif
-    
+
     Toolbox::FinalizeOpenSsl();
 
 #if (ORTHANC_ENABLE_LOCALE == 1) && !defined(__EMSCRIPTEN__)
     Toolbox::FinalizeGlobalLocale();
 #endif
-    
+
     Logging::Finalize();
   }
 }

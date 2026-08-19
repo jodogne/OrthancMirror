@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -124,7 +124,7 @@ static OrthancPluginErrorCode StorageReadWhole(OrthancPluginMemoryBuffer64* targ
     }
 
     memcpy(target->data, buffer->GetData(), buffer->GetSize());
-    
+
     return OrthancPluginErrorCode_Success;
   }
   catch (Orthanc::OrthancException& e)
@@ -150,7 +150,7 @@ static OrthancPluginErrorCode StorageReadRange(OrthancPluginMemoryBuffer64* targ
     assert(buffer->GetSize() == target->size);
 
     memcpy(target->data, buffer->GetData(), buffer->GetSize());
-    
+
     return OrthancPluginErrorCode_Success;
   }
   catch (Orthanc::OrthancException& e)
@@ -173,7 +173,7 @@ static OrthancPluginErrorCode StorageRemove(const char* uuid,
   {
     LOG(INFO) << "DelayedDeletion - Scheduling delayed deletion of " << uuid;
     db_->Enqueue(uuid, Convert(type));
-    
+
     return OrthancPluginErrorCode_Success;
   }
   catch (Orthanc::OrthancException& e)
@@ -198,16 +198,16 @@ static void DeletionWorker()
     Orthanc::FileContentType type = Orthanc::FileContentType_Dicom;  // Dummy initialization
 
     bool hasDeleted = false;
-    
+
     while (continue_ && db_->Dequeue(uuid, type))
     {
       if (!hasDeleted)
       {
-        LOG(INFO) << "DelayedDeletion - Starting to process the pending deletions";        
+        LOG(INFO) << "DelayedDeletion - Starting to process the pending deletions";
       }
-      
+
       hasDeleted = true;
-      
+
       try
       {
         LOG(INFO) << "DelayedDeletion - Asynchronous removal of file: " << uuid;
@@ -227,7 +227,7 @@ static void DeletionWorker()
     if (hasDeleted)
     {
       LOG(INFO) << "DelayedDeletion - All the pending deletions have been completed";
-    }      
+    }
 
     boost::this_thread::sleep(boost::posix_time::milliseconds(GRANULARITY));
   }
@@ -242,7 +242,7 @@ OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeType changeType,
   {
     case OrthancPluginChangeType_OrthancStarted:
       assert(deletionThread_.get() == NULL);
-      
+
       LOG(WARNING) << "DelayedDeletion - Starting the deletion thread";
       continue_ = true;
       deletionThread_.reset(new boost::thread(DeletionWorker));
@@ -269,7 +269,7 @@ OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeType changeType,
   return OrthancPluginErrorCode_Success;
 }
 
-  
+
 
 void GetPluginStatus(OrthancPluginRestOutput* output,
                 const char* url,
@@ -293,7 +293,7 @@ extern "C"
   {
     OrthancPlugins::SetGlobalContext(context, ORTHANC_PLUGIN_NAME);
     Orthanc::Logging::InitializePluginContext(context, ORTHANC_PLUGIN_NAME);
-    
+
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(context) == 0)
@@ -324,7 +324,7 @@ extern "C"
     if (delayedDeletionConfig.GetBooleanValue("Enable", true))
     {
       databaseServerIdentifier_ = OrthancPluginGetDatabaseServerIdentifier(context);
-      throttleDelayMs_ = delayedDeletionConfig.GetUnsignedIntegerValue("ThrottleDelayMs", 0);   // delay in ms    
+      throttleDelayMs_ = delayedDeletionConfig.GetUnsignedIntegerValue("ThrottleDelayMs", 0);   // delay in ms
 
 
       std::string pathStorage = orthancConfig.GetStringValue("StorageDirectory", "OrthancStorage");
@@ -336,7 +336,7 @@ extern "C"
       std::string dbPath = delayedDeletionConfig.GetStringValue("Path", defaultDbPath.string());
 
       LOG(WARNING) << "DelayedDeletion - Path to the SQLite database: " << dbPath;
-      
+
       // This must run after the allocation of "storage_", to make sure
       // that the folder actually exists
       db_.reset(new PendingDeletionsDatabase(dbPath));

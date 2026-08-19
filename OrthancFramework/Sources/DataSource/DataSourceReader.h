@@ -78,7 +78,7 @@ namespace Orthanc
       void IncrementCacheHitCount();
 
       void IncrementCacheMissCount();
-      
+
       friend DataSourceReader;
     };
 

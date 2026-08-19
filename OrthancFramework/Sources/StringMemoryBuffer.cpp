@@ -50,7 +50,7 @@ namespace Orthanc
     return result.release();
   }
 
-    
+
   IMemoryBuffer* StringMemoryBuffer::CreateFromCopy(const std::string& buffer)
   {
     std::unique_ptr<StringMemoryBuffer> result(new StringMemoryBuffer);
@@ -59,8 +59,8 @@ namespace Orthanc
   }
 
 
-  IMemoryBuffer* StringMemoryBuffer::CreateFromCopy(const std::string& buffer, 
-                                                    size_t start /* inclusive */, 
+  IMemoryBuffer* StringMemoryBuffer::CreateFromCopy(const std::string& buffer,
+                                                    size_t start /* inclusive */,
                                                     size_t end /* exclusive */)
   {
     std::unique_ptr<StringMemoryBuffer> result(new StringMemoryBuffer);

@@ -30,7 +30,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   else()
     set(FirstRun ON)
   endif()
-  
+
   DownloadPackage(${CURL_MD5} ${CURL_URL} "${CURL_SOURCES_DIR}")
 
   if (FirstRun)
@@ -40,12 +40,12 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
       )
-    
+
     if (Failure)
       message(FATAL_ERROR "Error while patching a file")
     endif()
   endif()
-  
+
   include_directories(
     ${CURL_SOURCES_DIR}/include
     )
@@ -305,8 +305,8 @@ elseif (CMAKE_CROSSCOMPILING AND
   CHECK_LIBRARY_EXISTS(curl "curl_easy_init" "" HAVE_CURL_LIB)
   if (NOT HAVE_CURL_LIB)
     message(FATAL_ERROR "Please install the libcurl package")
-  endif()  
-  
+  endif()
+
   link_libraries(curl)
 
 else()

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -49,8 +49,8 @@ OrthancPluginErrorCode OnStoredCallback(const OrthancPluginDicomInstance* instan
                                         const char* instanceId)
 {
   char buffer[1024];
-  sprintf(buffer, "Just received a DICOM instance of size %d and ID %s from origin %d (AET %s)", 
-          (int) OrthancPluginGetInstanceSize(context_, instance), instanceId, 
+  sprintf(buffer, "Just received a DICOM instance of size %d and ID %s from origin %d (AET %s)",
+          (int) OrthancPluginGetInstanceSize(context_, instance), instanceId,
           OrthancPluginGetInstanceOrigin(context_, instance),
           OrthancPluginGetInstanceRemoteAet(context_, instance));
   OrthancPluginLogInfo(context_, buffer);
@@ -63,7 +63,7 @@ OrthancPluginErrorCode OnStoredCallback(const OrthancPluginDicomInstance* instan
 
   // Write the uncompressed DICOM content to some temporary file
   std::string uncompressed = "uncompressed-" + std::string(instanceId) + ".dcm";
-  OrthancPluginErrorCode error = OrthancPluginWriteFile(context_, uncompressed.c_str(), 
+  OrthancPluginErrorCode error = OrthancPluginWriteFile(context_, uncompressed.c_str(),
                                                         OrthancPluginGetInstanceData(context_, instance),
                                                         OrthancPluginGetInstanceSize(context_, instance));
   if (error)

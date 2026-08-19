@@ -45,7 +45,7 @@ namespace Orthanc
       boost::thread         thread_;
       std::string           threadName_;
       MetricsRegistry::SharedMetrics* availableWorkers_;
- 
+
       static void WorkerThread(Worker* that)
       {
         Logging::ScopedCurrentThreadNameSetter setter(that->threadName_);
@@ -55,7 +55,7 @@ namespace Orthanc
           try
           {
             std::unique_ptr<IDynamicObject>  obj(that->queue_.Dequeue(100));
-            
+
             if (obj.get() != NULL)
             {
               std::unique_ptr<MetricsRegistry::AvailableResourcesDecounter> counter;
@@ -65,9 +65,9 @@ namespace Orthanc
               }
 
               IRunnableBySteps& runnable = *dynamic_cast<IRunnableBySteps*>(obj.get());
-              
+
               bool wishToContinue = runnable.Step();
-              
+
               if (wishToContinue)
               {
                 // The runnable wishes to continue, reinsert it at the beginning of the queue

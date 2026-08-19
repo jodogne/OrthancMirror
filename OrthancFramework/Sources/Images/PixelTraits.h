@@ -52,7 +52,7 @@ namespace Orthanc
       }
       else if (value > static_cast<int64_t>(std::numeric_limits<PixelType>::max()))
       {
-        return std::numeric_limits<PixelType>::max();        
+        return std::numeric_limits<PixelType>::max();
       }
       else
       {
@@ -129,14 +129,14 @@ namespace Orthanc
   {
   };
 
-  
+
   template <>
   struct PixelTraits<PixelFormat_Grayscale16> :
     public IntegerPixelTraits<PixelFormat_Grayscale16, uint16_t>
   {
   };
 
-  
+
   template <>
   struct PixelTraits<PixelFormat_SignedGrayscale16> :
     public IntegerPixelTraits<PixelFormat_SignedGrayscale16, int16_t>
@@ -270,7 +270,7 @@ namespace Orthanc
       target.blue_ = v;
       target.green_ = v;
       target.red_ = v;
-      target.alpha_ = 255;      
+      target.alpha_ = 255;
     }
   };
 
@@ -331,7 +331,7 @@ namespace Orthanc
       target.red_ = v;
       target.green_ = v;
       target.blue_ = v;
-      target.alpha_ = 255;      
+      target.alpha_ = 255;
     }
   };
 
@@ -373,7 +373,7 @@ namespace Orthanc
 
       return tmp <= std::numeric_limits<float>::epsilon();
     }
-    
+
     ORTHANC_FORCE_INLINE
     static void SetMinValue(PixelType& target)
     {

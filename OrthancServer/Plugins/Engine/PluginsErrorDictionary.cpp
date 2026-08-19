@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -39,7 +39,7 @@
 
 namespace Orthanc
 {
-  PluginsErrorDictionary::PluginsErrorDictionary() : 
+  PluginsErrorDictionary::PluginsErrorDictionary() :
     pos_(ErrorCode_START_PLUGINS)
   {
   }
@@ -86,7 +86,7 @@ namespace Orthanc
     {
       boost::mutex::scoped_lock lock(mutex_);
       Errors::const_iterator error = errors_.find(static_cast<int32_t>(code));
-      
+
       if (error != errors_.end())
       {
         LOG(ERROR) << "Error code " << error->second->pluginCode_
@@ -112,7 +112,7 @@ namespace Orthanc
     {
       boost::mutex::scoped_lock lock(mutex_);
       Errors::const_iterator error = errors_.find(static_cast<int32_t>(exception.GetErrorCode()));
-      
+
       if (error != errors_.end())
       {
         httpStatus = error->second->httpStatus_;

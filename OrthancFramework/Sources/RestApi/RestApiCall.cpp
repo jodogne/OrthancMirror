@@ -33,14 +33,14 @@ namespace Orthanc
   void RestApiCall::GetUriComponentsNames(std::set<std::string>& components) const
   {
     components.clear();
-    
+
     for (HttpToolbox::Arguments::const_iterator it = uriComponents_.begin();
          it != uriComponents_.end(); ++it)
     {
       components.insert(it->first);
     }
   }
-  
+
 
   std::string RestApiCall::FlattenUri() const
   {
@@ -61,7 +61,7 @@ namespace Orthanc
     {
       documentation_.reset(new RestApiCallDocumentation(method_));
     }
-    
+
     return *documentation_;
   }
 

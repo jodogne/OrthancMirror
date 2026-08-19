@@ -121,16 +121,16 @@ namespace Orthanc
 
 
   void FilesystemStorage::Create(const std::string& uuid,
-                                 const void* content, 
+                                 const void* content,
                                  size_t size,
                                  FileContentType type)
   {
     ElapsedTimer timer;
-    LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
+    LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type)
               << "\" type";
 
     boost::filesystem::path path;
-    
+
     path = GetPath(uuid);
 
     if (boost::filesystem::exists(path))
@@ -144,25 +144,25 @@ namespace Orthanc
     // directory while another thread needs it -> introduce 3 retries at 1 ms interval
     int retryCount = 0;
     const int maxRetryCount = 3;
-    
+
     while (retryCount < maxRetryCount)
     {
       retryCount++;
       if (retryCount > 1)
       {
         boost::this_thread::sleep(boost::posix_time::milliseconds(2 * retryCount + (rand() % 10)));
-        LOG(INFO) << "Retrying to create attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
+        LOG(INFO) << "Retrying to create attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type)
                   << "\" type";
       }
 
-      try 
+      try
       {
         boost::filesystem::create_directories(path.parent_path());  // the function ensures that the directory exists or throws
       }
       catch (boost::filesystem::filesystem_error& er)
       {
         if (er.code() == boost::system::errc::file_exists  // the last element of the parent_path is a file
-          || er.code() == boost::system::errc::not_a_directory) // one of the element of the parent_path is not a directory 
+          || er.code() == boost::system::errc::not_a_directory) // one of the element of the parent_path is not a directory
         {
           throw OrthancException(ErrorCode_DirectoryOverFile, "One of the element of the path is a file");  // no need to retry this error
         }
@@ -170,10 +170,10 @@ namespace Orthanc
         // ignore other errors and retry
       }
 
-      try 
+      try
       {
         SystemToolbox::WriteFile(content, size, path, fsyncOnWrite_);
-        
+
         LOG(INFO) << "Created attachment \"" << uuid << "\" (" << timer.GetHumanTransferSpeed(true, size) << ")";
         return;
       }
@@ -192,7 +192,7 @@ namespace Orthanc
                                               FileContentType type)
   {
     ElapsedTimer timer;
-    LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
+    LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type)
               << "\" content type";
 
     std::string content;
@@ -210,7 +210,7 @@ namespace Orthanc
                                               uint64_t end /* exclusive */)
   {
     ElapsedTimer timer;
-    LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
+    LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type)
               << "\" content type (range from " << start << " to " << end << ")";
 
     std::string content;

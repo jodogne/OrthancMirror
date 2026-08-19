@@ -74,7 +74,7 @@ namespace Orthanc
     {
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
-    
+
     DcmDataset& dataset = *dicom.getDataset();
 
     std::string s;
@@ -96,7 +96,7 @@ namespace Orthanc
                                           bool allowNewSopInstanceUid)
   {
     DcmFileFormat& parsed = transcoded.GetParsed();
-    
+
     if (parsed.getDataset() == NULL)
     {
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
@@ -134,12 +134,12 @@ namespace Orthanc
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
-        
+
     if (allowedSyntaxes.find(targetSyntax) == allowedSyntaxes.end())
     {
       throw OrthancException(ErrorCode_InternalError, "An incorrect output transfer syntax was chosen");
     }
-    
+
     if (parsed.getDataset()->tagExists(DCM_PixelData))
     {
       switch (GetTranscodingType(targetSyntax, sourceSyntax))
@@ -182,21 +182,21 @@ namespace Orthanc
       {
         parsed_.reset(FromDcmtkBridge::LoadFromMemoryBuffer(
                         buffer_->empty() ? NULL : buffer_->c_str(), buffer_->size()));
-        
+
         if (parsed_.get() == NULL)
         {
           throw OrthancException(ErrorCode_BadFileFormat);
-        }      
+        }
       }
     }
     else if (isExternalBuffer_)
     {
       parsed_.reset(FromDcmtkBridge::LoadFromMemoryBuffer(externalBuffer_, externalSize_));
-      
+
       if (parsed_.get() == NULL)
       {
         throw OrthancException(ErrorCode_BadFileFormat);
-      }      
+      }
     }
     else
     {
@@ -204,8 +204,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
-  
-  
+
+
   void IDicomTranscoder::DicomImage::Serialize()
   {
     if (parsed_.get() == NULL ||
@@ -225,7 +225,7 @@ namespace Orthanc
     }
   }
 
-  
+
   IDicomTranscoder::DicomImage::DicomImage() :
     isExternalBuffer_(false),
     externalBuffer_(NULL),
@@ -241,13 +241,13 @@ namespace Orthanc
     isExternalBuffer_ = false;
   }
 
-  
+
   void IDicomTranscoder::DicomImage::AcquireParsed(ParsedDicomFile& parsed)
   {
     AcquireParsed(parsed.ReleaseDcmtkObject());
   }
-  
-      
+
+
   void IDicomTranscoder::DicomImage::AcquireParsed(DcmFileFormat* parsed)
   {
     if (parsed == NULL)
@@ -267,13 +267,13 @@ namespace Orthanc
       parsed_.reset(parsed);
     }
   }
-  
+
 
   void IDicomTranscoder::DicomImage::AcquireParsed(DicomImage& other)
   {
     AcquireParsed(other.ReleaseParsed());
   }
-  
+
 
   void IDicomTranscoder::DicomImage::AcquireBuffer(std::string& buffer /* will be swapped */)
   {
@@ -311,10 +311,10 @@ namespace Orthanc
     else
     {
       buffer_.reset(NULL);
-    }    
+    }
   }
 
-  
+
   void IDicomTranscoder::DicomImage::SetExternalBuffer(const void* buffer,
                                                        size_t size)
   {
@@ -357,7 +357,7 @@ namespace Orthanc
         "AcquireParsed(), AcquireBuffer() or SetExternalBuffer() should have been called");
     }
   }
-  
+
 
   DcmFileFormat* IDicomTranscoder::DicomImage::ReleaseParsed()
   {
@@ -387,7 +387,7 @@ namespace Orthanc
     return ParsedDicomFile::AcquireDcmtkObject(ReleaseParsed());
   }
 
-  
+
   const void* IDicomTranscoder::DicomImage::GetBufferData()
   {
     if (isExternalBuffer_)
@@ -396,7 +396,7 @@ namespace Orthanc
       return externalBuffer_;
     }
     else
-    {    
+    {
       if (buffer_.get() == NULL)
       {
         Serialize();
@@ -407,7 +407,7 @@ namespace Orthanc
     }
   }
 
-  
+
   size_t IDicomTranscoder::DicomImage::GetBufferSize()
   {
     if (isExternalBuffer_)
@@ -416,7 +416,7 @@ namespace Orthanc
       return externalSize_;
     }
     else
-    {    
+    {
       if (buffer_.get() == NULL)
       {
         Serialize();

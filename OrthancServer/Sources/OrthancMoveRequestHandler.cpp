@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -175,7 +175,7 @@ namespace Orthanc
       std::unique_ptr<DicomModalityStoreJob>  job_;
       size_t                                  position_;
       size_t                                  countInstances_;
-      
+
     public:
       AsynchronousMove(ServerContext& context,
                        const std::string& targetAet,
@@ -240,12 +240,12 @@ namespace Orthanc
         {
           return Status_Failure;
         }
-        
+
         if (position_ == 0)
         {
           context_.GetJobsEngine().GetRegistry().Submit(job_.release(), 0 /* priority */);
         }
-        
+
         position_ ++;
         return Status_Success;
       }
@@ -295,11 +295,11 @@ namespace Orthanc
           tag = DICOM_TAG_STUDY_INSTANCE_UID;
         }
         break;
-        
+
       case ResourceType_Series:
         tag = DICOM_TAG_SERIES_INSTANCE_UID;
         break;
-        
+
       case ResourceType_Instance:
         tag = DICOM_TAG_SOP_INSTANCE_UID;
         break;
@@ -357,7 +357,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest,
                              "C-MOVE request matching no resource stored in Orthanc");
     }
-    
+
     bool synchronous;
 
     {
@@ -440,7 +440,7 @@ namespace Orthanc
     }
 
     assert(levelTmp != NULL);
-    ResourceType level = StringToResourceType(levelTmp->GetContent().c_str());      
+    ResourceType level = StringToResourceType(levelTmp->GetContent().c_str());
 
 
     /**

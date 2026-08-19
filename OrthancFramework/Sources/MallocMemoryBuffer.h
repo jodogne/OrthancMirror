@@ -36,7 +36,7 @@ namespace Orthanc
   {
   public:
     typedef void (*FreeFunction) (void* buffer);
-    
+
   private:
     void*         buffer_;
     size_t        size_;
@@ -52,7 +52,7 @@ namespace Orthanc
     void Assign(void* buffer,
                 uint64_t size,
                 FreeFunction freeFunction);
-    
+
     virtual void CopyToString(std::string& target) const ORTHANC_OVERRIDE;
 
     virtual void MoveToString(std::string& target) ORTHANC_OVERRIDE;

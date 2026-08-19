@@ -40,7 +40,7 @@ namespace Orthanc
   {
   private:
     void ParseContent();
-    
+
     /**
     Whether we want to use the default malloc alignment in the image buffer,
     at the expense of an extra copy
@@ -54,14 +54,14 @@ namespace Orthanc
     constructor.
     */
     void* alignedImageBuffer_;
-    
+
     /**
-    Points somewhere in the content_ buffer.      
+    Points somewhere in the content_ buffer.
     */
     ImageAccessor wrappedContent_;
 
     /**
-    Raw content (file bytes or answer from the server, for instance). 
+    Raw content (file bytes or answer from the server, for instance).
     */
     std::string content_;
 

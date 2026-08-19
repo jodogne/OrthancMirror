@@ -139,7 +139,7 @@ static inline uint16_t __orthanc_bswap16(uint16_t a)
   /**
    * Note that an alternative implementation was included in Orthanc
    * 1.4.0 and 1.4.1:
-   * 
+   *
    *  # hg log -p -r 2706
    *
    * This alternative implementation only hid an underlying problem

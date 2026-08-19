@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -282,7 +282,7 @@ namespace Orthanc
 
       if (elapsed.total_seconds() > intervalInSeconds)
       {
-        // If possible, gives memory back to the system 
+        // If possible, gives memory back to the system
         // (see OrthancServer/Resources/ImplementationNotes/memory_consumption.txt)
         {
           MetricsRegistry::Timer timer(that->GetMetricsRegistry(), "orthanc_memory_trimming_duration_ms");
@@ -296,7 +296,7 @@ namespace Orthanc
   }
 #endif
 
-  
+
   void ServerContext::ChangeThread(ServerContext* that,
                                    unsigned int sleepDelay)
   {
@@ -305,13 +305,13 @@ namespace Orthanc
     while (!that->done_)
     {
       std::unique_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(sleepDelay));
-        
+
       if (obj.get() != NULL)
       {
         const ServerIndexChange& change = dynamic_cast<const ServerIndexChange&>(*obj.get());
 
         boost::shared_lock<boost::shared_mutex> lock(that->listenersMutex_);
-        for (ServerListeners::iterator it = that->listeners_.begin(); 
+        for (ServerListeners::iterator it = that->listeners_.begin();
              it != that->listeners_.end(); ++it)
         {
           try
@@ -349,13 +349,13 @@ namespace Orthanc
     while (!that->done_)
     {
       std::unique_ptr<IDynamicObject> obj(that->pendingJobEvents_.Dequeue(sleepDelay));
-        
+
       if (obj.get() != NULL)
       {
         const JobEvent& event = dynamic_cast<const JobEvent&>(*obj.get());
 
         boost::shared_lock<boost::shared_mutex> lock(that->listenersMutex_);
-        for (ServerListeners::iterator it = that->listeners_.begin(); 
+        for (ServerListeners::iterator it = that->listeners_.begin();
              it != that->listeners_.end(); ++it)
         {
           try
@@ -392,10 +392,10 @@ namespace Orthanc
 
     static const boost::posix_time::time_duration PERIODICITY =
       boost::posix_time::seconds(10);
-    
+
     boost::posix_time::ptime next =
       boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
-    
+
     while (!that->done_)
     {
       boost::this_thread::sleep(boost::posix_time::milliseconds(sleepDelay));
@@ -409,14 +409,14 @@ namespace Orthanc
       }
     }
   }
-  
+
 
   void ServerContext::SignalJobSubmitted(const std::string& jobId)
   {
     haveJobsChanged_ = true;
     pendingJobEvents_.Enqueue(new JobEvent(JobEventType_Submitted, jobId));
   }
-  
+
 
   void ServerContext::SignalJobSuccess(const std::string& jobId)
   {
@@ -426,7 +426,7 @@ namespace Orthanc
     pendingJobEvents_.Enqueue(new JobEvent(JobEventType_Success, jobId));
   }
 
-  
+
   void ServerContext::SignalJobFailure(const std::string& jobId)
   {
     metricsRegistry_->IncrementIntegerValue("orthanc_jobs_total_completed", 1);
@@ -455,7 +455,7 @@ namespace Orthanc
         {
           LOG(WARNING) << "Cannot unserialize the jobs engine, starting anyway: " << e.What();
         }
-        catch (const std::string& s) 
+        catch (const std::string& s)
         {
           LOG(WARNING) << "Cannot unserialize the jobs engine, starting anyway: \"" << s << "\"";
         }
@@ -494,7 +494,7 @@ namespace Orthanc
       if (lastModification > lastSerializedModification)
       {
         LOG(TRACE) << "Serializing the content of the jobs engine";
-      
+
         try
         {
           Json::Value value;
@@ -663,7 +663,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_ParameterOutOfRange,
                                  "Unknown preferred transfer syntax: " + s);
         }
-        
+
         CLOG(INFO, DICOM) << "Preferred transfer syntax for Orthanc C-STORE SCU: "
                           << GetTransferSyntaxUid(preferredTransferSyntax_);
 
@@ -706,7 +706,7 @@ namespace Orthanc
       listeners_.push_back(ServerListener(luaListener_, "Lua"));
       changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
       jobEventsThread_ = boost::thread(JobEventsThread, this, (unitTesting ? 20 : 100));
-      
+
 #if HAVE_MALLOC_TRIM == 1
       LOG(INFO) << "Starting memory trimming thread at 30 seconds interval";
       memoryTrimmingThread_ = boost::thread(MemoryTrimmingThread, this, 30);
@@ -719,7 +719,7 @@ namespace Orthanc
 
       uint64_t storageCacheSize, storageMemoryCapacity, dicomParserMemoryCapacity;
       uint64_t dicomParserCacheSize, transcoderMemoryCapacity, transcoderCacheSize, sequentialReaderWindowCapacity;
-      
+
       {
         OrthancConfiguration::ReaderLock lock;
 
@@ -915,7 +915,7 @@ namespace Orthanc
   }
 
 
-  
+
   ServerContext::~ServerContext()
   {
     if (!done_)
@@ -1078,7 +1078,7 @@ namespace Orthanc
 
     DicomTransferSyntax transferSyntax;
     bool hasTransferSyntax = dicom.LookupTransferSyntax(transferSyntax);
-    
+
     DicomMap summary;
     dicom.GetSummary(summary);   // -> from Orthanc 1.11.1, this includes the leaf nodes and sequences
 
@@ -1160,7 +1160,7 @@ namespace Orthanc
                 break;
               }
             }
-            
+
           }
           catch (OrthancException& e)
           {
@@ -1210,7 +1210,7 @@ namespace Orthanc
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
 
-      try 
+      try
       {
         result.SetStatus(index_.Store(
           instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwriteInDb,
@@ -1233,7 +1233,7 @@ namespace Orthanc
         {
           RemoveFile(dicomUntilPixelData);
         }
-        
+
         throw;
       }
 
@@ -1245,7 +1245,7 @@ namespace Orthanc
       {
         dicom.AddMetadata(ResourceType_Instance, it->first, it->second);
       }
-            
+
       if (result.GetStatus() != StoreStatus_Success)
       {
         if (!isAdoption)
@@ -1259,7 +1259,7 @@ namespace Orthanc
         }
       }
 
-      if (!isReconstruct) 
+      if (!isReconstruct)
       {
         // skip logs in case of reconstruction
         switch (result.GetStatus())
@@ -1322,7 +1322,7 @@ namespace Orthanc
       {
         LOG(ERROR) << summary.FormatMissingTagsForStore();
       }
-      
+
       throw;
     }
   }
@@ -1330,7 +1330,7 @@ namespace Orthanc
 
   ServerContext::StoreResult ServerContext::Store(std::string& resultPublicId,
                                                   DicomInstanceToStore& receivedDicom)
-  { 
+  {
     DicomInstanceToStore* dicom = &receivedDicom;
 
 #if ORTHANC_ENABLE_PLUGINS == 1
@@ -1355,7 +1355,7 @@ namespace Orthanc
           result.SetStatus(StoreStatus_FilteredOut);
           return result;
         }
-          
+
         case OrthancPluginReceivedInstanceAction_KeepAsIs:
           // This path is also used when no ReceivedInstanceCallback is installed by the plugins
           break;
@@ -1364,7 +1364,7 @@ namespace Orthanc
           if (modifiedBuffer.GetSize() > 0 &&
               modifiedBuffer.GetData() != NULL)
           {
-            CLOG(INFO, PLUGINS) << "A plugin has modified the instance in its ReceivedInstanceCallback";        
+            CLOG(INFO, PLUGINS) << "A plugin has modified the instance in its ReceivedInstanceCallback";
             modifiedDicom.reset(DicomInstanceToStore::CreateFromBuffer(modifiedBuffer.GetData(), modifiedBuffer.GetSize()));
             modifiedDicom->SetOrigin(receivedDicom.GetOrigin());
             dicom = modifiedDicom.get();
@@ -1374,7 +1374,7 @@ namespace Orthanc
             throw OrthancException(ErrorCode_Plugin, "The ReceivedInstanceCallback plugin is not returning a modified buffer while it has modified the instance");
           }
           break;
-          
+
         default:
           throw OrthancException(ErrorCode_Plugin, "The ReceivedInstanceCallback has returned an invalid value");
       }
@@ -1418,7 +1418,7 @@ namespace Orthanc
       {
         // This is an uncompressed transfer syntax (new in Orthanc 1.8.2)
         transcode = ingestTranscodingOfUncompressed_;
-        
+
         // If the DICOM does not have any pixel data (e.g. a DICOM SR, an ECG, a PDF, RTSTRUCT, ...), it makes no sense
         // to transcode it to a compressed Transfer Syntax and it might actually be considered invalid or poorly handled
         // by some softwares receiving the data.  Therefore, we skip transcoding in this case unless
@@ -1444,12 +1444,12 @@ namespace Orthanc
         // Trancoding
         std::set<DicomTransferSyntax> syntaxes;
         syntaxes.insert(ingestTransferSyntax_);
-        
+
         IDicomTranscoder::DicomImage source;
         source.SetExternalBuffer(dicom->GetBufferData(), dicom->GetBufferSize());
-        
+
         IDicomTranscoder::DicomImage transcoded;
-        
+
         if (dicom->HasPixelData())
         {// check that the target image has a valid/reasonable size before transcoding to avoid possible crash or OOB during transcoding
           DicomMap summary;
@@ -1490,7 +1490,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void ServerContext::AnswerAttachment(RestApiOutput& output,
                                        const FileInfo& attachment,
                                        const std::string& filename)
@@ -1513,9 +1513,9 @@ namespace Orthanc
                                                   CompressionType compression)
   {
     LOG(INFO) << "Changing compression type for attachment "
-              << EnumerationToString(attachmentType) 
-              << " of resource " << resourceId << " to " 
-              << compression; 
+              << EnumerationToString(attachmentType)
+              << " of resource " << resourceId << " to "
+              << compression;
 
     FileInfo attachment;
     int64_t revision;
@@ -1555,7 +1555,7 @@ namespace Orthanc
     {
       RemoveFile(modified);
       throw;
-    }    
+    }
   }
 
 
@@ -1610,7 +1610,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void ServerContext::ReadDicomAsJson(Json::Value& result,
                                       const std::string& instancePublicId,
                                       const std::set<DicomTag>& ignoreTagLength)
@@ -1661,7 +1661,7 @@ namespace Orthanc
      * area does not support range reads, or if "StorageCompression"
      * is enabled). Simply return this attachment.
      **/
-    
+
     FileInfo attachment;
 
     if (LookupAttachment(attachment, FileContentType_DicomUntilPixelData, instanceAttachments))
@@ -1683,7 +1683,7 @@ namespace Orthanc
        * attachment. Lookup whether the pixel data offset has already
        * been computed for this instance.
        **/
-    
+
       bool hasPixelDataOffset = false;
       uint64_t pixelDataOffset = 0;  // dummy initialization
 
@@ -1722,7 +1722,7 @@ namespace Orthanc
           DicomDataSource::Dicom::Lock lock(*dicom);
           OrthancConfiguration::DefaultDicomDatasetToJson(result, lock.GetContent(), ignoreTagLength);
         }
-        
+
         InjectEmptyPixelData(result);
       }
       else if (ignoreTagLength.empty() &&
@@ -1920,7 +1920,7 @@ namespace Orthanc
                                     const std::string& oldMD5)
   {
     LOG(INFO) << "Adding attachment " << EnumerationToString(attachmentType) << " to resource " << resourceId;
-    
+
     // TODO Should we use "gzip" instead?
     CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
@@ -2051,9 +2051,9 @@ namespace Orthanc
         // introduced in Orthanc 1.2.0. The fact that
         // "LookupMetadata()" has failed indicates that this database
         // comes from an older release of Orthanc.
-        
+
         DicomTag tag(0, 0);
-      
+
         switch (metadata)
         {
           case MetadataType_Instance_SopClassUid:
@@ -2067,7 +2067,7 @@ namespace Orthanc
           default:
             THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
-      
+
         Json::Value dicomAsJson;
         ReadDicomAsJson(dicomAsJson, publicId);
 
@@ -2126,7 +2126,7 @@ namespace Orthanc
 
         instancesIds.reserve(instancesIds.size() + orderedInstances.GetInstancesCount());
         filesInfo.reserve(filesInfo.size() + orderedInstances.GetInstancesCount());
-        
+
         for (size_t i = 0; i < orderedInstances.GetInstancesCount(); ++i)
         {
           instancesIds.push_back(orderedInstances.GetInstanceId(i));
@@ -2134,7 +2134,7 @@ namespace Orthanc
         }
       }; break;
       case ResourceType_Instance:
-      {  
+      {
         FileInfo fileInfo;
         int64_t revisionNotUsed;
 
@@ -2161,7 +2161,7 @@ namespace Orthanc
 #endif
   }
 
-   
+
   void ServerContext::SignalUpdatedPeers()
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
@@ -2291,7 +2291,7 @@ namespace Orthanc
     {
       return emptyContent;
     }
-    
+
     if (deidentifyLogs_ &&
         !element.GetValue().GetContent().empty() &&
         logsDeidentifierRules_.IsAlteredTag(tag))
@@ -2370,7 +2370,7 @@ namespace Orthanc
         }
       }
     }
-    
+
     // now remove all rejected syntaxes
     if (rejectedSopClasses.size() > 0)
     {
@@ -2420,7 +2420,7 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
     syntaxes = acceptedTransferSyntaxes_;
   }
-  
+
 
   void ServerContext::SetAcceptedTransferSyntaxes(const std::set<DicomTransferSyntax>& syntaxes)
   {
@@ -2432,7 +2432,7 @@ namespace Orthanc
   void ServerContext::GetProposedStorageTransferSyntaxes(std::list<DicomTransferSyntax>& syntaxes) const
   {
     boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
-    
+
     // // TODO: investigate: actually, neither Orthanc 1.12.4 nor DCM4CHEE will accept to send a LittleEndianExplicit file
     // //                    while e.g., Jpeg-LS has been presented (and accepted) as the preferred TS for the C-Store SCP.
     // // if we have defined IngestTranscoding, let's propose this TS first to avoid any unnecessary transcoding
@@ -2440,12 +2440,12 @@ namespace Orthanc
     // {
     //   syntaxes.push_back(ingestTransferSyntax_);
     // }
-    
+
     // then, propose the default ones
     syntaxes.push_back(DicomTransferSyntax_LittleEndianExplicit);
     syntaxes.push_back(DicomTransferSyntax_LittleEndianImplicit);
   }
-  
+
 
   bool ServerContext::IsUnknownSopClassAccepted() const
   {
@@ -2453,7 +2453,7 @@ namespace Orthanc
     return isUnknownSopClassAccepted_;
   }
 
-  
+
   void ServerContext::SetUnknownSopClassAccepted(bool accepted)
   {
     boost::mutex::scoped_lock lock(dynamicOptionsMutex_);

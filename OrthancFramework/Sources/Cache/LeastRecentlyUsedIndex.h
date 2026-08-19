@@ -141,7 +141,7 @@ namespace Orthanc
     }
 
     const T& GetOldest() const;
-    
+
     const Payload& GetOldestPayload() const;
 
     void GetAllKeys(std::vector<T>& keys) const
@@ -168,7 +168,7 @@ namespace Orthanc
 #ifndef NDEBUG
     assert(index_.size() == queue_.size());
 
-    for (typename Index::const_iterator 
+    for (typename Index::const_iterator
            it = index_.begin(); it != index_.end(); ++it)
     {
       assert(it->second != queue_.end());
@@ -205,7 +205,7 @@ namespace Orthanc
     assert(it != index_.end());
 
     std::pair<T, Payload> item = *(it->second);
-    
+
     queue_.erase(it->second);
     queue_.push_front(item);
     index_[id] = queue_.begin();
@@ -252,7 +252,7 @@ namespace Orthanc
 
     std::pair<T, Payload> item = *(it->second);
     item.second = updatedPayload;
-    
+
     queue_.erase(it->second);
     queue_.push_front(item);
     index_[id] = queue_.begin();

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -32,7 +32,7 @@
 namespace Orthanc
 {
   class ServerContext;
-  
+
   class DicomModalityStoreJob : public StoreJob
   {
   private:
@@ -53,7 +53,7 @@ namespace Orthanc
 
   protected:
     virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE;
-    
+
     virtual bool HandleTrailingStep() ORTHANC_OVERRIDE;
 
   public:
@@ -77,9 +77,9 @@ namespace Orthanc
     {
       return moveOriginatorId_ != 0;
     }
-    
+
     const std::string& GetMoveOriginatorAet() const;
-    
+
     uint16_t GetMoveOriginatorId() const;
 
     void SetMoveOriginator(const std::string& aet,

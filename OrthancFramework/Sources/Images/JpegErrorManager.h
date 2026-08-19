@@ -41,7 +41,7 @@ namespace Orthanc
 {
   namespace Internals
   {
-    class JpegErrorManager 
+    class JpegErrorManager
     {
     private:
       struct jpeg_error_mgr pub;  /* "public" fields */

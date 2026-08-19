@@ -95,7 +95,7 @@ namespace Orthanc
 
     const unsigned int width = source.GetWidth();
     const unsigned int height = source.GetHeight();
-    
+
     for (unsigned int y = 0; y < height; y++)
     {
       TargetType* t = reinterpret_cast<TargetType*>(target.GetRow(y));
@@ -128,7 +128,7 @@ namespace Orthanc
 
     const unsigned int width = source.GetWidth();
     const unsigned int height = source.GetHeight();
-    
+
     for (unsigned int y = 0; y < height; y++)
     {
       float* t = reinterpret_cast<float*>(target.GetRow(y));
@@ -147,7 +147,7 @@ namespace Orthanc
                                       const ImageAccessor& source)
   {
     typedef typename PixelTraits<TargetFormat>::PixelType  TargetType;
-    
+
     assert(sizeof(float) == 4);
 
     const unsigned int width = source.GetWidth();
@@ -180,7 +180,7 @@ namespace Orthanc
 
     const unsigned int width = source.GetWidth();
     const unsigned int height = source.GetHeight();
-    
+
     for (unsigned int y = 0; y < height; y++)
     {
       TargetType* t = reinterpret_cast<TargetType*>(target.GetRow(y));
@@ -192,7 +192,7 @@ namespace Orthanc
         int32_t v = (2126 * static_cast<int32_t>(s[0]) +
                      7152 * static_cast<int32_t>(s[1]) +
                      0722 * static_cast<int32_t>(s[2])) / 10000;
-        
+
         if (static_cast<int32_t>(v) < static_cast<int32_t>(minValue))
         {
           *t = minValue;
@@ -217,7 +217,7 @@ namespace Orthanc
     const size_t pitch = image.GetPitch();
 
     uint8_t *p = reinterpret_cast<uint8_t*>(image.GetBuffer());
-    
+
     for (unsigned int y = 0; y < height; y++)
     {
       memset(p, 0, lineSize);
@@ -316,7 +316,7 @@ namespace Orthanc
 
     const unsigned int width = image.GetWidth();
     const unsigned int height = image.GetHeight();
-    
+
     for (unsigned int y = 0; y < height; y++)
     {
       PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
@@ -411,7 +411,7 @@ namespace Orthanc
   // This function can be applied inplace (source == target)
   {
     assert(target.GetFormat() != PixelFormat_Float32);
-    
+
     if (source.GetWidth() != target.GetWidth() ||
         source.GetHeight() != target.GetHeight())
     {
@@ -423,7 +423,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_IncompatibleImageFormat);
     }
-    
+
     const TargetType minPixelValue = std::numeric_limits<TargetType>::min();
     const TargetType maxPixelValue = std::numeric_limits<TargetType>::max();
     const float minFloatValue = static_cast<float>(minPixelValue);
@@ -431,7 +431,7 @@ namespace Orthanc
 
     const unsigned int height = target.GetHeight();
     const unsigned int width = target.GetWidth();
-    
+
     for (unsigned int y = 0; y < height; y++)
     {
       TargetType* p = reinterpret_cast<TargetType*>(target.GetRow(y));
@@ -450,7 +450,7 @@ namespace Orthanc
           *p = minPixelValue;
         }
         else if (UseRound)
-        {         
+        {
           // The "round" operation is very costly
           assert(sizeof(TargetType) < sizeof(int));
           *p = static_cast<TargetType>(Math::iround(v));
@@ -477,7 +477,7 @@ namespace Orthanc
   // This function can be applied inplace (source == target)
   {
     assert(target.GetFormat() == PixelFormat_Float32);
-    
+
     if (source.GetWidth() != target.GetWidth() ||
         source.GetHeight() != target.GetHeight())
     {
@@ -489,10 +489,10 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_IncompatibleImageFormat);
     }
-    
+
     const unsigned int height = target.GetHeight();
     const unsigned int width = target.GetWidth();
-    
+
     for (unsigned int y = 0; y < height; y++)
     {
       float* p = reinterpret_cast<float*>(target.GetRow(y));
@@ -504,7 +504,7 @@ namespace Orthanc
       }
     }
   }
-  
+
 
   template <typename PixelType>
   static void ShiftRightInternal(ImageAccessor& image,
@@ -577,10 +577,10 @@ namespace Orthanc
   {
     assert(sizeof(SourceType) == source.GetBytesPerPixel() &&
            sizeof(TargetType) == target.GetBytesPerPixel());
-    
+
     const TargetType maxTargetValue = std::numeric_limits<TargetType>::max();
     const float maxFloatValue = static_cast<float>(maxTargetValue);
-    
+
     const float windowIntercept = windowCenter - windowWidth / 2.0f;
     const float windowSlope = (maxFloatValue + 1.0f) / windowWidth;
 
@@ -784,7 +784,7 @@ namespace Orthanc
       return;
     }
 
-    
+
     if (target.GetFormat() == PixelFormat_Grayscale8 &&
         source.GetFormat() == PixelFormat_RGBA32)
     {
@@ -1138,13 +1138,13 @@ namespace Orthanc
       case PixelFormat_Grayscale8:
       {
         // New in Orthanc 1.9.0
-        uint8_t grayscale = (2126 * static_cast<uint16_t>(red) + 
+        uint8_t grayscale = (2126 * static_cast<uint16_t>(red) +
                              7152 * static_cast<uint16_t>(green) +
                              0722 * static_cast<uint16_t>(blue)) / 10000;
         Orthanc::ImageProcessing::Set(image, grayscale);
         return;
       }
-      
+
       case PixelFormat_RGBA32:
         p[0] = red;
         p[1] = green;
@@ -1502,7 +1502,7 @@ namespace Orthanc
     return (std::abs(offset) <= 10.0f * std::numeric_limits<float>::epsilon() &&
             std::abs(scaling - 1.0f) <= 10.0f * std::numeric_limits<float>::epsilon());
   }
-  
+
 
   void ImageProcessing::ShiftScale2(ImageAccessor& image,
                                     float offset,
@@ -1517,7 +1517,7 @@ namespace Orthanc
     {
       return;
     }
-    
+
     switch (image.GetFormat())
     {
       case PixelFormat_Grayscale8:
@@ -1579,14 +1579,14 @@ namespace Orthanc
     // We compute "a * x + b"
     const float a = scaling;
     const float b = offset;
-    
+
     if (target.GetFormat() == source.GetFormat() &&
         IsIdentityRescaling(offset, scaling))
     {
       Copy(target, source);
       return;
     }
-    
+
     switch (target.GetFormat())
     {
       case PixelFormat_Grayscale8:
@@ -1640,7 +1640,7 @@ namespace Orthanc
           default:
             THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
         }
-        
+
       default:
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
@@ -1766,7 +1766,7 @@ namespace Orthanc
         for (int x = x0; x <= x1; x++)
         {
           Write(x, y);
-          
+
           if (d > 0)
           {
             y = y + yi;
@@ -1776,7 +1776,7 @@ namespace Orthanc
           d = d + 2*dy;
         }
       }
-      
+
       void PlotLineHigh(int x0,
                         int y0,
                         int x1,
@@ -1798,7 +1798,7 @@ namespace Orthanc
         for (int y = y0; y <= y1; y++)
         {
           Write(x, y);
-          
+
           if (d > 0)
           {
             x = x + xi;
@@ -1871,7 +1871,7 @@ namespace Orthanc
     };
   }
 
-  
+
   void ImageProcessing::DrawLineSegment(ImageAccessor& image,
                                         int x0,
                                         int y0,
@@ -1907,7 +1907,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void ImageProcessing::DrawLineSegment(ImageAccessor& image,
                                         int x0,
                                         int y0,
@@ -2019,7 +2019,7 @@ namespace Orthanc
                      static_cast<float>(upper.GetY() - lower.GetY()));
         xIntersect = lower.GetX();
 #endif
-    
+
         if (upper.GetY() < yComp)
         {
           yUpper = upper.GetY() - 1;
@@ -2069,7 +2069,7 @@ namespace Orthanc
         return static_cast<int>(std::ceil(xIntersect));
 #endif
       }
-  
+
       int GetExitX() const
       {
 #if USE_POLYGON_FRACTIONS == 1
@@ -2079,7 +2079,7 @@ namespace Orthanc
         return static_cast<int>(std::floor(xIntersect));
 #endif
       }
-  
+
       int GetUpperY() const
       {
         return yUpper;
@@ -2098,7 +2098,7 @@ namespace Orthanc
       }
     };
   }
-  
+
 
   // For an index, return y-coordinate of next nonhorizontal line
   static int GetPolygonNextY(const std::vector<ImageProcessing::ImagePoint>& points,
@@ -2106,7 +2106,7 @@ namespace Orthanc
   {
     // cf. "yNext()" in textbook
     size_t j = k;
-  
+
     for (;;)
     {
       j++;
@@ -2156,7 +2156,7 @@ namespace Orthanc
      * 117-124) of textbook "Computer Graphics - C Version (2nd
      * Edition)" by Hearn and Baker, 1997.
      **/
-  
+
     typedef std::map<int, std::list<PolygonEdge> > EdgeTable;
 
     if (points.size() < 2)
@@ -2223,10 +2223,10 @@ namespace Orthanc
         // Error in the textbook: "yPrev" must NOT be updated on horizontal lines
         yPrev = v1.GetY();
       }
-      
+
       v1 = v2;
     }
-    
+
     assert(!globalEdgeTable.empty());
 
     std::vector<PolygonEdge> activeEdges;
@@ -2308,7 +2308,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void ImageProcessing::FillPolygon(ImageAccessor& image,
                                     const std::vector<ImagePoint>& points,
                                     int64_t value)
@@ -2326,13 +2326,13 @@ namespace Orthanc
         value_(value)
       {
       }
-      
+
       virtual void Fill(int y,
                         int x1,
                         int x2) ORTHANC_OVERRIDE
       {
         assert(x1 <= x2);
-    
+
         if (x1 < static_cast<int>(image_.GetWidth()) &&
             x2 >= 0 &&
             y >= 0 &&
@@ -2351,7 +2351,7 @@ namespace Orthanc
       }
     };
 
-    
+
     if (image.GetFormat() == PixelFormat_Grayscale8 ||
         image.GetFormat() == PixelFormat_Grayscale16 ||
         image.GetFormat() == PixelFormat_SignedGrayscale16)
@@ -2372,7 +2372,7 @@ namespace Orthanc
   {
     assert(target.GetFormat() == source.GetFormat() &&
            target.GetFormat() == Format);
-      
+
     const unsigned int sourceWidth = source.GetWidth();
     const unsigned int sourceHeight = source.GetHeight();
     const unsigned int targetWidth = target.GetWidth();
@@ -2389,7 +2389,7 @@ namespace Orthanc
       ImageProcessing::Set(target, 0);
       return;
     }
-      
+
     const float scaleX = static_cast<float>(sourceWidth) / static_cast<float>(targetWidth);
     const float scaleY = static_cast<float>(sourceHeight) / static_cast<float>(targetHeight);
 
@@ -2399,9 +2399,9 @@ namespace Orthanc
      * in the source image, given the (x,y) position in the target
      * image.
      **/
-      
+
     std::vector<unsigned int>  lookupX(targetWidth);
-      
+
     for (unsigned int x = 0; x < targetWidth; x++)
     {
       int sourceX = static_cast<int>(std::floor((static_cast<float>(x) + 0.5f) * scaleX));
@@ -2416,9 +2416,9 @@ namespace Orthanc
 
       lookupX[x] = static_cast<unsigned int>(sourceX);
     }
-      
+
     std::vector<unsigned int>  lookupY(targetHeight);
-      
+
     for (unsigned int y = 0; y < targetHeight; y++)
     {
       int sourceY = static_cast<int>(std::floor((static_cast<float>(y) + 0.5f) * scaleY));
@@ -2438,7 +2438,7 @@ namespace Orthanc
     /**
      * Actual resizing
      **/
-      
+
     for (unsigned int targetY = 0; targetY < targetHeight; targetY++)
     {
       unsigned int sourceY = lookupY[targetY];
@@ -2451,7 +2451,7 @@ namespace Orthanc
         ImageTraits<Format>::GetPixel(pixel, source, sourceX, sourceY);
         ImageTraits<Format>::SetPixel(target, pixel, targetX, targetY);
       }
-    }            
+    }
   }
 
 
@@ -2500,10 +2500,10 @@ namespace Orthanc
     return target.release();
   }
 
-    
+
   template <PixelFormat Format>
   static void FlipXInternal(ImageAccessor& image)
-  {     
+  {
     const unsigned int height = image.GetHeight();
     const unsigned int width = image.GetWidth();
 
@@ -2512,17 +2512,17 @@ namespace Orthanc
       for (unsigned int x1 = 0; x1 < width / 2; x1++)
       {
         unsigned int x2 = width - 1 - x1;
-          
+
         typename ImageTraits<Format>::PixelType a, b;
         ImageTraits<Format>::GetPixel(a, image, x1, y);
         ImageTraits<Format>::GetPixel(b, image, x2, y);
         ImageTraits<Format>::SetPixel(image, a, x2, y);
         ImageTraits<Format>::SetPixel(image, b, x1, y);
       }
-    }        
+    }
   }
 
-    
+
   void ImageProcessing::FlipX(ImageAccessor& image)
   {
     switch (image.GetFormat())
@@ -2540,17 +2540,17 @@ namespace Orthanc
     }
   }
 
-    
+
   template <PixelFormat Format>
   static void FlipYInternal(ImageAccessor& image)
-  {     
+  {
     const unsigned int height = image.GetHeight();
     const unsigned int width = image.GetWidth();
 
     for (unsigned int y1 = 0; y1 < height / 2; y1++)
     {
       unsigned int y2 = height - 1 - y1;
-        
+
       for (unsigned int x = 0; x < width; x++)
       {
         typename ImageTraits<Format>::PixelType a, b;
@@ -2559,10 +2559,10 @@ namespace Orthanc
         ImageTraits<Format>::SetPixel(image, a, x, y2);
         ImageTraits<Format>::SetPixel(image, b, x, y1);
       }
-    }        
+    }
   }
 
-    
+
   void ImageProcessing::FlipY(ImageAccessor& image)
   {
     switch (image.GetFormat())
@@ -2620,9 +2620,9 @@ namespace Orthanc
 
     return p;
   }
-  
 
-  
+
+
   // This is an implementation of separable convolution that uses
   // floating-point arithmetics, and an intermediate Float32
   // image. The out-of-image values are taken as the border
@@ -2641,7 +2641,7 @@ namespace Orthanc
 
     const unsigned int width = image.GetWidth();
     const unsigned int height = image.GetHeight();
-    
+
 
     /**
      * Horizontal convolution
@@ -2654,7 +2654,7 @@ namespace Orthanc
       const RawPixel* row = reinterpret_cast<const RawPixel*>(image.GetConstRow(y));
 
       float leftBorder[ChannelsCount], rightBorder[ChannelsCount];
-      
+
       for (unsigned int c = 0; c < ChannelsCount; c++)
       {
         leftBorder[c] = row[c];
@@ -2741,13 +2741,13 @@ namespace Orthanc
       }
 
       RawPixel* p = reinterpret_cast<RawPixel*>(image.GetRow(y));
-        
+
       for (unsigned int x = 0; x < width; x++)
       {
         for (unsigned int c = 0; c < ChannelsCount; c++, p++)
         {
           float accumulator = 0;
-        
+
           for (unsigned int k = 0; k < vertical.size(); k++)
           {
             accumulator += rows[k][ChannelsCount * x + c] * vertical[k];
@@ -2795,23 +2795,23 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-    
+
     if (image.GetWidth() == 0 ||
         image.GetHeight() == 0)
     {
       return;
     }
-    
+
     /**
      * Compute normalization
      **/
-    
+
     float sumHorizontal = 0;
     for (size_t i = 0; i < horizontal.size(); i++)
     {
       sumHorizontal += horizontal[i];
     }
-    
+
     float sumVertical = 0;
     for (size_t i = 0; i < vertical.size(); i++)
     {
@@ -2822,7 +2822,7 @@ namespace Orthanc
         fabsf(sumVertical) <= std::numeric_limits<float>::epsilon())
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange, "Singular convolution kernel");
-    }      
+    }
 
     const float normalization = 1.0f / (sumHorizontal * sumVertical);
 
@@ -2891,7 +2891,7 @@ namespace Orthanc
   {
     std::vector<float> hKernel(horizontalKernelWidth, 1.0f);
     std::vector<float> vKernel(verticalKernelWidth, 1.0f);
-    
+
     SeparableConvolution(image, hKernel, horizontalKernelWidth / 2, vKernel, verticalKernelWidth / 2, false);
   }
 
@@ -2924,7 +2924,7 @@ namespace Orthanc
     unsigned int sh = std::min(static_cast<unsigned int>(Math::iround(ch * r)), target.GetHeight());
 
     Image resized(target.GetFormat(), sw, sh, false);
-  
+
     //ImageProcessing::SmoothGaussian5x5(source);
     ImageProcessing::Resize(resized, source);
 
@@ -2948,7 +2948,7 @@ namespace Orthanc
     return target.release();
   }
 
-    
+
   ImageAccessor* ImageProcessing::FitSizeKeepAspectRatio(const ImageAccessor& source,
                                                          unsigned int width,
                                                          unsigned int height)
@@ -2986,7 +2986,7 @@ namespace Orthanc
   {
     // http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.3.html#sect_C.7.6.3.1.2
     // https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
-    
+
     // TODO - Check out the outcome of Mathieu's discussion about
     // truncation of YCbCr-to-RGB conversion:
     // https://groups.google.com/forum/#!msg/comp.protocols.dicom/JHuGeyWbTz8/ARoTWrJzAQAJ
@@ -3004,7 +3004,7 @@ namespace Orthanc
     for (unsigned int y = 0; y < height; y++)
     {
       uint8_t* p = reinterpret_cast<uint8_t*>(image.GetRow(y));
-          
+
       for (unsigned int x = 0; x < width; x++, p += 3)
       {
         const float Y  = p[0];
@@ -3031,7 +3031,7 @@ namespace Orthanc
           {
             p[i] = static_cast<uint8_t>(result[i]);
           }
-        }    
+        }
       }
     }
   }
@@ -3041,7 +3041,7 @@ namespace Orthanc
   {
     const unsigned int width = image.GetWidth();
     const unsigned int height = image.GetHeight();
-    
+
     switch (image.GetFormat())
     {
       case PixelFormat_Grayscale8:
@@ -3063,7 +3063,7 @@ namespace Orthanc
             t[1] = a;
             t += 2;
           }
-        }    
+        }
         break;
 
       case PixelFormat_Grayscale32:
@@ -3081,7 +3081,7 @@ namespace Orthanc
             t[3] = a;
             t += 4;
           }
-        }    
+        }
         break;
 
       case PixelFormat_RGB48:  // uint16_t per channel
@@ -3095,12 +3095,12 @@ namespace Orthanc
             t[1] = a;
             t += 2;
           }
-        }    
+        }
         break;
 
       default:
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
-    }          
+    }
   }
 
 
@@ -3112,7 +3112,7 @@ namespace Orthanc
   {
     const unsigned int width = image.GetWidth();
     const unsigned int height = image.GetHeight();
-    
+
     if (width != other.GetWidth() ||
         height != other.GetHeight())
     {
@@ -3129,7 +3129,7 @@ namespace Orthanc
       {
         PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
         const PixelType* q = reinterpret_cast<const PixelType*>(other.GetConstRow(y));
-        
+
         for (unsigned int x = 0; x < width; x++, p++, q++)
         {
           f(*p, *q);
@@ -3143,7 +3143,7 @@ namespace Orthanc
   {
     // For older version of gcc, templated functors cannot be defined
     // as types internal to functions, hence the anonymous namespace
-    
+
     struct MaximumFunctor
     {
       void operator() (uint8_t& a, const uint8_t& b)
@@ -3157,7 +3157,7 @@ namespace Orthanc
       }
     };
   }
-  
+
 
   void ImageProcessing::Maximum(ImageAccessor& image,
                                 const ImageAccessor& other)

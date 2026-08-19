@@ -46,7 +46,7 @@ namespace Orthanc
 
   public:
     explicit SharedMessageQueue(unsigned int maxSize = 0);
-    
+
     ~SharedMessageQueue();
 
     // This transfers the ownership of the message

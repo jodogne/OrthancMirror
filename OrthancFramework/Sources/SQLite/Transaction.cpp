@@ -82,9 +82,9 @@ namespace Orthanc
       }
     }
 
-    void Transaction::Rollback() 
+    void Transaction::Rollback()
     {
-      if (!isOpen_) 
+      if (!isOpen_)
       {
         throw OrthancSQLiteException(ErrorCode_SQLiteRollbackWithoutTransaction);
       }
@@ -94,9 +94,9 @@ namespace Orthanc
       connection_.RollbackTransaction();
     }
 
-    void Transaction::Commit() 
+    void Transaction::Commit()
     {
-      if (!isOpen_) 
+      if (!isOpen_)
       {
         throw OrthancSQLiteException(ErrorCode_SQLiteRollbackWithoutTransaction);
       }

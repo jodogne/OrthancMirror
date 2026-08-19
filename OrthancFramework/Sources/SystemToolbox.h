@@ -61,7 +61,7 @@ namespace Orthanc
     static ServerBarrierEvent ServerBarrier();
 
     static void ReadFile(std::string& content,
-                         const boost::filesystem::path& path, 
+                         const boost::filesystem::path& path,
                          bool log);
 
     static inline void ReadFile(std::string& content,
@@ -94,7 +94,7 @@ namespace Orthanc
                                const boost::filesystem::path& path);
 
     // Returns true if the two files have the same MD5
-    static bool CompareFilesMD5(const boost::filesystem::path& path1, 
+    static bool CompareFilesMD5(const boost::filesystem::path& path1,
                                 const boost::filesystem::path& path2);
 #endif
 

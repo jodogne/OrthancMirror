@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -28,16 +28,16 @@
 namespace Orthanc
 {
   class ServerContext;
-  
+
   class CleaningInstancesJob : public SetOfInstancesJob
   {
   private:
     ServerContext&  context_;
     bool            keepSource_;
-    
+
   protected:
     virtual bool HandleTrailingStep() ORTHANC_OVERRIDE;
-    
+
   public:
     CleaningInstancesJob(ServerContext& context,
                          bool keepSource) :
@@ -54,12 +54,12 @@ namespace Orthanc
     {
       return context_;
     }
-    
+
     bool IsKeepSource() const
     {
       return keepSource_;
     }
-    
+
     void SetKeepSource(bool keep);
 
     virtual bool Serialize(Json::Value& target) const ORTHANC_OVERRIDE;

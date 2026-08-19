@@ -113,7 +113,7 @@ TEST(SQLite, StatementBasic)
 {
   SQLite::Connection c;
   c.OpenInMemory();
-  
+
   SQLite::Statement s(c, "SELECT * from sqlite_master");
   s.Run();
 
@@ -250,7 +250,7 @@ TEST(SQLite, EmptyTransactions)
 
     c.Execute("CREATE TABLE a(id INTEGER PRIMARY KEY);");
     c.Execute("INSERT INTO a VALUES(NULL)");
-      
+
     {
       SQLite::Transaction t(c);
       t.Begin();

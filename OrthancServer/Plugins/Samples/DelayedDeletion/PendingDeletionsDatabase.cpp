@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -42,25 +42,25 @@ void PendingDeletionsDatabase::Setup()
     if (!db_.DoesTableExist("Pending"))
     {
       db_.Execute("CREATE TABLE Pending(uuid TEXT, type INTEGER)");
-      
+
       // New in v 1.12.7+
       // add an index on uuid to speed up the DELETE FROM Pending WHERE uuid=?
       // With this patch, we observed a 100 fold performance
       // improvement when the Pending table contains 1-2 millions files.
       db_.Execute("CREATE INDEX PendingIndex ON Pending(uuid)");
     }
-    
+
     t.Commit();
   }
 }
-  
+
 
 PendingDeletionsDatabase::PendingDeletionsDatabase(const std::string& path)
 {
   db_.Open(path);
   Setup();
 }
-  
+
 
 void PendingDeletionsDatabase::Enqueue(const std::string& uuid,
                                        Orthanc::FileContentType type)
@@ -79,13 +79,13 @@ void PendingDeletionsDatabase::Enqueue(const std::string& uuid,
 
   t.Commit();
 }
-  
+
 
 bool PendingDeletionsDatabase::Dequeue(std::string& uuid,
                                        Orthanc::FileContentType& type)
 {
   bool ok = false;
-    
+
   boost::mutex::scoped_lock lock(mutex_);
 
   Orthanc::SQLite::Transaction t(db_);
@@ -102,7 +102,7 @@ bool PendingDeletionsDatabase::Dequeue(std::string& uuid,
       Orthanc::SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM Pending WHERE uuid=?");
       s.BindString(0, uuid);
       s.Run();
-      
+
       ok = true;
     }
   }
@@ -118,7 +118,7 @@ unsigned int PendingDeletionsDatabase::GetSize()
   boost::mutex::scoped_lock lock(mutex_);
 
   unsigned int value = 0;
-  
+
   Orthanc::SQLite::Transaction t(db_);
   t.Begin();
 

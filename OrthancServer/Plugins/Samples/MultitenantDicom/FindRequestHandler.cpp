@@ -63,7 +63,7 @@ void FindRequestHandler::Handle(Orthanc::DicomFindAnswers& answers,
       {
         level = s;
       }
-      else 
+      else
       {
         query[it->Format()] = s;
       }
@@ -102,7 +102,7 @@ void FindRequestHandler::Handle(Orthanc::DicomFindAnswers& answers,
     {
       throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
     }
-            
+
     Orthanc::DicomMap m;
 
     for (std::set<Orthanc::DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
@@ -119,9 +119,9 @@ void FindRequestHandler::Handle(Orthanc::DicomFindAnswers& answers,
                response[i][KEY_PATIENT_MAIN_DICOM_TAGS][tag].type() == Json::stringValue)
       {
         m.SetValue(*it, response[i][KEY_PATIENT_MAIN_DICOM_TAGS][tag].asString(), false);
-      }        
+      }
     }
-            
+
     m.SetValue(Orthanc::DICOM_TAG_QUERY_RETRIEVE_LEVEL, level, false);
     m.SetValue(Orthanc::DICOM_TAG_RETRIEVE_AE_TITLE, retrieveAet_, false);
     answers.Add(m);

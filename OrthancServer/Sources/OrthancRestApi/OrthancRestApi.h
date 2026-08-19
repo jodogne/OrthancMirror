@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -113,15 +113,15 @@ namespace Orthanc
 
     static bool IsSynchronousJobRequest(bool isDefaultSynchronous,
                                         const Json::Value& body);
-    
+
     static int GetJobRequestPriority(const Json::Value& body);
-    
+
     static void SubmitGenericJob(RestApiOutput& output,
                                  ServerContext& context,
                                  IJob* job,
                                  bool synchronous,
                                  int priority);
-    
+
     void SubmitGenericJob(RestApiPostCall& call,
                           IJob* job,
                           bool isDefaultSynchronous,

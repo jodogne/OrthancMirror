@@ -93,10 +93,10 @@ namespace Orthanc
     }
   }
 
-  
+
   typedef std::map<std::string, std::string>  Parameters;
 
-  
+
   static std::string LookupStringParameter(const Parameters& parameters,
                                            const std::string& key)
   {
@@ -111,7 +111,7 @@ namespace Orthanc
       return found->second;
     }
   }
-  
+
 
   static unsigned int LookupIntegerParameter(const Parameters& parameters,
                                              const std::string& key)
@@ -134,12 +134,12 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
   }
-  
+
 
   void PamReader::ParseContent()
   {
     static const std::string headerDelimiter = "ENDHDR\n";
-    
+
     boost::iterator_range<std::string::const_iterator> headerRange =
       boost::algorithm::find_first(content_, headerDelimiter);
 
@@ -161,7 +161,7 @@ namespace Orthanc
     }
 
     Parameters parameters;
-    
+
     for (size_t i = 1; i + 1 < lines.size(); i++)
     {
       std::vector<std::string> tokens;
@@ -222,7 +222,7 @@ namespace Orthanc
       else
         LOG(TRACE) << "PamReader::ParseContent() image address = " << bufferAddr << " (not a multiple of 8!)";
     }
-    
+
     // if we want to enforce alignment, we need to use a freshly allocated
     // buffer, since we have no alignment guarantees on the original one
     if (enforceAligned_)
@@ -233,12 +233,12 @@ namespace Orthanc
       }
 
       alignedImageBuffer_ = malloc(pitch * height);
-      
+
       if (alignedImageBuffer_ == NULL)
       {
         throw OrthancException(ErrorCode_NotEnoughMemory);
       }
-      
+
       memcpy(alignedImageBuffer_, &content_[offset], pitch* height);
       content_ = "";
       AssignWritable(format, width, height, pitch, alignedImageBuffer_);
@@ -261,7 +261,7 @@ namespace Orthanc
       for (unsigned int h = 0; h < height; ++h)
       {
         uint16_t* pixel = reinterpret_cast<uint16_t*>(GetRow(h));
-        
+
         for (unsigned int w = 0; w < width; ++w, ++pixel)
         {
           /**
@@ -276,7 +276,7 @@ namespace Orthanc
            * #99: https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=99
            *
            * Here is the crash log on WebAssembly (2019-08-05):
-           * 
+           *
            * Uncaught abort(alignment fault) at Error
            * at jsStackTrace
            * at stackTrace
@@ -300,7 +300,7 @@ namespace Orthanc
   {
   }
 
-  
+
 #if ORTHANC_SANDBOXED == 0
   void PamReader::ReadFromFile(const boost::filesystem::path& filename)
   {
@@ -308,7 +308,7 @@ namespace Orthanc
     ParseContent();
   }
 #endif
-  
+
 
   void PamReader::ReadFromMemory(const std::string& buffer)
   {

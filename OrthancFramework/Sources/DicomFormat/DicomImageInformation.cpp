@@ -187,7 +187,7 @@ namespace Orthanc
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }
 
-    
+
     if (values.HasTag(DICOM_TAG_NUMBER_OF_FRAMES))
     {
       if (!values.ParseUnsignedInteger32(numberOfFrames_, DICOM_TAG_NUMBER_OF_FRAMES))
@@ -400,7 +400,7 @@ namespace Orthanc
         return true;
       }
     }
-    
+
     if (ignorePhotometricInterpretation ||
         photometric_ == PhotometricInterpretation_Monochrome1 ||
         photometric_ == PhotometricInterpretation_Monochrome2)
@@ -410,7 +410,7 @@ namespace Orthanc
         format = PixelFormat_Grayscale8;
         return true;
       }
-      
+
       if (GetBitsAllocated() == 16 && GetChannelCount() == 1 && !IsSigned())
       {
         format = PixelFormat_Grayscale16;
@@ -422,7 +422,7 @@ namespace Orthanc
         format = PixelFormat_SignedGrayscale16;
         return true;
       }
-      
+
       if (GetBitsAllocated() == 32 && GetChannelCount() == 1 && !IsSigned())
       {
         format = PixelFormat_Grayscale32;
@@ -466,7 +466,7 @@ namespace Orthanc
     if (bitsStored_ == 1)
     {
       assert(GetWidth() % 8 == 0);
-      
+
       if (GetChannelCount() == 1)
       {
         totalFrameSize = static_cast<uint64_t>(GetHeight()) * static_cast<uint64_t>(GetWidth()) / 8;

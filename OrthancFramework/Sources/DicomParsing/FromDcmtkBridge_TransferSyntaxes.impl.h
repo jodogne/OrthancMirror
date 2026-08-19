@@ -316,7 +316,7 @@ namespace Orthanc
         return false;
     }
   }
-  
+
 
   bool FromDcmtkBridge::LookupOrthancTransferSyntax(DicomTransferSyntax& target,
                                                     E_TransferSyntax source)

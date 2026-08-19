@@ -53,7 +53,7 @@ namespace Orthanc
   }
 
 
-  DicomFindAnswers::DicomFindAnswers(bool isWorklist) : 
+  DicomFindAnswers::DicomFindAnswers(bool isWorklist) :
     encoding_(GetDefaultDicomEncoding()),
     isWorklist_(isWorklist),
     complete_(true)
@@ -192,7 +192,7 @@ namespace Orthanc
         target->insert(dynamic_cast<DcmElement*>(element->clone()));
       }
     }
-    
+
     return target.release();
   }
 

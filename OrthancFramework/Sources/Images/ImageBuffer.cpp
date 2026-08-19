@@ -153,7 +153,7 @@ namespace Orthanc
     if (width != width_)
     {
       changed_ = true;
-      width_ = width;     
+      width_ = width;
     }
   }
 
@@ -168,7 +168,7 @@ namespace Orthanc
     if (height != height_)
     {
       changed_ = true;
-      height_ = height;     
+      height_ = height;
     }
   }
 
@@ -177,13 +177,13 @@ namespace Orthanc
     return ::Orthanc::GetBytesPerPixel(format_);
   }
 
-  
+
   void ImageBuffer::GetReadOnlyAccessor(ImageAccessor& accessor)
   {
     Allocate();
     accessor.AssignReadOnly(format_, width_, height_, pitch_, buffer_);
   }
-  
+
 
   void ImageBuffer::GetWriteableAccessor(ImageAccessor& accessor)
   {

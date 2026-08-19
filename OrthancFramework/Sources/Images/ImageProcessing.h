@@ -43,7 +43,7 @@ namespace Orthanc
     private:
       int32_t x_;
       int32_t y_;
-      
+
     public:
       ImagePoint(int32_t x,
                  int32_t y);

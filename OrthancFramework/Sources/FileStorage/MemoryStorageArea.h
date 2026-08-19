@@ -37,13 +37,13 @@ namespace Orthanc
   {
   private:
     typedef std::map<std::string, std::string*>  Content;
-    
+
     Mutex    mutex_;
     Content  content_;
-    
+
   public:
     virtual ~MemoryStorageArea() ORTHANC_OVERRIDE;
-    
+
     virtual void Create(const std::string& uuid,
                         const void* content,
                         size_t size,
@@ -53,7 +53,7 @@ namespace Orthanc
                                      FileContentType type,
                                      uint64_t start /* inclusive */,
                                      uint64_t end /* exclusive */) ORTHANC_OVERRIDE;
-    
+
     virtual bool HasEfficientReadRange() const ORTHANC_OVERRIDE
     {
       return true;

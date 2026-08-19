@@ -11,7 +11,7 @@
 # modify it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -50,17 +50,17 @@ LINES = []
 
 def FormatLine(command, name):
     indentation = 65
-    
+
     if len(command) > indentation:
         indentation = len(command) + 2
-        
+
     line = command + (' ' * (indentation - len(command))) + '// ' + name
     LINES.append(line)
 
 def FormatUnknown(rawTag, name, profile):
     FormatLine('// TODO: %s with rule %s' % (rawTag, profile), name)
 
-    
+
 RAW_TAG_RE = re.compile(r'^\(\s*([0-9A-Fx]{4})\s*,\s*([0-9A-Fx]{4})\s*\)$')
 
 
@@ -121,7 +121,7 @@ for table in root.iter('%stable' % br):
 
 for line in sorted(LINES):
     print(line.encode('ascii', 'ignore').decode('ascii'))
-    
+
 
 # D - replace with a non-zero length value that may be a dummy value and consistent with the VR
 # Z - replace with a zero length value, or a non-zero length value that may be a dummy value and consistent with the VR

@@ -74,7 +74,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /***
-    
+
     Validation:
 
     # sudo apt-get install dicom3tools
@@ -135,7 +135,7 @@ namespace Orthanc
     {
       if (dir_.get() == NULL)
       {
-        dir_.reset(new DcmDicomDir(SystemToolbox::PathToUtf8(file_.GetPath()).c_str(), 
+        dir_.reset(new DcmDicomDir(SystemToolbox::PathToUtf8(file_.GetPath()).c_str(),
                                    fileSetId_.c_str()));
         //SetTagValue(dir_->getRootRecord(), DCM_SpecificCharacterSet, GetDicomSpecificCharacterSet(Encoding_Utf8));
       }
@@ -170,7 +170,7 @@ namespace Orthanc
             const bool skipBacklashes = true;  // cf. "ISO_IR 13": In this method, the VR will never be UT, ST, or LT
             result = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions, skipBacklashes);
           }
-          
+
           return true;
         }
       }
@@ -190,7 +190,7 @@ namespace Orthanc
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
     }
-                            
+
 
 
     static bool CopyString(DcmDirectoryRecord& target,
@@ -267,7 +267,7 @@ namespace Orthanc
       extendedSopClass_(false)
     {
     }
-    
+
     bool IsUtcUsed() const
     {
       return utc_;
@@ -278,7 +278,7 @@ namespace Orthanc
     {
       utc_ = utc;
     }
-    
+
     void EnableExtendedSopClass(bool enable)
     {
       if (enable)
@@ -286,7 +286,7 @@ namespace Orthanc
         LOG(WARNING) << "Generating a DICOMDIR with type 3 attributes, "
                      << "which leads to an Extended SOP Class";
       }
-      
+
       extendedSopClass_ = enable;
     }
 
@@ -324,7 +324,7 @@ namespace Orthanc
       {
         studyDate = nowDate;
       }
-          
+
       std::string studyTime;
       if (!GetUtf8TagValue(studyTime, dicom, encoding, hasCodeExtensions, DCM_StudyTime) &&
           !GetUtf8TagValue(studyTime, dicom, encoding, hasCodeExtensions, DCM_SeriesTime) &&
@@ -395,7 +395,7 @@ namespace Orthanc
       SetTagValue(record, DCM_ReferencedTransferSyntaxUIDInFile, transferSyntaxUid);
     }
 
-    
+
 
     bool CreateResource(DcmDirectoryRecord*& target,
                         ResourceType level,
@@ -494,8 +494,8 @@ namespace Orthanc
 
     void Write(std::string& s)
     {
-      if (!GetDicomDir().write(DICOMDIR_DEFAULT_TRANSFERSYNTAX, 
-                               EET_UndefinedLength /*encodingType*/, 
+      if (!GetDicomDir().write(DICOMDIR_DEFAULT_TRANSFERSYNTAX,
+                               EET_UndefinedLength /*encodingType*/,
                                EGL_withoutGL /*groupLength*/).good())
       {
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
@@ -520,7 +520,7 @@ namespace Orthanc
   {
     pimpl_->SetUtcUsed(utc);
   }
-  
+
   bool DicomDirWriter::IsUtcUsed() const
   {
     return pimpl_->IsUtcUsed();
@@ -564,7 +564,7 @@ namespace Orthanc
         DcmDirectoryRecord* study;
         bool isNewStudy = pimpl_->CreateResource(study, ResourceType_Study, dicom, filename.c_str(), NULL);
         study->insertSub(series);
-  
+
         if (isNewStudy)
         {
           DcmDirectoryRecord* patient;
@@ -586,7 +586,7 @@ namespace Orthanc
     pimpl_->EnableExtendedSopClass(enable);
   }
 
-  
+
   bool DicomDirWriter::IsExtendedSopClass() const
   {
     return pimpl_->IsExtendedSopClass();

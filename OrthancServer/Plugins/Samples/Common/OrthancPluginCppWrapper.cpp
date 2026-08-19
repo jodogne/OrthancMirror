@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -418,7 +418,7 @@ namespace OrthancPlugins
       {
         headersKeys_.push_back(it->first.c_str());
         headersValues_.push_back(it->second.c_str());
-      }      
+      }
     }
 
     const char* const* GetKeys()
@@ -446,7 +446,7 @@ namespace OrthancPlugins
     PluginHttpHeaders headers(httpHeaders);
 
     return CheckHttp(OrthancPluginRestApiGet2(
-                       GetGlobalContext(), &buffer_, uri.c_str(), 
+                       GetGlobalContext(), &buffer_, uri.c_str(),
                        headers.GetSize(),
                        headers.GetKeys(),
                        headers.GetValues(), applyPlugins));
@@ -458,7 +458,7 @@ namespace OrthancPlugins
                                  bool applyPlugins)
   {
     Clear();
-    
+
     // Cast for compatibility with Orthanc SDK <= 1.5.6
     const char* b = reinterpret_cast<const char*>(body);
 
@@ -485,7 +485,7 @@ namespace OrthancPlugins
 
     PluginHttpHeaders headers(httpHeaders);
 
-    return CheckHttp(OrthancPluginCallRestApi(GetGlobalContext(), 
+    return CheckHttp(OrthancPluginCallRestApi(GetGlobalContext(),
                                               &buffer_,
                                               *answerHeaders,
                                               &httpStatus,
@@ -541,10 +541,10 @@ namespace OrthancPlugins
 #else
     Json::CharReaderBuilder builder;
     builder.settings_["collectComments"] = collectComments;
-    
+
     const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
     assert(reader.get() != NULL);
-    
+
     JSONCPP_STRING err;
     if (reader->parse(reinterpret_cast<const char*>(buffer),
                       reinterpret_cast<const char*>(buffer) + size, &target, &err))
@@ -565,7 +565,7 @@ namespace OrthancPlugins
   {
     return ReadJson(target, source.empty() ? NULL : source.c_str(), source.size());
   }
-  
+
 
   bool ReadJson(Json::Value& target,
                 const void* buffer,
@@ -573,14 +573,14 @@ namespace OrthancPlugins
   {
     return ReadJsonInternal(target, buffer, size, true);
   }
-  
+
 
   bool ReadJsonWithoutComments(Json::Value& target,
                                const std::string& source)
   {
     return ReadJsonWithoutComments(target, source.empty() ? NULL : source.c_str(), source.size());
   }
-  
+
 
   bool ReadJsonWithoutComments(Json::Value& target,
                                const void* buffer,
@@ -602,7 +602,7 @@ namespace OrthancPlugins
     target = Json::writeString(builder, source);
 #endif
   }
-  
+
 
   void WriteStyledJson(std::string& target,
                        const Json::Value& source)
@@ -869,7 +869,7 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
     }
   }
-    
+
 
   OrthancConfiguration::OrthancConfiguration()
   {
@@ -989,7 +989,7 @@ namespace OrthancPlugins
           ORTHANC_PLUGINS_LOG_ERROR("The configuration option \"" + GetPath(key) +
                                     "\" is too large to fit in an integer");
 
-          ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);          
+          ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
         }
 
         target = static_cast<int>(configuration_[key].asUInt());
@@ -1577,7 +1577,7 @@ namespace OrthancPlugins
   {
     std::string bodyString;
     WriteStyledJson(bodyString, value);
-    CheckAnswerSizeIsLessThan4GB(bodyString);    
+    CheckAnswerSizeIsLessThan4GB(bodyString);
     OrthancPluginAnswerBuffer(GetGlobalContext(), output, bodyString.c_str(), bodyString.size(), "application/json");
   }
 
@@ -1605,7 +1605,7 @@ namespace OrthancPlugins
                                output,
                                "content-type",
                                mimeType);
-                               
+
     OrthancPluginSendHttpStatus(GetGlobalContext(),
                                 output,
                                 httpError,
@@ -2196,7 +2196,7 @@ namespace OrthancPlugins
                             size_t index,
                             const std::string& uri,
                             const std::string& body,
-                            const HttpHeaders& headers, 
+                            const HttpHeaders& headers,
                             unsigned int timeout) const
   {
     MemoryBuffer buffer;
@@ -2218,7 +2218,7 @@ namespace OrthancPlugins
                             size_t index,
                             const std::string& uri,
                             const std::string& body,
-                            const HttpHeaders& headers, 
+                            const HttpHeaders& headers,
                             unsigned int timeout) const
   {
     MemoryBuffer buffer;
@@ -2329,7 +2329,7 @@ namespace OrthancPlugins
     {
       target.Swap(answer);
       DecodeHttpHeaders(answerHeaders, answerHeadersBuffer);
-      
+
       return (status == 200);
     }
     else
@@ -2472,7 +2472,7 @@ namespace OrthancPlugins
       {
         memcpy(target->data, source.c_str(), source.size());
       }
-      
+
       return OrthancPluginErrorCode_Success;
     }
   }
@@ -2515,7 +2515,7 @@ namespace OrthancPlugins
   {
     assert(job != NULL);
     OrthancJob& that = *reinterpret_cast<OrthancJob*>(job);
-    
+
     if (that.hasSerialized_)
     {
       if (CopyStringToMemoryBuffer(target, that.serialized_) == OrthancPluginErrorCode_Success)
@@ -2821,7 +2821,7 @@ namespace OrthancPlugins
     static const char* KEY_PRIORITY = "Priority";
 
     boost::movelib::unique_ptr<OrthancJob> protection(job);
-  
+
     if (body.type() != Json::objectValue)
     {
 #if HAS_ORTHANC_EXCEPTION == 1
@@ -2834,7 +2834,7 @@ namespace OrthancPlugins
     }
 
     bool synchronous = true;
-  
+
     if (body.isMember(KEY_SYNCHRONOUS))
     {
       if (body[KEY_SYNCHRONOUS].type() != Json::booleanValue)
@@ -2893,7 +2893,7 @@ namespace OrthancPlugins
         priority = !body[KEY_PRIORITY].asInt();
       }
     }
-  
+
     Json::Value result;
 
     if (synchronous)
@@ -2929,7 +2929,7 @@ namespace OrthancPlugins
   {
     start_ = boost::posix_time::microsec_clock::universal_time();
   }
-  
+
   MetricsTimer::~MetricsTimer()
   {
     const boost::posix_time::ptime stop = boost::posix_time::microsec_clock::universal_time();
@@ -2965,18 +2965,18 @@ namespace OrthancPlugins
       body_(body),
       done_(false)
     {
-    }      
+    }
 
     static uint8_t IsDone(void* body)
     {
       return GetObject(body).done_;
     }
-    
+
     static const void* GetChunkData(void* body)
     {
       return GetObject(body).chunk_.c_str();
     }
-    
+
     static uint32_t GetChunkSize(void* body)
     {
       return static_cast<uint32_t>(GetObject(body).chunk_.size());
@@ -2985,7 +2985,7 @@ namespace OrthancPlugins
     static OrthancPluginErrorCode Next(void* body)
     {
       RequestBodyWrapper& that = GetObject(body);
-        
+
       if (that.done_)
       {
         return OrthancPluginErrorCode_BadSequenceOfCalls;
@@ -3006,7 +3006,7 @@ namespace OrthancPlugins
           return OrthancPluginErrorCode_Plugin;
         }
       }
-    }    
+    }
   };
 
 
@@ -3078,7 +3078,7 @@ namespace OrthancPlugins
     }
   }
 
-  
+
   void HttpClient::SetCredentials(const std::string& username,
                                   const std::string& password)
   {
@@ -3086,7 +3086,7 @@ namespace OrthancPlugins
     password_ = password;
   }
 
-  
+
   void HttpClient::ClearCredentials()
   {
     username_.clear();
@@ -3103,7 +3103,7 @@ namespace OrthancPlugins
     certificateKeyPassword_ = keyPassword;
   }
 
-  
+
   void HttpClient::ClearCertificate()
   {
     certificateFile_.clear();
@@ -3118,21 +3118,21 @@ namespace OrthancPlugins
     chunkedBody_ = NULL;
   }
 
-  
+
   void HttpClient::SwapBody(std::string& body)
   {
     fullBody_.swap(body);
     chunkedBody_ = NULL;
   }
 
-  
+
   void HttpClient::SetBody(const std::string& body)
   {
     fullBody_ = body;
     chunkedBody_ = NULL;
   }
 
-  
+
   void HttpClient::SetBody(IRequestBody& body)
   {
     fullBody_.clear();
@@ -3361,7 +3361,7 @@ namespace OrthancPlugins
     }
 
     RequestBodyWrapper request(body);
-        
+
     OrthancPluginErrorCode error = OrthancPluginChunkedHttpClient(
       GetGlobalContext(),
       &answer,
@@ -3391,7 +3391,7 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_ERROR_CODE(error);
     }
   }
-#endif    
+#endif
 
   void HttpClient::ExecuteWithoutStream(uint16_t& httpStatus,
                                         HttpHeaders& answerHeaders,
@@ -3456,7 +3456,7 @@ namespace OrthancPlugins
       return;
     }
 #endif
-    
+
     // Compatibility mode for Orthanc SDK <= 1.5.6 or if chunked
     // transfers are disabled. This results in higher memory usage
     // (all chunks from the answer body are sent at once)
@@ -3465,10 +3465,10 @@ namespace OrthancPlugins
     std::string answerBody;
     Execute(answerHeaders, answerBody);
 
-    for (HttpHeaders::const_iterator it = answerHeaders.begin(); 
+    for (HttpHeaders::const_iterator it = answerHeaders.begin();
          it != answerHeaders.end(); ++it)
     {
-      answer.AddHeader(it->first, it->second);      
+      answer.AddHeader(it->first, it->second);
     }
 
     if (!answerBody.empty())
@@ -3491,7 +3491,7 @@ namespace OrthancPlugins
       return;
     }
 #endif
-    
+
     // Compatibility mode for Orthanc SDK <= 1.5.6 or if chunked
     // transfers are disabled. This results in higher memory usage
     // (all chunks from the request body are sent at once)
@@ -3499,7 +3499,7 @@ namespace OrthancPlugins
     if (chunkedBody_ != NULL)
     {
       ChunkedBuffer buffer;
-      
+
       std::string chunk;
       while (chunkedBody_->ReadNextChunk(chunk))
       {
@@ -3523,7 +3523,7 @@ namespace OrthancPlugins
   {
     std::string body;
     Execute(answerHeaders, body);
-    
+
     if (!ReadJson(answerBody, body))
     {
       ORTHANC_PLUGINS_LOG_ERROR("Cannot convert HTTP answer body to JSON");
@@ -3556,7 +3556,7 @@ namespace OrthancPlugins
                           const OrthancPluginHttpRequest* request)
     {
     }
-  
+
     IChunkedRequestReader *NullChunkedRestCallback(const char* url,
                                                    const OrthancPluginHttpRequest* request)
     {
@@ -3595,7 +3595,7 @@ namespace OrthancPlugins
       }
     }
 
-    
+
     OrthancPluginErrorCode ChunkedRequestReaderExecute(
       OrthancPluginServerChunkedRequestReader* reader,
       OrthancPluginRestOutput*                 output)
@@ -3624,7 +3624,7 @@ namespace OrthancPlugins
       }
     }
 
-    
+
     void ChunkedRequestReaderFinalize(
       OrthancPluginServerChunkedRequestReader* reader)
     {
@@ -3635,7 +3635,7 @@ namespace OrthancPlugins
     }
 
 #else
-    
+
     OrthancPluginErrorCode ChunkedRestCompatibility(OrthancPluginRestOutput* output,
                                                     const char* url,
                                                     const OrthancPluginHttpRequest* request,
@@ -3659,7 +3659,7 @@ namespace OrthancPlugins
           {
             allowed += ",";
           }
-        
+
           allowed += "POST";
         }
 
@@ -3669,7 +3669,7 @@ namespace OrthancPlugins
           {
             allowed += ",";
           }
-        
+
           allowed += "DELETE";
         }
 
@@ -3679,10 +3679,10 @@ namespace OrthancPlugins
           {
             allowed += ",";
           }
-        
+
           allowed += "PUT";
         }
-      
+
         switch (request->method)
         {
           case OrthancPluginHttpMethod_Get:
@@ -3795,7 +3795,7 @@ namespace OrthancPlugins
   {
     assert(target != NULL &&
            rawHandler != NULL);
-      
+
     try
     {
       IStorageCommitmentScpHandler& handler = *reinterpret_cast<IStorageCommitmentScpHandler*>(rawHandler);
@@ -3823,7 +3823,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)    
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)
   DicomInstance::DicomInstance(const OrthancPluginDicomInstance* instance) :
     toFree_(false),
     instance_(instance)
@@ -3864,7 +3864,7 @@ namespace OrthancPlugins
 #endif
   }
 
-  
+
   std::string DicomInstance::GetRemoteAet() const
   {
     const char* s = OrthancPluginGetInstanceRemoteAet(GetGlobalContext(), instance_);
@@ -3885,7 +3885,7 @@ namespace OrthancPlugins
     s.Assign(OrthancPluginGetInstanceJson(GetGlobalContext(), instance_));
     s.ToJson(target);
   }
-  
+
 
   void DicomInstance::GetSimplifiedJson(Json::Value& target) const
   {
@@ -3907,7 +3907,7 @@ namespace OrthancPlugins
   }
 #endif
 
-  
+
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)
   bool DicomInstance::HasPixelData() const
   {
@@ -3924,7 +3924,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)  
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
   void DicomInstance::GetRawFrame(std::string& target,
                                   unsigned int frameIndex) const
   {
@@ -3944,7 +3944,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)  
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
   OrthancImage* DicomInstance::GetDecodedFrame(unsigned int frameIndex) const
   {
     OrthancPluginImage* image = OrthancPluginGetInstanceDecodedFrame(
@@ -3959,7 +3959,7 @@ namespace OrthancPlugins
       return new OrthancImage(image);
     }
   }
-#endif  
+#endif
 
 
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
@@ -3979,7 +3979,7 @@ namespace OrthancPlugins
     }
   }
 #endif
-  
+
 
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
   DicomInstance* DicomInstance::Transcode(const void* buffer,
@@ -4038,8 +4038,8 @@ namespace OrthancPlugins
     return result;
   }
 #endif
-  
-    
+
+
 #if HAS_ORTHANC_PLUGINS_WEBDAV == 1
   static OrthancPluginErrorCode WebDavIsExistingFolder(uint8_t*            isExisting,
                                                        uint32_t            pathSize,
@@ -4064,7 +4064,7 @@ namespace OrthancPlugins
   }
 #endif
 
-  
+
 #if HAS_ORTHANC_PLUGINS_WEBDAV == 1
   static OrthancPluginErrorCode WebDavListFolder(uint8_t*                        isExisting,
                                                  OrthancPluginWebDavCollection*  collection,
@@ -4075,12 +4075,12 @@ namespace OrthancPlugins
                                                  void*                           payload)
   {
     IWebDavCollection& that = *reinterpret_cast<IWebDavCollection*>(payload);
-      
+
     try
     {
       std::list<IWebDavCollection::FileInfo> files;
       std::list<IWebDavCollection::FolderInfo> subfolders;
-      
+
       if (!that.ListFolder(files, subfolders, WebDavConvertPath(pathSize, pathItems)))
       {
         *isExisting = 0;
@@ -4088,33 +4088,33 @@ namespace OrthancPlugins
       else
       {
         *isExisting = 1;
-      
+
         for (std::list<IWebDavCollection::FileInfo>::const_iterator
                it = files.begin(); it != files.end(); ++it)
         {
           OrthancPluginErrorCode code = addFile(
             collection, it->GetName().c_str(), it->GetContentSize(),
             it->GetMimeType().c_str(), it->GetDateTime().c_str());
-        
+
           if (code != OrthancPluginErrorCode_Success)
           {
             return code;
           }
         }
-      
+
         for (std::list<IWebDavCollection::FolderInfo>::const_iterator it =
                subfolders.begin(); it != subfolders.end(); ++it)
         {
           OrthancPluginErrorCode code = addFolder(
             collection, it->GetName().c_str(), it->GetDateTime().c_str());
-        
+
           if (code != OrthancPluginErrorCode_Success)
           {
             return code;
           }
         }
       }
-      
+
       return OrthancPluginErrorCode_Success;
     }
     catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
@@ -4126,7 +4126,7 @@ namespace OrthancPlugins
       return OrthancPluginErrorCode_Plugin;
     }
   }
-#endif    
+#endif
 
 
 #if HAS_ORTHANC_PLUGINS_WEBDAV == 1
@@ -4141,7 +4141,7 @@ namespace OrthancPlugins
     try
     {
       std::string content, mime, dateTime;
-        
+
       if (that.GetFile(content, mime, dateTime, WebDavConvertPath(pathSize, pathItems)))
       {
         return retrieveFile(collection, content.empty() ? NULL : content.c_str(),
@@ -4161,7 +4161,7 @@ namespace OrthancPlugins
     {
       return OrthancPluginErrorCode_InternalError;
     }
-  }  
+  }
 #endif
 
 
@@ -4181,7 +4181,7 @@ namespace OrthancPlugins
       {
         ORTHANC_PLUGINS_THROW_EXCEPTION(NotEnoughMemory);
       }
-      
+
       *isReadOnly = (that.StoreFile(WebDavConvertPath(pathSize, pathItems), data,
                                     static_cast<size_t>(size)) ? 1 : 0);
       return OrthancPluginErrorCode_Success;
@@ -4197,7 +4197,7 @@ namespace OrthancPlugins
   }
 #endif
 
-  
+
 #if HAS_ORTHANC_PLUGINS_WEBDAV == 1
   static OrthancPluginErrorCode WebDavCreateFolderCallback(uint8_t*            isReadOnly, /* out */
                                                            uint32_t            pathSize,
@@ -4221,8 +4221,8 @@ namespace OrthancPlugins
     }
   }
 #endif
-  
-  
+
+
 #if HAS_ORTHANC_PLUGINS_WEBDAV == 1
   static OrthancPluginErrorCode WebDavDeleteItemCallback(uint8_t*            isReadOnly, /* out */
                                                          uint32_t            pathSize,
@@ -4247,7 +4247,7 @@ namespace OrthancPlugins
   }
 #endif
 
-  
+
 #if HAS_ORTHANC_PLUGINS_WEBDAV == 1
   void IWebDavCollection::Register(const std::string& uri,
                                    IWebDavCollection& collection)
@@ -4270,7 +4270,7 @@ namespace OrthancPlugins
     for (uint32_t i = 0; i < request->getCount; ++i)
     {
       result[request->getKeys[i]] = request->getValues[i];
-    }    
+    }
   }
 
   void GetHttpHeaders(HttpHeaders& result, const OrthancPluginHttpRequest* request)
@@ -4280,7 +4280,7 @@ namespace OrthancPlugins
     for (uint32_t i = 0; i < request->headersCount; ++i)
     {
       result[request->headersKeys[i]] = request->headersValues[i];
-    }    
+    }
   }
 
   void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* request)
@@ -4474,7 +4474,7 @@ namespace OrthancPlugins
           mimeType = h->second.c_str();
         }
       }
-      
+
       AnswerString(answerBody_, mimeType, output);
     }
     else

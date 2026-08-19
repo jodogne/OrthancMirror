@@ -105,11 +105,11 @@ add_definitions(
 
   -DOPENSSLDIR="/usr/local/ssl"
   -DMODULESDIR=""  # TODO
-  
+
   -DOPENSSL_BUILDING_OPENSSL
   -DOPENSSL_THREADS
   -DOPENSSL_IA32_SSE2
-  
+
   -DOPENSSL_NO_AFALGENG
   -DOPENSSL_NO_ASM
   -DOPENSSL_NO_CHACHA  # Necessary for VC2015-64 since openssl-3.0.1
@@ -308,7 +308,7 @@ list(REMOVE_ITEM OPENSSL_SOURCES
   ${OPENSSL_SOURCES_DIR}/engines/e_loader_attic.c
   ${OPENSSL_SOURCES_DIR}/providers/common/securitycheck_fips.c
   ${OPENSSL_SOURCES_DIR}/providers/implementations/macs/blake2_mac_impl.c
-  
+
   ${OPENSSL_SOURCES_DIR}/engines/e_afalg.c  # Fails on OS X and Visual Studio
   ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_ieee754.c  # Fails on Visual Studio
 
@@ -345,9 +345,9 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
 elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   list(APPEND OPENSSL_SOURCES
     ${OPENSSL_SOURCES_DIR}/providers/implementations/rands/seeding/rand_win.c
-    )  
+    )
 endif()
-  
+
 
 # Check out "${OPENSSL_SOURCES_DIR}/Configurations/README.md": "This
 # is default if no option is specified, it works on any supported
@@ -371,7 +371,7 @@ endif()
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(OPENSSL_DEFINITIONS
     "${OPENSSL_DEFINITIONS};OPENSSL_SYSNAME_WIN32;SO_WIN32;WIN32_LEAN_AND_MEAN;L_ENDIAN;NO_WINDOWS_BRAINDEATH")
-  
+
   if (ENABLE_OPENSSL_ENGINES)
     link_libraries(crypt32)
   endif()
@@ -379,7 +379,7 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   add_definitions(
     -DOPENSSL_RAND_SEED_OS  # ${OPENSSL_SOURCES_DIR}/crypto/rand/rand_win.c
     )
- 
+
 elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
   add_definitions(
     # In order for "crypto/mem_sec.c" to compile on LSB

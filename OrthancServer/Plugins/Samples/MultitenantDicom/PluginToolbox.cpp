@@ -45,7 +45,7 @@ namespace PluginToolbox
       // column of undefined length as a primary key
       return false;
     }
-      
+
     for (size_t i = 0; i < label.size(); i++)
     {
       if (!(label[i] == '_' ||
@@ -122,7 +122,7 @@ namespace PluginToolbox
     for (size_t i = 0; i < names.size(); i++)
     {
       parameters = Orthanc::RemoteModalityParameters(modalities[names[i]]);
-      
+
       if (IsSameAETitle(isStrict, parameters.GetApplicationEntityTitle(), aet))
       {
         name = names[i];
@@ -151,7 +151,7 @@ namespace PluginToolbox
     std::string s = Orthanc::SerializationToolbox::ReadString(serverConfig, KEY_LABELS_CONSTRAINT, KEY_ALL);
     targetConstraint = PluginToolbox::StringToLabelsConstraint(s);
   }
-  
+
 
   void AddLabelsToFindRequest(Json::Value& request,
                               const std::set<std::string>& labels,

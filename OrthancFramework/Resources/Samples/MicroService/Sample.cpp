@@ -45,10 +45,10 @@ private:
   static void Hello(Orthanc::RestApiGetCall& call)
   {
     GetSelf(call).SayHello();
-    
+
     Json::Value value = Json::arrayValue;
     value.append("World");
-    
+
     call.GetOutput().AnswerJson(value);
   }
 
@@ -56,7 +56,7 @@ public:
   MicroService()
   {
     Register("/hello", Hello);
-  }  
+  }
 };
 
 int main()
@@ -65,14 +65,14 @@ int main()
   Orthanc::Logging::EnableTraceLevel(true);
 
   MicroService rest;
-  
+
   {
     Orthanc::HttpServer httpServer;
     httpServer.SetPortNumber(8000);
     httpServer.Register(rest);
     httpServer.SetRemoteAccessAllowed(true);
     httpServer.Start();
-    
+
     LOG(WARNING) << "Micro-service started on port " << httpServer.GetPortNumber();
     Orthanc::SystemToolbox::ServerBarrier();
   }
@@ -80,6 +80,6 @@ int main()
   LOG(WARNING) << "Micro-service stopped";
 
   Orthanc::Logging::Finalize();
-  
+
   return 0;
 }

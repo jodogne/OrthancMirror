@@ -80,7 +80,7 @@ namespace Orthanc
       return true;
     }
   }
-    
+
   std::string HttpFileSender::GetContentType()
   {
     if (contentType_.empty())

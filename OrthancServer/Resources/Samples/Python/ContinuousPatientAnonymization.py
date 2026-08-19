@@ -11,7 +11,7 @@
 # modify it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -64,7 +64,7 @@ def AnonymizePatient(path):
     # Ignore anonymized patients
     if not 'AnonymizedFrom' in patient:
         print('Patient with ID "%s" is stabilized: anonymizing it...' % (patientID))
-        
+
         # The PatientID after anonymization is taken as the 8 first
         # characters from the MD5 hash of the original PatientID
         h = hashlib.md5(patientID.encode('ascii'))
@@ -84,7 +84,7 @@ def AnonymizePatient(path):
 
 ##
 ## Main loop that listens to the changes API.
-## 
+##
 
 current = 0
 while True:

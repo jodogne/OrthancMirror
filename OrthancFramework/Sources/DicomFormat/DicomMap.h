@@ -48,8 +48,8 @@ namespace Orthanc
     Content content_;
 
     // Warning: This takes the ownership of "value"
-    void SetValueInternal(uint16_t group, 
-                          uint16_t element, 
+    void SetValueInternal(uint16_t group,
+                          uint16_t element,
                           DicomValue* value);
 
   public:
@@ -58,7 +58,7 @@ namespace Orthanc
     static void ResetDefaultMainDicomTags();
 
     size_t GetSize() const;
-    
+
     DicomMap* Clone() const;
 
     void Assign(const DicomMap& other);
@@ -67,9 +67,9 @@ namespace Orthanc
 
     void SetNullValue(uint16_t group,
                       uint16_t element);
-    
+
     void SetNullValue(const DicomTag& tag);
-    
+
     void SetValue(uint16_t group,
                   uint16_t element,
                   const DicomValue& value);
@@ -166,7 +166,7 @@ namespace Orthanc
 
     static bool IsDicomFile(const void* dicom,
                             size_t size);
-    
+
     static bool ParseDicomMetaInformation(DicomMap& result,
                                           const void* dicom,
                                           size_t size);
@@ -190,7 +190,7 @@ namespace Orthanc
                         const DicomTag& tag) const;
 
     bool ParseInteger64(int64_t& result,
-                        const DicomTag& tag) const;                                
+                        const DicomTag& tag) const;
 
     bool ParseUnsignedInteger32(uint32_t& result,
                                 const DicomTag& tag) const;
@@ -207,7 +207,7 @@ namespace Orthanc
     bool ParseDouble(double& result,
                      const DicomTag& tag) const;
 
-    void FromDicomAsJson(const Json::Value& dicomAsJson, 
+    void FromDicomAsJson(const Json::Value& dicomAsJson,
                          bool append = false,
                          bool parseSequences = false);
 
@@ -219,7 +219,7 @@ namespace Orthanc
     void ExtractMainDicomTags(const DicomMap& other);
 
     bool HasOnlyMainDicomTags() const;
-    
+
     void Serialize(Json::Value& target) const;
 
     void Unserialize(const Json::Value& source);

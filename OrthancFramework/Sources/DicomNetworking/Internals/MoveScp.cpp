@@ -96,7 +96,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Orthanc
 {
   namespace
-  {  
+  {
     struct MoveScpData
     {
       std::string target_;
@@ -149,11 +149,11 @@ namespace Orthanc
 
 
     void MoveScpCallback(
-      /* in */ 
-      void *callbackData,  
-      OFBool cancelled, 
-      T_DIMSE_C_MoveRQ *request, 
-      DcmDataset *requestIdentifiers, 
+      /* in */
+      void *callbackData,
+      OFBool cancelled,
+      T_DIMSE_C_MoveRQ *request,
+      DcmDataset *requestIdentifiers,
       int responseCount,
       /* out */
       T_DIMSE_C_MoveRSP *response,
@@ -162,10 +162,10 @@ namespace Orthanc
     {
       assert(response != NULL);
       assert(requestIdentifiers != NULL);
-      
+
       memset(response, 0, sizeof(T_DIMSE_C_MoveRSP));
       *statusDetail = NULL;
-      *responseIdentifiers = NULL;   
+      *responseIdentifiers = NULL;
 
       MoveScpData& data = *reinterpret_cast<MoveScpData*>(callbackData);
       if (data.lastRequest_ == NULL)
@@ -219,7 +219,7 @@ namespace Orthanc
         response->DimseStatus = STATUS_MOVE_Failed_UnableToProcess;
         return;
       }
-  
+
       if (data.subOperationCount_ == 0)
       {
         response->DimseStatus = STATUS_Success;
@@ -273,8 +273,8 @@ namespace Orthanc
   }
 
 
-  OFCondition Internals::moveScp(T_ASC_Association * assoc, 
-                                 T_DIMSE_Message * msg, 
+  OFCondition Internals::moveScp(T_ASC_Association * assoc,
+                                 T_DIMSE_Message * msg,
                                  T_ASC_PresentationContextID presID,
                                  IMoveRequestHandler& handler,
                                  const std::string& remoteIp,
@@ -290,7 +290,7 @@ namespace Orthanc
     data.remoteAet_ = &remoteAet;
     data.calledAet_ = &calledAet;
 
-    OFCondition cond = DIMSE_moveProvider(assoc, presID, &msg->msg.CMoveRQ, 
+    OFCondition cond = DIMSE_moveProvider(assoc, presID, &msg->msg.CMoveRQ,
                                           MoveScpCallback, &data,
                                           /*opt_blockMode*/ (timeout ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                                           /*opt_dimse_timeout*/ timeout);

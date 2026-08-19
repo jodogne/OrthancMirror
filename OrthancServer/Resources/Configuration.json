@@ -3,8 +3,8 @@
    * General configuration of Orthanc
    *
    * As a general recommendation, you should always favor absolute
-   * paths when you need to provide a path to a file or a directory.  
-   * This is not done in this configuration file since we don't know 
+   * paths when you need to provide a path to a file or a directory.
+   * This is not done in this configuration file since we don't know
    * where Orthanc is going to be installed.
    **/
 
@@ -40,7 +40,7 @@
   // if the instance was sent through C-STORE, a 507 HTTP status code
   // if using the REST API and a 0xA700 Failure reason when using
   // DICOMweb STOW-RS.
-  // Note: this value is taken into account only if you have set 
+  // Note: this value is taken into account only if you have set
   // a MaximumStorageSize != 0 or a MaximumPatientCount != 0
   // Allowed values: "Recycle", "Reject"
   // (new in Orthanc 1.11.2)
@@ -184,7 +184,7 @@
      "Mpeg4TransferSyntaxAccepted"        : true,  // New in Orthanc 1.6.0
      "H265TransferSyntaxAccepted"         : true,  // New in Orthanc 1.9.0
   **/
-  
+
   // Whether Orthanc accepts to act as C-STORE SCP for unknown storage
   // SOP classes (aka. "promiscuous mode")
   "UnknownSopClassAccepted" : false,
@@ -245,11 +245,11 @@
 
   // Path to a file containing the concatenation of the client SSL
   // certificate(s) that are trusted to verify the identity of remote
-  // HTTP clients. The individual certificate(s) or root CAs must be 
-  // stored in the PEM format. This option is only meaningful 
-  // if "SslVerifyPeers" is true.  
+  // HTTP clients. The individual certificate(s) or root CAs must be
+  // stored in the PEM format. This option is only meaningful
+  // if "SslVerifyPeers" is true.
   "SslTrustedClientCertificates" : "trustedClientCertificates.pem",
-  
+
   // Whether or not the password protection is enabled (using HTTP
   // basic access authentication). Starting with Orthanc 1.5.8, if
   // "AuthenticationEnabled" is not explicitly set, authentication is
@@ -298,7 +298,7 @@
   /**
      "DicomTlsTrustedCertificates" : "trusted.crt",
   **/
-  
+
   // Whether Orthanc rejects DICOM TLS connections to/from remote
   // modalities that do not provide a certificate. Setting this option
   // to "true" (resp. "false") corresponds to "--require-peer-cert"
@@ -307,7 +307,7 @@
   // Once you set this configuration to true, you must provide a list of
   // trusted certificates in DicomTlsTrustedCertificates.
   "DicomTlsRemoteCertificateRequired" : true,
-  
+
   // Whether the Orthanc SCP allows incoming C-ECHO requests, even
   // from SCU modalities it does not know about (i.e. that are not
   // listed in the "DicomModalities" option above). Orthanc 1.3.0
@@ -328,7 +328,7 @@
   // "DicomAlwaysAllowFindWorklist" for worklists.
   "DicomAlwaysAllowFind" : false,
 
-  // Whether the Orthanc SCP allows incoming C-FIND requests for worklists, 
+  // Whether the Orthanc SCP allows incoming C-FIND requests for worklists,
   // even from SCU modalities it does not know about (i.e. that are not
   // listed in the "DicomModalities" option above). Setting this
   // option to "true" implies security risks. (new in Orthanc 1.10.0)
@@ -367,7 +367,7 @@
      * connect to an instance of the "storescp" open-source DICOM
      * store (shipped in the DCMTK distribution), as started by the
      * command line "storescp 2000". The first parameter is the
-     * AET of the remote modality (cannot be longer than 16 
+     * AET of the remote modality (cannot be longer than 16
      * characters), the second one is the remote network address,
      * and the third one is the TCP port number corresponding
      * to the DICOM protocol on the remote modality (usually 104).
@@ -378,7 +378,7 @@
      * A fourth parameter is available to enable patches for
      * specific PACS manufacturers. The allowed values are currently:
      * - "Generic" (default value),
-     * - "GenericNoWildcardInDates" (to replace "*" by "" in date fields 
+     * - "GenericNoWildcardInDates" (to replace "*" by "" in date fields
      *   in outgoing C-FIND requests originating from Orthanc),
      * - "GenericNoUniversalWildcard" (to replace "*" by "" in all fields
      *   in outgoing C-FIND SCU requests originating from Orthanc),
@@ -412,9 +412,9 @@
      * the global option "EnableTranscoding" is set to "true".
      *
      * By default, all "Allow*" options are true.
-     * "AllowStorageCommitment" is actually an alias for 
+     * "AllowStorageCommitment" is actually an alias for
      * "AllowNAction" & "AllowEventReport".
-     * 
+     *
      * The "UseDicomTls" option specifies whether DICOM TLS should be
      * used when opening a SCU connection from Orthanc to this remote
      * modality. By default, DICOM TLS is not enabled.
@@ -480,7 +480,7 @@
 
   // Number of threads that are used by the embedded DICOM server.
   // This defines the number of concurrent DICOM operations that can
-  // be run when Orthanc is acting as SCP. 
+  // be run when Orthanc is acting as SCP.
   // Note: This is not limiting the number of concurrent connections
   // but the number of concurrent DICOM operations.
   // For instance, with a single thread, if a C-FIND request is received during
@@ -607,7 +607,7 @@
   // (such as PatientName). By default, the search is
   // case-insensitive, which does not follow the DICOM standard.
   "CaseSensitivePN" : false,
-  
+
   // If set to "false", Orthanc will not load its default dictionary
   // of private tags. This might be necessary if you cannot import a
   // DICOM file encoded using the Implicit VR Endian transfer syntax,
@@ -690,7 +690,7 @@
   // corresponding to "Never" and true corresponding to "Always".
   // Boolean values are still accepted for backward compatibility.
   // "OverwriteInstances" : "Never",
-  "OverwriteInstances" : "Never", 
+  "OverwriteInstances" : "Never",
 
   // Maximum number of ZIP/media archives that are maintained by
   // Orthanc, as a response to the asynchronous creation of archives.
@@ -760,11 +760,11 @@
   // Implicit, Little Endian Explicit or Big Endian Explicit (new in
   // Orthanc 1.8.2).
   "IngestTranscodingOfUncompressed" : true,
-  
+
   // Whether ingest transcoding is applied to incoming DICOM instances
   // that have a compressed transfer syntax (new in Orthanc 1.8.2).
   "IngestTranscodingOfCompressed" : true,
-  
+
   // The default compression level that is used when transcoding to one
   // of the lossy/JPEG transfer syntaxes (integer between 1 and 100).
   // This value is currently only used by the default built-in DCMTK
@@ -816,7 +816,7 @@
 
   // Extra Main Dicom tags that are stored in DB together with all default
   // Main Dicom tags that are already stored.
-  // see https://orthanc.uclouvain.be/book/faq/main-dicom-tags.html 
+  // see https://orthanc.uclouvain.be/book/faq/main-dicom-tags.html
   // (new in Orthanc 1.11.0)
   // Sequences tags are not supported.
   /**
@@ -840,7 +840,7 @@
   */
 
   // Configure Orthanc in read only mode.
-  // In this mode, many Orthanc features that requires a write access to the 
+  // In this mode, many Orthanc features that requires a write access to the
   // Index DB or the disk storage won't be available at all.
   // (new in Orthanc 1.12.5)
   "ReadOnly" : false,

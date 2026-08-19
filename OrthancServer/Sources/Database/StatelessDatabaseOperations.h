@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -77,7 +77,7 @@ namespace Orthanc
       virtual void SignalChange(const ServerIndexChange& change) = 0;
     };
 
-    
+
     class ITransactionContextFactory : public boost::noncopyable
     {
     public:
@@ -97,7 +97,7 @@ namespace Orthanc
 
     protected:
       IDatabaseWrapper::ITransaction&  transaction_;
-      
+
     public:
       explicit ReadOnlyTransaction(IDatabaseWrapper::ITransaction& transaction,
                                    ITransactionContext& context) :
@@ -118,7 +118,7 @@ namespace Orthanc
       SeriesStatus GetSeriesStatus(int64_t id,
                                    int64_t expectedNumberOfInstances);
 
-      
+
       /**
        * Read-only methods from "IDatabaseWrapper"
        **/
@@ -186,12 +186,12 @@ namespace Orthanc
       {
         return transaction_.GetPublicId(resourceId);
       }
-      
+
       uint64_t GetResourcesCount(ResourceType resourceType)
       {
         return transaction_.GetResourcesCount(resourceType);
       }
-      
+
       ResourceType GetResourceType(int64_t resourceId)
       {
         return transaction_.GetResourceType(resourceId);
@@ -201,12 +201,12 @@ namespace Orthanc
       {
         return transaction_.GetTotalCompressedSize();
       }
-    
+
       uint64_t GetTotalUncompressedSize()
       {
         return transaction_.GetTotalUncompressedSize();
       }
-      
+
       bool IsProtectedPatient(int64_t internalId)
       {
         return transaction_.IsProtectedPatient(internalId);
@@ -225,7 +225,7 @@ namespace Orthanc
       {
         return transaction_.LookupAttachment(attachment, revision, id, contentType);
       }
-      
+
       void GetAttachmentCustomData(std::string& customData,
                                    const std::string& attachmentUuid)
       {
@@ -252,7 +252,7 @@ namespace Orthanc
       {
         return transaction_.LookupParent(parentId, resourceId);
       }
-        
+
       bool LookupResource(int64_t& id,
                           ResourceType& type,
                           const std::string& publicId)
@@ -339,7 +339,7 @@ namespace Orthanc
       {
         transaction_.AddAttachment(id, attachment, revision);
       }
-      
+
       void ClearChanges()
       {
         transaction_.ClearChanges();
@@ -370,7 +370,7 @@ namespace Orthanc
       {
         return transaction_.DeleteAttachment(id, attachment);
       }
-      
+
       void DeleteMetadata(int64_t id,
                           MetadataType type)
       {
@@ -424,7 +424,7 @@ namespace Orthanc
         return transaction_.SetMetadata(id, type, value, revision);
       }
 
-      void SetProtectedPatient(int64_t internalId, 
+      void SetProtectedPatient(int64_t internalId,
                                bool isProtected)
       {
         transaction_.SetProtectedPatient(internalId, isProtected);
@@ -530,7 +530,7 @@ namespace Orthanc
 
       virtual void Apply(ReadWriteTransaction& transaction) = 0;
     };
-    
+
 
   private:
     class Transaction;
@@ -568,7 +568,7 @@ namespace Orthanc
     // Only used to handle "ErrorCode_DatabaseCannotSerialize" in the
     // case of collision between multiple writers
     void SetMaxDatabaseRetries(unsigned int maxRetries);
-    
+
     // It is assumed that "GetDatabaseVersion()" can run out of a
     // database transaction
     unsigned int GetDatabaseVersion()
@@ -585,7 +585,7 @@ namespace Orthanc
 
 
     void Apply(IReadOnlyOperations& operations);
-  
+
     void Apply(IReadWriteOperations& operations);
 
     void GetAllMetadata(std::map<MetadataType, std::string>& target,
@@ -597,9 +597,9 @@ namespace Orthanc
 
     void GetGlobalStatistics(/* out */ uint64_t& diskSize,
                              /* out */ uint64_t& uncompressedSize,
-                             /* out */ uint64_t& countPatients, 
-                             /* out */ uint64_t& countStudies, 
-                             /* out */ uint64_t& countSeries, 
+                             /* out */ uint64_t& countPatients,
+                             /* out */ uint64_t& countStudies,
+                             /* out */ uint64_t& countSeries,
                              /* out */ uint64_t& countInstances);
 
     void GetAttachmentCustomData(std::string& customData,
@@ -683,13 +683,13 @@ namespace Orthanc
     bool LookupParent(std::string& target,
                       const std::string& publicId);
 
-    void GetResourceStatistics(/* out */ uint64_t& diskSize, 
-                               /* out */ uint64_t& uncompressedSize, 
-                               /* out */ unsigned int& countStudies, 
-                               /* out */ unsigned int& countSeries, 
-                               /* out */ unsigned int& countInstances, 
-                               /* out */ uint64_t& dicomDiskSize, 
-                               /* out */ uint64_t& dicomUncompressedSize, 
+    void GetResourceStatistics(/* out */ uint64_t& diskSize,
+                               /* out */ uint64_t& uncompressedSize,
+                               /* out */ unsigned int& countStudies,
+                               /* out */ unsigned int& countSeries,
+                               /* out */ unsigned int& countInstances,
+                               /* out */ uint64_t& dicomDiskSize,
+                               /* out */ uint64_t& dicomUncompressedSize,
                                ResourceType type,
                                const std::string& publicId);
 
@@ -777,8 +777,8 @@ namespace Orthanc
                    const std::string& publicId,
                    ResourceType level);
 
-    void ReconstructInstance(const ParsedDicomFile& dicom, 
-                             bool limitToThisLevelDicomTags, 
+    void ReconstructInstance(const ParsedDicomFile& dicom,
+                             bool limitToThisLevelDicomTags,
                              ResourceType limitToLevel_);
 
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
@@ -861,7 +861,7 @@ namespace Orthanc
     bool DequeueValue(std::string& value,
                       const std::string& queueId,
                       QueueOrigin origin);
-    
+
     uint64_t GetQueueSize(const std::string& queueId);
 
     bool ReserveQueueValue(std::string& value,

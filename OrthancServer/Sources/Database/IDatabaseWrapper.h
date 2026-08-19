@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -117,7 +117,7 @@ namespace Orthanc
       {
         return hasAttachmentCustomDataSupport_;
       }
-      
+
       void SetHasExtendedChanges(bool value)
       {
         hasExtendedChanges_ = value;
@@ -278,7 +278,7 @@ namespace Orthanc
       virtual ResourceType GetResourceType(int64_t resourceId) = 0;
 
       virtual uint64_t GetTotalCompressedSize() = 0;
-    
+
       virtual uint64_t GetTotalUncompressedSize() = 0;
 
       virtual bool IsProtectedPatient(int64_t internalId) = 0;
@@ -293,7 +293,7 @@ namespace Orthanc
                              const std::string& date) = 0;
 
       virtual void LogExportedResource(const ExportedResource& resource) = 0;
-    
+
       virtual bool LookupAttachment(FileInfo& attachment,
                                     int64_t& revision,
                                     int64_t id,
@@ -344,16 +344,16 @@ namespace Orthanc
                                const std::string& value,
                                int64_t revision) = 0;
 
-      virtual void SetProtectedPatient(int64_t internalId, 
+      virtual void SetProtectedPatient(int64_t internalId,
                                        bool isProtected) = 0;
 
 
       /**
        * Primitives introduced in Orthanc 1.5.2
        **/
-    
+
       virtual bool IsDiskSizeAbove(uint64_t threshold) = 0;
-    
+
 
       // Returns "true" iff. the instance is new and has been inserted
       // into the database. If "false" is returned, the content of
@@ -485,11 +485,11 @@ namespace Orthanc
 
       // New in Orthanc 1.12.10
       virtual bool ReserveQueueValue(std::string& value /* out */,
-                                     uint64_t& valueId /* out */, 
+                                     uint64_t& valueId /* out */,
                                      const std::string& queueId,
                                      QueueOrigin origin,
                                      uint32_t releaseTimeout) = 0;
-      
+
       // New in Orthanc 1.12.10
       virtual void AcknowledgeQueueValue(const std::string& queueId,
                                          uint64_t valueId) = 0;

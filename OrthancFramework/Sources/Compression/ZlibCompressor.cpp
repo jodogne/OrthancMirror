@@ -71,7 +71,7 @@ namespace Orthanc
 
     int error = compress2(target,
                           &compressedSize,
-                          const_cast<Bytef *>(static_cast<const Bytef *>(uncompressed)), 
+                          const_cast<Bytef *>(static_cast<const Bytef *>(uncompressed)),
                           static_cast<uLong>(uncompressedSize),
                           GetCompressionLevel());
 
@@ -86,7 +86,7 @@ namespace Orthanc
 
       default:
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
-      }  
+      }
     }
 
     // The compression was successful
@@ -124,7 +124,7 @@ namespace Orthanc
     }
 
     uint64_t uncompressedSize = ReadUncompressedSizePrefix(compressed, compressedSize);
-    
+
     // New in Orthanc 1.9.0: Explicitly use litte-endian encoding in size prefix
     uncompressedSize = le64toh(uncompressedSize);
 
@@ -139,7 +139,7 @@ namespace Orthanc
 
     uLongf tmp = static_cast<uLongf>(uncompressedSize);
     int error = uncompress
-      (reinterpret_cast<uint8_t*>(&uncompressed[0]), 
+      (reinterpret_cast<uint8_t*>(&uncompressed[0]),
        &tmp,
        reinterpret_cast<const uint8_t*>(compressed) + sizeof(uint64_t),
         static_cast<uLong>(compressedSize - sizeof(uint64_t)));
@@ -158,7 +158,7 @@ namespace Orthanc
 
       default:
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
-      }  
+      }
     }
   }
 }

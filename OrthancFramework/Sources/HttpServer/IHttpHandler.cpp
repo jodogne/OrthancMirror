@@ -48,7 +48,7 @@ namespace Orthanc
     StringHttpOutput stream;
     HttpOutput http(stream, false /* assume no keep-alive */, 0);
 
-    if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Get, curi, 
+    if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Get, curi,
                        httpHeaders, getArguments, NULL /* no body for GET */, 0, "" /* no authentication payload */))
     {
       if (stream.GetStatus() == HttpStatus_200_Ok)
@@ -60,7 +60,7 @@ namespace Orthanc
       {
         stream.GetHeaders(*answerHeaders, true /* convert key to lower case */);
       }
-      
+
       return stream.GetStatus();
     }
     else
@@ -88,7 +88,7 @@ namespace Orthanc
     StringHttpOutput stream;
     HttpOutput http(stream, false /* assume no keep-alive */, 0);
 
-    if (handler.Handle(http, origin, LOCALHOST, "", method, curi, 
+    if (handler.Handle(http, origin, LOCALHOST, "", method, curi,
                        httpHeaders, getArguments, bodyData, bodySize, "" /* no authentication payload */))
     {
       stream.GetBody(answerBody);
@@ -97,7 +97,7 @@ namespace Orthanc
       {
         stream.GetHeaders(*answerHeaders, true /* convert key to lower case */);
       }
-      
+
       return stream.GetStatus();
     }
     else
@@ -148,7 +148,7 @@ namespace Orthanc
     StringHttpOutput stream;
     HttpOutput http(stream, false /* assume no keep-alive */, 0);
 
-    if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Delete, curi, 
+    if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Delete, curi,
                        httpHeaders, getArguments, NULL /* no body for DELETE */, 0, "" /* no authentication payload */))
     {
       stream.GetBody(answerBody);
@@ -157,7 +157,7 @@ namespace Orthanc
       {
         stream.GetHeaders(*answerHeaders, true /* convert key to lower case */);
       }
-      
+
       return stream.GetStatus();
     }
     else

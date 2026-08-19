@@ -68,7 +68,7 @@ namespace Orthanc
       if (length % 4 != 0)
       {
         // Error: Each fragment is index with 4 bytes (uint32_t)
-        throw OrthancException(ErrorCode_BadFileFormat);        
+        throw OrthancException(ErrorCode_BadFileFormat);
       }
 
       uint8_t* content = NULL;
@@ -132,7 +132,7 @@ namespace Orthanc
       // Parse the offset table
       std::vector<uint32_t> offsetOfFrame;
       GetOffsetTable(offsetOfFrame);
-      
+
       if (offsetOfFrame.size() != countFrames ||
           offsetOfFrame[0] != 0)
       {
@@ -261,7 +261,7 @@ namespace Orthanc
     uint8_t*  pixelData_;
     size_t    frameSize_;
 
-  public: 
+  public:
     UncompressedIndex(DcmDataset& dataset,
                       unsigned int countFrames,
                       size_t frameSize) :
@@ -316,7 +316,7 @@ namespace Orthanc
     std::string  pixelData_;
     size_t       frameSize_;
 
-  public: 
+  public:
     PsmctRle1Index(DcmDataset& dataset,
                    unsigned int countFrames,
                    size_t frameSize) :
@@ -368,7 +368,7 @@ namespace Orthanc
        * video itself).
        **/
       return 1;
-    }            
+    }
 
     const char* tmp = NULL;
     if (!dicom.findAndGetString(DCM_NumberOfFrames, tmp).good() ||

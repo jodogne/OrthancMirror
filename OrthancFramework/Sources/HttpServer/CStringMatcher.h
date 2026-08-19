@@ -37,13 +37,13 @@ namespace Orthanc
   {
   private:
     class Search;
-      
+
     boost::shared_ptr<Search>  search_;  // PImpl pattern
     std::string                pattern_;
     bool                       valid_;
     const char*                matchBegin_;
     const char*                matchEnd_;
-    
+
   public:
     explicit CStringMatcher(const std::string& pattern);
 

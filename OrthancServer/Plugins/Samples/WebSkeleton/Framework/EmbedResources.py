@@ -71,7 +71,7 @@ while i < len(SOURCES):
 
     if resourceName in resources:
         raise Exception("Twice the same resource: " + resourceName)
-    
+
     if os.path.isdir(pathName):
         # The resource is a directory: Recursively explore its files
         content = {}
@@ -143,7 +143,7 @@ for name in resources:
     if resources[name]['Type'] == 'File':
         if isFirst:
             isFirst = False
-        else:    
+        else:
             header.write(',\n')
         header.write('      %s' % name)
 
@@ -159,7 +159,7 @@ for name in resources:
     if resources[name]['Type'] == 'Directory':
         if isFirst:
             isFirst = False
-        else:    
+        else:
             header.write(',\n')
         header.write('      %s' % name)
 

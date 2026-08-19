@@ -276,10 +276,10 @@ struct PluginStatus
     target["Version"] = statusVersion;
     target["LastProcessedChange"] = Json::Value::Int64(lastProcessedChange);
     target["LastChangeToProcess"] = Json::Value::Int64(lastChangeToProcess);
-    
+
     if (lastTimeStarted == boost::date_time::not_a_date_time)
     {
-      target["LastTimeStarted"] = Json::Value::null;  
+      target["LastTimeStarted"] = Json::Value::null;
     }
     else
     {
@@ -338,7 +338,7 @@ static void ReadStatusFromDb()
     pluginStatus_.lastProcessedChange = -1;
     pluginStatus_.lastChangeToProcess = -1;
     pluginStatus_.lastTimeStarted = boost::date_time::not_a_date_time;
-    
+
     pluginStatus_.lastProcessedConfiguration.orthancVersion = "1.9.0"; // when we don't know, we assume some files were stored with Orthanc 1.9.0 (last version saving the dicom-as-json files)
     pluginStatus_.lastProcessedConfiguration.dicomWebVersion = "1.14"; // the first change that requires processing has been introduced between 1.14 & 1.15
 
@@ -346,7 +346,7 @@ static void ReadStatusFromDb()
     pluginStatus_.lastProcessedConfiguration.patientsMainDicomTagsSignature = "0010,0010;0010,0020;0010,0030;0010,0040;0010,1000";
     pluginStatus_.lastProcessedConfiguration.studiesMainDicomTagsSignature = "0008,0020;0008,0030;0008,0050;0008,0080;0008,0090;0008,1030;0020,000d;0020,0010;0032,1032;0032,1060";
     pluginStatus_.lastProcessedConfiguration.seriesMainDicomTagsSignature = "0008,0021;0008,0031;0008,0060;0008,0070;0008,1010;0008,103e;0008,1070;0018,0010;0018,0015;0018,0024;0018,1030;0018,1090;0018,1400;0020,000e;0020,0011;0020,0037;0020,0105;0020,1002;0040,0254;0054,0081;0054,0101;0054,1000";
-    pluginStatus_.lastProcessedConfiguration.instancesMainDicomTagsSignature = "0008,0012;0008,0013;0008,0018;0020,0012;0020,0013;0020,0032;0020,0037;0020,0100;0020,4000;0028,0008;0054,1330"; 
+    pluginStatus_.lastProcessedConfiguration.instancesMainDicomTagsSignature = "0008,0012;0008,0013;0008,0018;0020,0012;0020,0013;0020,0032;0020,0037;0020,0100;0020,4000;0028,0008;0054,1330";
   }
 }
 
@@ -478,7 +478,7 @@ static void CheckNeedsProcessing(bool& needsReconstruct, bool& needsReingest, bo
       {
         ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: storage compression is now disabled -> will perform housekeeping");
       }
-      
+
       needsReingest = true;
     }
     else
@@ -492,7 +492,7 @@ static void CheckNeedsProcessing(bool& needsReconstruct, bool& needsReingest, bo
     if (triggerOnIngestTranscodingChange_)
     {
       ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: ingest transcoding has changed -> will perform housekeeping");
-      
+
       needsReingest = true;
     }
     else
@@ -552,7 +552,7 @@ static bool ProcessChanges(bool needsReconstruct, bool needsReingest, bool needs
 
       try
       {
-        if (!limitToChange_.empty()) // if updating only maindicomtags for a single level 
+        if (!limitToChange_.empty()) // if updating only maindicomtags for a single level
         {
           if (change["ChangeType"] == limitToChange_)
           {
@@ -689,7 +689,7 @@ static void WorkerThread()
     {
       ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: the Orthanc configuration has changed since last run, will reprocess the whole DB !");
     }
-    
+
     Json::Value changes;
     OrthancPlugins::RestApiGet(changes, "/changes?last", false);
 
@@ -732,10 +732,10 @@ static void WorkerThread()
       if (!completed)
       {
         boost::recursive_mutex::scoped_lock lock(pluginStatusMutex_);
-    
+
         ORTHANC_PLUGINS_LOG_INFO("Housekeeper: processed changes " + boost::lexical_cast<std::string>(pluginStatus_.lastProcessedChange) +
                                  " / " + boost::lexical_cast<std::string>(pluginStatus_.lastChangeToProcess));
-        
+
         boost::this_thread::sleep(boost::posix_time::milliseconds(throttleDelay_ * 100));  // wait 1/10 of the delay between changes
       }
 
@@ -751,7 +751,7 @@ static void WorkerThread()
 
       boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
     }
-  }  
+  }
 
   if (completed)
   {
@@ -762,7 +762,7 @@ static void WorkerThread()
 
     pluginStatus_.lastProcessedChange = -1;
     pluginStatus_.lastChangeToProcess = -1;
-    
+
     SaveStatusInDb();
 
     OrthancPluginLogWarning(OrthancPlugins::GetGlobalContext(), "Housekeeper: finished processing all changes");
@@ -844,7 +844,7 @@ extern "C"
       /*
         {
           "Housekeeper": {
-            
+
             // Enables/disables the plugin
             "Enable": false,
 
@@ -859,8 +859,8 @@ extern "C"
 
             // New in 1.12.9
             // If "Force" is set to true, forces the "ReconstructFiles"
-            // option when reconstructing resources even if the plugin 
-            // did not detect any changes in the configuration that 
+            // option when reconstructing resources even if the plugin
+            // did not detect any changes in the configuration that
             // should trigger a Reconstruct.
             "ForceReconstructFiles": false,
 
@@ -871,8 +871,8 @@ extern "C"
 
             // Runs the plugin only at certain period of time.
             // If not specified, the plugin runs all the time
-            // Examples: 
-            // to run between 0AM and 6AM everyday + every night 
+            // Examples:
+            // to run between 0AM and 6AM everyday + every night
             // from 8PM to 12PM and 24h a day on the weekend:
             // "Schedule": {
             //   "Monday": ["0-6", "20-24"],
@@ -884,7 +884,7 @@ extern "C"
             //   "Sunday": ["0-24"]
             // },
 
-            // configure events that can trigger a housekeeping processing 
+            // configure events that can trigger a housekeeping processing
             "Triggers" : {
               "StorageCompressionChange": true,
               "MainDicomTagsChange": true,
@@ -894,7 +894,7 @@ extern "C"
             },
 
             // When rebuilding MainDicomTags, limit to a single level of resource
-            // which can greatly improve performances e.g. if you have only updated 
+            // which can greatly improve performances e.g. if you have only updated
             // the Study level ExtraMainDicomTags.
             // Allowed values: "Patient", "Study", "Series", "Instance", "All"
             "LimitMainDicomTagsReconstructLevel": "All"
@@ -907,7 +907,7 @@ extern "C"
       globalPropertyId_ = housekeeper.GetIntegerValue("GlobalPropertyId", 1025);
       force_ = housekeeper.GetBooleanValue("Force", false);
       forceReconstructFiles_ = housekeeper.GetBooleanValue("ForceReconstructFiles", false);
-      throttleDelay_ = housekeeper.GetUnsignedIntegerValue("ThrottleDelay", 5);      
+      throttleDelay_ = housekeeper.GetUnsignedIntegerValue("ThrottleDelay", 5);
 
       if (housekeeper.GetJson().isMember("Triggers"))
       {

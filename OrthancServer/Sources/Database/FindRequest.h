@@ -70,7 +70,7 @@ namespace Orthanc
       KeyType       type_;
       DicomTag      dicomTag_;
       MetadataType  metadata_;
-      
+
       // TODO-FIND: to execute the query, we actually need:
       // ResourceType level_;
       // DicomTagType dicomTagType_;

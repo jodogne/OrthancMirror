@@ -175,7 +175,7 @@ namespace Orthanc
         e->getUint8Array(pixData) != EC_Normal)
     {
       return false;
-    }    
+    }
 
     // The "unsigned" below IS VERY IMPORTANT
     const uint8_t* inbuffer = reinterpret_cast<const uint8_t*>(pixData);
@@ -280,7 +280,7 @@ namespace Orthanc
       {
         Uint8* pixData = NULL;
         if (e->getUint8Array(pixData) == EC_Normal)
-        {    
+        {
           slowAccessor_.reset(new DicomIntegerPixelAccessor(m, pixData, e->getLength()));
         }
       }
@@ -295,7 +295,7 @@ namespace Orthanc
 
         slowAccessor_.reset(new DicomIntegerPixelAccessor(m, pixData, psmct_.size()));
       }
-    
+
       if (slowAccessor_.get() == NULL)
       {
         throw OrthancException(ErrorCode_BadFileFormat);
@@ -345,11 +345,11 @@ namespace Orthanc
 
     DicomImageInformation info(m);
     PixelFormat format;
-    
+
     if (!info.ExtractPixelFormat(format, ignorePhotometricInterpretation))
     {
-      LOG(WARNING) << "Unsupported DICOM image: " << info.GetBitsStored() 
-                   << "bpp, " << info.GetChannelCount() << " channels, " 
+      LOG(WARNING) << "Unsupported DICOM image: " << info.GetBitsStored()
+                   << "bpp, " << info.GetChannelCount() << " channels, "
                    << (info.IsSigned() ? "signed" : "unsigned")
                    << (info.IsPlanar() ? ", planar, " : ", non-planar, ")
                    << EnumerationToString(info.GetPhotometricInterpretation())
@@ -373,7 +373,7 @@ namespace Orthanc
     const unsigned int height = source.GetInformation().GetHeight();
     const unsigned int width = source.GetInformation().GetWidth();
     const unsigned int channels = source.GetInformation().GetChannelCount();
-    
+
     for (unsigned int y = 0; y < height; y++)
     {
       PixelType* pixel = reinterpret_cast<PixelType*>(target.GetRow(y));
@@ -483,7 +483,7 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_NotImplemented, std::string("Palette Color Lookup Table Descriptor invalid length: '") + r.c_str() + "'");
         }
-        
+
         const unsigned int paletteSize = boost::lexical_cast<unsigned int>(splitR[0]);
         const unsigned int firstInputValueMapped = boost::lexical_cast<unsigned int>(splitR[1]);
         const unsigned int nbBitsUsedInLut = boost::lexical_cast<unsigned int>(splitR[2]);  // The LUT is always 16bits but only part of it might be used
@@ -504,7 +504,7 @@ namespace Orthanc
 
         const uint64_t expectedFrameSourceSize = (static_cast<uint64_t>(target->GetWidth()) *
                                                   static_cast<uint64_t>(target->GetHeight()));
-        
+
         if (pixelDataLength != (expectedFrameSourceSize * numberOfFramesInPixelData))
         {
           DcmElement *elem = NULL;
@@ -512,13 +512,13 @@ namespace Orthanc
 
           if (!dataset.findAndGetUint16(DCM_BitsAllocated, bitsAllocated).good())
           {
-            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);  
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
           }
 
           if (!dataset.findAndGetElement(DCM_PixelData, elem).good() ||
               elem == NULL)
           {
-            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);  
+            THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
           }
 
           // In implicit VR files, pixelLength is expressed in words (OW) although pixels can actually be 8 bits
@@ -533,7 +533,7 @@ namespace Orthanc
         }
 
         const uint8_t* source = reinterpret_cast<const uint8_t*>(pixelData + expectedFrameSourceSize * frameToDecode);
-        
+
         for (unsigned int y = 0; y < height; y++)
         {
           uint8_t* p = reinterpret_cast<uint8_t*>(target->GetRow(y));
@@ -574,7 +574,7 @@ namespace Orthanc
         }
 
         const uint16_t* source = reinterpret_cast<const uint16_t*>(pixelData + expectedFrameSourceSize * frameToDecode);
-        
+
         for (unsigned int y = 0; y < static_cast<unsigned int>(height); y++)
         {
           uint16_t* p = reinterpret_cast<uint16_t*>(target->GetRow(y));
@@ -597,7 +597,7 @@ namespace Orthanc
     }
 
     THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
-  }                                          
+  }
 
 
   ImageAccessor* DicomImageDecoder::DecodeUncompressedImage(DcmDataset& dataset,
@@ -618,7 +618,7 @@ namespace Orthanc
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
-    
+
     /**
      * Deal with lookup tables
      **/
@@ -628,7 +628,7 @@ namespace Orthanc
     if (info.GetPhotometricInterpretation() == PhotometricInterpretation_Palette)
     {
       return DecodeLookupTable(target, info, dataset, NULL, 0, 0 /* we don't know the number of frames in the buffer */, frame);
-    }       
+    }
 
 
     /**
@@ -668,8 +668,8 @@ namespace Orthanc
           const uint8_t* buffer = reinterpret_cast<const uint8_t*>(source.GetAccessor().GetPixelData());
 
           ImageAccessor sourceImage;
-          sourceImage.AssignReadOnly(sourceFormat, 
-                                     info.GetWidth(), 
+          sourceImage.AssignReadOnly(sourceFormat,
+                                     info.GetWidth(),
                                      info.GetHeight(),
                                      info.GetWidth() * GetBytesPerPixel(sourceFormat),
                                      buffer + frame * frameSize);
@@ -692,7 +692,7 @@ namespace Orthanc
             default:
               THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
           }
-            
+
           ImageProcessing::ShiftRight(*target, info.GetShift());
           fastVersionSuccess = true;
         }
@@ -717,7 +717,7 @@ namespace Orthanc
         case PixelFormat_Grayscale8:
           CopyPixels<uint8_t>(*target, source.GetAccessor());
           break;
-        
+
         case PixelFormat_Grayscale16:
           CopyPixels<uint16_t>(*target, source.GetAccessor());
           break;
@@ -799,11 +799,11 @@ namespace Orthanc
 
     std::unique_ptr<ImageAccessor> target(CreateImage(dataset, true));
 
-    Uint32 startFragment = 0;  // Default 
+    Uint32 startFragment = 0;  // Default
     OFString decompressedColorModel;  // Out
 
     OFCondition c;
-    
+
     if (info.GetPhotometricInterpretation() == PhotometricInterpretation_Palette &&
         info.GetChannelCount() == 1)
     {
@@ -828,8 +828,8 @@ namespace Orthanc
       }
 
       if (uncompressed.size() == 0 ||
-          !codec.decodeFrame(&representationParameter, 
-                             pixelSequence, &parameters, 
+          !codec.decodeFrame(&representationParameter,
+                             pixelSequence, &parameters,
                              &dataset, frame, startFragment, &uncompressed[0],
                              uncompressed.size(), decompressedColorModel).good())
       {
@@ -850,9 +850,9 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadFileFormat, errorMessage.str());
       }
 
-      if (!codec.decodeFrame(&representationParameter, 
-                             pixelSequence, &parameters, 
-                             &dataset, frame, startFragment, target->GetBuffer(), 
+      if (!codec.decodeFrame(&representationParameter,
+                             pixelSequence, &parameters,
+                             &dataset, frame, startFragment, target->GetBuffer(),
                              target->GetSize(), decompressedColorModel).good())
       {
         throw OrthancException(ErrorCode_BadFileFormat,
@@ -903,7 +903,7 @@ namespace Orthanc
       }
     }
   }
-  
+
 
   ImageAccessor* DicomImageDecoder::Decode(DcmDataset& dataset,
                                            unsigned int frame)
@@ -945,7 +945,7 @@ namespace Orthanc
           LOG(INFO) << "Decoding a JPEG-LS lossless DICOM image";
           decoder.reset(new DJLSLosslessDecoder);
           break;
-          
+
         case EXS_JPEGLSLossy:
           LOG(INFO) << "Decoding a JPEG-LS near-lossless DICOM image";
           decoder.reset(new DJLSNearLosslessDecoder);
@@ -954,7 +954,7 @@ namespace Orthanc
         default:
           THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
-    
+
       std::unique_ptr<ImageAccessor> result(ApplyCodec(*decoder, parameters, representationParameter, dataset, frame));
       UndoBigEndianSwapping(*result);  // New in Orthanc 1.9.1 to decode on big-endian architectures
       return result.release();
@@ -989,32 +989,32 @@ namespace Orthanc
           LOG(INFO) << "Decoding a JPEG baseline (process 1) DICOM image";
           decoder.reset(new DJDecoderBaseline);
           break;
-          
+
         case EXS_JPEGProcess2_4 :
           LOG(INFO) << "Decoding a JPEG baseline (processes 2 and 4) DICOM image";
           decoder.reset(new DJDecoderExtended);
           break;
-          
+
         case EXS_JPEGProcess6_8:   // Retired
           LOG(INFO) << "Decoding a JPEG spectral section, nonhierarchical (processes 6 and 8) DICOM image";
           decoder.reset(new DJDecoderSpectralSelection);
           break;
-          
+
         case EXS_JPEGProcess10_12:   // Retired
           LOG(INFO) << "Decoding a JPEG full progression, nonhierarchical (processes 10 and 12) DICOM image";
           decoder.reset(new DJDecoderProgressive);
           break;
-          
+
         case EXS_JPEGProcess14:
           LOG(INFO) << "Decoding a JPEG lossless, nonhierarchical (process 14) DICOM image";
           decoder.reset(new DJDecoderLossless);
           break;
-          
+
         case EXS_JPEGProcess14SV1:
           LOG(INFO) << "Decoding a JPEG lossless, nonhierarchical, first-order prediction (process 14 selection value 1) DICOM image";
           decoder.reset(new DJDecoderP14SV1);
           break;
-          
+
         default:
           THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
       }
@@ -1044,7 +1044,7 @@ namespace Orthanc
      * second example of the following page:
      * http://support.dcmtk.org/docs/mod_dcmjpeg.html#Examples
      **/
-    
+
     {
       LOG(INFO) << "Trying to decode a compressed image by transcoding it to Little Endian Explicit";
 
@@ -1174,7 +1174,7 @@ namespace Orthanc
 
         return true;
       }
-      
+
       default:
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_NotImplemented);
     }

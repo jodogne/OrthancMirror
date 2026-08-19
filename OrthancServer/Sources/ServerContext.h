@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -48,7 +48,7 @@ namespace Orthanc
   class ServerTranscoder;
   class SharedArchive;
   class StorageCommitmentReports;
-  
+
 
   /**
    * This class is responsible for maintaining the storage area on the
@@ -60,7 +60,7 @@ namespace Orthanc
     private JobsRegistry::IObserver
   {
     friend class ServerIndex;  // To access "RemoveFile()"
-    
+
   public:
     struct StoreResult
     {
@@ -92,7 +92,7 @@ namespace Orthanc
         return cstoreStatusCode_;
       }
     };
-    
+
   private:
     class LuaServerListener : public IServerListener
     {
@@ -111,7 +111,7 @@ namespace Orthanc
       {
         context_.mainLua_.SignalStoredInstance(publicId, instance, simplifiedTags);
       }
-    
+
       virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE
       {
         context_.mainLua_.SignalChange(change);
@@ -142,7 +142,7 @@ namespace Orthanc
       }
 
     };
-    
+
     class ServerListener
     {
     private:
@@ -205,14 +205,14 @@ namespace Orthanc
     LuaScripting filterLua_;
     LuaServerListener  luaListener_;
     std::unique_ptr<SharedArchive>  mediaArchive_;
-    
+
     // The "JobsEngine" must be *after* "LuaScripting", as
     // "LuaScripting" embeds "LuaJobManager" that registers as an
     // observer to "SequenceOfOperationsJob", whose lifetime
     // corresponds to that of "JobsEngine". It must also be after
     // "mediaArchive_", as jobs might access this archive.
     JobsEngine jobsEngine_;
-    
+
 #if ORTHANC_ENABLE_PLUGINS == 1
     OrthancPlugins* plugins_;
 #endif
@@ -229,7 +229,7 @@ namespace Orthanc
     boost::thread  jobEventsThread_;
     boost::thread  saveJobsThread_;
     boost::thread  memoryTrimmingThread_;
-        
+
     std::unique_ptr<SharedArchive>  queryRetrieveArchive_;
     std::string defaultLocalAet_;
     RetrieveMethod defaultDicomRetrieveMethod_;
@@ -262,7 +262,7 @@ namespace Orthanc
     std::list<std::string>         acceptedSopClasses_;  // ordered; the most 120 common ones first
     bool readOnly_;
     bool patientLevelEnabled_;
-    
+
     StoreResult StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
                                       bool isReconstruct);
@@ -537,7 +537,7 @@ namespace Orthanc
     {
       overwriteInstances_ = overwrite;
     }
-    
+
     OverwriteInstancesMode GetOverwriteInstances() const
     {
       return overwriteInstances_;

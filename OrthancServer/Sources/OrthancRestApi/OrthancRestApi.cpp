@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -51,7 +51,7 @@ namespace Orthanc
       result["ID"] = publicId;
       result["Path"] = GetBasePath(resourceType, publicId);
     }
-    
+
     result["Status"] = EnumerationToString(status);
   }
 
@@ -143,7 +143,7 @@ namespace Orthanc
       sample["ParentStudy"] = "66c8e41e-ac3a9029-0b85e42a-8195ee0a-92c2e62e";
       sample["Path"] = "/instances/19816330-cb02e1cf-df3a8fe8-bf510623-ccefe9f5";
       sample["Status"] = "Success";
-      
+
       call.GetDocumentation()
         .SetTag("Instances")
         .SetSummary("Upload DICOM instances")
@@ -177,7 +177,7 @@ namespace Orthanc
       std::unique_ptr<ZipReader> reader(ZipReader::CreateFromMemory(call.GetBodyData(), call.GetBodySize()));
 
       Json::Value answer = Json::arrayValue;
-      
+
       std::string filename, content;
       while (reader->ReadNextFile(filename, content))
       {
@@ -219,7 +219,7 @@ namespace Orthanc
             }
           }
         }
-      }      
+      }
 
       call.GetOutput().AnswerJson(answer);
     }
@@ -240,7 +240,7 @@ namespace Orthanc
       else
       {
         toStore.reset(DicomInstanceToStore::CreateFromBuffer(call.GetBodyData(), call.GetBodySize()));
-      }    
+      }
 
       toStore->SetOrigin(DicomInstanceOrigin::FromRest(call));
 
@@ -255,13 +255,13 @@ namespace Orthanc
 
   // Registration of the various REST handlers --------------------------------
 
-  OrthancRestApi::OrthancRestApi(ServerContext& context, 
-                                 bool orthancExplorerEnabled) : 
+  OrthancRestApi::OrthancRestApi(ServerContext& context,
+                                 bool orthancExplorerEnabled) :
     context_(context),
     leaveBarrier_(false),
     resetRequestReceived_(false),
-    activeRequests_(context.GetMetricsRegistry(), 
-                    "orthanc_rest_api_active_requests", 
+    activeRequests_(context.GetMetricsRegistry(),
+                    "orthanc_rest_api_active_requests",
                     MetricsUpdatePolicy_MaxOver10Seconds)
   {
     RegisterSystem(orthancExplorerEnabled);
@@ -281,7 +281,7 @@ namespace Orthanc
       LOG(WARNING) << "READ-ONLY SYSTEM: deactivating POST /instances route";
     }
 
-    
+
 
     // Auto-generated directories
     Register("/tools", RestApi::AutoListChildren);
@@ -329,7 +329,7 @@ namespace Orthanc
   static const char* KEY_ASYNCHRONOUS = "Asynchronous";
   static const char* KEY_USER_DATA = "UserData";
 
-  
+
   bool OrthancRestApi::IsSynchronousJobRequest(bool isDefaultSynchronous,
                                                const Json::Value& body)
   {
@@ -351,7 +351,7 @@ namespace Orthanc
     }
   }
 
-  
+
   int OrthancRestApi::GetJobRequestPriority(const Json::Value& body)
   {
     if (body.type() != Json::objectValue ||
@@ -359,12 +359,12 @@ namespace Orthanc
     {
       return 0;   // Default priority
     }
-    else 
+    else
     {
       return SerializationToolbox::ReadInteger(body, KEY_PRIORITY);
     }
   }
-  
+
 
   void OrthancRestApi::SubmitGenericJob(RestApiOutput& output,
                                         ServerContext& context,
@@ -373,7 +373,7 @@ namespace Orthanc
                                         int priority)
   {
     std::unique_ptr<IJob> raii(job);
-    
+
     if (job == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
@@ -402,7 +402,7 @@ namespace Orthanc
     }
   }
 
-  
+
   void OrthancRestApi::SubmitGenericJob(RestApiPostCall& call,
                                         IJob* job,
                                         bool isDefaultSynchronous,
@@ -421,21 +421,21 @@ namespace Orthanc
     SubmitGenericJob(call.GetOutput(), context_, raii.release(), synchronous, priority);
   }
 
-  
+
   void OrthancRestApi::SubmitCommandsJob(RestApiPostCall& call,
                                          SetOfCommandsJob* job,
                                          bool isDefaultSynchronous,
                                          const Json::Value& body) const
   {
     std::unique_ptr<SetOfCommandsJob> raii(job);
-    
+
     if (body.type() != Json::objectValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     job->SetDescription("REST API");
-    
+
     if (body.isMember(KEY_PERMISSIVE))
     {
       job->SetPermissive(SerializationToolbox::ReadBoolean(body, KEY_PERMISSIVE));
@@ -459,14 +459,14 @@ namespace Orthanc
                                                   const Json::Value& body) const
   {
     std::unique_ptr<ThreadedSetOfInstancesJob> raii(job);
-    
+
     if (body.type() != Json::objectValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     job->SetDescription("REST API");
-    
+
     if (body.isMember(KEY_PERMISSIVE))
     {
       job->SetPermissive(SerializationToolbox::ReadBoolean(body, KEY_PERMISSIVE));
@@ -482,7 +482,7 @@ namespace Orthanc
     }
 
     SubmitGenericJob(call, raii.release(), isDefaultSynchronous, body);
-  }  
+  }
 
   void OrthancRestApi::DocumentSubmitGenericJob(RestApiPostCall& call)
   {
@@ -499,7 +499,7 @@ namespace Orthanc
       .SetAnswerField("ID", RestApiCallDocumentation::Type_String, "In asynchronous mode, identifier of the job")
       .SetAnswerField("Path", RestApiCallDocumentation::Type_String, "In asynchronous mode, path to access the job in the REST API");
   }
-    
+
 
   void OrthancRestApi::DocumentSubmitCommandsJob(RestApiPostCall& call)
   {
@@ -592,21 +592,21 @@ namespace Orthanc
       call.GetDocumentation().SetHttpGetArgument(
         GET_SIMPLIFY, RestApiCallDocumentation::Type_Boolean, "If present, " + DOCUMENT_SIMPLIFY, false);
     }
-    
+
     if (defaultFormat != DicomToJsonFormat_Short)
     {
       call.GetDocumentation().SetHttpGetArgument(
         GET_SHORT, RestApiCallDocumentation::Type_Boolean, "If present, " + DOCUMENT_SHORT, false);
     }
-    
+
     if (defaultFormat != DicomToJsonFormat_Full)
     {
       call.GetDocumentation().SetHttpGetArgument(
         GET_FULL, RestApiCallDocumentation::Type_Boolean, "If present, " + DOCUMENT_FULL, false);
-    }    
+    }
   }
-  
-  
+
+
   void OrthancRestApi::DocumentDicomFormat(RestApiPostCall& call,
                                            DicomToJsonFormat defaultFormat)
   {
@@ -615,13 +615,13 @@ namespace Orthanc
       call.GetDocumentation().SetRequestField(POST_SIMPLIFY, RestApiCallDocumentation::Type_Boolean,
                                               "If set to `true`, " + DOCUMENT_SIMPLIFY, false);
     }
-    
+
     if (defaultFormat != DicomToJsonFormat_Short)
     {
       call.GetDocumentation().SetRequestField(POST_SHORT, RestApiCallDocumentation::Type_Boolean,
                                               "If set to `true`, " + DOCUMENT_SHORT, false);
     }
-    
+
     if (defaultFormat != DicomToJsonFormat_Full)
     {
       call.GetDocumentation().SetRequestField(POST_FULL, RestApiCallDocumentation::Type_Boolean,

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -40,7 +40,7 @@
 /**
  * The definition of ORTHANC_PLUGINS_VERSION_IS_ABOVE below is for
  * backward compatibility with Orthanc SDK <= 1.3.0.
- * 
+ *
  *   $ hg diff -r Orthanc-1.3.0:Orthanc-1.3.1 ../../../Plugins/Include/orthanc/OrthancCPlugin.h
  *
  **/
@@ -203,7 +203,7 @@ namespace OrthancPlugins
 
   OrthancPluginContext* GetGlobalContext();
 
-  
+
   class OrthancImage;
 
 
@@ -393,7 +393,7 @@ namespace OrthancPlugins
     void ToString(std::string& target) const;
 
     void ToJson(Json::Value& target) const;
-  
+
     void ToJsonWithoutComments(Json::Value& target) const;
   };
 
@@ -407,7 +407,7 @@ namespace OrthancPlugins
     std::string GetPath(const std::string& key) const;
 
     void LoadConfiguration();
-    
+
   public:
     OrthancConfiguration(); // loads the full Orthanc configuration
 
@@ -427,7 +427,7 @@ namespace OrthancPlugins
 
     bool LookupStringValue(std::string& target,
                            const std::string& key) const;
-    
+
     bool LookupIntegerValue(int& target,
                             const std::string& key) const;
 
@@ -510,7 +510,7 @@ namespace OrthancPlugins
     unsigned int GetHeight() const;
 
     unsigned int GetPitch() const;
-    
+
     void* GetBuffer() const;
 
     const OrthancPluginImage* GetObject() const
@@ -527,7 +527,7 @@ namespace OrthancPlugins
 
     void AnswerJpegImage(OrthancPluginRestOutput* output,
                          uint8_t quality) const;
-    
+
     void* GetWriteableBuffer();
 
     OrthancPluginImage* Release();
@@ -573,13 +573,13 @@ namespace OrthancPlugins
 
   bool ReadJson(Json::Value& target,
                 const std::string& source);
-  
+
   bool ReadJson(Json::Value& target,
                 const void* buffer,
                 size_t size);
 
   bool ReadJsonWithoutComments(Json::Value& target,
-                               const std::string& source);  
+                               const std::string& source);
 
   bool ReadJsonWithoutComments(Json::Value& target,
                                const void* buffer,
@@ -731,7 +731,7 @@ namespace OrthancPlugins
   void ReportMinimalOrthancVersion(unsigned int major,
                                    unsigned int minor,
                                    unsigned int revision);
-  
+
   bool CheckMinimalOrthancVersion(unsigned int major,
                                   unsigned int minor,
                                   unsigned int revision);
@@ -780,7 +780,7 @@ namespace OrthancPlugins
     }
   }
 
-  
+
   template <RestCallback Callback>
   void RegisterRestCallback(const std::string& uri,
                             bool isThreadSafe)
@@ -906,7 +906,7 @@ namespace OrthancPlugins
                 const std::string& body,
                 const HttpHeaders& headers,
                 unsigned int timeout) const;
-    
+
     bool DoPost(Json::Value& target,
                 HttpHeaders& answerHeaders,
                 size_t index,
@@ -989,10 +989,10 @@ namespace OrthancPlugins
     void UpdateSerialized(const Json::Value& serialized);
 
     void UpdateProgress(float progress);
-    
+
   public:
     explicit OrthancJob(const std::string& jobType);
-    
+
     virtual ~OrthancJob()
     {
     }
@@ -1000,7 +1000,7 @@ namespace OrthancPlugins
     virtual OrthancPluginJobStepStatus Step() = 0;
 
     virtual void Stop(OrthancPluginJobStopReason reason) = 0;
-    
+
     virtual void Reset() = 0;
 
     static OrthancPluginJob* Create(OrthancJob* job /* takes ownership */);
@@ -1115,7 +1115,7 @@ namespace OrthancPlugins
                               HttpHeaders& answerHeaders,  // out
                               std::string& answerBody,     // out
                               const std::string& body) const;
-    
+
   public:
     HttpClient();
 
@@ -1230,7 +1230,7 @@ namespace OrthancPlugins
     void NullRestCallback(OrthancPluginRestOutput* output,
                           const char* url,
                           const OrthancPluginHttpRequest* request);
-  
+
     IChunkedRequestReader *NullChunkedRestCallback(const char* url,
                                                    const OrthancPluginHttpRequest* request);
 
@@ -1286,7 +1286,7 @@ namespace OrthancPlugins
     void ChunkedRequestReaderFinalize(
       OrthancPluginServerChunkedRequestReader* reader);
 
-#else  
+#else
 
     OrthancPluginErrorCode ChunkedRestCompatibility(OrthancPluginRestOutput* output,
                                                     const char* url,
@@ -1339,13 +1339,13 @@ namespace OrthancPlugins
         Internals::ChunkedRequestReaderFinalize);
 #else
       OrthancPluginRegisterRestCallbackNoLock(
-        GetGlobalContext(), uri.c_str(), 
+        GetGlobalContext(), uri.c_str(),
         Internals::ChunkedRestCompatibility<GetHandler, PostHandler, DeleteHandler, PutHandler>);
 #endif
     }
   };
 
-  
+
 
 #if HAS_ORTHANC_PLUGINS_STORAGE_COMMITMENT_SCP == 1
   class IStorageCommitmentScpHandler : public boost::noncopyable
@@ -1354,10 +1354,10 @@ namespace OrthancPlugins
     virtual ~IStorageCommitmentScpHandler()
     {
     }
-    
+
     virtual OrthancPluginStorageCommitmentFailureReason Lookup(const std::string& sopClassUid,
                                                                const std::string& sopInstanceUid) = 0;
-    
+
     static OrthancPluginErrorCode Lookup(OrthancPluginStorageCommitmentFailureReason* target,
                                          void* rawHandler,
                                          const char* sopClassUid,
@@ -1373,14 +1373,14 @@ namespace OrthancPlugins
   private:
     bool toFree_;
 
-#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)    
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)
     const OrthancPluginDicomInstance*  instance_;
 #else
     OrthancPluginDicomInstance*  instance_;
 #endif
-    
+
   public:
-#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)    
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)
     explicit DicomInstance(const OrthancPluginDicomInstance* instance);
 #else
     explicit DicomInstance(OrthancPluginDicomInstance* instance);
@@ -1515,7 +1515,7 @@ namespace OrthancPlugins
         return dateTime_;
       }
     };
-  
+
     class FolderInfo
     {
     private:
@@ -1540,7 +1540,7 @@ namespace OrthancPlugins
         return dateTime_;
       }
     };
-  
+
     virtual ~IWebDavCollection()
     {
     }
@@ -1550,7 +1550,7 @@ namespace OrthancPlugins
     virtual bool ListFolder(std::list<FileInfo>& files,
                             std::list<FolderInfo>& subfolders,
                             const std::vector<std::string>& path) = 0;
-  
+
     virtual bool GetFile(std::string& content /* out */,
                          std::string& mime /* out */,
                          std::string& dateTime /* out */,
@@ -1597,7 +1597,7 @@ namespace OrthancPlugins
 
   public:
     RestApiClient();
-    
+
     // used to forward a call from the plugin to the core
     RestApiClient(const char* url,
                   const OrthancPluginHttpRequest* request);

@@ -73,7 +73,7 @@ namespace Orthanc
       Lock(TimeoutDicomConnectionManager& that,
            const std::string& localAet,
            const RemoteModalityParameters& remote);
-      
+
       ~Lock();
 
       DicomStoreUserConnection& GetConnection();

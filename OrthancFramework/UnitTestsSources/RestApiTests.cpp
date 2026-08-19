@@ -83,7 +83,7 @@ TEST(HttpClient, Basic)
   // disabled in curl
 
   const std::string URL = "http://httpbin.org/get";
-  
+
   Json::Value v;
   c.SetUrl(URL);
 
@@ -100,7 +100,7 @@ TEST(HttpClient, Basic)
 
 /**
    The HTTPS CA certificates for Github were extracted as follows:
-   
+
    (1) We retrieve the URI of the root CA of Github:
 
    # echo | openssl s_client -servername raw.githubusercontent.com -connect raw.githubusercontent.com:443 2>/dev/null | openssl x509 -text | grep "CA Issuers"
@@ -168,7 +168,7 @@ TEST(ChunkedBuffer, Basic)
     {
       ASSERT_EQ(16u * 1024u, b.GetPendingBufferSize());
     }
-  
+
     ASSERT_EQ(0u, b.GetNumBytes());
 
     b.AddChunk("hello", 5);
@@ -297,7 +297,7 @@ static void SetValue(RestApiGetCall& get)
 
 
 static bool GetDirectory(Json::Value& target,
-                         RestApiHierarchy& hierarchy, 
+                         RestApiHierarchy& hierarchy,
                          const std::string& uri)
 {
   UriComponents p;
@@ -324,7 +324,7 @@ namespace
 }
 
 
-static bool HandleGet(RestApiHierarchy& hierarchy, 
+static bool HandleGet(RestApiHierarchy& hierarchy,
                       const std::string& uri)
 {
   UriComponents p;
@@ -351,7 +351,7 @@ TEST(RestApi, RestApiHierarchy)
   Json::Value d;
   ASSERT_FALSE(GetDirectory(d, root, "/hello"));
 
-  ASSERT_TRUE(GetDirectory(d, root, "/hello/a")); 
+  ASSERT_TRUE(GetDirectory(d, root, "/hello/a"));
   ASSERT_EQ(1u, d.size());
   ASSERT_EQ("test3", d[0].asString());
 
@@ -454,9 +454,9 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_EQ("0.2", h.GetParameters() ["q"]);
     ASSERT_EQ("test", h.GetParameters() ["type"]);
     ASSERT_EQ("", h.GetParameters() ["hello"]);
-    
+
     ASSERT_FALSE(d.Apply("application/*; q=0.2, application/pdf"));
-    
+
     ASSERT_TRUE(d.Apply("*/*; hello=world, application/*; q=0.2, application/pdf"));
     ASSERT_EQ("audio", h.GetType());
     ASSERT_EQ(1u, h.GetParameters().size());
@@ -468,7 +468,7 @@ TEST(RestApi, HttpContentNegociation)
   // text/x-dvi entity, and if that does not exist, send the
   // text/plain entity.""
   const std::string T1 = "text/plain; q=0.5, text/html ;  hello  = \"world\"   , text/x-dvi; q=0.8, text/x-c";
-  
+
   {
     HttpContentNegociation d;
     d.Register("text/plain", h);
@@ -480,7 +480,7 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_EQ(1u, h.GetParameters().size());
     ASSERT_EQ("world", h.GetParameters() ["hello"]);
   }
-  
+
   {
     HttpContentNegociation d;
     d.Register("text/plain", h);
@@ -491,7 +491,7 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_EQ("x-c", h.GetSubType());
     ASSERT_EQ(0u, h.GetParameters().size());
   }
-  
+
   {
     HttpContentNegociation d;
     d.Register("text/plain", h);
@@ -511,7 +511,7 @@ TEST(RestApi, HttpContentNegociation)
       ASSERT_EQ("world", h.GetParameters() ["hello"]);
     }
   }
-  
+
   {
     HttpContentNegociation d;
     d.Register("text/plain", h);
@@ -522,7 +522,7 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_EQ(1u, h.GetParameters().size());
     ASSERT_EQ("0.8", h.GetParameters() ["q"]);
   }
-  
+
   {
     HttpContentNegociation d;
     d.Register("text/plain", h);
@@ -825,7 +825,7 @@ TEST(CStringMatcher, Basic)
 
   {
     ASSERT_FALSE(matcher.Apply(NULL, 0));
-    
+
     const std::string s = "";
     ASSERT_FALSE(matcher.Apply(s));
   }
@@ -833,7 +833,7 @@ TEST(CStringMatcher, Basic)
   {
     const char* s = "abc---def";
     ASSERT_TRUE(matcher.Apply(s, s + 9));
-    
+
     ASSERT_EQ('a', matcher.GetMatchBegin()[-3]);
     ASSERT_EQ('b', matcher.GetMatchBegin()[-2]);
     ASSERT_EQ('c', matcher.GetMatchBegin()[-1]);
@@ -960,7 +960,7 @@ TEST(MultipartStreamReader, ParseHeaders)
   {
     MultipartStreamReader::HttpHeaders h;
     h["content-type"] = "world";
-    ASSERT_TRUE(MultipartStreamReader::GetMainContentType(header, h)); 
+    ASSERT_TRUE(MultipartStreamReader::GetMainContentType(header, h));
     ASSERT_EQ(header, "world");
     ASSERT_FALSE(MultipartStreamReader::ParseMultipartContentType(ct, st, b, header));
   }
@@ -968,7 +968,7 @@ TEST(MultipartStreamReader, ParseHeaders)
   {
     MultipartStreamReader::HttpHeaders h;
     h["content-type"] = "multipart/related; dummy=value; boundary=1234; hello=world";
-    ASSERT_TRUE(MultipartStreamReader::GetMainContentType(header, h)); 
+    ASSERT_TRUE(MultipartStreamReader::GetMainContentType(header, h));
     ASSERT_EQ(header, h["content-type"]);
     ASSERT_TRUE(MultipartStreamReader::ParseMultipartContentType(ct, st, b, header));
     ASSERT_EQ(ct, "multipart/related");
@@ -1003,7 +1003,7 @@ TEST(MultipartStreamReader, ParseHeaders2)
 {
   std::string main;
   std::map<std::string, std::string> args;
-  
+
   ASSERT_FALSE(MultipartStreamReader::ParseHeaderArguments(main, args, ""));
   ASSERT_FALSE(MultipartStreamReader::ParseHeaderArguments(main, args, "     "));
   ASSERT_FALSE(MultipartStreamReader::ParseHeaderArguments(main, args, "  ;   "));
@@ -1066,14 +1066,14 @@ TEST(MultipartStreamReader, BytePerByte)
     for (size_t i = 0; i < 10; i++)
     {
       std::string f = "hello " + boost::lexical_cast<std::string>(i);
-    
+
       stream += "\r\n--" + boundary + "\r\n";
       if (i % 2 == 0)
         stream += "Content-Length: " + boost::lexical_cast<std::string>(f.size()) + "\r\n";
       stream += "Content-Type: toto " + boost::lexical_cast<std::string>(i) + "\r\n\r\n";
       stream += f;
     }
-  
+
     stream += "\r\n--" + boundary + "--";
     stream += "GARBAGE";
   }
@@ -1150,7 +1150,7 @@ TEST(MultipartStreamReader, Issue190)
 TEST(WebServiceParameters, Url)
 {
   WebServiceParameters w;
-  
+
   ASSERT_THROW(w.SetUrl("ssh://coucou"), OrthancException);
   w.SetUrl("http://coucou");
   w.SetUrl("https://coucou");
@@ -1166,7 +1166,7 @@ TEST(WebServiceParameters, Url)
 TEST(ChunkedBuffer, DISABLED_Large)
 {
   const size_t LARGE = static_cast<size_t>(60) * 1024 * 1024;
-  
+
   ChunkedBuffer b;
   for (size_t i = 0; i < LARGE; i++)
   {
@@ -1177,7 +1177,7 @@ TEST(ChunkedBuffer, DISABLED_Large)
   b.Flatten(s);
   ASSERT_EQ(LARGE, s.size());
   ASSERT_EQ(0u, b.GetNumBytes());
-  
+
   for (size_t i = 0; i < LARGE; i++)
   {
     ASSERT_EQ(static_cast<char>('0' + (i % 10)), s[i]);
@@ -1191,7 +1191,7 @@ TEST(ChunkedBuffer, DISABLED_Large)
 TEST(ChunkedBuffer, Pending)
 {
   ChunkedBuffer b;
-    
+
   for (size_t pendingSize = 0; pendingSize < 16; pendingSize++)
   {
     b.SetPendingBufferSize(pendingSize);
@@ -1199,7 +1199,7 @@ TEST(ChunkedBuffer, Pending)
 
     unsigned int pos = 0;
     unsigned int iteration = 0;
-    
+
     while (pos < 1024)
     {
       size_t chunkSize = (iteration % 17);
@@ -1213,7 +1213,7 @@ TEST(ChunkedBuffer, Pending)
       }
 
       b.AddChunk(chunk);
-      
+
       iteration ++;
     }
 
@@ -1221,11 +1221,11 @@ TEST(ChunkedBuffer, Pending)
     b.Flatten(s);
     ASSERT_EQ(0u, b.GetNumBytes());
     ASSERT_EQ(pos, s.size());
-    
+
     for (size_t i = 0; i < s.size(); i++)
     {
       ASSERT_EQ(static_cast<char>('0' + (i % 10)), s[i]);
-    }  
+    }
   }
 }
 
@@ -1242,7 +1242,7 @@ namespace
     size_t size_;
     size_t chunkSize_;
     size_t pos_;
-      
+
   public:
     TotoBody(size_t size,
              size_t chunkSize) :
@@ -1251,7 +1251,7 @@ namespace
       pos_(0)
     {
     }
-      
+
     virtual bool ReadNextChunk(std::string& chunk) ORTHANC_OVERRIDE
     {
       if (pos_ == size_)
@@ -1275,7 +1275,7 @@ namespace
       {
         chunk.erase(i, chunk.size());
       }
-      
+
       return true;
     }
   };
@@ -1310,7 +1310,7 @@ namespace
       printf("received %d\n", static_cast<int>(bodySize));
 
       const uint8_t* b = reinterpret_cast<const uint8_t*>(bodyData);
-      
+
       for (size_t i = 0; i < bodySize; i++)
       {
         if (b[i] != ('0' + i % 7))
@@ -1318,7 +1318,7 @@ namespace
           THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
         }
       }
-      
+
       output.Answer("ok");
       return true;
     }
@@ -1337,19 +1337,19 @@ TEST(HttpClient, DISABLED_Issue156_Slow)
   server.SetPortNumber(5000);
   server.Register(handler);
   server.Start();
-  
+
   WebServiceParameters w;
   w.SetUrl("http://localhost:5000");
 
   // This is slow in Orthanc <= 1.5.8 (issue 156)
   TotoBody body(static_cast<size_t>(600) * 1024 * 1024, static_cast<size_t>(6) * 1024 * 1024 - 17);
-  
+
   HttpClient c(w, "toto");
   c.SetMethod(HttpMethod_Post);
   c.AddHeader("Expect", "");
   c.AddHeader("Transfer-Encoding", "chunked");
   c.SetBody(body);
-  
+
   std::string s;
   ASSERT_TRUE(c.Apply(s));
   ASSERT_EQ("ok", s);
@@ -1365,19 +1365,19 @@ TEST(HttpClient, DISABLED_Issue156_Crash)
   server.SetPortNumber(5000);
   server.Register(handler);
   server.Start();
-  
+
   WebServiceParameters w;
   w.SetUrl("http://localhost:5000");
 
-  // This crashes Orthanc 1.6.0 to 1.7.2 
-  TotoBody body(static_cast<size_t>(32) * 1024, static_cast<size_t>(1));  
-  
+  // This crashes Orthanc 1.6.0 to 1.7.2
+  TotoBody body(static_cast<size_t>(32) * 1024, static_cast<size_t>(1));
+
   HttpClient c(w, "toto");
   c.SetMethod(HttpMethod_Post);
   c.AddHeader("Expect", "");
   c.AddHeader("Transfer-Encoding", "chunked");
   c.SetBody(body);
-  
+
   std::string s;
   ASSERT_TRUE(c.Apply(s));
   ASSERT_EQ("ok", s);

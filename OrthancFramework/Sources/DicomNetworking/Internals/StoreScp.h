@@ -32,8 +32,8 @@ namespace Orthanc
 {
   namespace Internals
   {
-    OFCondition storeScp(T_ASC_Association * assoc, 
-                         T_DIMSE_Message * msg, 
+    OFCondition storeScp(T_ASC_Association * assoc,
+                         T_DIMSE_Message * msg,
                          T_ASC_PresentationContextID presID,
                          IStoreRequestHandler& handler,
                          const std::string& remoteIp,

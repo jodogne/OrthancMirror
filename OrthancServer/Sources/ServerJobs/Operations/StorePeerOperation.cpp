@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -48,7 +48,7 @@ namespace Orthanc
     const DicomInstanceOperationValue& instance =
       dynamic_cast<const DicomInstanceOperationValue&>(input);
 
-    LOG(INFO) << "Lua: Sending instance " << instance.GetId() << " to Orthanc peer \"" 
+    LOG(INFO) << "Lua: Sending instance " << instance.GetId() << " to Orthanc peer \""
               << peer_.GetUrl() << "\"";
 
     try
@@ -58,7 +58,7 @@ namespace Orthanc
       instance.ReadDicom(body);
 
       client.SetExternalBody(body);  // Avoids a memcpy()
-      
+
       std::string answer;
       if (!client.Apply(answer))
       {
@@ -75,12 +75,12 @@ namespace Orthanc
     outputs.Append(input.Clone());
   }
 
-  
+
   void StorePeerOperation::Serialize(Json::Value& result) const
   {
     result = Json::objectValue;
     result["Type"] = "StorePeer";
-    peer_.Serialize(result["Peer"], 
+    peer_.Serialize(result["Peer"],
                     true /* force advanced format */,
                     true /* include passwords */);
   }

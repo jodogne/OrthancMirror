@@ -39,7 +39,7 @@ namespace Orthanc
   {
     ImageAccessor accessor;
     image_.GetWriteableAccessor(accessor);
-    
+
     AssignWritable(format, width, height, accessor.GetPitch(), accessor.GetBuffer());
   }
 

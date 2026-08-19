@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -75,7 +75,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat,
                              "Expected a list of strings (Orthanc identifiers)");
     }
-    
+
     for (Json::Value::ArrayIndex i = 0; i < resources.size(); i++)
     {
       if (resources[i].type() != Json::stringValue)
@@ -90,7 +90,7 @@ namespace Orthanc
     }
   }
 
-  
+
   static void AddResourcesOfInterest(ArchiveJob& job         /* inout */,
                                      const Json::Value& body /* in */)
   {
@@ -117,7 +117,7 @@ namespace Orthanc
     }
   }
 
-  
+
   static void GetJobParameters(bool& synchronous,            /* out */
                                bool& extended,               /* out */
                                bool& transcode,              /* out */
@@ -152,13 +152,13 @@ namespace Orthanc
     {
       transcode = true;
       syntax = Orthanc::GetTransferSyntax(SerializationToolbox::ReadString(body, KEY_TRANSCODE));
-      
+
       {
         OrthancConfiguration::ReaderLock lock;
         lossyQuality = lock.GetConfiguration().GetDicomLossyTranscodingQuality();
       }
 
-      if (body.isMember(KEY_LOSSY_QUALITY)) 
+      if (body.isMember(KEY_LOSSY_QUALITY))
       {
         lossyQuality = SerializationToolbox::ReadUnsignedInteger(body, KEY_LOSSY_QUALITY);
       }
@@ -241,7 +241,7 @@ namespace Orthanc
       }
     };
 
-    
+
     class SynchronousZipStream : public ZipWriter::IOutputStream
     {
     private:
@@ -332,7 +332,7 @@ namespace Orthanc
         for (;;)
         {
           std::unique_ptr<IDynamicObject> obj(queue_->Dequeue(100));
-        
+
           if (obj.get() == NULL)
           {
             // Check that the job is still active, which indicates
@@ -379,7 +379,7 @@ namespace Orthanc
           return (chunk_.empty() ? NULL : chunk_.c_str());
         }
       }
-      
+
       virtual size_t GetChunkSize() ORTHANC_OVERRIDE
       {
         if (done_)
@@ -393,7 +393,7 @@ namespace Orthanc
       }
     };
 
-    
+
     class SynchronousTemporaryStream : public ZipWriter::IOutputStream
     {
     private:
@@ -412,7 +412,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_CannotWriteFile);
         }
       }
-      
+
       virtual uint64_t GetArchiveSize() const ORTHANC_OVERRIDE
       {
         return archiveSize_;
@@ -427,10 +427,10 @@ namespace Orthanc
             if (static_cast<int64_t>(chunk.size()) > std::numeric_limits<std::streamsize>::max())
             {
               throw OrthancException(ErrorCode_InternalError, "Chunk too large");
-            } 
-            
+            }
+
             file_.write(chunk.c_str(), static_cast<std::streamsize>(chunk.size()));
-            
+
             if (!file_.good())
             {
               file_.close();
@@ -446,7 +446,7 @@ namespace Orthanc
             throw OrthancException(ErrorCode_CannotWriteFile);
           }
         }
-        
+
         archiveSize_ += chunk.size();
       }
 
@@ -468,7 +468,7 @@ namespace Orthanc
     };
   }
 
-  
+
   static void SubmitJob(RestApiOutput& output,
                         ServerContext& context,
                         std::unique_ptr<ArchiveJob>& job,
@@ -486,7 +486,7 @@ namespace Orthanc
     if (synchronous)
     {
       bool streaming;
-      
+
       {
         OrthancConfiguration::ReaderLock lock;
         streaming = lock.GetConfiguration().GetBooleanParameter("SynchronousZipStream");  // New in Orthanc 1.9.4
@@ -524,7 +524,7 @@ namespace Orthanc
         Json::Value publicContent;
         context.GetJobsEngine().GetRegistry().SubmitAndWait
           (publicContent, job.release(), priority);
-      
+
         {
           // The archive is now created: Prepare the sending of the ZIP file
           FilesystemHttpSender sender(tmp->GetPath(), MimeType_Zip);
@@ -590,7 +590,7 @@ namespace Orthanc
     }
   }
 
-  
+
   template <bool IS_MEDIA,
             bool DEFAULT_IS_EXTENDED  /* only makes sense for media (i.e. not ZIP archives) */ >
   static void CreateBatchPost(RestApiPostCall& call)
@@ -632,7 +632,7 @@ namespace Orthanc
       GetJobParameters(synchronous, extended, transcode, transferSyntax, lossyQuality,
                        priority, filename, userData, allowUtf8,
                        body, DEFAULT_IS_EXTENDED, "Archive.zip", defaultUtf8);
-      
+
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, ResourceType_Patient));
       AddResourcesOfInterest(*job, body);
 
@@ -641,7 +641,7 @@ namespace Orthanc
         job->SetTranscode(transferSyntax);
         job->SetLossyQuality(lossyQuality);
       }
-      
+
       job->SetAllowUtf8(allowUtf8);
       job->SetUserData(userData);
 
@@ -661,7 +661,7 @@ namespace Orthanc
     OrthancConfiguration::ReaderLock lock;
     lossyQuality = lock.GetConfiguration().GetDicomLossyTranscodingQuality();
     lossyQuality = call.GetUnsignedInteger32Argument(GET_LOSSY_QUALITY, lossyQuality);
-    
+
     return lossyQuality;
   }
 
@@ -694,7 +694,7 @@ namespace Orthanc
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-    
+
     if (!call.HasArgument(GET_RESOURCES))
     {
       throw OrthancException(Orthanc::ErrorCode_BadRequest, std::string("Missing ") + GET_RESOURCES + " argument");
@@ -826,7 +826,7 @@ namespace Orthanc
       GetJobParameters(synchronous, extended, transcode, transferSyntax, lossyQuality,
                        priority, filename, userData, allowUtf8,
                        body, false /* by default, not extented */, id + ".zip", defaultUtf8);
-      
+
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, LEVEL));
       job->AddResource(id, true, LEVEL);
 
@@ -847,7 +847,7 @@ namespace Orthanc
     }
   }
 
-    
+
   void OrthancRestApi::RegisterArchive()
   {
     if (context_.IsPatientLevelEnabled())

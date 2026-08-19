@@ -55,7 +55,7 @@ namespace Orthanc
     // number of odd integers between 1 and 255)
     // http://dicom.nema.org/medical/dicom/2019e/output/chtml/part08/sect_9.3.2.2.html
     static const size_t MAX_PROPOSED_PRESENTATIONS = 128;
-    
+
     struct ProposedPresentationContext
     {
       std::string                    abstractSyntax_;
@@ -79,7 +79,7 @@ namespace Orthanc
 
     void CheckConnecting(const DicomAssociationParameters& parameters,
                          const OFCondition& cond);
-    
+
     void CloseInternal();
 
     void AddAccepted(const std::string& abstractSyntax,
@@ -99,7 +99,7 @@ namespace Orthanc
     void ClearPresentationContexts();
 
     void Open(const DicomAssociationParameters& parameters);
-    
+
     void Close();
 
     bool LookupAcceptedPresentationContext(
@@ -147,7 +147,7 @@ namespace Orthanc
       const std::vector<std::string>& sopClassUids,
       const std::vector<std::string>& sopInstanceUids,
       const std::vector<StorageCommitmentFailureReason>& failureReasons);
-    
+
     static void RequestStorageCommitment(
       const DicomAssociationParameters& parameters,
       const std::string& transactionUid,

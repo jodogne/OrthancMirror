@@ -73,7 +73,7 @@ namespace Orthanc
   }
 
 
-  TemporaryFile::TemporaryFile() : 
+  TemporaryFile::TemporaryFile() :
     path_(CreateTemporaryPath("", NULL))
   {
   }
@@ -122,7 +122,7 @@ namespace Orthanc
     }
     catch (OrthancException& e)
     {
-      throw OrthancException(e.GetErrorCode(), 
+      throw OrthancException(e.GetErrorCode(),
                              "Can't read temporary file \"" + SystemToolbox::PathToUtf8(path_) +
                              "\": Another process has corrupted the temporary directory");
     }

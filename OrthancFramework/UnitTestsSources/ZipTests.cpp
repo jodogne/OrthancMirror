@@ -191,7 +191,7 @@ TEST(HierarchicalZipWriter, Basic)
 
      TO CHECK THE CONTENT OF THE "hello2.zip" FILE:
 
-     # unzip -v hello2.zip 
+     # unzip -v hello2.zip
 
      => There must be 6 files. The first 3 files must have a negative
      compression ratio.
@@ -203,7 +203,7 @@ TEST(HierarchicalZipWriter, Basic)
 TEST(ZipReader, Basic)
 {
   TemporaryFile f;
-  
+
   {
     ZipWriter w;
     ASSERT_EQ(0u, w.GetArchiveSize());
@@ -258,16 +258,16 @@ TEST(ZipWriter, Stream)
 
     memory.clear();
     uint64_t archiveSize;
-    
+
     {
       ZipWriter w;
       ASSERT_EQ(0u, w.GetArchiveSize());
-      
+
       w.SetMemoryOutput(memory, (i == 0) /* ZIP64? */);
       w.Open();
 
       ASSERT_EQ(0u, w.GetArchiveSize());
-      
+
       w.OpenFile("world/hello");
       w.Write(large);
       w.OpenFile("world/hello2");
@@ -279,7 +279,7 @@ TEST(ZipWriter, Stream)
 
       ASSERT_TRUE(memory.empty());
 
-      uint64_t s1 = w.GetArchiveSize();      
+      uint64_t s1 = w.GetArchiveSize();
       ASSERT_NE(0u, s1);
 
       w.Close();
@@ -290,7 +290,7 @@ TEST(ZipWriter, Stream)
     }
 
     ASSERT_EQ(archiveSize, memory.size());
-    
+
     std::unique_ptr<ZipReader> reader(ZipReader::CreateFromMemory(memory));
 
     ASSERT_EQ(4u, reader->GetFilesCount());
@@ -302,7 +302,7 @@ TEST(ZipWriter, Stream)
       ASSERT_EQ(large.size(), content.size());
       ASSERT_TRUE(memcmp(large.c_str(), content.c_str(), large.size()) == 0);
     }
-  
+
     {
       std::string filename, content;
       ASSERT_TRUE(reader->ReadNextFile(filename, content));
@@ -317,7 +317,7 @@ TEST(ZipWriter, Stream)
       ASSERT_EQ("world/hello3", filename);
       ASSERT_EQ("Hello world", content);
     }
-  
+
     {
       std::string filename, content;
       ASSERT_TRUE(reader->ReadNextFile(filename, content));
@@ -325,7 +325,7 @@ TEST(ZipWriter, Stream)
       ASSERT_EQ(large.size(), content.size());
       ASSERT_TRUE(memcmp(large.c_str(), content.c_str(), large.size()) == 0);
     }
-  
+
     {
       std::string filename, content;
       ASSERT_FALSE(reader->ReadNextFile(filename, content));
@@ -338,7 +338,7 @@ namespace Orthanc
 {
   // The namespace is necessary because of FRIEND_TEST
   // http://code.google.com/p/googletest/wiki/AdvancedGuide#Private_Class_Members
-  
+
   TEST(ZipWriter, BufferWithSeek)
   {
     ZipWriter::BufferWithSeek buffer;

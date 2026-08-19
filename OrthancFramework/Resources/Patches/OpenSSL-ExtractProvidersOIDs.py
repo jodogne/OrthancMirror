@@ -49,11 +49,11 @@ for source in os.listdir(BASE):
         path = os.path.join(BASE, re.sub('.in$', '', source))
 
         content = {}
-        
+
         with open(path, 'r') as f:
             for definition in re.findall('#define (DER_OID_V_.+?)#define (DER_OID_SZ_.+?)extern const(.+?)$', f.read(), re.MULTILINE | re.DOTALL):
                 oid = definition[0].strip().split(' ')
-                
+
                 name = oid[0].replace('DER_OID_V_', '')
                 oid = oid[1:]
 

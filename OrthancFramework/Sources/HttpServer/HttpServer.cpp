@@ -141,7 +141,7 @@ namespace Orthanc
 
             offset += packetSize;
             remainingSize -= packetSize;
-          }  
+          }
         }
       }
 
@@ -323,7 +323,7 @@ namespace Orthanc
       return PostDataStatus_Pending;
     }
 
-    /*void Print() 
+    /*void Print()
       {
       boost::mutex::scoped_lock lock(mutex_);
 
@@ -370,14 +370,14 @@ namespace Orthanc
       StringHttpOutput stringOutput;
       HttpOutput fakeOutput(stringOutput, false /* assume no keep-alive */, 0);
       HttpToolbox::GetArguments getArguments;
-      
-      if (!handler_.Handle(fakeOutput, RequestOrigin_RestApi, remoteIp_.c_str(), username_.c_str(), 
+
+      if (!handler_.Handle(fakeOutput, RequestOrigin_RestApi, remoteIp_.c_str(), username_.c_str(),
                            HttpMethod_Post, uri_, headers, getArguments, part, size, authenticationPayload_))
       {
         throw OrthancException(ErrorCode_UnknownResource);
       }
     }
-      
+
   public:
     MultipartFormDataHandler(IHttpHandler& handler,
                              ChunkStore& chunkStore,
@@ -396,7 +396,7 @@ namespace Orthanc
       authenticationPayload_(authenticationPayload)
     {
       typedef HttpToolbox::Arguments::const_iterator Iterator;
-      
+
       Iterator requestedWith = headers.find("x-requested-with");
       if (requestedWith != headers.end() &&
           requestedWith->second != "XMLHttpRequest")
@@ -445,7 +445,7 @@ namespace Orthanc
         }
       }
     }
-      
+
     virtual void HandlePart(const MultipartStreamReader::HttpHeaders& headers,
                             const void* part,
                             size_t size) ORTHANC_OVERRIDE
@@ -490,10 +490,10 @@ namespace Orthanc
                                             const std::string& authenticationPayload)
   {
     MultipartFormDataHandler handler(GetHandler(), pimpl_->chunkStore_, remoteIp, username, uri, headers, authenticationPayload);
-          
+
     MultipartStreamReader reader(boundary);
     reader.SetHandler(handler);
-    reader.AddChunk(body);        
+    reader.AddChunk(body);
     reader.CloseStream();
   }
 
@@ -637,7 +637,7 @@ namespace Orthanc
   {
     return ReadBodyUsingFile(body, connection, hasMaxBodySize, maxBodySize);
   }
-                                                  
+
 
   static PostDataStatus ReadBodyToString(std::string& body,
                                          struct mg_connection *connection,
@@ -686,7 +686,7 @@ namespace Orthanc
     {
       // No Content-Length: This is a chunked transfer. Stream the HTTP connection.
       std::string tmp(static_cast<size_t>(1024) * 1024, 0);
-      
+
       for (;;)
       {
         int r = mg_read(connection, &tmp[0], tmp.size());
@@ -708,14 +708,14 @@ namespace Orthanc
     }
   }
 
-  
+
   enum AccessMode
   {
     AccessMode_Unauthorized,
     AccessMode_AuthorizationToken,
     AccessMode_RegisteredUser
   };
-  
+
 
   static AccessMode IsAccessGranted(const HttpServer& that,
                                     const HttpToolbox::Arguments& headers)
@@ -858,7 +858,7 @@ namespace Orthanc
     else
     {
       return false;
-    }    
+    }
 
     return true;
   }
@@ -900,9 +900,9 @@ namespace Orthanc
   {
     CLOG(ERROR, HTTP) << "Orthanc was compiled without support for read-write access to WebDAV: " << uri;
     output.SendStatus(HttpStatus_403_Forbidden);
-  }    
+  }
 #  endif
-  
+
   static bool HandleWebDav(HttpOutput& output,
                            const HttpServer::WebDavBuckets& buckets,
                            const std::string& method,
@@ -916,13 +916,13 @@ namespace Orthanc
     {
       return false;  // Speed up things if WebDAV is not used
     }
-    
+
     /**
      * The "buckets" maps an URI relative to the root of the
      * bucket, to the content of the bucket. The root URI does *not*
      * contain a trailing slash.
      **/
-    
+
     if (method == "OPTIONS")
     {
       // Remove the trailing slash, if any (necessary for davfs2)
@@ -932,7 +932,7 @@ namespace Orthanc
       {
         s.resize(s.size() - 1);
       }
-      
+
       HttpServer::WebDavBuckets::const_iterator bucket = buckets.find(s);
       if (bucket == buckets.end())
       {
@@ -969,7 +969,7 @@ namespace Orthanc
         assert(!bucket->first.empty() &&
                bucket->first[bucket->first.size() - 1] != '/' &&
                bucket->second != NULL);
-        
+
         if (uri == bucket->first ||
             boost::starts_with(uri, bucket->first + "/"))
         {
@@ -986,7 +986,7 @@ namespace Orthanc
           /**
            * WebDAV - PROPFIND
            **/
-          
+
           if (method == "PROPFIND")
           {
             HttpToolbox::Arguments::const_iterator i = headers.find("depth");
@@ -1003,9 +1003,9 @@ namespace Orthanc
                 ErrorCode_NetworkProtocol,
                 "WebDAV PROPFIND at unsupported depth (can only be 0 or 1): " + i->second);
             }
-      
+
             std::string answer;
-          
+
             MimeType mime;
             std::string content;
             boost::posix_time::ptime modificationTime = boost::posix_time::second_clock::universal_time();
@@ -1020,13 +1020,13 @@ namespace Orthanc
               else if (depth == 1)
               {
                 IWebDavBucket::Collection c;
-              
+
                 if (!bucket->second->ListCollection(c, path))
                 {
                   output.SendStatus(HttpStatus_404_NotFound);
                   return true;
                 }
-                
+
                 c.Format(answer, uri);
               }
               else
@@ -1073,19 +1073,19 @@ namespace Orthanc
             output.SendStatus(HttpStatus_207_MultiStatus, answer);
             return true;
           }
-          
+
 
           /**
            * WebDAV - GET and HEAD
            **/
-          
+
           else if (method == "GET" ||
                    method == "HEAD")
           {
             MimeType mime;
             std::string content;
             boost::posix_time::ptime modificationTime;
-            
+
             if (bucket->second->GetFileContent(mime, content, modificationTime, path))
             {
               output.AddHeader("Content-Type", EnumerationToString(mime));
@@ -1111,14 +1111,14 @@ namespace Orthanc
             return true;
           }
 
-          
+
           /**
            * WebDAV - PUT
            **/
-          
+
           else if (method == "PUT")
           {
-#if CIVETWEB_HAS_WEBDAV_WRITING == 1           
+#if CIVETWEB_HAS_WEBDAV_WRITING == 1
             std::string body;
             if (ReadBodyToString(body, connection, headers, hasMaxBodySize, maxBodySize) == PostDataStatus_Success)
             {
@@ -1143,12 +1143,12 @@ namespace Orthanc
 
             return true;
           }
-          
+
 
           /**
            * WebDAV - DELETE
            **/
-          
+
           else if (method == "DELETE")
           {
             if (bucket->second->DeleteItem(path))
@@ -1161,15 +1161,15 @@ namespace Orthanc
             }
             return true;
           }
-          
+
 
           /**
            * WebDAV - MKCOL
            **/
-          
+
           else if (method == "MKCOL")
           {
-#if CIVETWEB_HAS_WEBDAV_WRITING == 1           
+#if CIVETWEB_HAS_WEBDAV_WRITING == 1
             if (bucket->second->CreateFolder(path))
             {
               //output.SendStatus(HttpStatus_200_Ok);
@@ -1185,15 +1185,15 @@ namespace Orthanc
 
             return true;
           }
-          
+
 
           /**
            * WebDAV - Faking PROPPATCH, LOCK and UNLOCK
            **/
-          
+
           else if (method == "PROPPATCH")
           {
-#if CIVETWEB_HAS_WEBDAV_WRITING == 1           
+#if CIVETWEB_HAS_WEBDAV_WRITING == 1
             IWebDavBucket::AnswerFakedProppatch(output, uri);
 #else
             AnswerWebDavReadOnly(output, uri);
@@ -1202,7 +1202,7 @@ namespace Orthanc
           }
           else if (method == "LOCK")
           {
-#if CIVETWEB_HAS_WEBDAV_WRITING == 1           
+#if CIVETWEB_HAS_WEBDAV_WRITING == 1
             IWebDavBucket::AnswerFakedLock(output, uri);
 #else
             AnswerWebDavReadOnly(output, uri);
@@ -1211,7 +1211,7 @@ namespace Orthanc
           }
           else if (method == "UNLOCK")
           {
-#if CIVETWEB_HAS_WEBDAV_WRITING == 1           
+#if CIVETWEB_HAS_WEBDAV_WRITING == 1
             IWebDavBucket::AnswerFakedUnlock(output);
 #else
             AnswerWebDavReadOnly(output, uri);
@@ -1224,7 +1224,7 @@ namespace Orthanc
           }
         }
       }
-      
+
       return false;
     }
     else
@@ -1232,10 +1232,10 @@ namespace Orthanc
       /**
        * WebDAV - Unapplicable method (such as POST and DELETE)
        **/
-          
+
       return false;
     }
-  } 
+  }
 #endif /* ORTHANC_ENABLE_PUGIXML == 1 */
 
 
@@ -1280,10 +1280,10 @@ namespace Orthanc
                                struct mg_connection *connection,
                                const struct mg_request_info *request)
   {
-    // Since we don't control the thread creation ourselves, we set and clear 
-    // the thread name everytime otherwise, the thread name will persist even 
+    // Since we don't control the thread creation ourselves, we set and clear
+    // the thread name everytime otherwise, the thread name will persist even
     // after a call to /tools/reset and Orthanc would stop because the same thread name is used multiple times
-    Logging::ScopedCurrentThreadNameSetter setter(server.GetCurrentThreadName()); 
+    Logging::ScopedCurrentThreadNameSetter setter(server.GetCurrentThreadName());
 
     std::unique_ptr<MetricsRegistry::AvailableResourcesDecounter> counter(server.CreateAvailableHttpThreadsDecounter());
 
@@ -1299,7 +1299,7 @@ namespace Orthanc
 #else
 #  error
 #endif
-    
+
     // Check remote calls
     if (!server.IsRemoteAccessAllowed() &&
         !localhost)
@@ -1341,14 +1341,14 @@ namespace Orthanc
 #if ORTHANC_ENABLE_MONGOOSE == 1
     // Apply the filter, if it is installed
     char remoteIp[24];
-    sprintf(remoteIp, "%d.%d.%d.%d", 
-            reinterpret_cast<const uint8_t*>(&request->remote_ip) [3], 
-            reinterpret_cast<const uint8_t*>(&request->remote_ip) [2], 
-            reinterpret_cast<const uint8_t*>(&request->remote_ip) [1], 
+    sprintf(remoteIp, "%d.%d.%d.%d",
+            reinterpret_cast<const uint8_t*>(&request->remote_ip) [3],
+            reinterpret_cast<const uint8_t*>(&request->remote_ip) [2],
+            reinterpret_cast<const uint8_t*>(&request->remote_ip) [1],
             reinterpret_cast<const uint8_t*>(&request->remote_ip) [0]);
 
     const char* requestUri = request->uri;
-      
+
 #elif ORTHANC_ENABLE_CIVETWEB == 1
     const char* remoteIp = request->remote_addr;
     const char* requestUri = request->local_uri;
@@ -1360,7 +1360,7 @@ namespace Orthanc
     {
       requestUri = "";
     }
-      
+
 
     const IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
 
@@ -1429,7 +1429,7 @@ namespace Orthanc
 #if ORTHANC_ENABLE_PUGIXML == 1
     bool isWebDav = false;
 #endif
-    
+
     HttpMethod filterMethod;
 
     std::unique_ptr<ApiElapsedTimeLogger> apiLogTimer; // to log the time spent in the API call
@@ -1437,7 +1437,7 @@ namespace Orthanc
     if (ExtractMethod(method, request, headers, argumentsGET))
     {
       apiLogTimer.reset(new ApiElapsedTimeLogger(std::string(EnumerationToString(method)) + " " + Toolbox::FlattenUri(uri)));
-      
+
       filterMethod = method;
     }
 #if ORTHANC_ENABLE_PUGIXML == 1
@@ -1465,7 +1465,7 @@ namespace Orthanc
       output.SendStatus(HttpStatus_400_BadRequest);
       return;
     }
-    
+
 
     const std::string username = GetAuthenticatedUsername(headers);
 
@@ -1477,7 +1477,7 @@ namespace Orthanc
 
       assert(accessMode == AccessMode_Unauthorized ||  // Could be the case if "!server.IsAuthenticationEnabled()"
              accessMode == AccessMode_RegisteredUser);
-      
+
       if (filter != NULL &&
           !filter->IsAllowed(filterMethod, requestUri, remoteIp,
                              username.c_str(), headers, argumentsGET))
@@ -1524,7 +1524,7 @@ namespace Orthanc
           MultipartStreamReader::ParseMultipartContentType(type, subType, boundary, ct->second) &&
           type == "multipart/form-data")
       {
-        /** 
+        /**
          * The user uses the "upload" form of Orthanc Explorer, for
          * file uploads through a HTML form.
          **/
@@ -1548,7 +1548,7 @@ namespace Orthanc
           found = server.GetHandler().CreateChunkedRequestReader
             (stream, RequestOrigin_RestApi, remoteIp, username.c_str(), method, uri, headers, authenticationPayload);
         }
-        
+
         if (found)
         {
           if (stream.get() == NULL)
@@ -1595,10 +1595,10 @@ namespace Orthanc
       }
     }
 
-    if (!found && 
+    if (!found &&
         server.HasHandler())
     {
-      found = server.GetHandler().Handle(output, RequestOrigin_RestApi, remoteIp, username.c_str(), 
+      found = server.GetHandler().Handle(output, RequestOrigin_RestApi, remoteIp, username.c_str(),
                                          method, uri, headers, argumentsGET, body.c_str(), body.size(), authenticationPayload);
     }
 
@@ -1629,7 +1629,7 @@ namespace Orthanc
       {
         requestUri = "";
       }
-      
+
       HttpServer* server = reinterpret_cast<HttpServer*>(that);
 
       if (server == NULL)
@@ -1717,7 +1717,7 @@ namespace Orthanc
                         struct mg_connection *connection,
                         const struct mg_request_info *request)
   {
-    if (event == MG_NEW_REQUEST) 
+    if (event == MG_NEW_REQUEST)
     {
       ProtectedCallback(connection, request);
 
@@ -1788,7 +1788,7 @@ namespace Orthanc
     // Check for the Heartbleed exploit
     // https://en.wikipedia.org/wiki/OpenSSL#Heartbleed_bug
     if (OPENSSL_VERSION_NUMBER <  0x1000107fL  /* openssl-1.0.1g */ &&
-        OPENSSL_VERSION_NUMBER >= 0x1000100fL  /* openssl-1.0.1 */) 
+        OPENSSL_VERSION_NUMBER >= 0x1000100fL  /* openssl-1.0.1 */)
     {
       CLOG(WARNING, HTTP) << "This version of OpenSSL is vulnerable to the Heartbleed exploit";
     }
@@ -1800,7 +1800,7 @@ namespace Orthanc
   {
     Stop();
 
-#if ORTHANC_ENABLE_PUGIXML == 1    
+#if ORTHANC_ENABLE_PUGIXML == 1
     for (WebDavBuckets::iterator it = webDavBuckets_.begin(); it != webDavBuckets_.end(); ++it)
     {
       assert(it->second != NULL);
@@ -1840,7 +1840,7 @@ namespace Orthanc
     CLOG(INFO, HTTP) << "Starting embedded Web server using Civetweb";
 #else
 #  error
-#endif  
+#endif
 
     if (!IsRunning())
     {
@@ -1877,7 +1877,7 @@ namespace Orthanc
       // Set the TCP port for the HTTP server
       options.push_back("listening_ports");
       options.push_back(listeningPorts.c_str());
-        
+
       // Optimization reported by Chris Hafey
       // https://groups.google.com/d/msg/orthanc-users/CKueKX0pJ9E/_UCbl8T-VjIJ
       options.push_back("enable_keep_alive");
@@ -1908,7 +1908,7 @@ namespace Orthanc
       // Set the number of threads
       options.push_back("num_threads");
       options.push_back(numThreads.c_str());
-        
+
       // Set the timeout for the HTTP server
       options.push_back("request_timeout_ms");
       options.push_back(requestTimeoutMilliseconds.c_str());
@@ -1924,7 +1924,7 @@ namespace Orthanc
         options.push_back("ssl_ca_file");
         options.push_back(dynamicStrings.back().c_str());
       }
-      
+
       if (ssl_)
       {
         // Restrict minimum SSL/TLS protocol version
@@ -1988,7 +1988,7 @@ namespace Orthanc
             ERR_error_string_n(code, message, sizeof(message) - 1);
             CLOG(ERROR, HTTP) << "OpenSSL error: " << message;
           }
-        }        
+        }
 #endif
 
         if (isSslError)
@@ -2006,7 +2006,7 @@ namespace Orthanc
           {
             errorMsgDetails = listeningPorts;
           }
-          
+
           if (errno != 0) // there might be additional details about the error in errno
           {
             errorMsgDetails += ", errno = " + boost::lexical_cast<std::string>(errno) + ", " + strerror(errno);
@@ -2017,7 +2017,7 @@ namespace Orthanc
         }
       }
 
-#if ORTHANC_ENABLE_PUGIXML == 1    
+#if ORTHANC_ENABLE_PUGIXML == 1
       for (WebDavBuckets::iterator it = webDavBuckets_.begin(); it != webDavBuckets_.end(); ++it)
       {
         assert(it->second != NULL);
@@ -2039,8 +2039,8 @@ namespace Orthanc
     if (IsRunning())
     {
       mg_stop(pimpl_->context_);
-      
-#if ORTHANC_ENABLE_PUGIXML == 1    
+
+#if ORTHANC_ENABLE_PUGIXML == 1
       for (WebDavBuckets::iterator it = webDavBuckets_.begin(); it != webDavBuckets_.end(); ++it)
       {
         assert(it->second != NULL);
@@ -2131,7 +2131,7 @@ namespace Orthanc
     sslMinimumVersion_ = version;
 
     std::string info;
-    
+
     switch (version)
     {
       case 0:
@@ -2181,12 +2181,12 @@ namespace Orthanc
       {
         sslCiphers_ += ':';
       }
-      
+
       sslCiphers_ += (*it);
-    }      
+    }
 
     CLOG(INFO, HTTP) << "List of accepted SSL ciphers: " << sslCiphers_;
-    
+
     if (sslCiphers_.empty())
     {
       CLOG(WARNING, HTTP) << "No cipher is accepted for SSL";
@@ -2287,7 +2287,7 @@ namespace Orthanc
   {
     return filter_;
   }
-  
+
   void HttpServer::SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter)
   {
     Stop();
@@ -2352,7 +2352,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-    
+
     Stop();
     threadsCount_ = threads;
 
@@ -2369,7 +2369,7 @@ namespace Orthanc
     return threadsCount_;
   }
 
-  
+
   void HttpServer::SetTcpNoDelay(bool tcpNoDelay)
   {
     Stop();
@@ -2423,7 +2423,7 @@ namespace Orthanc
     }
 
     Stop();
-    
+
 #if CIVETWEB_HAS_WEBDAV_WRITING == 0
     if (webDavBuckets_.size() == 0)
     {
@@ -2431,7 +2431,7 @@ namespace Orthanc
                           << "without support for writing into WebDAV collections";
     }
 #endif
-    
+
     const std::string s = Toolbox::FlattenUri(root);
 
     if (webDavBuckets_.find(s) != webDavBuckets_.end())
@@ -2483,10 +2483,10 @@ namespace Orthanc
     if (threadNames_.find(threadId) == threadNames_.end())
     {
       boost::upgrade_to_unique_lock<boost::shared_mutex> writerLock(readerLock);
-      
+
       std::string thisThreadName = std::string("HTTP-") + boost::lexical_cast<std::string>(threadCounter_++);
       threadNames_[threadId] = thisThreadName;
-      
+
       return thisThreadName;
     }
     else

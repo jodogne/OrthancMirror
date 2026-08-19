@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -80,7 +80,7 @@ TEST(Versions, SQLite)
   // http://www.sqlite.org/capi3ref.html#sqlite3_libversion
   EXPECT_EQ(sqlite3_libversion_number(), SQLITE_VERSION_NUMBER);
   EXPECT_STREQ(sqlite3_libversion(), SQLITE_VERSION);
-  
+
   /**
    * On Orthanc > 1.5.8, we comment out the following test, that is
    * too strict for some GNU/Linux distributions to apply their own
@@ -159,7 +159,7 @@ TEST(Versions, LuaStatic)
 TEST(Versions, LibIconvStatic)
 {
   static const int major = 1;
-  static const int minor = 15;  
+  static const int minor = 15;
   ASSERT_EQ((major << 8) + minor, _LIBICONV_VERSION);
 }
 #endif

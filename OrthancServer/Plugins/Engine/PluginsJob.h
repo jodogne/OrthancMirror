@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -52,7 +52,7 @@ namespace Orthanc
     virtual void Start() ORTHANC_OVERRIDE
     {
     }
-    
+
     virtual JobStepResult Step(const std::string& jobId) ORTHANC_OVERRIDE;
 
     virtual void Reset() ORTHANC_OVERRIDE;
@@ -65,7 +65,7 @@ namespace Orthanc
     {
       target = type_;
     }
-    
+
     virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;
 
     virtual bool Serialize(Json::Value& value) const ORTHANC_OVERRIDE;

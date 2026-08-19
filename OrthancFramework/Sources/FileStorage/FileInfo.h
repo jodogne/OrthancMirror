@@ -67,7 +67,7 @@ namespace Orthanc
              const std::string& compressedMD5);
 
     bool IsValid() const;
-    
+
     const std::string& GetUuid() const;
 
     FileContentType GetContentType() const;

@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -512,7 +512,7 @@ namespace Orthanc
         case ValueRepresentation_Unknown:
           return OrthancPluginValueRepresentation_UN;  // Unknown
 
-        case ValueRepresentation_OtherDouble:          
+        case ValueRepresentation_OtherDouble:
           return OrthancPluginValueRepresentation_OD;
 
         case ValueRepresentation_OtherLong:
@@ -545,13 +545,13 @@ namespace Orthanc
       {
         case JobStepCode_Success:
           return OrthancPluginJobStepStatus_Success;
-          
+
         case JobStepCode_Failure:
           return OrthancPluginJobStepStatus_Failure;
-          
+
         case JobStepCode_Continue:
           return OrthancPluginJobStepStatus_Continue;
-        
+
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
@@ -563,13 +563,13 @@ namespace Orthanc
       {
         case OrthancPluginJobStepStatus_Success:
           return JobStepCode_Success;
-        
+
         case OrthancPluginJobStepStatus_Failure:
           return JobStepCode_Failure;
-        
+
         case OrthancPluginJobStepStatus_Continue:
           return JobStepCode_Continue;
-        
+
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
@@ -582,7 +582,7 @@ namespace Orthanc
       {
         case OrthancPluginStorageCommitmentFailureReason_Success:
           return StorageCommitmentFailureReason_Success;
-          
+
         case OrthancPluginStorageCommitmentFailureReason_ProcessingFailure:
           return StorageCommitmentFailureReason_ProcessingFailure;
 
@@ -600,7 +600,7 @@ namespace Orthanc
 
         case OrthancPluginStorageCommitmentFailureReason_DuplicateTransactionUID:
           return StorageCommitmentFailureReason_DuplicateTransactionUID;
-             
+
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }

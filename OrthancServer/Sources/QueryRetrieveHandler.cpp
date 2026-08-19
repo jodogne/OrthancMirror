@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -69,7 +69,7 @@ namespace Orthanc
       fixed.Assign(query_);
 
       // Secondly, possibly fix the query with the user-provider Lua callback
-      FixQueryLua(fixed, context_, modality_.GetApplicationEntityTitle()); 
+      FixQueryLua(fixed, context_, modality_.GetApplicationEntityTitle());
 
       {
         DicomAssociationParameters params(localAet_, modality_);
@@ -78,7 +78,7 @@ namespace Orthanc
         {
           params.SetTimeout(timeout_);
         }
-        
+
         DicomControlUserConnection connection(params, static_cast<ScuOperationFlags>(ScuOperationFlags_Find));
         connection.Find(answers_, level_, fixed, findNormalized_);
       }
@@ -88,7 +88,7 @@ namespace Orthanc
   }
 
 
-  QueryRetrieveHandler::QueryRetrieveHandler(ServerContext& context) : 
+  QueryRetrieveHandler::QueryRetrieveHandler(ServerContext& context) :
     context_(context),
     localAet_(context.GetDefaultLocalApplicationEntityTitle()),
     done_(false),
@@ -171,7 +171,7 @@ namespace Orthanc
     answers_.GetAnswer(i).ExtractDicomSummary(target, 0 /* don't truncate tags */);
   }
 
-  
+
   void QueryRetrieveHandler::SetFindNormalized(bool normalized)
   {
     Invalidate();

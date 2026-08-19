@@ -45,14 +45,14 @@ namespace Orthanc
     {
       time_ = boost::posix_time::second_clock::universal_time();
     }
-    
+
   public:
     StorageFile() :
       mime_(MimeType_Binary)
     {
       Touch();
     }
-    
+
     void SetContent(const std::string& content,
                     MimeType mime,
                     bool isMemory)
@@ -68,7 +68,7 @@ namespace Orthanc
         file_.reset(new TemporaryFile);
         file_->Write(content);
       }
-      
+
       mime_ = mime;
       Touch();
     }
@@ -147,20 +147,20 @@ namespace Orthanc
     {
       Touch();
     }
-    
+
     ~StorageFolder()
     {
       for (Files::iterator it = files_.begin(); it != files_.end(); ++it)
       {
         assert(it->second != NULL);
         delete it->second;
-      }        
+      }
 
       for (Subfolders::iterator it = subfolders_.begin(); it != subfolders_.end(); ++it)
       {
         assert(it->second != NULL);
         delete it->second;
-      }        
+      }
     }
 
     size_t GetSize() const
@@ -172,7 +172,7 @@ namespace Orthanc
     {
       return time_;
     }
-    
+
     const StorageFile* LookupFile(const std::string& name) const
     {
       Files::const_iterator found = files_.find(name);
@@ -229,7 +229,7 @@ namespace Orthanc
         assert(found->second != NULL);
         found->second->SetContent(content, mime, isMemory);
       }
-      
+
       Touch();
       return true;
     }
@@ -262,7 +262,7 @@ namespace Orthanc
       for (Files::const_iterator it = files_.begin(); it != files_.end(); ++it)
       {
         assert(it->second != NULL);
-        
+
         std::unique_ptr<File> f(new File(it->first));
         f->SetContentLength(it->second->GetContentLength());
         f->SetCreationTime(it->second->GetTime());
@@ -340,7 +340,7 @@ namespace Orthanc
     void RemoveEmptyFolders()
     {
       std::list<std::string> emptyFolders;
-      
+
       for (Subfolders::const_iterator it = subfolders_.begin(); it != subfolders_.end(); ++it)
       {
         assert(it->second != NULL);
@@ -350,7 +350,7 @@ namespace Orthanc
         {
           assert(it->second != NULL);
           delete it->second;
-          
+
           emptyFolders.push_back(it->first);
         }
       }
@@ -372,31 +372,31 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    std::vector<std::string> p(path.begin(), path.end() - 1);      
+    std::vector<std::string> p(path.begin(), path.end() - 1);
     return root_->LookupFolder(p);
   }
-    
+
 
   WebDavStorage::WebDavStorage(bool isMemory) :
     root_(new StorageFolder),
     isMemory_(isMemory)
   {
   }
-  
+
 
   bool WebDavStorage::IsExistingFolder(const std::vector<std::string>& path)
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
-    
+
     return (root_->LookupFolder(path) != NULL);
   }
 
-  
+
   bool WebDavStorage::ListCollection(Collection& collection,
                                      const std::vector<std::string>& path)
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
-    
+
     const StorageFolder* folder = root_->LookupFolder(path);
     if (folder == NULL)
     {
@@ -409,15 +409,15 @@ namespace Orthanc
     }
   }
 
-  
+
   bool WebDavStorage::GetFileContent(MimeType& mime,
                                      std::string& content,
-                                     boost::posix_time::ptime& modificationTime, 
+                                     boost::posix_time::ptime& modificationTime,
                                      const std::vector<std::string>& path)
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
-    
-    const StorageFolder* folder = LookupParentFolder(path);    
+
+    const StorageFolder* folder = LookupParentFolder(path);
     if (folder == NULL)
     {
       return false;
@@ -439,12 +439,12 @@ namespace Orthanc
     }
   }
 
-  
+
   bool WebDavStorage::StoreFile(const std::string& content,
                                 const std::vector<std::string>& path)
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
-    
+
     StorageFolder* folder = LookupParentFolder(path);
     if (folder == NULL)
     {
@@ -461,12 +461,12 @@ namespace Orthanc
     }
   }
 
-  
+
   bool WebDavStorage::CreateFolder(const std::vector<std::string>& path)
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
 
-    StorageFolder* folder = LookupParentFolder(path);      
+    StorageFolder* folder = LookupParentFolder(path);
     if (folder == NULL)
     {
       LOG(WARNING) << "Inexisting folder in WebDAV: " << Toolbox::FlattenUri(path);

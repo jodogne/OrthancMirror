@@ -80,7 +80,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
 
   source_group(ThirdParty\\libicu REGULAR_EXPRESSION ${LIBICU_SOURCES_DIR}/.*)
 
-else() 
+else()
   CHECK_INCLUDE_FILE_CXX(unicode/uvernum.h HAVE_ICU_H)
   if (NOT HAVE_ICU_H)
     message(FATAL_ERROR "Please install the libicu-dev package")
@@ -89,7 +89,7 @@ else()
   find_library(LIBICU_PATH_1 NAMES icuuc)
   find_library(LIBICU_PATH_2 NAMES icui18n)
 
-  if (NOT LIBICU_PATH_1 OR 
+  if (NOT LIBICU_PATH_1 OR
       NOT LIBICU_PATH_2)
     message(FATAL_ERROR "Please install the libicu-dev package")
   else()

@@ -43,7 +43,7 @@ elseif (CMAKE_CROSSCOMPILING AND
   CHECK_LIBRARY_EXISTS(crypto "OPENSSL_init" "" HAVE_OPENSSL_CRYPTO_LIB)
   if (NOT HAVE_OPENSSL_CRYPTO_LIB)
     message(FATAL_ERROR "Please install the libopenssl package")
-  endif()  
+  endif()
 
   # The "SSL_library_init" is for OpenSSL <= 1.0.2, whereas
   # "OPENSSL_init_ssl" is for OpenSSL >= 1.1.0
@@ -52,9 +52,9 @@ elseif (CMAKE_CROSSCOMPILING AND
     CHECK_LIBRARY_EXISTS(ssl "OPENSSL_init_ssl" "" HAVE_OPENSSL_SSL_LIB_2)
     if (NOT HAVE_OPENSSL_SSL_LIB_2)
       message(FATAL_ERROR "Please install the libopenssl package")
-    endif()  
-  endif()  
-  
+    endif()
+  endif()
+
   link_libraries(crypto ssl)
 
 else()

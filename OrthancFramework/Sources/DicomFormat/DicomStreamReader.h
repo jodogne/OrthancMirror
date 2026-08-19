@@ -63,10 +63,10 @@ namespace Orthanc
                                    bool isLittleEndian,
                                    uint64_t fileOffset) = 0;
     };
-    
+
   private:
     class PixelDataVisitor;
-    
+
     enum State
     {
       State_Preamble,
@@ -86,12 +86,12 @@ namespace Orthanc
     ValueRepresentation  danglingVR_;
     uint64_t             danglingOffset_;
     unsigned int         sequenceDepth_;
-    
+
     bool IsLittleEndian() const;
-    
+
     void HandlePreamble(const IVisitor& visitor,
                         const std::string& block);
-    
+
     void HandleMetaHeader(IVisitor& visitor,
                           const std::string& block);
 
@@ -99,17 +99,17 @@ namespace Orthanc
                           const DicomTag& untilTag);
 
     void HandleDatasetExplicitLength(uint32_t length);
-    
+
     void HandleDatasetExplicitLength(IVisitor& visitor,
                                      const std::string& block);
 
     void HandleSequenceExplicitLength(const std::string& block);
 
     void HandleSequenceExplicitValue();
-    
+
     void HandleDatasetValue(IVisitor& visitor,
                             const std::string& block);
-    
+
   public:
     explicit DicomStreamReader(std::istream& stream);
 

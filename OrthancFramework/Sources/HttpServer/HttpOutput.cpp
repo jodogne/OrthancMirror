@@ -52,7 +52,7 @@ namespace Orthanc
 {
   HttpOutput::StateMachine::StateMachine(IHttpOutputStream& stream,
                                          bool isKeepAlive,
-                                         unsigned int keepAliveTimeout) : 
+                                         unsigned int keepAliveTimeout) :
     stream_(stream),
     state_(State_WritingHeader),
     isContentCompressible_(false),
@@ -130,7 +130,7 @@ namespace Orthanc
 
   void HttpOutput::StateMachine::SetContentFilename(const char* filename)
   {
-    std::string sanitized = SanitizeFileName(filename);  // since the filename might come from the API, we need to sanitize it to make 
+    std::string sanitized = SanitizeFileName(filename);  // since the filename might come from the API, we need to sanitize it to make
                                                          // sure it does not add extra headers in the response with e.g: 'filename=toto.dcm"\r\nSet-Cookie:evil=1"
     AddHeader("Content-Disposition", "filename=\"" + sanitized + "\"");
   }
@@ -201,7 +201,7 @@ namespace Orthanc
 
       stream_.OnHttpStatusReceived(status_);
 
-      std::string s = "HTTP/1.1 " + 
+      std::string s = "HTTP/1.1 " +
         boost::lexical_cast<std::string>(status_) +
         " " + std::string(EnumerationToString(status_)) +
         "\r\n";
@@ -308,7 +308,7 @@ namespace Orthanc
 
       default:
         THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
-    }      
+    }
   }
 
 
@@ -387,7 +387,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange,
                              "Please use the dedicated methods to this HTTP status code in HttpOutput");
     }
-    
+
     stateMachine_.SetHttpStatus(status);
 
     if (messageSize > 0 &&
@@ -486,7 +486,7 @@ namespace Orthanc
   {
     return stateMachine_.GetState() == StateMachine::State_WritingStream;
   }
-  
+
   void HttpOutput::Answer(const void* buffer,
                           size_t length)
   {
@@ -514,7 +514,7 @@ namespace Orthanc
         encoding = "deflate";
         ZlibCompressor compressor;
         // Do not prefix the buffer with its uncompressed size, to be compatible with "deflate"
-        compressor.SetPrefixWithUncompressedSize(false);  
+        compressor.SetPrefixWithUncompressedSize(false);
         compressor.Compress(compressed, buffer, length);
         break;
       }
@@ -626,9 +626,9 @@ namespace Orthanc
     {
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
-    
+
     boundary.resize(70);
-    
+
     contentTypeHeader = ("multipart/" + subType + "; type=" + tmp + "; boundary=" + boundary);
   }
 
@@ -656,7 +656,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented,
                              "Multipart answers are not implemented together "
                              "with keep-alive connections if using Mongoose");
-      
+
 #elif ORTHANC_ENABLE_CIVETWEB == 1
 #  if CIVETWEB_HAS_DISABLE_KEEP_ALIVE == 1
       // Turn off Keep-Alive for multipart answers
@@ -668,7 +668,7 @@ namespace Orthanc
       // let's continue with Keep-Alive. Performance of WADO-RS will
       // decrease.
       header += "Connection: keep-alive\r\n";
-#  endif   
+#  endif
 
 #else
 #  error Please support your embedded Web server here
@@ -784,7 +784,7 @@ namespace Orthanc
       stream_.Send(false, item, length);
     }
 
-    stream_.Send(false, "\r\n", 2);    
+    stream_.Send(false, "\r\n", 2);
   }
 
 
@@ -827,12 +827,12 @@ namespace Orthanc
       }
     }
   }
-  
+
 
   void HttpOutput::StateMachine::CloseStream()
   {
     LOG(TRACE) << "CloseStream";
-    
+
     if (state_ != State_WritingStream)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
@@ -861,7 +861,7 @@ namespace Orthanc
     buffer.Flatten(s);
 
     output.SetContentType(stream.GetContentType());
-    
+
     std::string filename;
     if (stream.HasContentFilename(filename))
     {
@@ -888,7 +888,7 @@ namespace Orthanc
           AnswerStreamAsBuffer(*this, stream);
           return;
         }
-        
+
         break;
       }
 
@@ -954,12 +954,12 @@ namespace Orthanc
     for (size_t i = 0; i < parts.size(); i++)
     {
       std::string partHeader;
-      PrepareMultipartItemHeader(partHeader, sizes[i], headers[i] == NULL ? empty : *headers[i], 
+      PrepareMultipartItemHeader(partHeader, sizes[i], headers[i] == NULL ? empty : *headers[i],
                                  boundary, contentType);
 
       chunked.AddChunk(partHeader);
       chunked.AddChunk(parts[i], sizes[i]);
-      chunked.AddChunk("\r\n");    
+      chunked.AddChunk("\r\n");
     }
 
     chunked.AddChunk("--" + boundary + "--\r\n");

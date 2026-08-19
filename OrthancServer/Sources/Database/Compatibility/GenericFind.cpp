@@ -501,7 +501,7 @@ namespace Orthanc
         {
           ResourceType childrenLevel = GetChildResourceType(currentLevel);
 
-          if (request.GetChildrenSpecification(childrenLevel).IsRetrieveIdentifiers() || 
+          if (request.GetChildrenSpecification(childrenLevel).IsRetrieveIdentifiers() ||
               request.GetChildrenSpecification(childrenLevel).IsRetrieveCount())
           {
             for (std::list<int64_t>::const_iterator it = currentIds.begin(); it != currentIds.end(); ++it)
