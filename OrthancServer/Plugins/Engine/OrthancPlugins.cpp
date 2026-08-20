@@ -3836,6 +3836,15 @@ namespace Orthanc
         *p.resultString = instance.GetOrigin().GetRemoteAetC();
         return;
 
+      case _OrthancPluginService_GetInstanceCalledAet:
+        *p.resultString = instance.GetOrigin().GetCalledAetC();
+        return;
+
+
+      case _OrthancPluginService_GetInstanceRemoteIp:
+        *p.resultString = instance.GetOrigin().GetRemoteIpC();
+        return;
+
       case _OrthancPluginService_GetInstanceSize:
         *p.resultInt64 = static_cast<int64_t>(instance.GetBufferSize());
         return;
@@ -5439,6 +5448,8 @@ namespace Orthanc
         return true;
 
       case _OrthancPluginService_GetInstanceRemoteAet:
+      case _OrthancPluginService_GetInstanceCalledAet:
+      case _OrthancPluginService_GetInstanceRemoteIp:
       case _OrthancPluginService_GetInstanceSize:
       case _OrthancPluginService_GetInstanceData:
       case _OrthancPluginService_GetInstanceJson:

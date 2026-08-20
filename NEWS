@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+Plugin SDK
+----------
+
+* Added OrthancPluginGetInstanceCalledAet() and OrthancPluginGetInstanceRemoteIp()
+
 
 Version 1.13.0 (2026-08-15)
 ===========================

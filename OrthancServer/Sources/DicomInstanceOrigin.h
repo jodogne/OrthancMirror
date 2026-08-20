@@ -80,6 +80,10 @@ namespace Orthanc
 
     const char* GetRemoteAetC() const;
 
+    const char* GetCalledAetC() const;
+
+    const char* GetRemoteIpC() const;
+
     bool LookupRemoteAet(std::string& result) const;
 
     bool LookupRemoteIp(std::string& result) const;

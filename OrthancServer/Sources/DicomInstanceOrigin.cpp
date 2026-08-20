@@ -117,6 +117,30 @@ namespace Orthanc
     }
   }
 
+  const char* DicomInstanceOrigin::GetCalledAetC() const
+  {
+    if (origin_ == RequestOrigin_DicomProtocol)
+    {
+      return dicomCalledAet_.c_str();
+    }
+    else
+    {
+      return "";
+    }
+  }
+
+  const char* DicomInstanceOrigin::GetRemoteIpC() const
+  {
+    if (origin_ == RequestOrigin_DicomProtocol)
+    {
+      return remoteIp_.c_str();
+    }
+    else
+    {
+      return "";
+    }
+  }
+
   bool DicomInstanceOrigin::LookupRemoteAet(std::string& result) const
   {
     if (origin_ == RequestOrigin_DicomProtocol)

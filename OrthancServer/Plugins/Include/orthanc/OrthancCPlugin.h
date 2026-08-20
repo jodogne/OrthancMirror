@@ -126,7 +126,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     13
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  1
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -618,6 +618,8 @@ extern "C"
     _OrthancPluginService_GetInstanceDicomWebJson = 4018,  /* New in Orthanc 1.7.0 */
     _OrthancPluginService_GetInstanceDicomWebXml = 4019,   /* New in Orthanc 1.7.0 */
     _OrthancPluginService_LoadDicomInstance = 4020,        /* New in Orthanc 1.12.1 */
+    _OrthancPluginService_GetInstanceCalledAet = 4021,     /* New in Orthanc 1.13.1 */
+    _OrthancPluginService_GetInstanceRemoteIp = 4022,      /* New in Orthanc 1.13.1 */
 
     /* Services for plugins implementing a database back-end */
     _OrthancPluginService_RegisterDatabaseBackend = 5000,    /* New in Orthanc 0.8.6 */
@@ -3385,6 +3387,75 @@ extern "C"
     params.instance = instance;
 
     if (context->InvokeService(context, _OrthancPluginService_GetInstanceRemoteAet, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Get the Called AET of a DICOM instance.
+   *
+   * This function returns the Called Application Entity Title (AET) that
+   * was used when this instance was sent to Orthanc.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instance The instance of interest.
+   * @return The AET if success, NULL if error.
+   * @ingroup DicomInstance
+   **/
+   ORTHANC_PLUGIN_SINCE_SDK("1.13.1")
+   ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceCalledAet(
+    OrthancPluginContext*              context,
+    const OrthancPluginDicomInstance*  instance)
+  {
+    const char* result;
+
+    _OrthancPluginAccessDicomInstance params;
+    memset(&params, 0, sizeof(params));
+    params.resultString = &result;
+    params.instance = instance;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceCalledAet, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Get the Remote IP of a DICOM instance.
+   *
+   * This function returns the IP of the modality that has sent this instance to Orthanc.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instance The instance of interest.
+   * @return The AET if success, NULL if error.
+   * @ingroup DicomInstance
+   **/
+   ORTHANC_PLUGIN_SINCE_SDK("1.13.1")
+   ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceRemoteIp(
+    OrthancPluginContext*              context,
+    const OrthancPluginDicomInstance*  instance)
+  {
+    const char* result;
+
+    _OrthancPluginAccessDicomInstance params;
+    memset(&params, 0, sizeof(params));
+    params.resultString = &result;
+    params.instance = instance;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceRemoteIp, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;

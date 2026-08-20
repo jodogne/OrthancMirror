@@ -86,6 +86,44 @@
                 },
                 {
                     "args": [],
+                    "c_function": "OrthancPluginGetInstanceCalledAet",
+                    "const": true,
+                    "documentation": {
+                        "args": {},
+                        "description": [
+                            "This function returns the Called Application Entity Title (AET) that was used when this instance was sent to Orthanc."
+                        ],
+                        "return": "The AET if success, NULL if error.",
+                        "summary": "Get the Called AET of a DICOM instance."
+                    },
+                    "return_sdk_type": "const char *",
+                    "since_sdk": [
+                        1,
+                        13,
+                        1
+                    ]
+                },
+                {
+                    "args": [],
+                    "c_function": "OrthancPluginGetInstanceRemoteIp",
+                    "const": true,
+                    "documentation": {
+                        "args": {},
+                        "description": [
+                            "This function returns the IP of the modality that has sent this instance to Orthanc."
+                        ],
+                        "return": "The AET if success, NULL if error.",
+                        "summary": "Get the Remote IP of a DICOM instance."
+                    },
+                    "return_sdk_type": "const char *",
+                    "since_sdk": [
+                        1,
+                        13,
+                        1
+                    ]
+                },
+                {
+                    "args": [],
                     "c_function": "OrthancPluginGetInstanceSize",
                     "const": true,
                     "documentation": {
