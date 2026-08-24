@@ -6,6 +6,11 @@ Plugin SDK
 
 * Added OrthancPluginGetInstanceCalledAet() and OrthancPluginGetInstanceRemoteIp()
 
+Maintenance
+-----------
+
+* Fixed a TCP socket leak when a DICOM association is received with an invalid calling AET.
+
 
 Version 1.13.0 (2026-08-15)
 ===========================

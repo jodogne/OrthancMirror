@@ -332,6 +332,15 @@ namespace Orthanc
       {
         LOG(ERROR) << "Association Received from an invalid AET (sanitized: " << Toolbox::NormalizeAet(remoteAet) << ")"
                    << " on IP " << remoteIp << ", rejecting the association";
+
+        T_ASC_RejectParameters rej =
+          {
+            ASC_RESULT_REJECTEDPERMANENT,
+            ASC_SOURCE_SERVICEUSER,
+            ASC_REASON_SU_CALLINGAETITLENOTRECOGNIZED
+          };
+        ASC_rejectAssociation(assoc, &rej);
+        AssociationCleanup(assoc);
         return NULL;
       }
 
