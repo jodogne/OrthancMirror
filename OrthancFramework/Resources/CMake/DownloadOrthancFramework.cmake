@@ -34,6 +34,14 @@ if (NOT DEFINED ORTHANC_FRAMEWORK_SOURCE OR
   message(FATAL_ERROR "The variable ORTHANC_FRAMEWORK_SOURCE must be set to \"system\", \"hg\", \"web\", \"archive\" or \"path\"")
 endif()
 
+# make sure these variables are defined (this happens when called from a plugin of from the UnitTests project)
+if(NOT DEFINED THIRD_PARTY_DOWNLOADS_ROOT_URL)
+  set(THIRD_PARTY_DOWNLOADS_ROOT_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads")
+endif()
+if(NOT DEFINED ORTHANC_SOURCES_DOWNLOADS_ROOT_URL)
+  set(ORTHANC_SOURCES_DOWNLOADS_ROOT_URL "https://orthanc.uclouvain.be/downloads/sources/orthanc")
+endif()
+
 
 ##
 ## Detection of the requested version
@@ -245,6 +253,10 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
         # for ScopedThreadNameSetter
         set(ORTHANC_FRAMEWORK_PRE_RELEASE ON)
         set(ORTHANC_FRAMEWORK_MD5 "f078ca997217b831ab3f6741f08a8c07")
+      elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "c1dcb63cde6f")
+        # framework post-1.13.0 for THIRD_PARTY_DOWNLOADS_ROOT_URL and ORTHANC_SOURCES_DOWNLOADS_ROOT_URL
+        set(ORTHANC_FRAMEWORK_PRE_RELEASE ON)
+        set(ORTHANC_FRAMEWORK_MD5 "6fcb0ceac5006a5e3a6e3efcf6aaba26")
       endif()
     endif()
   endif()
@@ -376,16 +388,7 @@ endif()
 ##
 
 if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "web")
-
-  # make sure these variables are defined (this happens when called from a plugin)
-  if(NOT DEFINED THIRD_PARTY_DOWNLOADS_ROOT_URL)
-    set(THIRD_PARTY_DOWNLOADS_ROOT_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads")
-  endif()
-  if(NOT DEFINED ORTHANC_SOURCES_DOWNLOADS_ROOT_URL)
-    set(ORTHANC_SOURCES_DOWNLOADS_ROOT_URL "https://orthanc.uclouvain.be/downloads/sources/orthanc")
-  endif()
-
-if (DEFINED ORTHANC_FRAMEWORK_URL)
+  if (DEFINED ORTHANC_FRAMEWORK_URL)
     string(REGEX REPLACE "^.*/" "" ORTHANC_FRAMEMORK_FILENAME "${ORTHANC_FRAMEWORK_URL}")
   else()
     # Default case: Download from the official Web site
