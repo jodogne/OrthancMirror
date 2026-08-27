@@ -382,9 +382,9 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "web")
     # Default case: Download from the official Web site
     set(ORTHANC_FRAMEMORK_FILENAME Orthanc-${ORTHANC_FRAMEWORK_VERSION}.tar.gz)
     if (ORTHANC_FRAMEWORK_PRE_RELEASE)
-      set(ORTHANC_FRAMEWORK_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/orthanc-framework/${ORTHANC_FRAMEMORK_FILENAME}")
+      set(ORTHANC_FRAMEWORK_URL "${THIRD_PARTY_DOWNLOADS_ROOT_URL}/orthanc-framework/${ORTHANC_FRAMEMORK_FILENAME}")
     else()
-      set(ORTHANC_FRAMEWORK_URL "https://orthanc.uclouvain.be/downloads/sources/orthanc/${ORTHANC_FRAMEMORK_FILENAME}")
+      set(ORTHANC_FRAMEWORK_URL "${ORTHANC_SOURCES_DOWNLOADS_ROOT_URL}/${ORTHANC_FRAMEMORK_FILENAME}")
     endif()
   endif()
 

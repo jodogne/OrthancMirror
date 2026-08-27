@@ -23,7 +23,7 @@
 SET(DCMTK_VERSION_NUMBER 370)
 SET(DCMTK_PACKAGE_VERSION "3.7.0")
 SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.7.0)
-SET(DCMTK_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/dcmtk-3.7.0.tar.gz")
+SET(DCMTK_URL "${THIRD_PARTY_DOWNLOADS_ROOT_URL}/dcmtk-3.7.0.tar.gz")
 SET(DCMTK_MD5 "15531c6d20e188aa8b0f237a84b95bc2")
 
 macro(DCMTK_UNSET)

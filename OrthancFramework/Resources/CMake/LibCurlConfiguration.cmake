@@ -22,7 +22,7 @@
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-8.17.0)
-  SET(CURL_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/curl-8.17.0.tar.gz")
+  SET(CURL_URL "${THIRD_PARTY_DOWNLOADS_ROOT_URL}/curl-8.17.0.tar.gz")
   SET(CURL_MD5 "71e24b00f40a7503c1d07886e42d6305")
 
   if (IS_DIRECTORY "${CURL_SOURCES_DIR}")

@@ -28,14 +28,14 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
   ## "civetweb-1.16-fixed.tar.gz" as follows:
   ##
   ##  $ cd /tmp
-  ##  $ wget https://orthanc.uclouvain.be/downloads/third-party-downloads/civetweb-1.16.tar.gz
+  ##  $ wget ${THIRD_PARTY_DOWNLOADS_ROOT_URL}/civetweb-1.16.tar.gz
   ##  $ tar xvf civetweb-1.16.tar.gz
   ##  $ rm -rf civetweb-1.16/src/third_party/ civetweb-1.16/test/
   ##  $ tar cvfz civetweb-1.16-fixed.tar.gz civetweb-1.16
   ##
 
   set(CIVETWEB_SOURCES_DIR ${CMAKE_BINARY_DIR}/civetweb-1.16)
-  set(CIVETWEB_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/civetweb-1.16-fixed.tar.gz")
+  set(CIVETWEB_URL "${THIRD_PARTY_DOWNLOADS_ROOT_URL}/civetweb-1.16-fixed.tar.gz")
   set(CIVETWEB_MD5 "038edf77ea37e47def9458e8903cd53d")
 
   if (IS_DIRECTORY "${CIVETWEB_SOURCES_DIR}")

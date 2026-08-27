@@ -10,6 +10,9 @@ Maintenance
 -----------
 
 * Fixed a TCP socket leak when a DICOM association is received with an invalid calling AET.
+* New CMake options: 
+  - "THIRD_PARTY_DOWNLOADS_ROOT_URL" to specify another webserver to downloads the third-parties from.
+  - "ORTHANC_SOURCES_DOWNLOADS_ROOT_URL" to specify another webserver to downloads the Orthanc sources from.
 
 
 Version 1.13.0 (2026-08-15)

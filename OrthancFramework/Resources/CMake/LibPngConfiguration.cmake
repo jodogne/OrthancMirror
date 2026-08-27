@@ -22,7 +22,7 @@
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
   SET(LIBPNG_SOURCES_DIR ${CMAKE_BINARY_DIR}/libpng-1.6.50)
-  SET(LIBPNG_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/libpng-1.6.50.tar.gz")
+  SET(LIBPNG_URL "${THIRD_PARTY_DOWNLOADS_ROOT_URL}/libpng-1.6.50.tar.gz")
   SET(LIBPNG_MD5 "eef2d3da281ae83ac8a8f5fd9fa9d325")
 
   DownloadPackage(${LIBPNG_MD5} ${LIBPNG_URL} "${LIBPNG_SOURCES_DIR}")

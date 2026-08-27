@@ -26,7 +26,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBP11)
   endif()
 
   SET(LIBP11_SOURCES_DIR ${CMAKE_BINARY_DIR}/libp11-0.4.0)
-  SET(LIBP11_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/libp11-0.4.0.tar.gz")
+  SET(LIBP11_URL "${THIRD_PARTY_DOWNLOADS_ROOT_URL}/libp11-0.4.0.tar.gz")
   SET(LIBP11_MD5 "00b3e41db5be840d822bda12f3ab2ca7")
 
   if (IS_DIRECTORY "${LIBP11_SOURCES_DIR}")

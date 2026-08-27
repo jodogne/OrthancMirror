@@ -30,7 +30,7 @@ endif()
 
 DownloadPackage(
   "ca0d9b243e649d398a6b419acd35103a"
-  "https://orthanc.uclouvain.be/downloads/third-party-downloads/protobuf-cpp-3.5.1.tar.gz"
+  "${THIRD_PARTY_DOWNLOADS_ROOT_URL}/protobuf-cpp-3.5.1.tar.gz"
   "${CMAKE_CURRENT_BINARY_DIR}/protobuf-3.5.1")
 
 if (FirstRun)

@@ -51,6 +51,10 @@ set(ORTHANC_DCMTK_VERSION_RECOMMENDED 370)
 ## CMake parameters tunable by the user
 #####################################################################
 
+# Customize the downloads url in case your device does not have access to uclouvain servers
+set(THIRD_PARTY_DOWNLOADS_ROOT_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads" CACHE STRING "The base URL to download the 3rd parties from")
+set(ORTHANC_SOURCES_DOWNLOADS_ROOT_URL "https://orthanc.uclouvain.be/downloads/sources/orthanc" CACHE STRING "The base URL to download the Orthanc sources from")
+
 # Support of static compilation
 set(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 set(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")

@@ -22,7 +22,7 @@
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_ZLIB)
   SET(ZLIB_SOURCES_DIR ${CMAKE_BINARY_DIR}/zlib-1.3.1)
-  SET(ZLIB_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/zlib-1.3.1.tar.gz")
+  SET(ZLIB_URL "${THIRD_PARTY_DOWNLOADS_ROOT_URL}/zlib-1.3.1.tar.gz")
   SET(ZLIB_MD5 "9855b6d802d7fe5b7bd5b196a2271655")
 
   if (IS_DIRECTORY "${ZLIB_SOURCES_DIR}")
