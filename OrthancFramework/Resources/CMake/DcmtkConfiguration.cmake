@@ -217,6 +217,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       )
   else()
     set(DCMTK_USE_EMBEDDED_DICTIONARIES 0)
+    set(DCMTK_DICTIONARY_DIR  ${DCMTK_SOURCES_DIR}/dcmdata/data/)
   endif()
 
 
