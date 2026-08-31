@@ -1009,7 +1009,7 @@ namespace Orthanc
         value = boost::lexical_cast<std::string>(content_[index]);
       }
 
-      void ReadArrayOfIntegers(std::vector<int64_t>& target) const
+      bool ReadArrayOfIntegers(std::vector<int64_t>& target) const
       {
         if (valid_)
         {
@@ -1018,10 +1018,11 @@ namespace Orthanc
           {
             target[i] = content_[i];
           }
+          return true;
         }
         else
         {
-          throw OrthancException(ErrorCode_BadFileFormat);
+          return false;
         }
       }
     };
@@ -3922,8 +3923,15 @@ namespace Orthanc
           {
             ValueRepresentationReader_OW reader(element);
             std::vector<int64_t> values;
-            reader.ReadArrayOfIntegers(values);
-            action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
+            if (reader.ReadArrayOfIntegers(values))
+            {
+              action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
+            }
+            else
+            {
+              LOG(INFO) << "Tag does not follow a valid OW value representation: " << tag.Format();
+              action = visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
+            }
             break;
           }
 
