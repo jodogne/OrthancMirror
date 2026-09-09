@@ -49,16 +49,20 @@ namespace Orthanc
     boost::thread                retryHandler_;
     unsigned int                 threadSleep_;
     std::vector<boost::thread*>  workers_;
+    std::string                  loggingRetryThreadName_;
+    std::string                  loggingWorkerThreadPrefix_;
 
     bool IsRunning();
 
     bool ExecuteStep(JobsRegistry::RunningJob& running,
                      size_t workerIndex);
 
-    static void RetryHandler(JobsEngine* engine);
+    static void RetryHandler(JobsEngine* engine,
+                             std::string threadName);
 
     static void Worker(JobsEngine* engine,
-                       size_t workerIndex);
+                       size_t workerIndex,
+                       std::string threadNamePrefix);
 
   public:
     explicit JobsEngine(size_t maxCompletedJobs);
@@ -80,5 +84,8 @@ namespace Orthanc
     void Start();
 
     void Stop();
+
+    void SetThreadNames(const std::string& retryThreadName,
+                        const std::string& workerThreadPrefix);
   };
 }

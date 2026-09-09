@@ -107,9 +107,10 @@ namespace Orthanc
   }
 
 
-  void JobsEngine::RetryHandler(JobsEngine* engine)
+  void JobsEngine::RetryHandler(JobsEngine* engine,
+                                std::string threadName)
   {
-    Logging::ScopedCurrentThreadNameSetter setter("JOBS-RETRY");
+    Logging::ScopedCurrentThreadNameSetter setter(threadName);
 
     assert(engine != NULL);
 
@@ -122,10 +123,11 @@ namespace Orthanc
 
 
   void JobsEngine::Worker(JobsEngine* engine,
-                          size_t workerIndex)
+                          size_t workerIndex,
+                          std::string threadNamePrefix)
   {
     assert(engine != NULL);
-    Logging::ScopedCurrentThreadNameSetter setter(std::string("JOBS-WORKER-") + boost::lexical_cast<std::string>(workerIndex));
+    Logging::ScopedCurrentThreadNameSetter setter(threadNamePrefix + "-" + boost::lexical_cast<std::string>(workerIndex));
     CLOG(INFO, JOBS) << "Worker thread " << workerIndex << " has started";
 
     while (engine->IsRunning())
@@ -158,7 +160,9 @@ namespace Orthanc
     state_(State_Setup),
     registry_(new JobsRegistry(maxCompletedJobs)),
     threadSleep_(200),
-    workers_(1)
+    workers_(1),
+    loggingRetryThreadName_("JOBS-RETRY"),
+    loggingWorkerThreadPrefix_("JOBS-WORKER")
   {
   }
 
@@ -261,14 +265,14 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    retryHandler_ = boost::thread(RetryHandler, this);
+    retryHandler_ = boost::thread(RetryHandler, this, loggingRetryThreadName_);
 
     assert(!workers_.empty());
 
     for (size_t i = 0; i < workers_.size(); i++)
     {
       assert(workers_[i] == NULL);
-      workers_[i] = new boost::thread(Worker, this, i);
+      workers_[i] = new boost::thread(Worker, this, i, loggingWorkerThreadPrefix_);
     }
 
     state_ = State_Running;
@@ -315,5 +319,23 @@ namespace Orthanc
     }
 
     CLOG(WARNING, JOBS) << "The jobs engine has stopped";
+  }
+
+
+  void JobsEngine::SetThreadNames(const std::string& retryThreadName,
+                                  const std::string& workerThreadPrefix)
+  {
+    boost::mutex::scoped_lock lock(stateMutex_);
+
+    if (state_ != State_Setup)
+    {
+      // Can only be invoked before calling "Start()"
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      loggingRetryThreadName_ = retryThreadName;
+      loggingWorkerThreadPrefix_ = workerThreadPrefix;
+    }
   }
 }
