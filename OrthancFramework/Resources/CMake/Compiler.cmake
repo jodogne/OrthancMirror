@@ -79,21 +79,29 @@ if (CMAKE_COMPILER_IS_GNUCXX)
   endif()
 
 elseif (MSVC)
-  # Use static runtime under Visual Studio
+  # Use static runtime under Visual Studio (i.e., inject the "/MT"
+  # compiler flag to get the "MultiThreaded" static CRT)
   # http://www.cmake.org/Wiki/CMake_FAQ#Dynamic_Replace
   # http://stackoverflow.com/a/6510446
-  foreach(flag_var
-    CMAKE_C_FLAGS_DEBUG
-    CMAKE_CXX_FLAGS_DEBUG
-    CMAKE_C_FLAGS_RELEASE
-    CMAKE_CXX_FLAGS_RELEASE
-    CMAKE_C_FLAGS_MINSIZEREL
-    CMAKE_CXX_FLAGS_MINSIZEREL
-    CMAKE_C_FLAGS_RELWITHDEBINFO
-    CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-    string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-    string(REGEX REPLACE "/MDd" "/MTd" ${flag_var} "${${flag_var}}")
-  endforeach(flag_var)
+  if(CMAKE_VERSION VERSION_LESS "3.15")
+    # Legacy approach: mangle the flags directly (pre-CMP0091)
+    foreach(flag_var
+        CMAKE_C_FLAGS_DEBUG
+        CMAKE_CXX_FLAGS_DEBUG
+        CMAKE_C_FLAGS_RELEASE
+        CMAKE_CXX_FLAGS_RELEASE
+        CMAKE_C_FLAGS_MINSIZEREL
+        CMAKE_CXX_FLAGS_MINSIZEREL
+        CMAKE_C_FLAGS_RELWITHDEBINFO
+        CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+      string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+      string(REGEX REPLACE "/MDd" "/MTd" ${flag_var} "${${flag_var}}")
+    endforeach(flag_var)
+  else()
+    # Modern approach: CMP0091 + CMAKE_MSVC_RUNTIME_LIBRARY (new in Orthanc 1.13.1)
+    cmake_policy(SET CMP0091 NEW)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  endif()
 
   # Add /Zm256 compiler option to Visual Studio to fix PCH errors
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zm256")
