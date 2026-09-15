@@ -622,7 +622,7 @@ namespace Orthanc
              "  NULL AS c4_string2, "
              "  NULL AS c5_string3, "
              "  NULL AS c6_string4, "
-             "  NULL AS c7_int1, "
+             "  Lookup.resourceType AS c7_int1, "
              "  NULL AS c8_int2, "
              "  NULL AS c9_int3, "
              "  NULL AS c10_big_int1, "
@@ -1105,13 +1105,23 @@ namespace Orthanc
         // LOG(INFO) << queryId << ": " << internalId;
         // continue;
 
-        assert(queryId == QUERY_LOOKUP || response.HasResource(internalId)); // the QUERY_LOOKUP must be read first and must create the response before any other query tries to populate the fields
+        // assert(queryId == QUERY_LOOKUP || response.HasResource(internalId)); // the QUERY_LOOKUP must be read first and must create the response before any other query tries to populate the fields
 
+        if (queryId != QUERY_LOOKUP && !response.HasResource(internalId)) // this happens when e.g, accessing an instance level with a series id
+        {
+          continue;
+        }        
+    
         switch (queryId)
         {
           case QUERY_LOOKUP:
-            response.Add(new FindResponse::Resource(requestLevel, internalId, s.ColumnString(C3_STRING_1)));
-            break;
+          {
+            int resourceType = s.ColumnInt(C7_INT_1);
+            if (static_cast<ResourceType>(resourceType) == request.GetLevel()) // this happens when e.g, accessing an instance level with a series id
+            {
+              response.Add(new FindResponse::Resource(requestLevel, internalId, s.ColumnString(C3_STRING_1)));
+            }
+          };  break;
 
           case QUERY_LABELS:
           {
