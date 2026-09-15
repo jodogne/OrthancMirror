@@ -812,13 +812,11 @@ namespace Orthanc
     sql = ("SELECT " +
            strQueryLevel + ".publicId, " +
            strQueryLevel + ".internalId, " +
-           strQueryLevel + ".resourceType, " +
            ordering +
            " FROM Resources AS " + strQueryLevel);
 
 
-    std::string joins; //, comparisons
-    std::vector<std::string> comparisons;
+    std::string joins, comparisons;
 
     // handle parent constraints
     if (request.GetOrthancIdentifiers().IsDefined() && request.GetOrthancIdentifiers().DetectLevel() <= queryLevel)
@@ -827,11 +825,11 @@ namespace Orthanc
 
       if (topParentLevel == queryLevel)
       {
-        comparisons.push_back(FormatLevel(topParentLevel) + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel)));
+        comparisons += " AND " + FormatLevel(topParentLevel) + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel));
       }
       else
       {
-        comparisons.push_back(FormatLevel("parent", topParentLevel) + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel)));
+        comparisons += " AND " + FormatLevel("parent", topParentLevel) + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel));
 
         for (int level = queryLevel; level > topParentLevel; level--)
         {
@@ -879,7 +877,7 @@ namespace Orthanc
 
         if (!comparison.empty())
         {
-          comparisons.push_back(comparison);
+          comparisons += " AND " + comparison;
         }
 
         count ++;
@@ -898,7 +896,7 @@ namespace Orthanc
 
         if (!comparison.empty())
         {
-          comparisons.push_back(comparison);
+          comparisons += " AND " + comparison;
         }
 
         count ++;
@@ -923,28 +921,9 @@ namespace Orthanc
     // }
 
     std::list<std::string> where;
-    std::string comparisonsStr;
-    if (comparisons.size() > 0)
-    {
-      Orthanc::Toolbox::JoinStrings(comparisonsStr, comparisons, " AND ");
-    }
+    where.push_back(strQueryLevel + ".resourceType = " +
+                    formatter.FormatResourceType(queryLevel) + comparisons);
 
-    if (request.GetOrthancIdentifiers().IsDefined())
-    {
-      // if there is a filter on the publicId, there is no need to filter on the resourceType.  Filtering for resourceType=X AND publicId=Y 
-      // would return the same result as publicId=Y since publicIds are unique.
-      assert(comparisons.size() > 0); // at least "publicId=Y"
-      where.push_back(comparisonsStr);
-    }
-    else
-    {
-      if (comparisonsStr.size() > 0)
-      {
-        comparisonsStr = " AND " + comparisonsStr;
-      }
-      where.push_back(strQueryLevel + ".resourceType = " +
-                      formatter.FormatResourceType(queryLevel) + comparisonsStr);
-    }
 
     if (!request.GetLabels().empty())
     {
