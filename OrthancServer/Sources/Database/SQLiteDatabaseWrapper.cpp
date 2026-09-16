@@ -1094,6 +1094,16 @@ namespace Orthanc
 
       sql += " ORDER BY c0_queryId, c2_rowNumber";  // this is really important to make sure that the Lookup query is the first one to provide results since we use it to create the responses element !
 
+      // uncomment to show the execution plan (in dev mode only of course !)
+      // {
+      //   SQLite::Statement analyze(db_, SQLITE_FROM_HERE_DYNAMIC(std::string("EXPLAIN QUERY PLAN ") + sql), std::string("EXPLAIN QUERY PLAN ") + sql);
+      //   CLOG(TRACE, SQLITE) << "EXPLAIN QUERY PLAN for " << sql;
+      //   while (analyze.Step())
+      //   {
+      //     CLOG(TRACE, SQLITE) << "id: " << analyze.ColumnString(0) << " parent: " <<  analyze.ColumnString(1) << " op: " << analyze.ColumnString(3);
+      //   }
+      // }
+
       SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
       formatter.Bind(s);
 
@@ -2873,6 +2883,9 @@ namespace Orthanc
           LOG(INFO) << "Adding timeout column to the \"Queues\" table";
           ExecuteEmbeddedScript(db_, ServerResources::ADD_TIMEOUT_TO_QUEUES);
         }
+
+        // New in Orthanc 1.13.1 run optimize at each startup
+        db_.Optimize(false);
       }
 
       transaction->Commit(0);
@@ -3010,6 +3023,10 @@ namespace Orthanc
   void SQLiteDatabaseWrapper::FlushToDisk()
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
+
+    // this will run ANALYZE only once whe the Resources table contains enough rows
+    db_.Optimize(true);
+
     db_.FlushToDisk();
   }
 

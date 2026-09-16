@@ -232,6 +232,31 @@ namespace Orthanc
       return false;
     }
 
+    void Connection::Optimize(bool onlyIfStatsDontExists)
+    {
+      if (onlyIfStatsDontExists)
+      {
+        if (!DoesTableExist("sqlite_stat1")) // create the table if it does not exist yet and if there are enough data in the Resources table
+        {
+          Statement countResources(*this, "SELECT COUNT(*) FROM Resources");    
+          countResources.Step();
+          if (countResources.ColumnInt64(0) > 1000)  // no need to ANALYZE if there are not enough data in the table
+          {
+            CLOG(WARNING, SQLITE) << "SQLite: Performing first ANALYZE to improve the query planner";
+            Statement analyze(*this, "ANALYZE");
+            analyze.Run();
+          }
+        }
+      }
+      else
+      {
+        CLOG(WARNING, SQLITE) << "SQLite: Performing OPTIMIZE to improve the query planner";
+        Statement analyze(*this, "PRAGMA OPTIMIZE");  // OPTIMIZE runs ANALYZE only if it makes sense
+        analyze.Run();
+        CLOG(WARNING, SQLITE) << "SQLite: OPTIMIZE completed";
+      }
+    }
+
     int64_t Connection::GetLastInsertRowId() const
     {
       return sqlite3_last_insert_rowid(db_);

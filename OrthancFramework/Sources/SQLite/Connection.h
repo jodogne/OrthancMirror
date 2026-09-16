@@ -121,6 +121,8 @@ namespace Orthanc
 
       void FlushToDisk();
 
+      void Optimize(bool onlyIfStatsDontExists);
+
       IScalarFunction* Register(IScalarFunction* func);  // Takes the ownership of the function
 
       // Info querying -------------------------------------------------------------
