@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "../OrthancFramework.h"
+
 #include <boost/noncopyable.hpp>
 
 namespace Orthanc
