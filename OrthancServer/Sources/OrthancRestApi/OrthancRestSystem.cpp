@@ -391,7 +391,7 @@ namespace Orthanc
   }
 
 
-  static void GetDicomConformanceStatement(RestApiGetCall& call)
+  static void GetDicomConformanceSummary(RestApiGetCall& call)
   {
     if (call.IsDocumentation())
     {
@@ -1231,7 +1231,7 @@ namespace Orthanc
     Register("/tools/execute-script", ExecuteScript);
     Register("/tools/now", GetNowIsoString<true>);
     Register("/tools/now-local", GetNowIsoString<false>);
-    Register("/tools/dicom-conformance", GetDicomConformanceStatement);
+    Register("/tools/dicom-conformance", GetDicomConformanceSummary);
     Register("/tools/default-encoding", GetDefaultEncoding);
     Register("/tools/default-encoding", SetDefaultEncoding);
     Register("/tools/metrics", GetMetricsEnabled);
