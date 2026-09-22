@@ -398,13 +398,13 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag("System")
         .SetSummary("Get DICOM conformance")
-        .SetDescription("Get the DICOM conformance statement of Orthanc")
-        .AddAnswerType(MimeType_PlainText, "The DICOM conformance statement");
+        .SetDescription("Get the DICOM conformance summary of Orthanc")
+        .AddAnswerType(MimeType_PlainText, "The DICOM conformance summary");
       return;
     }
 
     std::string statement;
-    GetFileResource(statement, ServerResources::DICOM_CONFORMANCE_STATEMENT);
+    GetFileResource(statement, ServerResources::DICOM_CONFORMANCE);
     call.GetOutput().AnswerBuffer(statement, MimeType_PlainText);
   }
 
