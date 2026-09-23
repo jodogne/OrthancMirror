@@ -54,7 +54,7 @@
 #endif
 
 #include <sqlite3.h>
-
+#include <boost/lexical_cast.hpp>
 
 namespace Orthanc
 {
@@ -238,9 +238,9 @@ namespace Orthanc
       {
         if (!DoesTableExist("sqlite_stat1")) // create the table if it does not exist yet and if there are enough data in the Resources table
         {
-          Statement countResources(*this, "SELECT COUNT(*) FROM Resources");    
+          Statement countResources(*this, std::string("SELECT COUNT(*) FROM Resources WHERE resourceType=") + boost::lexical_cast<std::string>(ResourceType_Study));    
           countResources.Step();
-          if (countResources.ColumnInt64(0) > 1000)  // no need to ANALYZE if there are not enough data in the table
+          if (countResources.ColumnInt64(0) > 50)  // no need to ANALYZE if there are not enough data in the table (wait for 50 studies)
           {
             CLOG(WARNING, SQLITE) << "SQLite: Performing first ANALYZE to improve the query planner";
             Statement analyze(*this, "ANALYZE");
