@@ -87,6 +87,7 @@
 #include "GetScp.h"
 #include "MoveScp.h"
 #include "StoreScp.h"
+#include "../DimseErrorPayload.h"
 
 #include <dcmtk/dcmdata/dcdeftag.h>     /* for storage commitment */
 #include <dcmtk/dcmdata/dcsequen.h>     /* for class DcmSequenceOfItems */
@@ -1363,8 +1364,16 @@ namespace Orthanc
       {
         CLOG(ERROR, DICOM) << "Error while processing an incoming storage commitment report: " << e.What();
 
-        // Code 0x0110 - "General failure in processing the operation was encountered"
-        dimseStatus = STATUS_N_ProcessingFailure;
+        if (e.GetPayload().HasContent() &&
+            e.GetPayload().GetType() == ErrorPayloadType_Dimse)
+        {
+          dimseStatus = GetDimseErrorStatusFromPayload(e.GetPayload());
+        }
+        else
+        {
+          // Code 0x0110 - "General failure in processing the operation was encountered"
+          dimseStatus = STATUS_N_ProcessingFailure;
+        }
       }
 
 

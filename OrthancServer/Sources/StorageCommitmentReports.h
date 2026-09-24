@@ -35,6 +35,8 @@ namespace Orthanc
     class Report : public boost::noncopyable
     {
     public:
+      typedef std::map<std::string, std::string> RequestedInstancesAndSopClasses;
+
       enum Status
       {
         Status_Success,
@@ -60,6 +62,7 @@ namespace Orthanc
       std::list<Success>  success_;
       std::list<Failure>  failures_;
       std::string         remoteAet_;
+      RequestedInstancesAndSopClasses requetsedInstances_;
 
     public:
       explicit Report(const std::string& remoteAet) :
@@ -75,6 +78,9 @@ namespace Orthanc
 
       void MarkAsComplete();
 
+      void AddRequestedInstance(const std::string& sopClassUid,
+                                const std::string& sopInstanceUid);
+
       void AddSuccess(const std::string& sopClassUid,
                       const std::string& sopInstanceUid);
 
@@ -87,6 +93,8 @@ namespace Orthanc
       void Format(Json::Value& json) const;
 
       void GetSuccessSopInstanceUids(std::vector<std::string>& target) const;
+
+      const RequestedInstancesAndSopClasses& GetRequestedInstancesAndSopClasses() const;
     };
 
   private:

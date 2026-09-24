@@ -2517,9 +2517,22 @@ namespace Orthanc
 
         // Create a "pending" storage commitment report BEFORE the
         // actual SCU call in order to avoid race conditions
-        context.GetStorageCommitmentReports().Store(
-          transactionUid, new StorageCommitmentReports::Report(remoteAet));
+        std::unique_ptr<StorageCommitmentReports::Report> request(new StorageCommitmentReports::Report(remoteAet));
 
+        std::list<std::string>::const_iterator itInstanceUid = sopInstanceUids.begin();
+        std::list<std::string>::const_iterator itClassUid = sopClassUids.begin();
+
+        while (itInstanceUid != sopInstanceUids.end() && itClassUid != sopClassUids.end())
+        {
+          request->AddRequestedInstance(*itClassUid, *itInstanceUid);
+
+          ++itInstanceUid;
+          ++itClassUid;
+        }
+
+        context.GetStorageCommitmentReports().Store(
+          transactionUid, request.release());
+          
         DicomAssociationParameters parameters(localAet, remote);
         InjectAssociationTimeout(parameters, json);
 

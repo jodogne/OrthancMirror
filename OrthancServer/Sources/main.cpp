@@ -31,6 +31,7 @@
 #include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomAssociationParameters.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomServer.h"
+#include "../../OrthancFramework/Sources/DicomNetworking/DimseErrorPayload.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/FileStorage/MemoryStorageArea.h"
 #include "../../OrthancFramework/Sources/FileStorage/PluginStorageAreaAdapter.h"
@@ -174,20 +175,90 @@ public:
       THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
     }
 
-    std::unique_ptr<StorageCommitmentReports::Report> report(
-      new StorageCommitmentReports::Report(connection.GetRemoteAet()));
+    std::unique_ptr<StorageCommitmentReports::Report> report;
 
-    for (size_t i = 0; i < successSopClassUids.size(); i++)
     {
-      report->AddSuccess(successSopClassUids[i], successSopInstanceUids[i]);
-    }
+      Orthanc::StorageCommitmentReports::Accessor requestAccessor(context_.GetStorageCommitmentReports(), transactionUid);
+      if (!requestAccessor.IsValid())
+      {
+        throw OrthancException(ErrorCode_UnknownResource, 
+                               std::string("This Storage Commitment transaction UID has not been initiated by this Orthanc or is too old: ") + transactionUid
+                               ).SetPayload(MakeDimseErrorStatusPayload(STATUS_N_UnrecognizedOperation));
+      }
 
-    for (size_t i = 0; i < failedSopClassUids.size(); i++)
-    {
-      report->AddFailure(failedSopClassUids[i], failedSopInstanceUids[i], failureReasons[i]);
-    }
+      if (requestAccessor.GetReport().GetRemoteAet() != connection.GetRemoteAet())
+      {
+        throw OrthancException(ErrorCode_UnknownResource, 
+                               std::string("This Storage Commitment transaction is invalid: the remote AET the N-EVENT-REPORT orginates from (") + connection.GetRemoteAet() + ") does not match the AET the request was sent to (" + requestAccessor.GetReport().GetRemoteAet() + ")"
+                              );
+      }
 
-    report->MarkAsComplete();
+      const StorageCommitmentReports::Report::RequestedInstancesAndSopClasses& requestedInstances = requestAccessor.GetReport().GetRequestedInstancesAndSopClasses();
+      // make sure all requestedInstances have been answered: store all requested instances ids in a set and remove it from the set when they have been answered.
+      std::set<std::string> remainingRequestedInstancesIds;
+      StorageCommitmentReports::Report::RequestedInstancesAndSopClasses::const_iterator it = requestedInstances.begin();
+      for (; it != requestedInstances.end(); ++it)
+      {
+        remainingRequestedInstancesIds.insert(it->first);
+      }
+
+      report.reset(new StorageCommitmentReports::Report(connection.GetRemoteAet()));
+
+      for (size_t i = 0; i < successSopClassUids.size(); i++)
+      {
+        StorageCommitmentReports::Report::RequestedInstancesAndSopClasses::const_iterator it = requestedInstances.find(successSopInstanceUids[i]);
+        
+        if (it == requestedInstances.end())
+        {
+          throw OrthancException(ErrorCode_UnknownResource, 
+                                 std::string("This (success) SOPInstanceUID (") + successSopInstanceUids[i] + ") was not requested in the Storage Commitment transaction " + transactionUid
+                                ).SetPayload(MakeDimseErrorStatusPayload(STATUS_N_InvalidSOPInstance));
+        }
+
+        if (it->second != successSopClassUids[i])
+        {
+          throw OrthancException(ErrorCode_UnknownResource, 
+                                 std::string("This (success) SOPInstanceUID (") + successSopInstanceUids[i] + ") was not requested with this SOPClassUID (" + successSopClassUids[i] + ") in the Storage Commitment transaction " + transactionUid
+                                ).SetPayload(MakeDimseErrorStatusPayload(STATUS_N_ClassInstanceConflict));
+        }
+
+        report->AddSuccess(successSopClassUids[i], successSopInstanceUids[i]);
+        remainingRequestedInstancesIds.erase(successSopInstanceUids[i]);
+      }
+
+      for (size_t i = 0; i < failedSopClassUids.size(); i++)
+      {
+        StorageCommitmentReports::Report::RequestedInstancesAndSopClasses::const_iterator it = requestedInstances.find(successSopInstanceUids[i]);
+        
+        if (it == requestedInstances.end())
+        {
+          throw OrthancException(ErrorCode_UnknownResource, 
+                                 std::string("This (failed) SOPInstanceUID (") + successSopInstanceUids[i] + ") was not requested in the Storage Commitment transaction " + transactionUid
+                                ).SetPayload(MakeDimseErrorStatusPayload(STATUS_N_InvalidSOPInstance));
+        }
+
+        report->AddFailure(failedSopClassUids[i], failedSopInstanceUids[i], failureReasons[i]);
+        remainingRequestedInstancesIds.erase(failedSopInstanceUids[i]);
+      }
+
+      if (remainingRequestedInstancesIds.size() > 0) // make sure all requestedInstances have been answered
+      {
+          throw OrthancException(ErrorCode_InexistentItem, 
+                                 std::string("Not all requested SOPInstanceUID have been answered in the Storage Commitment transaction ") + transactionUid
+                                ).SetPayload(MakeDimseErrorStatusPayload(STATUS_N_ProcessingFailure));
+      }
+        
+      // now that we are sure that all requestedInstances have been answered, we can reject any size mismatch (if more instances have been answered)
+      if (failedSopClassUids.size() + successSopClassUids.size() > requestedInstances.size())
+      {
+        throw OrthancException(ErrorCode_UnknownResource, 
+                               std::string("This Storage Commitment transaction UID contains more instances than requested: ") + transactionUid
+                               ).SetPayload(MakeDimseErrorStatusPayload(STATUS_N_UnrecognizedOperation));
+      }
+
+
+      report->MarkAsComplete();
+    }
 
     context_.GetStorageCommitmentReports().Store(transactionUid, report.release());
   }

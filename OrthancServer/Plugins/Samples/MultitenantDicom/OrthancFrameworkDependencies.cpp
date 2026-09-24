@@ -52,6 +52,7 @@
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomAssociationParameters.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomFindAnswers.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomServer.cpp"
+#include "../../../../OrthancFramework/Sources/DicomNetworking/DimseErrorPayload.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/Internals/FindScp.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/Internals/GetScp.cpp"

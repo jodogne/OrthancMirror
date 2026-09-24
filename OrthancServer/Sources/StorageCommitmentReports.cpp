@@ -41,6 +41,18 @@ namespace Orthanc
     }
   }
 
+  void StorageCommitmentReports::Report::AddRequestedInstance(const std::string& sopClassUid,
+                                                              const std::string& sopInstanceUid)
+  {
+    if (isComplete_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    requetsedInstances_[sopInstanceUid] = sopClassUid;
+  }
+
+
   void StorageCommitmentReports::Report::AddSuccess(const std::string& sopClassUid,
                                                     const std::string& sopInstanceUid)
   {
@@ -177,6 +189,12 @@ namespace Orthanc
     {
       target.push_back(it->sopInstanceUid_);
     }
+  }
+
+
+  const std::map<std::string, std::string>& StorageCommitmentReports::Report::GetRequestedInstancesAndSopClasses() const
+  {
+    return requetsedInstances_;
   }
 
 

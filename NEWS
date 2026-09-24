@@ -18,6 +18,8 @@ Maintenance
 -----------
 
 * Fixed a TCP socket leak when a DICOM association is received with an invalid calling AET.
+* Now rejecting Storage Commitment Report (N-EVENT-REPORT) if they don't perfectly match the
+  request initiated by Orthanc (N-ACTION)
 * Added more tolerance to invalid OW value representations
 * Fix use of the static runtime under Visual Studio (/MT), which broke in 1.12.10
 * New CMake options: 
