@@ -108,8 +108,8 @@ for i in range(len(transfer_syntaxes)):
 
 
 # Inject into the template conformance statement of Orthanc
-with open(os.path.join(os.path.dirname(__file__), 'DicomConformanceStatement.mustache'), 'r') as f:
-    with open(os.path.join(os.path.dirname(__file__), 'DicomConformanceStatement.txt'), 'w') as g:
+with open(os.path.join(os.path.dirname(__file__), 'DicomConformance.mustache'), 'r') as f:
+    with open(os.path.join(os.path.dirname(__file__), 'DicomConformance.txt'), 'w') as g:
         g.write(pystache.render(f.read(), {
             'store_scp' : store_scp,
             'draft_store_scp' : draft_store_scp,

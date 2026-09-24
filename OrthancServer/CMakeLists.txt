@@ -264,7 +264,7 @@ endif()
 #####################################################################
 
 set(ORTHANC_EMBEDDED_FILES
-  DICOM_CONFORMANCE_STATEMENT       ${CMAKE_SOURCE_DIR}/Resources/DicomConformanceStatement.txt
+  DICOM_CONFORMANCE                 ${CMAKE_SOURCE_DIR}/Resources/DicomConformance.txt
   FONT_UBUNTU_MONO_BOLD_16          ${CMAKE_SOURCE_DIR}/Resources/Fonts/UbuntuMonoBold-16.json
   LUA_TOOLBOX                       ${CMAKE_SOURCE_DIR}/Resources/Toolbox.lua
   PREPARE_DATABASE                  ${CMAKE_SOURCE_DIR}/Sources/Database/PrepareDatabase.sql

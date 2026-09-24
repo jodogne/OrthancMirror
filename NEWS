@@ -17,6 +17,9 @@ Plugin SDK
 Maintenance
 -----------
 
+* Renamed the "DICOM conformance statement" of Orthanc as "DICOM conformance summary",
+  as it is not a formal DICOM Conformance Statement in the sense of DICOM PS3.2, but only
+  a summary of supported SOP Classes and Transfer Syntaxes (thanks Jörg Riesmeier).
 * Fixed a TCP socket leak when a DICOM association is received with an invalid calling AET.
 * Now rejecting Storage Commitment Report (N-EVENT-REPORT) if they don't perfectly match the
   request initiated by Orthanc (N-ACTION)

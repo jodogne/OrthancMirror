@@ -391,20 +391,20 @@ namespace Orthanc
   }
 
 
-  static void GetDicomConformanceStatement(RestApiGetCall& call)
+  static void GetDicomConformanceSummary(RestApiGetCall& call)
   {
     if (call.IsDocumentation())
     {
       call.GetDocumentation()
         .SetTag("System")
         .SetSummary("Get DICOM conformance")
-        .SetDescription("Get the DICOM conformance statement of Orthanc")
-        .AddAnswerType(MimeType_PlainText, "The DICOM conformance statement");
+        .SetDescription("Get the DICOM conformance summary of Orthanc")
+        .AddAnswerType(MimeType_PlainText, "The DICOM conformance summary");
       return;
     }
 
     std::string statement;
-    GetFileResource(statement, ServerResources::DICOM_CONFORMANCE_STATEMENT);
+    GetFileResource(statement, ServerResources::DICOM_CONFORMANCE);
     call.GetOutput().AnswerBuffer(statement, MimeType_PlainText);
   }
 
@@ -1231,7 +1231,7 @@ namespace Orthanc
     Register("/tools/execute-script", ExecuteScript);
     Register("/tools/now", GetNowIsoString<true>);
     Register("/tools/now-local", GetNowIsoString<false>);
-    Register("/tools/dicom-conformance", GetDicomConformanceStatement);
+    Register("/tools/dicom-conformance", GetDicomConformanceSummary);
     Register("/tools/default-encoding", GetDefaultEncoding);
     Register("/tools/default-encoding", SetDefaultEncoding);
     Register("/tools/metrics", GetMetricsEnabled);
