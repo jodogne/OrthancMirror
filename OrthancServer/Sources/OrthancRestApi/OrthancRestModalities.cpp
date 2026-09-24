@@ -80,10 +80,15 @@ namespace Orthanc
   static DicomAssociationParameters GetAssociationParameters(RestApiPostCall& call,
                                                              const Json::Value& body)
   {
-    const std::string& localAet =
-      OrthancRestApi::GetContext(call).GetDefaultLocalApplicationEntityTitle();
     const RemoteModalityParameters remote =
       MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+
+    std::string localAet = OrthancRestApi::GetContext(call).GetDefaultLocalApplicationEntityTitle(); // from the global configuration file
+    if (remote.HasLocalAet()) // from the "DicomModalities" configuration
+    {
+      localAet = remote.GetLocalAet();
+    }
+    localAet = Toolbox::GetJsonStringField(body, KEY_LOCAL_AET, localAet); // from the payload
 
     DicomAssociationParameters params(localAet, remote);
     InjectAssociationTimeout(params, body);
