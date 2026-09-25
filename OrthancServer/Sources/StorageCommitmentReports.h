@@ -78,8 +78,8 @@ namespace Orthanc
 
       void MarkAsComplete();
 
-      void AddRequestedInstance(const std::string& sopClassUid,
-                                const std::string& sopInstanceUid);
+      void AddRequestedInstances(const std::vector<std::string>& sopClassesUids,
+                                 const std::vector<std::string>& sopInstancesUids);
 
       void AddSuccess(const std::string& sopClassUid,
                       const std::string& sopInstanceUid);

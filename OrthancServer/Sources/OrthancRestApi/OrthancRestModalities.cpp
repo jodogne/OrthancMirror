@@ -2395,7 +2395,7 @@ namespace Orthanc
     }
     else
     {
-      std::list<std::string> sopClassUids, sopInstanceUids;
+      std::vector<std::string> sopClassUids, sopInstanceUids;
 
       if (json.isMember(ORTHANC_RESOURCES))
       {
@@ -2523,17 +2523,7 @@ namespace Orthanc
         // Create a "pending" storage commitment report BEFORE the
         // actual SCU call in order to avoid race conditions
         std::unique_ptr<StorageCommitmentReports::Report> request(new StorageCommitmentReports::Report(remoteAet));
-
-        std::list<std::string>::const_iterator itInstanceUid = sopInstanceUids.begin();
-        std::list<std::string>::const_iterator itClassUid = sopClassUids.begin();
-
-        while (itInstanceUid != sopInstanceUids.end() && itClassUid != sopClassUids.end())
-        {
-          request->AddRequestedInstance(*itClassUid, *itInstanceUid);
-
-          ++itInstanceUid;
-          ++itClassUid;
-        }
+        request->AddRequestedInstances(sopClassUids, sopInstanceUids);
 
         context.GetStorageCommitmentReports().Store(
           transactionUid, request.release());
@@ -2543,7 +2533,7 @@ namespace Orthanc
 
         std::vector<std::string> a(sopClassUids.begin(), sopClassUids.end());
         std::vector<std::string> b(sopInstanceUids.begin(), sopInstanceUids.end());
-        DicomAssociation::RequestStorageCommitment(parameters, transactionUid, a, b);
+        DicomAssociation::RequestStorageCommitment(parameters, transactionUid, sopClassUids, sopInstanceUids);
       }
 
       Json::Value result = Json::objectValue;

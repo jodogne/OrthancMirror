@@ -41,15 +41,24 @@ namespace Orthanc
     }
   }
 
-  void StorageCommitmentReports::Report::AddRequestedInstance(const std::string& sopClassUid,
-                                                              const std::string& sopInstanceUid)
+  void StorageCommitmentReports::Report::AddRequestedInstances(const std::vector<std::string>& sopClassesUids,
+                                                               const std::vector<std::string>& sopInstancesUids)
   {
     if (isComplete_)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    requetsedInstances_[sopInstanceUid] = sopClassUid;
+    if (sopClassesUids.size() != sopInstancesUids.size())
+    {
+      throw OrthancException(ErrorCode_InternalError, "SOPClassesUIDs & SOPInstancesUIDs size mismatch");
+    }
+
+    for (size_t i = 0; i < sopClassesUids.size(); ++i)
+    {
+      requetsedInstances_[sopInstancesUids[i]] = sopClassesUids[i];
+    }
+
   }
 
 
@@ -75,7 +84,7 @@ namespace Orthanc
   {
     if (isComplete_)
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_BadSequenceOfCalls);
     }
     else
     {

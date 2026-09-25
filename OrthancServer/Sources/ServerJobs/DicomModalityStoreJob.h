@@ -44,8 +44,8 @@ namespace Orthanc
 
     // For storage commitment
     std::string             transactionUid_;
-    std::list<std::string>  sopInstanceUids_;
-    std::list<std::string>  sopClassUids_;
+    std::vector<std::string>  sopInstanceUids_;
+    std::vector<std::string>  sopClassUids_;
 
     void OpenConnection();
 
