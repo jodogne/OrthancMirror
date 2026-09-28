@@ -97,7 +97,7 @@ namespace Orthanc
       {
         assert(parsed_.get() != NULL);
         DcmFileFormat& f = parsed_->GetDcmtkObject();
-        size_ = f.calcElementLength(f.getDataset()->getOriginalXfer(), EET_ExplicitLength);
+        size_ = f.calcElementLength(f.getDataset()->getCurrentXfer(), EET_ExplicitLength);
       }
     }
 

@@ -17,6 +17,10 @@ Plugin SDK
 Maintenance
 -----------
 
+* Fixed a memory management issue related to the transcoder cache.  The memory consumed by each
+  transcoded file was greatly under-estimated which could lead to out-of-memory crashes when 
+  transcoding was used when downloading files/archive or during a C-Store.  The transcoding
+  happening at ingest time was not affected by this issue.
 * Renamed the "DICOM conformance statement" of Orthanc as "DICOM conformance summary",
   as it is not a formal DICOM Conformance Statement in the sense of DICOM PS3.2, but only
   a summary of supported SOP Classes and Transfer Syntaxes (thanks Jörg Riesmeier).
