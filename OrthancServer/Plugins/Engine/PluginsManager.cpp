@@ -171,7 +171,7 @@ namespace Orthanc
         Orthanc::Logging::LogLevel level = static_cast<Orthanc::Logging::LogLevel>(m.level);
         Orthanc::Logging::LogCategory category = static_cast<Orthanc::Logging::LogCategory>(m.category);
 
-        LOG_FROM_PLUGIN(level, category, m.plugin, m.file, m.line) << m.message;
+        LOG_FROM_PLUGIN(level, category, m.plugin, m.file, m.line, NULL) << m.message;
         return OrthancPluginErrorCode_Success;
       }
 

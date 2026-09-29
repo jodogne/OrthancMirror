@@ -677,7 +677,7 @@ namespace Orthanc
              **/
 
             DicomTag t(tag.getGroup(), tag.getElement());
-            LOG(WARNING) << "Truncating the DICOM tag " << t.Format() << " containing "
+            LOG_WARNING("W101") << "Truncating the DICOM tag " << t.Format() << " containing "
                          << size << " values to " << maxBinaryArrayLength << " values";
             size = maxBinaryArrayLength;
           }

@@ -96,7 +96,6 @@ namespace Orthanc
     Peers                               peers_;
     JobsEngineThreadsCount              jobsEngineThreadsCount_;
     ServerIndex*                        serverIndex_;
-    std::set<Warnings>                  disabledWarnings_;
 
     OrthancConfiguration();
 
@@ -296,11 +295,6 @@ namespace Orthanc
     void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target) const;
 
     std::string GetDatabaseServerIdentifier() const;
-
-    bool IsWarningEnabled(Warnings warning) const
-    {
-      return disabledWarnings_.count(warning) == 0;
-    }
 
     std::string GetOrthancAET() const;
 

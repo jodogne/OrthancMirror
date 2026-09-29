@@ -30,6 +30,9 @@
 #include <cassert>
 #include <stdint.h>
 #include <string.h>
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/lock_types.hpp>  // For boost::unique_lock<> and boost::shared_lock<>
+
 
 #if defined(__linux__) && !defined(NDEBUG)
 #  include <pthread.h>
@@ -52,6 +55,8 @@ namespace Orthanc
     static uint32_t traceCategoriesMask_ = 0;
     static std::string logTargetFolder_;            // keep a track of the log folder in case of reset of the context
     static std::string logTargetFile_;              // keep a track of the log file in case of reset of the context
+    static boost::shared_mutex messageIdsMutex_;
+    static std::set<std::string> disabledMessageIds_;
 
     const char* EnumerationToString(LogLevel level)
     {
@@ -139,6 +144,28 @@ namespace Orthanc
     bool IsTraceLevelEnabled()
     {
       return (traceCategoriesMask_ != 0);
+    }
+
+    void SetMessageIdEnabled(const std::string& messageId, 
+                             bool enabled)
+    {
+      boost::unique_lock<boost::shared_mutex> lock(messageIdsMutex_);
+
+      if (enabled)
+      {
+        disabledMessageIds_.erase(messageId);
+      }
+      else
+      {
+        disabledMessageIds_.insert(messageId);
+      }
+    }
+
+    bool IsMessageIdEnabled(const std::string& messageId)
+    {
+      boost::shared_lock<boost::shared_mutex> lock(messageIdsMutex_);
+
+      return disabledMessageIds_.find(messageId) == disabledMessageIds_.end();
     }
 
 
@@ -953,7 +980,6 @@ static bool                                     logCallerThreadNameInContext_ = 
 static std::list<Orthanc::Logging::ILoggingListener*> loggingListeners_;
 static boost::shared_mutex                            loggingListenersMutex_;
 
-
 namespace Orthanc
 {
   namespace Logging
@@ -1413,13 +1439,15 @@ namespace Orthanc
                                    LogCategory category,
                                    const char* pluginName,
                                    const char* file,
-                                   int line) :
+                                   int line,
+                                   const char* messageId) :
       pimpl_(new PImpl),
       level_(level),
       stream_(&nullStream_),  // By default, logging to "/dev/null" is simulated
       category_(category),
       file_(file),
-      line_(line)
+      line_(line),
+      messageId_(messageId)
     {
       if (pluginContext_ != NULL)
       {
@@ -1447,9 +1475,9 @@ namespace Orthanc
       {
         // We are logging in a standalone application, not inside an Orthanc plugin
 
-        if (!IsCategoryEnabled(level_, category))
+        if (!IsCategoryEnabled(level_, category) || (messageId_ != NULL && !IsMessageIdEnabled(messageId_)))
         {
-          // This logging level is disabled, directly exit as the
+          // This logging level or specific message is disabled, directly exit as the
           // stream is set to "/dev/null"
           return;
         }
@@ -1502,6 +1530,11 @@ namespace Orthanc
             try
             {
               (*stream_) << prefix;
+
+              if (messageId_ != NULL)
+              {
+                (*stream_) << messageId_ << ": ";
+              }
             }
             catch (...)
             {
@@ -1573,7 +1606,7 @@ namespace Orthanc
           {
             try
             {
-              (*it)->HandleLog(level_, category_, pluginName_, file_, line_, messageStream_.str());
+              (*it)->HandleLog(level_, category_, pluginName_, file_, line_, messageStream_.str(), messageId_);
             }
             catch (...) // NOLINT(bugprone-empty-catch)
             {

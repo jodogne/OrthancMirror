@@ -1112,7 +1112,8 @@ public:
                          const std::string& pluginName,
                          const char* file,
                          uint32_t line,
-                         const std::string& message) ORTHANC_OVERRIDE
+                         const std::string& message,
+                         const char* messageId) ORTHANC_OVERRIDE
   {
     if (level == Orthanc::Logging::LogLevel_ERROR)
     {

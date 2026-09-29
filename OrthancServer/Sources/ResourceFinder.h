@@ -72,10 +72,6 @@ namespace Orthanc
     std::set<DicomTag>               requestedTags_;
     std::set<DicomTag>               requestedComputedTags_;
 
-    bool                             isWarning002Enabled_;
-    bool                             isWarning004Enabled_;
-    bool                             isWarning005Enabled_;
-
     bool IsRequestedComputedTag(const DicomTag& tag) const
     {
       return requestedComputedTags_.find(tag) != requestedComputedTags_.end();

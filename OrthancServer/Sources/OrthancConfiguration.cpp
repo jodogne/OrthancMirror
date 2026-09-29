@@ -1367,54 +1367,23 @@ namespace Orthanc
 
       for (size_t i = 0; i < members.size(); i++)
       {
-        const std::string& name = members[i];
+        const std::string& name = members[i];  // name is something like W001_TagsBeingReadFromStorage or W123
         bool enabled = warnings[name].asBool();
 
-        Warnings warning = Warnings_None;
-        if (name == "W001_TagsBeingReadFromStorage")
+        std::vector<std::string> splitName;
+        Toolbox::SplitString(splitName, name, '_');
+
+        if (splitName.size() >= 1)
         {
-          warning = Warnings_001_TagsBeingReadFromStorage;
-        }
-        else if (name == "W002_InconsistentDicomTagsInDb")
-        {
-          warning = Warnings_002_InconsistentDicomTagsInDb;
-        }
-        else if (name == "W003_DecoderFailure")
-        {
-          warning = Warnings_003_DecoderFailure;
-        }
-        else if (name == "W004_NoMainDicomTagsSignature")
-        {
-          warning = Warnings_004_NoMainDicomTagsSignature;
-        }
-        else if (name == "W005_RequestingTagFromLowerResourceLevel")
-        {
-          warning = Warnings_005_RequestingTagFromLowerResourceLevel;
-        }
-        else if (name == "W006_RequestingTagFromMetaHeader")
-        {
-          warning = Warnings_006_RequestingTagFromMetaHeader;
-        }
-        else if (name == "W007_MissingRequestedTagsNotReadFromDisk")
-        {
-          warning = Warnings_007_MissingRequestedTagsNotReadFromDisk;
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_BadFileFormat, name + " is not recognized as a valid warning name");
+          Logging::SetMessageIdEnabled(splitName[0], enabled);
+          if (!enabled)
+          {
+            LOG(WARNING) << "Disabling warning '" << splitName[0] << "'";
+          }
         }
 
-        if (!enabled)
-        {
-          disabledWarnings_.insert(warning);
-        }
       }
     }
-    else
-    {
-      disabledWarnings_.clear();
-    }
-
   }
 
 

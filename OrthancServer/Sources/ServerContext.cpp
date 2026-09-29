@@ -2211,11 +2211,7 @@ namespace Orthanc
 
     if (decoded.get() == NULL)
     {
-      OrthancConfiguration::ReaderLock configLock;
-      if (configLock.GetConfiguration().IsWarningEnabled(Warnings_003_DecoderFailure))
-      {
-        LOG(WARNING) << "W003: Unable to decode frame " << frameIndex << " from instance " << instancePublicId;
-      }
+      LOG_WARNING("W003") << "Unable to decode frame " << frameIndex << " from instance " << instancePublicId;
 
       throw OrthancException(ErrorCode_NotImplemented);
     }

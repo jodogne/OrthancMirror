@@ -15,6 +15,8 @@
   // "true" enables a warning. All warnings are enabled by default
   // see https://orthanc.uclouvain.be/book/faq/main-dicom-tags.html#warnings
   // (new in Orthanc 1.11.0)
+  // Note, from Orthanc 1.13.1, only the WXXX prefix is relevant.  The text
+  // following the underscore is ignored. 
   "Warnings" : {
     // A "RequestedTags" has been read from storage which is slower than
     // reading it from DB.
@@ -55,7 +57,11 @@
     // Display a warning when a user requests a tag that can not be read from disk
     // because "StorageAccessOnFind" is set to "Never".
     // (new in Orthanc 1.12.5)
-    "W007_MissingRequestedTagsNotReadFromDisk" : true
+    "W007_MissingRequestedTagsNotReadFromDisk" : true,
+
+    // Display a warning when Orthanc is truncating DICOMTag whose multiplicity is
+    // higher than 256 values when converting the tags to JSON.
+    "W101_TruncatingDicomTagTo256Values" : true
   },
 
   // Path to the directory where Orthanc stores its large temporary
