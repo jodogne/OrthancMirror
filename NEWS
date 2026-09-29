@@ -32,6 +32,8 @@ Maintenance
   (https://discourse.orthanc-server.org/t/find-worklist-with-localaet-from-modality-configuration/6482)
 * Added new warnings that can be disabled in the configuration: 
   - W101_TruncatingDicomTagTo256Values
+* Fixed a deadlock in Anonymization/Modification jobs: some instances failing to be processed
+  could keep the job in a "processing" state forever.
 * Fix use of the static runtime under Visual Studio (/MT), which broke in 1.12.10
 * New CMake options: 
   - "THIRD_PARTY_DOWNLOADS_ROOT_URL" to specify another webserver to downloads the third-parties from.

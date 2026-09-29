@@ -46,11 +46,12 @@ static std::string GetInstanceWorkerThreadName()
 namespace Orthanc
 {
   static const char* EXIT_WORKER_MESSAGE = "exit";
+  static const unsigned int WORKER_DEQUEUE_TIMEOUT_MS = 100;
 
-   ThreadedSetOfInstancesJob::ThreadedSetOfInstancesJob(ServerContext& context,
-                                                        bool hasPostProcessing,
-                                                        bool keepSource,
-                                                        size_t workersCount) :
+  ThreadedSetOfInstancesJob::ThreadedSetOfInstancesJob(ServerContext& context,
+                                                       bool hasPostProcessing,
+                                                       bool keepSource,
+                                                       size_t workersCount) :
     hasPostProcessing_(hasPostProcessing),
     started_(false),
     stopRequested_(false),
@@ -260,9 +261,27 @@ namespace Orthanc
 
     while (true)
     {
-      std::unique_ptr<SingleValueObject<std::string> > instanceId(dynamic_cast<SingleValueObject<std::string>*>(that->instancesToProcessQueue_.Dequeue(0)));
-      if (that->stopRequested_                // no lock(mutex) to access this variable, this is safe since it's just reading a boolean
-        || instanceId->GetValue() == EXIT_WORKER_MESSAGE)
+      std::unique_ptr<IDynamicObject> message(that->instancesToProcessQueue_.Dequeue(WORKER_DEQUEUE_TIMEOUT_MS));
+      if (that->stopRequested_)                // no lock(mutex) to access this variable, this is safe since it's just reading a boolean
+      {
+        return;
+      }
+
+      if (message.get() == NULL)
+      {
+        continue;  // timeout, nothing to process yet
+      }
+
+      SingleValueObject<std::string>* instanceId = dynamic_cast<SingleValueObject<std::string>*>(message.get());
+      if (instanceId == NULL)
+      {
+        LOG(ERROR) << "Unexpected message type in the instances queue";
+        that->SetErrorCode(ErrorCode_InternalError);
+        that->StopWorkers();
+        return;
+      }
+
+      if (instanceId->GetValue() == EXIT_WORKER_MESSAGE)
       {
         return;
       }
