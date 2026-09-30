@@ -25,13 +25,12 @@
 #include "PrecompiledHeaders.h"
 #include "Logging.h"
 
+#include "MultiThreading/ReaderWriterLock.h"
 #include "OrthancException.h"
 
 #include <cassert>
 #include <stdint.h>
 #include <string.h>
-#include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/lock_types.hpp>  // For boost::unique_lock<> and boost::shared_lock<>
 
 
 #if defined(__linux__) && !defined(NDEBUG)
@@ -55,7 +54,7 @@ namespace Orthanc
     static uint32_t traceCategoriesMask_ = 0;
     static std::string logTargetFolder_;            // keep a track of the log folder in case of reset of the context
     static std::string logTargetFile_;              // keep a track of the log file in case of reset of the context
-    static boost::shared_mutex messageIdsMutex_;
+    static ReaderWriterLock messageIdsMutex_;
     static std::set<std::string> disabledMessageIds_;
 
     const char* EnumerationToString(LogLevel level)
@@ -149,7 +148,7 @@ namespace Orthanc
     void SetMessageIdEnabled(const std::string& messageId, 
                              bool enabled)
     {
-      boost::unique_lock<boost::shared_mutex> lock(messageIdsMutex_);
+      ReaderWriterLock::WriteLock lock(messageIdsMutex_);
 
       if (enabled)
       {
@@ -163,9 +162,9 @@ namespace Orthanc
 
     bool IsMessageIdEnabled(const std::string& messageId)
     {
-      boost::shared_lock<boost::shared_mutex> lock(messageIdsMutex_);
+      ReaderWriterLock::ReadLock lock(messageIdsMutex_);
 
-      return disabledMessageIds_.find(messageId) == disabledMessageIds_.end();
+      return (disabledMessageIds_.find(messageId) == disabledMessageIds_.end());
     }
 
 
