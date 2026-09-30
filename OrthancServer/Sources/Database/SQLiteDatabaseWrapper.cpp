@@ -2884,8 +2884,8 @@ namespace Orthanc
           ExecuteEmbeddedScript(db_, ServerResources::ADD_TIMEOUT_TO_QUEUES);
         }
 
-        // New in Orthanc 1.13.1 run optimize at each startup
-        db_.Optimize(false);
+        // New in Orthanc 1.13.1 run optimize at each startup, provided there are enough data to perform a relevant analysis
+        Optimize(false);
       }
 
       transaction->Commit(0);
@@ -3020,12 +3020,32 @@ namespace Orthanc
   }
 
 
+  bool SQLiteDatabaseWrapper::Optimize(bool onlyIfStatsDontExistsYet)
+  {
+    SQLite::Statement countResources(db_, std::string("SELECT COUNT(*) FROM Resources WHERE resourceType=") + boost::lexical_cast<std::string>(ResourceType_Study));    
+    countResources.Step();
+    
+    if (countResources.ColumnInt64(0) > 50)  // no need to ANALYZE if there are not enough data in the table (wait for 50 studies)
+    {
+      db_.Optimize(onlyIfStatsDontExistsYet);
+      return true;
+    }
+
+    return false;
+  }
+
+
   void SQLiteDatabaseWrapper::FlushToDisk()
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
+    static bool hasRunOptimizeOnce = false;
 
-    // this will run ANALYZE only once whe the Resources table contains enough rows
-    db_.Optimize(true);
+    if (!hasRunOptimizeOnce)
+    {
+      // This will run ANALYZE only once whe the Resources table contains reaches a predefined size and if there are no index statistics yet.
+      // Then, an OPTIMIZE step will run at each startup (and will execute ANALYZE if it makes sense)
+      hasRunOptimizeOnce = Optimize(true /* onlyIfStatsDontExistsYet */);
+    }
 
     db_.FlushToDisk();
   }

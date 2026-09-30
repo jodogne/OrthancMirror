@@ -65,6 +65,8 @@ namespace Orthanc
                                       SQLite::Statement& s,
                                       uint32_t maxResults);
 
+    bool Optimize(bool onlyIfStatsDontExistsYet);
+
   public:
     SQLiteDatabaseWrapper(const std::string& path);
 
