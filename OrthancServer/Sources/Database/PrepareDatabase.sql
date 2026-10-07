@@ -99,7 +99,7 @@ CREATE TABLE PatientRecyclingOrder(
        );
 
 CREATE INDEX ChildrenIndex ON Resources(parentId);
-CREATE INDEX PublicIndex ON Resources(publicId);
+CREATE UNIQUE INDEX PublicIndex ON Resources(publicId);  -- unique since 1.13.1
 CREATE INDEX ResourceTypeIndex ON Resources(resourceType);
 CREATE INDEX PatientRecyclingIndex ON PatientRecyclingOrder(patientId);
 
@@ -156,11 +156,14 @@ ${INSTALL_KEY_VALUE_STORES_AND_QUEUES}
 ${ADD_TIMEOUT_TO_QUEUES}              -- equivalent to AddTimeoutToQueues.sql
 ${INSTALL_DICOM_IDENTIFIERS_INDEX_3}  -- equivalent to InstallDicomIdentifiersIndex3.sql
 
+-- new in Orthanc 1.13.1 ------------------------ index on AttachedFiles.publicId
+${INSTALL_ATTACHED_FILES_UUID_INDEX}  -- equivalent to InstallAttachedFilesPublicIndex.sql
 
 -- Track the fact that the "revision" column exists in the "Metadata" and "AttachedFiles"
 -- tables, and that the "customData" column exists in the "AttachedFiles" table
 INSERT INTO GlobalProperties VALUES (7, 1);  -- GlobalProperty_SQLiteHasCustomDataAndRevision
 
+INSERT INTO GlobalProperties VALUES (8, 1);  -- GlobalProperty_SQLiteIsPublicIndexUnique
 
 -- Set the version of the database schema
 -- The "1" corresponds to the "GlobalProperty_DatabaseSchemaVersion" enumeration

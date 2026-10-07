@@ -2812,6 +2812,7 @@ namespace Orthanc
         InjectEmbeddedScript(query, "${INSTALL_KEY_VALUE_STORES_AND_QUEUES}", ServerResources::INSTALL_KEY_VALUE_STORES_AND_QUEUES);
         InjectEmbeddedScript(query, "${ADD_TIMEOUT_TO_QUEUES}", ServerResources::ADD_TIMEOUT_TO_QUEUES);
         InjectEmbeddedScript(query, "${INSTALL_DICOM_IDENTIFIERS_INDEX_3}", ServerResources::INSTALL_DICOM_IDENTIFIERS_INDEX_3);
+        InjectEmbeddedScript(query, "${INSTALL_ATTACHED_FILES_UUID_INDEX}", ServerResources::INSTALL_ATTACHED_FILES_UUID_INDEX);
 
         db_.Execute(query);
       }
@@ -2882,6 +2883,21 @@ namespace Orthanc
         {
           LOG(INFO) << "Adding timeout column to the \"Queues\" table";
           ExecuteEmbeddedScript(db_, ServerResources::ADD_TIMEOUT_TO_QUEUES);
+        }
+
+        // New in Orthanc 1.13.1
+        if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_SQLiteIsPublicIndexUnique, true /* unused in SQLite */)
+            || tmp != "1")
+        {
+          LOG(INFO) << "Upgrading SQLite schema to make PublicIndex unique";
+          ExecuteEmbeddedScript(db_, ServerResources::MAKE_PUBLIC_INDEX_UNIQUE);
+        }
+
+        // New in Orthanc 1.13.1
+        if (!db_.DoesIndexExist("AttachedFilesUuidIndex"))
+        {
+          LOG(INFO) << "Installing the \"AttachedFilesUuidIndex\" index";
+          ExecuteEmbeddedScript(db_, ServerResources::INSTALL_ATTACHED_FILES_UUID_INDEX);
         }
 
         // New in Orthanc 1.13.1 run optimize at each startup, provided there are enough data to perform a relevant analysis

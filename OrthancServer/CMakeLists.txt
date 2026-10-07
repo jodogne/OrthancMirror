@@ -277,6 +277,8 @@ set(ORTHANC_EMBEDDED_FILES
   INSTALL_KEY_VALUE_STORES_AND_QUEUES ${CMAKE_SOURCE_DIR}/Sources/Database/InstallKeyValueStoresAndQueues.sql
   ADD_TIMEOUT_TO_QUEUES             ${CMAKE_SOURCE_DIR}/Sources/Database/AddTimeoutToQueues.sql
   INSTALL_DICOM_IDENTIFIERS_INDEX_3 ${CMAKE_SOURCE_DIR}/Sources/Database/InstallDicomIdentifiersIndex3.sql
+  MAKE_PUBLIC_INDEX_UNIQUE          ${CMAKE_SOURCE_DIR}/Sources/Database/MakePublicIndexUnique.sql
+  INSTALL_ATTACHED_FILES_UUID_INDEX ${CMAKE_SOURCE_DIR}/Sources/Database/InstallAttachedFilesUuidIndex.sql
   )
 
 if (STANDALONE_BUILD)

@@ -175,6 +175,7 @@ namespace Orthanc
     GlobalProperty_JobsRegistry = 5,
     GlobalProperty_GetTotalSizeIsFast = 6,      // New in Orthanc 1.5.2
     GlobalProperty_SQLiteHasRevisionAndCustomData = 7,     // New in Orthanc 1.12.8
+    GlobalProperty_SQLiteIsPublicIndexUnique = 8,          // New in Orthanc 1.13.1
     GlobalProperty_Modalities = 20,             // New in Orthanc 1.5.0
     GlobalProperty_Peers = 21,                  // New in Orthanc 1.5.0
 
