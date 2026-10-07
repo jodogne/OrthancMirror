@@ -511,7 +511,7 @@ TEST_F(DatabaseWrapperTest, Simple)
 
   CheckTableRecordCount(0, "Resources");
   CheckTableRecordCount(0, "AttachedFiles");
-  CheckTableRecordCount(4, "GlobalProperties");
+  CheckTableRecordCount(5, "GlobalProperties");
 
   std::string tmp;
   ASSERT_TRUE(transaction_->LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion, true));

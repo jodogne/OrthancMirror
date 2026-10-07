@@ -19,4 +19,4 @@
 -- along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-CREATE UNIQUE INDEX AttachedFilesUuidIndex ON AttachedFiles(uuid)
+CREATE UNIQUE INDEX AttachedFilesUuidIndex ON AttachedFiles(uuid);
