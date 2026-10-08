@@ -2900,8 +2900,8 @@ namespace Orthanc
           ExecuteEmbeddedScript(db_, ServerResources::INSTALL_ATTACHED_FILES_UUID_INDEX);
         }
 
-        // New in Orthanc 1.13.1 run optimize at each startup, provided there are enough data to perform a relevant analysis
-        Optimize(false);
+        // // New in Orthanc 1.13.1 run optimize at each startup, provided there are enough data to perform a relevant analysis
+        // Optimize(false);
       }
 
       transaction->Commit(0);
@@ -3054,14 +3054,14 @@ namespace Orthanc
   void SQLiteDatabaseWrapper::FlushToDisk()
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
-    static bool hasRunOptimizeOnce = false;
+    // static bool hasRunOptimizeOnce = false;
 
-    if (!hasRunOptimizeOnce)
-    {
-      // This will run ANALYZE only once whe the Resources table contains reaches a predefined size and if there are no index statistics yet.
-      // Then, an OPTIMIZE step will run at each startup (and will execute ANALYZE if it makes sense)
-      hasRunOptimizeOnce = Optimize(true /* onlyIfStatsDontExistsYet */);
-    }
+    // if (!hasRunOptimizeOnce)
+    // {
+    //   // This will run ANALYZE only once whe the Resources table contains reaches a predefined size and if there are no index statistics yet.
+    //   // Then, an OPTIMIZE step will run at each startup (and will execute ANALYZE if it makes sense)
+    //   hasRunOptimizeOnce = Optimize(true /* onlyIfStatsDontExistsYet */);
+    // }
 
     db_.FlushToDisk();
   }
