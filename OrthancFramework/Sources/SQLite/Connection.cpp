@@ -232,6 +232,7 @@ namespace Orthanc
       return false;
     }
 
+    // currently not used but it might be useful in the future if we want to add an "optimize-db" API route
     void Connection::Optimize(bool onlyIfStatsDontExistsYet)
     {
       if (onlyIfStatsDontExistsYet)

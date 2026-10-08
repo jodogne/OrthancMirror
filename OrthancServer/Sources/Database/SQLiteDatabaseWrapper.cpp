@@ -2899,9 +2899,6 @@ namespace Orthanc
           LOG(INFO) << "Installing the \"AttachedFilesUuidIndex\" index";
           ExecuteEmbeddedScript(db_, ServerResources::INSTALL_ATTACHED_FILES_UUID_INDEX);
         }
-
-        // // New in Orthanc 1.13.1 run optimize at each startup, provided there are enough data to perform a relevant analysis
-        // Optimize(false);
       }
 
       transaction->Commit(0);
@@ -3035,7 +3032,7 @@ namespace Orthanc
     }
   }
 
-
+  // currently not used but it might be useful in the future if we want to add an "optimize-db" API route
   bool SQLiteDatabaseWrapper::Optimize(bool onlyIfStatsDontExistsYet)
   {
     SQLite::Statement countResources(db_, std::string("SELECT COUNT(*) FROM Resources WHERE resourceType=") + boost::lexical_cast<std::string>(ResourceType_Study));    
@@ -3054,15 +3051,6 @@ namespace Orthanc
   void SQLiteDatabaseWrapper::FlushToDisk()
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
-    // static bool hasRunOptimizeOnce = false;
-
-    // if (!hasRunOptimizeOnce)
-    // {
-    //   // This will run ANALYZE only once whe the Resources table contains reaches a predefined size and if there are no index statistics yet.
-    //   // Then, an OPTIMIZE step will run at each startup (and will execute ANALYZE if it makes sense)
-    //   hasRunOptimizeOnce = Optimize(true /* onlyIfStatsDontExistsYet */);
-    // }
-
     db_.FlushToDisk();
   }
 

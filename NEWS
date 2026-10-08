@@ -6,8 +6,6 @@ General
 
 * With the default SQLite database:
   - Optimized some queries to access single resources.
-  - Optimized many queries thanks to improved query planning.  An Optimization step can
-    sometimes run at startup which slows down the Orthanc startup.
   - Added/updated 2 indexes: the first startup with this version migth be slower to rebuild
     these indexes.
 
