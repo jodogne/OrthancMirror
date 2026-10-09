@@ -862,10 +862,19 @@ namespace Orthanc
       std::string colorModel = Orthanc::Toolbox::StripSpaces(decompressedColorModel.c_str());
 
       if (target->GetFormat() == PixelFormat_RGB24 &&
-          (colorModel == "RGB" || colorModel == "YBR_FULL") &&
-          info.IsPlanar())
+          (colorModel == "RGB" || colorModel == "YBR_FULL"))
       {
-        std::unique_ptr<ImageAccessor> output(DecodePlanarConfiguration(*target));
+        std::unique_ptr<ImageAccessor> output;
+
+        if (info.IsPlanar())
+        {
+          output.reset(DecodePlanarConfiguration(*target));
+        }
+        else
+        {
+          output.reset(target.release());
+        }
+
 
         if (colorModel == "YBR_FULL")
         {

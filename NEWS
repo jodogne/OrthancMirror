@@ -34,6 +34,8 @@ Maintenance
   - W101_TruncatingDicomTagTo256Values
 * Fixed a deadlock in Anonymization/Modification jobs: some instances failing to be processed
   could keep the job in a "processing" state forever.
+* Fixed preview of YBR_FULL images encoded in JPEG-LS
+  (https://discourse.orthanc-server.org/t/orthanc-preview-does-not-show-correctly/6488)
 * Fix use of the static runtime under Visual Studio (/MT), which broke in 1.12.10
 * New CMake options: 
   - "THIRD_PARTY_DOWNLOADS_ROOT_URL" to specify another webserver to downloads the third-parties from.
