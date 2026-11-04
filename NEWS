@@ -52,6 +52,7 @@ Maintenance
 * Upgraded dependencies for static builds:
   - dcmtk 3.7.1
   - openssl 3.5.9 (LTS branch)
+  - boost 1.92.0
 
 
 Version 1.13.0 (2026-08-15)

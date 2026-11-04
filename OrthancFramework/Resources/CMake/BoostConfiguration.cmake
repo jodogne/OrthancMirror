@@ -100,10 +100,10 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
   ## Parameters for static compilation of Boost
   ##
 
-  set(BOOST_NAME boost_1_89_0)
-  set(BOOST_VERSION 1.89.0)
-  set(BOOST_BCP_SUFFIX bcpdigest-1.12.11)
-  set(BOOST_MD5 "af98f0ba3507cb611e78f96fe8bd0a7c")
+  set(BOOST_NAME boost_1_92_0)
+  set(BOOST_VERSION 1.92.0)
+  set(BOOST_BCP_SUFFIX bcpdigest-1.13.1)
+  set(BOOST_MD5 "010ba1178dfd94495747d00b99421bbf")
   set(BOOST_URL "${THIRD_PARTY_DOWNLOADS_ROOT_URL}/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
 
