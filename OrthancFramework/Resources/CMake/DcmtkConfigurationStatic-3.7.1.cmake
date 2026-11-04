@@ -322,13 +322,25 @@ endif()
 
 # 2026-10-22: On several GNU/Linux distributions (notably Ubuntu
 # 22.04), Orthanc was observed to crash when using the system-wide
-# civetweb library and allowing DCMTK to process sequences nested up
-# to 37 levels deep. This issue can be reproduced using the DICOM
-# sample file
-# "orthanc-tests/Database/2026-05-06-Deeply-Nested-Sequence.dcm". The
-# issue does not occur when civetweb is statically linked by setting
-# "-DUSE_SYSTEM_CIVETWEB=OFF". The exact cause for this difference is
-# unknown, but it appears to be related to stack management across
-# shared libraries. We therefore limit the maximum nesting depth to 32
-# levels.
+# civetweb library and allowing DCMTK to process sequences nested
+# deeper than 37 levels. This issue can be reproduced by uploading the
+# DICOM sample file
+# "orthanc-tests/Database/2026-05-06-Deeply-Nested-Sequence.dcm" using
+# the REST API of Orthanc.
+#
+# The issue does not occur when civetweb is statically linked by
+# setting "-DUSE_SYSTEM_CIVETWEB=OFF". This is because the system-wide
+# civetweb shared library is built by setting the CMake option
+# "CIVETWEB_THREAD_STACK_SIZE" to its default value (102400), which in
+# turn defines the macro "USE_STACK_SIZE", which finally results in a
+# call to "pthread_attr_setstacksize()". If the macro "USE_STACK_SIZE"
+# is not defined (which is the case with "-DUSE_SYSTEM_CIVETWEB=OFF"),
+# "pthread_attr_setstacksize()" is not called and the civetweb workers
+# use the default stack size of the OS, which happens to be sufficient
+# to handle "2026-05-06-Deeply-Nested-Sequence.dcm".
+#
+# We therefore limit the maximum nesting depth to 32 levels to ensure
+# consistency between system-wide and static versions of civetweb.
+#
+# For reference: https://github.com/civetweb/civetweb/pull/1398
 add_definitions(-DDCMTK_MAX_SEQUENCE_NESTING=32)
