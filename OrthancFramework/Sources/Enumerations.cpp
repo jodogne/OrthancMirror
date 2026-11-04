@@ -2018,6 +2018,8 @@ namespace Orthanc
     Toolbox::ToUpperCase(s);
 
     // handle common spelling mistakes
+    boost::replace_all(s, "ISO-IR ", "ISO_IR ");
+    boost::replace_all(s, "ISO IR ", "ISO_IR ");
     boost::replace_all(s, "ISO_IR_", "ISO_IR ");
     boost::replace_all(s, "ISO_2022_IR_", "ISO 2022 IR ");
 
