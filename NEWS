@@ -8,6 +8,9 @@ General
   - Optimized some queries to access single resources.
   - Added/updated 2 indexes: the first startup with this version migth be slower to rebuild
     these indexes.
+* It is now possible to change the encoding of all texts in a DICOM file by modifying its
+  SpecificCharacterSet when calling /modify.
+  (https://github.com/orthanc-server/orthanc-explorer-2/issues/123)
 
 Plugin SDK
 ----------

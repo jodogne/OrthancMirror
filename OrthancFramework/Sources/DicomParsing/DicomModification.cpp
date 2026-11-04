@@ -1084,7 +1084,21 @@ namespace Orthanc
       toModify->Remove(*it);
     }
 
-    // (5) Replace the tags
+    // (5.0) Change the encoding before replacing new values
+    if (IsReplaced(DICOM_TAG_SPECIFIC_CHARACTER_SET))
+    {
+      std::string targetEncodingStr = GetReplacementAsString(DICOM_TAG_SPECIFIC_CHARACTER_SET);
+      Encoding targetEncoding;
+      
+      if (!GetDicomEncoding(targetEncoding, targetEncodingStr.c_str()))
+      {
+        throw OrthancException(ErrorCode_BadRequest, std::string("Unrecognized SpecificCharacterSet, unable to modify the encoding: ") + targetEncodingStr);
+      }
+
+      toModify->ChangeEncoding(targetEncoding);
+    }
+
+    // (5.1) Replace the tags
     for (Replacements::const_iterator it = replacements_.begin();
          it != replacements_.end(); ++it)
     {
