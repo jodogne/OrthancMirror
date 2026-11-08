@@ -1,6 +1,6 @@
-diff -urN boost_1_92_0.orig/libs/locale/src/shared/date_time.cpp boost_1_92_0/libs/locale/src/shared/date_time.cpp
---- boost_1_92_0.orig/libs/locale/src/shared/date_time.cpp	2026-11-04 10:49:20.000000000 +0100
-+++ boost_1_92_0/libs/locale/src/shared/date_time.cpp	2026-11-04 11:04:26.149779603 +0100
+diff -urEb boost_1_92_0.orig/libs/locale/src/shared/date_time.cpp boost_1_92_0/libs/locale/src/shared/date_time.cpp
+--- boost_1_92_0.orig/libs/locale/src/shared/date_time.cpp	2026-11-08 11:04:03.058738872 +0100
++++ boost_1_92_0/libs/locale/src/shared/date_time.cpp	2026-11-08 11:04:20.993584803 +0100
 @@ -12,8 +12,10 @@
  #include <boost/locale/date_time.hpp>
  #include <boost/locale/formatting.hpp>
@@ -31,9 +31,9 @@ diff -urN boost_1_92_0.orig/libs/locale/src/shared/date_time.cpp boost_1_92_0/li
  }} // namespace boost::locale
  
  // boostinspect:nominmax
-diff -urN boost_1_92_0.orig/libs/locale/src/shared/generator.cpp boost_1_92_0/libs/locale/src/shared/generator.cpp
---- boost_1_92_0.orig/libs/locale/src/shared/generator.cpp	2026-11-04 10:49:20.000000000 +0100
-+++ boost_1_92_0/libs/locale/src/shared/generator.cpp	2026-11-04 11:05:17.822446608 +0100
+diff -urEb boost_1_92_0.orig/libs/locale/src/shared/generator.cpp boost_1_92_0/libs/locale/src/shared/generator.cpp
+--- boost_1_92_0.orig/libs/locale/src/shared/generator.cpp	2026-11-08 11:04:03.058738872 +0100
++++ boost_1_92_0/libs/locale/src/shared/generator.cpp	2026-11-08 11:05:45.734857346 +0100
 @@ -8,8 +8,10 @@
  #include <boost/locale/encoding.hpp>
  #include <boost/locale/generator.hpp>
@@ -67,9 +67,19 @@ diff -urN boost_1_92_0.orig/libs/locale/src/shared/generator.cpp boost_1_92_0/li
              const auto p = d->cached.find(id);
              if(p != d->cached.end())
                  return p->second;
-diff -urN boost_1_92_0.orig/libs/locale/src/shared/localization_backend.cpp boost_1_92_0/libs/locale/src/shared/localization_backend.cpp
---- boost_1_92_0.orig/libs/locale/src/shared/localization_backend.cpp	2026-11-04 10:49:20.000000000 +0100
-+++ boost_1_92_0/libs/locale/src/shared/localization_backend.cpp	2026-11-04 11:06:12.247295617 +0100
+@@ -125,7 +131,9 @@
+                 result = backend->install(result, facet, char_facet_t::nochar);
+         }
+         if(d->caching_enabled) {
++#if !defined(__EMSCRIPTEN__)
+             boost::unique_lock<boost::mutex> guard(d->cached_lock);
++#endif
+             const auto p = d->cached.find(id);
+             if(p == d->cached.end())
+                 d->cached[id] = result;
+diff -urEb boost_1_92_0.orig/libs/locale/src/shared/localization_backend.cpp boost_1_92_0/libs/locale/src/shared/localization_backend.cpp
+--- boost_1_92_0.orig/libs/locale/src/shared/localization_backend.cpp	2026-11-08 11:04:03.058738872 +0100
++++ boost_1_92_0/libs/locale/src/shared/localization_backend.cpp	2026-11-08 11:04:20.994584795 +0100
 @@ -5,8 +5,10 @@
  // https://www.boost.org/LICENSE_1_0.txt
  
