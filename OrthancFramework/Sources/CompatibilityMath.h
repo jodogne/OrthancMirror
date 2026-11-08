@@ -31,6 +31,23 @@
 #include "Compatibility.h"
 
 
+#if defined(_WIN32)
+/**
+ * <windows.h> defines function-like min/max macros that break
+ * std::min(), std::max(), or std::numeric_limits<T>::max(). Undefine
+ * them right after the include so they cannot interfere with the rest
+ * of the code.
+ **/
+#  include <windows.h>
+#  if defined(min)
+#    undef min
+#  endif
+#  if defined(max)
+#    undef max
+#  endif
+#endif
+
+
 #ifdef __EMSCRIPTEN__
 /*
    Avoid such errors:
