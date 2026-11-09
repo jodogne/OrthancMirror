@@ -185,23 +185,29 @@ public:
       Orthanc::StorageCommitmentReports::Accessor requestAccessor(context_.GetStorageCommitmentReports(), transactionUid);
       if (!requestAccessor.IsValid())
       {
-        throw OrthancException(ErrorCode_UnknownResource, 
-                               std::string("This Storage Commitment transaction UID has not been initiated by this Orthanc or is too old: ") + transactionUid
-                               ).SetPayload(MakeDimseErrorStatusPayload(STATUS_N_UnrecognizedOperation));
+        throw OrthancException(
+          ErrorCode_UnknownResource,
+          "This Storage Commitment transaction UID has not been initiated by this Orthanc or is too old: " + transactionUid)
+          .SetPayload(MakeDimseErrorStatusPayload(STATUS_N_UnrecognizedOperation));
       }
 
       if (requestAccessor.GetReport().GetRemoteAet() != connection.GetRemoteAet())
       {
-        throw OrthancException(ErrorCode_UnknownResource, 
-                               std::string("This Storage Commitment transaction is invalid: the remote AET the N-EVENT-REPORT orginates from (") + connection.GetRemoteAet() + ") does not match the AET the request was sent to (" + requestAccessor.GetReport().GetRemoteAet() + ")"
-                              );
+        throw OrthancException(
+          ErrorCode_UnknownResource,
+          "This Storage Commitment transaction is invalid: The remote AET the N-EVENT-REPORT originates from (" +
+          connection.GetRemoteAet() + ") does not match the AET the request was sent to (" +
+          requestAccessor.GetReport().GetRemoteAet() + ")");
       }
 
-      const StorageCommitmentReports::Report::RequestedInstancesAndSopClasses& requestedInstances = requestAccessor.GetReport().GetRequestedInstancesAndSopClasses();
-      // make sure all requestedInstances have been answered: store all requested instances ids in a set and remove it from the set when they have been answered.
+      const StorageCommitmentReports::Report::RequestedInstancesAndSopClasses& requestedInstances =
+        requestAccessor.GetReport().GetRequestedInstancesAndSopClasses();
+
+      // Make sure all requestedInstances have been answered: Store all requested instances
+      // IDs in a set and remove it from the set when they have been answered.
       std::set<std::string> remainingRequestedInstancesIds;
-      StorageCommitmentReports::Report::RequestedInstancesAndSopClasses::const_iterator it = requestedInstances.begin();
-      for (; it != requestedInstances.end(); ++it)
+      for (StorageCommitmentReports::Report::RequestedInstancesAndSopClasses::const_iterator it = requestedInstances.begin();
+           it != requestedInstances.end(); ++it)
       {
         remainingRequestedInstancesIds.insert(it->first);
       }
@@ -210,20 +216,26 @@ public:
 
       for (size_t i = 0; i < successSopClassUids.size(); i++)
       {
-        StorageCommitmentReports::Report::RequestedInstancesAndSopClasses::const_iterator it = requestedInstances.find(successSopInstanceUids[i]);
+        StorageCommitmentReports::Report::RequestedInstancesAndSopClasses::const_iterator it =
+          requestedInstances.find(successSopInstanceUids[i]);
         
         if (it == requestedInstances.end())
         {
-          throw OrthancException(ErrorCode_UnknownResource, 
-                                 std::string("This (success) SOPInstanceUID (") + successSopInstanceUids[i] + ") was not requested in the Storage Commitment transaction " + transactionUid
-                                ).SetPayload(MakeDimseErrorStatusPayload(STATUS_N_InvalidSOPInstance));
+          throw OrthancException(
+            ErrorCode_UnknownResource,
+            "This (success) SOPInstanceUID (" + successSopInstanceUids[i] +
+            ") was not requested in the Storage Commitment transaction " + transactionUid)
+            .SetPayload(MakeDimseErrorStatusPayload(STATUS_N_InvalidSOPInstance));
         }
 
         if (it->second != successSopClassUids[i])
         {
-          throw OrthancException(ErrorCode_UnknownResource, 
-                                 std::string("This (success) SOPInstanceUID (") + successSopInstanceUids[i] + ") was not requested with this SOPClassUID (" + successSopClassUids[i] + ") in the Storage Commitment transaction " + transactionUid
-                                ).SetPayload(MakeDimseErrorStatusPayload(STATUS_N_ClassInstanceConflict));
+          throw OrthancException(
+            ErrorCode_UnknownResource,
+            "This (success) SOPInstanceUID (" + successSopInstanceUids[i] +
+            ") was not requested with this SOPClassUID (" + successSopClassUids[i] +
+            ") in the Storage Commitment transaction " + transactionUid)
+            .SetPayload(MakeDimseErrorStatusPayload(STATUS_N_ClassInstanceConflict));
         }
 
         report->AddSuccess(successSopClassUids[i], successSopInstanceUids[i]);
@@ -232,34 +244,39 @@ public:
 
       for (size_t i = 0; i < failedSopClassUids.size(); i++)
       {
-        StorageCommitmentReports::Report::RequestedInstancesAndSopClasses::const_iterator it = requestedInstances.find(successSopInstanceUids[i]);
+        StorageCommitmentReports::Report::RequestedInstancesAndSopClasses::const_iterator it =
+          requestedInstances.find(successSopInstanceUids[i]);
         
         if (it == requestedInstances.end())
         {
-          throw OrthancException(ErrorCode_UnknownResource, 
-                                 std::string("This (failed) SOPInstanceUID (") + successSopInstanceUids[i] + ") was not requested in the Storage Commitment transaction " + transactionUid
-                                ).SetPayload(MakeDimseErrorStatusPayload(STATUS_N_InvalidSOPInstance));
+          throw OrthancException(
+            ErrorCode_UnknownResource,
+            "This (failed) SOPInstanceUID (" + successSopInstanceUids[i] +
+            ") was not requested in the Storage Commitment transaction " + transactionUid)
+            .SetPayload(MakeDimseErrorStatusPayload(STATUS_N_InvalidSOPInstance));
         }
 
         report->AddFailure(failedSopClassUids[i], failedSopInstanceUids[i], failureReasons[i]);
         remainingRequestedInstancesIds.erase(failedSopInstanceUids[i]);
       }
 
-      if (remainingRequestedInstancesIds.size() > 0) // make sure all requestedInstances have been answered
+      if (remainingRequestedInstancesIds.size() > 0)  // Make sure all requestedInstances have been answered
       {
-          throw OrthancException(ErrorCode_InexistentItem, 
-                                 std::string("Not all requested SOPInstanceUID have been answered in the Storage Commitment transaction ") + transactionUid
-                                ).SetPayload(MakeDimseErrorStatusPayload(STATUS_N_ProcessingFailure));
+        throw OrthancException(
+          ErrorCode_InexistentItem,
+          "Not all requested SOPInstanceUID have been answered in the Storage Commitment transaction " + transactionUid)
+          .SetPayload(MakeDimseErrorStatusPayload(STATUS_N_ProcessingFailure));
       }
         
-      // now that we are sure that all requestedInstances have been answered, we can reject any size mismatch (if more instances have been answered)
+      // Now that we are sure that all requestedInstances have been answered,
+      // we can reject any size mismatch (if more instances have been answered)
       if (failedSopClassUids.size() + successSopClassUids.size() > requestedInstances.size())
       {
-        throw OrthancException(ErrorCode_UnknownResource, 
-                               std::string("This Storage Commitment transaction UID contains more instances than requested: ") + transactionUid
-                               ).SetPayload(MakeDimseErrorStatusPayload(STATUS_N_UnrecognizedOperation));
+        throw OrthancException(
+          ErrorCode_UnknownResource,
+          "This Storage Commitment transaction UID contains more instances than requested: " + transactionUid)
+          .SetPayload(MakeDimseErrorStatusPayload(STATUS_N_UnrecognizedOperation));
       }
-
 
       report->MarkAsComplete();
     }
