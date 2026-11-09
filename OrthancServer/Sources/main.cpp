@@ -124,9 +124,11 @@ public:
   }
 };
 
-#if !defined(STATUS_N_InvalidSOPInstance) // introduced only in DCMTK 3.6.6 ?
- #define STATUS_N_InvalidSOPInstance                                     0x0117
+
+#if DCMTK_VERSION_NUMBER < 366
+#  define STATUS_N_InvalidSOPInstance  0x0117
 #endif
+
 
 class OrthancStorageCommitmentRequestHandler : public IStorageCommitmentRequestHandler
 {
