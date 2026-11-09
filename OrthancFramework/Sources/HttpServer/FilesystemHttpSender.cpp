@@ -91,8 +91,7 @@ namespace Orthanc
 
     file_.read(&chunk_[0], static_cast<std::streamsize>(chunk_.size()));
 
-    if (file_.fail() ||
-        file_.bad() ||  // Presumably redundant with previous check
+    if (file_.bad() ||
         file_.gcount() < 0)
     {
       throw OrthancException(ErrorCode_CorruptedFile);
