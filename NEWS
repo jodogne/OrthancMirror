@@ -4,55 +4,57 @@ Pending changes in the mainline
 General
 -------
 
-* With the default SQLite database:
-  - Optimized some queries to access single resources.
-  - Added/updated 2 indexes: the first startup with this version migth be slower to rebuild
-    these indexes.
-* It is now possible to change the encoding of all texts in a DICOM file by modifying its
-  SpecificCharacterSet when calling /modify.
+* In the default SQLite database:
+  - Optimized some queries if accessing single resources.
+  - Added/updated 2 indexes. The first startup with this version may take longer while
+    these indexes are being rebuilt.
+* It is now possible to change the character encoding of all text elements in a
+  DICOM file by modifying its "SpecificCharacterSet" tag when calling "/modify".
   (https://github.com/orthanc-server/orthanc-explorer-2/issues/123)
 
 Plugin SDK
 ----------
 
-* Added OrthancPluginGetInstanceCalledAet() and OrthancPluginGetInstanceRemoteIp()
+* Added OrthancPluginGetInstanceCalledAet()
+* Added OrthancPluginGetInstanceRemoteIp()
 
 Maintenance
 -----------
 
-* Fixed a memory management issue related to the transcoder cache.  The memory consumed by each
-  transcoded file was greatly under-estimated which could lead to out-of-memory crashes when 
-  transcoding was used when downloading files/archive or during a C-Store.  The transcoding
-  happening at ingest time was not affected by this issue.
+* Fixed a memory management issue related to the transcoder cache. The memory consumption of
+  each transcoded file was significantly underestimated, which could lead to out-of-memory
+  crashes when transcoding was used during file/archive downloads or C-STORE operations.
+  Transcoding performed at ingest time was not affected by this issue.
 * Renamed the "DICOM conformance statement" of Orthanc as "DICOM conformance summary",
   as it is not a formal DICOM Conformance Statement in the sense of DICOM PS3.2, but only
   a summary of supported SOP Classes and Transfer Syntaxes (thanks Jörg Riesmeier).
 * Fixed a TCP socket leak when a DICOM association is received with an invalid calling AET.
-* Now rejecting Storage Commitment Report (N-EVENT-REPORT) if they don't perfectly match the
-  request initiated by Orthanc (N-ACTION)
-* Added more tolerance to invalid OW value representations
-* Fixed handling of "DicomModalities.LocalAet" handling in /modalities/../find-worklists
+* Now rejecting Storage Commitment Report (N-EVENT-REPORT) if they do not perfectly match the
+  request initiated by Orthanc (N-ACTION).
+* Added more tolerance on invalid OW value representations.
+* Fixed handling of "DicomModalities.LocalAet" handling in /modalities/../find-worklists.
   (https://discourse.orthanc-server.org/t/find-worklist-with-localaet-from-modality-configuration/6482)
-* Added new warnings that can be disabled in the configuration: 
+* Added new warnings that can be disabled in the advanced configuration:
   - W101_TruncatingDicomTagTo256Values
   - W102_KeepSOPInstanceUIDInModification
   - W103_KeepSeriesInstanceUIDInModification
   - W104_KeepStudyInstanceUIDInModification
-* Fixed a deadlock in Anonymization/Modification jobs: some instances failing to be processed
-  could keep the job in a "processing" state forever.
-* Fixed preview of YBR_FULL images encoded in JPEG-LS
+* Fixed a deadlock in Anonymization/Modification jobs: Some instances that failed to be
+  processed could cause the job to remain in the "processing" state indefinitely.
+* Fixed preview of YBR_FULL images encoded in JPEG-LS.
   (https://discourse.orthanc-server.org/t/orthanc-preview-does-not-show-correctly/6488)
-* Reduced the number of SQL queries when accessing /instances/../tags
-* Fixed performance regression when a plugin is accessing only the DICOM tags of a file
+* Reduced the number of SQL queries when accessing "/instances/../tags".
+* Fixed performance regression when a plugin is accessing only the DICOM tags of a file.
   (https://discourse.orthanc-server.org/t/1-13-0-orthancpluginloaddicominstance-reads-the-whole-dicom-file-in-emptypixeldata-and-untilpixeldata-modes/6489)
-* Fix uncompressed size in Prometheus metrics
+* Fix uncompressed size in Prometheus metrics.
   (https://discourse.orthanc-server.org/t/fixing-prometheus-metrics-contribution/6490)
-* Make Orthanc more resilient on SpecificCharacterSet typo errors ('ISO-IR' vs 'ISO IR' vs 'ISO_IR' that is the valid prefix)
-* Fix use of the static runtime under Visual Studio (/MT), which broke in 1.12.10
+* Made Orthanc more resilient to some typos in the "SpecificCharacterSet" attribute
+  ("ISO-IR" vs. "ISO IR" vs. "ISO_IR", the latter being the correct prefix).
+* Fix use of the static runtime under Visual Studio (/MT), which broke in 1.12.10.
+* Setting DCMTK_MAX_SEQUENCE_NESTING to 32.
 * New CMake options: 
-  - "THIRD_PARTY_DOWNLOADS_ROOT_URL" to specify another webserver to downloads the third-parties from.
-  - "ORTHANC_SOURCES_DOWNLOADS_ROOT_URL" to specify another webserver to downloads the Orthanc sources from.
-* Setting DCMTK_MAX_SEQUENCE_NESTING to 32
+  - "THIRD_PARTY_DOWNLOADS_ROOT_URL" to specify an alternative Web server for downloading third-party dependencies
+  - "ORTHANC_SOURCES_DOWNLOADS_ROOT_URL" to specify an alternative Web server for downloading the Orthanc sources
 * Upgraded dependencies for static builds:
   - dcmtk 3.7.1
   - openssl 3.5.9 (LTS branch)

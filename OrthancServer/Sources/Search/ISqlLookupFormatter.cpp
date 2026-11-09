@@ -806,13 +806,16 @@ namespace Orthanc
     }
     else
     {
-      if (request.GetOrthancIdentifiers().IsDefined() && request.GetOrthancIdentifiers().DetectLevel() == queryLevel)
-      { // this is a single resource, no need for ordering (ordering may prevents a lot of optimizations from the query planner)
+      if (request.GetOrthancIdentifiers().IsDefined() &&
+          request.GetOrthancIdentifiers().DetectLevel() == queryLevel)
+      {
+        // This is a single resource, no need for ordering (ordering may prevent a lot of optimizations from the query planner)
         ordering = "0 AS rowNumber";
       }
       else
       {
-        ordering = "ROW_NUMBER() OVER (ORDER BY " + strQueryLevel + ".publicId) AS rowNumber";  // we need a default ordering in order to make default queries repeatable when using since&limit
+        // We need a default ordering in order to make queries repeatable because of since&limit
+        ordering = "ROW_NUMBER() OVER (ORDER BY " + strQueryLevel + ".publicId) AS rowNumber";
       }
     }
 
