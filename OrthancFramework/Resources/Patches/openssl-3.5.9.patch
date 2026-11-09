@@ -1,6 +1,6 @@
 diff -urEb openssl-3.5.9.orig/crypto/async/async_local.h openssl-3.5.9/crypto/async/async_local.h
---- openssl-3.5.9.orig/crypto/async/async_local.h	2026-10-22 09:47:14.555901970 +0200
-+++ openssl-3.5.9/crypto/async/async_local.h	2026-10-22 12:24:55.463988766 +0200
+--- openssl-3.5.9.orig/crypto/async/async_local.h	2026-11-09 08:20:41.586641018 +0100
++++ openssl-3.5.9/crypto/async/async_local.h	2026-11-09 08:21:23.521328362 +0100
 @@ -17,6 +17,7 @@
  #endif
  
@@ -10,8 +10,8 @@ diff -urEb openssl-3.5.9.orig/crypto/async/async_local.h openssl-3.5.9/crypto/as
  #endif
  
 diff -urEb openssl-3.5.9.orig/crypto/cms/cms_lib.c openssl-3.5.9/crypto/cms/cms_lib.c
---- openssl-3.5.9.orig/crypto/cms/cms_lib.c	2026-10-22 09:47:14.558901938 +0200
-+++ openssl-3.5.9/crypto/cms/cms_lib.c	2026-10-22 12:29:07.812339312 +0200
+--- openssl-3.5.9.orig/crypto/cms/cms_lib.c	2026-11-09 08:20:41.591640980 +0100
++++ openssl-3.5.9/crypto/cms/cms_lib.c	2026-11-09 08:21:23.522328354 +0100
 @@ -7,6 +7,12 @@
   * https://www.openssl.org/source/license.html
   */
@@ -26,8 +26,8 @@ diff -urEb openssl-3.5.9.orig/crypto/cms/cms_lib.c openssl-3.5.9/crypto/cms/cms_
  #include <openssl/x509v3.h>
  #include <openssl/err.h>
 diff -urEb openssl-3.5.9.orig/crypto/mem_sec.c openssl-3.5.9/crypto/mem_sec.c
---- openssl-3.5.9.orig/crypto/mem_sec.c	2026-10-22 09:47:14.564901874 +0200
-+++ openssl-3.5.9/crypto/mem_sec.c	2026-10-22 09:50:29.937930234 +0200
+--- openssl-3.5.9.orig/crypto/mem_sec.c	2026-11-09 08:20:41.597640936 +0100
++++ openssl-3.5.9/crypto/mem_sec.c	2026-11-09 08:21:23.523328347 +0100
 @@ -562,7 +562,7 @@
          ret = 2;
  #endif
@@ -38,8 +38,8 @@ diff -urEb openssl-3.5.9.orig/crypto/mem_sec.c openssl-3.5.9/crypto/mem_sec.c
          if (errno == ENOSYS) {
              if (mlock(sh.arena, sh.arena_size) < 0)
 diff -urEb openssl-3.5.9.orig/crypto/ml_kem/ml_kem.c openssl-3.5.9/crypto/ml_kem/ml_kem.c
---- openssl-3.5.9.orig/crypto/ml_kem/ml_kem.c	2026-10-22 09:47:14.564901874 +0200
-+++ openssl-3.5.9/crypto/ml_kem/ml_kem.c	2026-10-22 13:07:38.748621689 +0200
+--- openssl-3.5.9.orig/crypto/ml_kem/ml_kem.c	2026-11-09 08:20:41.597640936 +0100
++++ openssl-3.5.9/crypto/ml_kem/ml_kem.c	2026-11-09 08:21:23.523328347 +0100
 @@ -26,7 +26,7 @@
  #error "Invalid unequal lengths of ML-KEM shared secret and random inputs"
  #endif
@@ -50,8 +50,8 @@ diff -urEb openssl-3.5.9.orig/crypto/ml_kem/ml_kem.c openssl-3.5.9/crypto/ml_kem
  #endif
  
 diff -urEb openssl-3.5.9.orig/crypto/pkcs7/pk7_doit.c openssl-3.5.9/crypto/pkcs7/pk7_doit.c
---- openssl-3.5.9.orig/crypto/pkcs7/pk7_doit.c	2026-10-22 09:47:14.567901842 +0200
-+++ openssl-3.5.9/crypto/pkcs7/pk7_doit.c	2026-10-22 12:30:30.882791931 +0200
+--- openssl-3.5.9.orig/crypto/pkcs7/pk7_doit.c	2026-11-09 08:20:41.599640921 +0100
++++ openssl-3.5.9/crypto/pkcs7/pk7_doit.c	2026-11-09 08:21:23.524328339 +0100
 @@ -7,6 +7,12 @@
   * https://www.openssl.org/source/license.html
   */
@@ -66,8 +66,8 @@ diff -urEb openssl-3.5.9.orig/crypto/pkcs7/pk7_doit.c openssl-3.5.9/crypto/pkcs7
  #include <openssl/rand.h>
  #include <openssl/objects.h>
 diff -urEb openssl-3.5.9.orig/crypto/threads_win.c openssl-3.5.9/crypto/threads_win.c
---- openssl-3.5.9.orig/crypto/threads_win.c	2026-10-22 09:47:14.572901788 +0200
-+++ openssl-3.5.9/crypto/threads_win.c	2026-10-22 12:24:13.508260522 +0200
+--- openssl-3.5.9.orig/crypto/threads_win.c	2026-11-09 08:20:41.602640898 +0100
++++ openssl-3.5.9/crypto/threads_win.c	2026-11-09 08:26:27.980041864 +0100
 @@ -8,6 +8,7 @@
   */
  
@@ -76,9 +76,22 @@ diff -urEb openssl-3.5.9.orig/crypto/threads_win.c openssl-3.5.9/crypto/threads_
  #include <windows.h>
  #if defined(_WIN32_WINNT) && _WIN32_WINNT >= 0x600
  #define USE_RWLOCK
+@@ -27,6 +28,12 @@
+ #define NO_INTERLOCKEDOR64
+ #endif
+ 
++/* InterlockedOr64 is not available on MSVC 2015 targeting 32bits either, so Orthanc always disables it on x86 */
++#if defined(_MSC_VER) && defined(_M_IX86)
++# undef NO_INTERLOCKEDOR64
++# define NO_INTERLOCKEDOR64
++#endif
++
+ #include <openssl/crypto.h>
+ #include <crypto/cryptlib.h>
+ #include "internal/common.h"
 diff -urEb openssl-3.5.9.orig/include/openssl/types.h openssl-3.5.9/include/openssl/types.h
---- openssl-3.5.9.orig/include/openssl/types.h	2026-10-22 09:47:14.593901564 +0200
-+++ openssl-3.5.9/include/openssl/types.h	2026-10-22 12:29:01.391381545 +0200
+--- openssl-3.5.9.orig/include/openssl/types.h	2026-11-09 08:20:41.624640735 +0100
++++ openssl-3.5.9/include/openssl/types.h	2026-11-09 08:21:23.525328332 +0100
 @@ -7,6 +7,13 @@
   * https://www.openssl.org/source/license.html
   */
@@ -94,8 +107,8 @@ diff -urEb openssl-3.5.9.orig/include/openssl/types.h openssl-3.5.9/include/open
   * Unfortunate workaround to avoid symbol conflict with wincrypt.h
   * See https://github.com/openssl/openssl/issues/9981
 diff -urEb openssl-3.5.9.orig/providers/implementations/signature/mac_legacy_sig.c openssl-3.5.9/providers/implementations/signature/mac_legacy_sig.c
---- openssl-3.5.9.orig/providers/implementations/signature/mac_legacy_sig.c	2026-10-22 09:47:14.597901521 +0200
-+++ openssl-3.5.9/providers/implementations/signature/mac_legacy_sig.c	2026-10-22 13:09:03.601002817 +0200
+--- openssl-3.5.9.orig/providers/implementations/signature/mac_legacy_sig.c	2026-11-09 08:20:41.628640705 +0100
++++ openssl-3.5.9/providers/implementations/signature/mac_legacy_sig.c	2026-11-09 08:21:23.526328325 +0100
 @@ -10,7 +10,6 @@
  /* We need to use some engine deprecated APIs */
  #define OPENSSL_SUPPRESS_DEPRECATED
@@ -105,8 +118,8 @@ diff -urEb openssl-3.5.9.orig/providers/implementations/signature/mac_legacy_sig
  #include <openssl/evp.h>
  #include <openssl/core_dispatch.h>
 diff -urEb openssl-3.5.9.orig/ssl/rio/rio_notifier.c openssl-3.5.9/ssl/rio/rio_notifier.c
---- openssl-3.5.9.orig/ssl/rio/rio_notifier.c	2026-10-22 09:47:14.598901511 +0200
-+++ openssl-3.5.9/ssl/rio/rio_notifier.c	2026-10-22 12:22:04.002093537 +0200
+--- openssl-3.5.9.orig/ssl/rio/rio_notifier.c	2026-11-09 08:20:41.629640697 +0100
++++ openssl-3.5.9/ssl/rio/rio_notifier.c	2026-11-09 08:21:23.526328325 +0100
 @@ -7,6 +7,10 @@
   * https://www.openssl.org/source/license.html
   */

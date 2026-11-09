@@ -56,29 +56,29 @@ if (FirstRun)
 
   # Execute the "config" script from the OpenSSL source distribution
   if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
-    set(Options no-asm --with-rand-seed=devrandom linux-x86_64)
+    set(Options --with-rand-seed=devrandom linux-x86_64)
   elseif (MSVC)
     # This is Visual Studio
     if (CMAKE_SIZEOF_VOID_P EQUAL 4)
-      set(Options no-asm VC-WIN32)
+      set(Options VC-WIN32)
     else()
-      set(Options no-asm VC-WIN64A)
+      set(Options VC-WIN64A)
     endif()
   elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND CMAKE_COMPILER_IS_GNUCXX)
     # This is MinGW
     if (CMAKE_SIZEOF_VOID_P EQUAL 4)
-      set(Options no-asm mingw)
+      set(Options mingw)
     else()
-      set(Options no-asm mingw64)
+      set(Options mingw64)
     endif()
   else()
     # Generic system
-    set(Options no-asm)
+    set(Options)
   endif()
 
   execute_process(
     COMMAND ${PERL_EXECUTABLE}
-    Configure no-asm ${Options}
+    Configure no-asm no-shared ${Options}
     WORKING_DIRECTORY ${OPENSSL_SOURCES_DIR}
     RESULT_VARIABLE Failure
     )
