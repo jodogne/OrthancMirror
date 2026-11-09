@@ -1087,9 +1087,9 @@ namespace Orthanc
     // (5.0) Change the encoding before replacing new values
     if (IsReplaced(DICOM_TAG_SPECIFIC_CHARACTER_SET))
     {
-      std::string targetEncodingStr = GetReplacementAsString(DICOM_TAG_SPECIFIC_CHARACTER_SET);
+      const std::string targetEncodingStr = GetReplacementAsString(DICOM_TAG_SPECIFIC_CHARACTER_SET);
       Encoding targetEncoding;
-      
+
       if (!GetDicomEncoding(targetEncoding, targetEncodingStr.c_str()))
       {
         throw OrthancException(ErrorCode_BadRequest, std::string("Unrecognized SpecificCharacterSet, unable to modify the encoding: ") + targetEncodingStr);

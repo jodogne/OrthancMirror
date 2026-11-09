@@ -174,7 +174,7 @@ namespace Orthanc
     ORTHANC_PUBLIC bool LookupCategory(LogCategory& target,
                                        const std::string& category);
 
-    ORTHANC_PUBLIC void SetMessageIdEnabled(const std::string& messageId, 
+    ORTHANC_PUBLIC void SetMessageIdEnabled(const std::string& messageId,
                                             bool enabled);
 
     ORTHANC_PUBLIC bool IsMessageIdEnabled(const std::string& messageId);

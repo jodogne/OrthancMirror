@@ -54,7 +54,6 @@
 #endif
 
 #include <sqlite3.h>
-#include <boost/lexical_cast.hpp>
 
 namespace Orthanc
 {

@@ -145,7 +145,7 @@ namespace Orthanc
       return (traceCategoriesMask_ != 0);
     }
 
-    void SetMessageIdEnabled(const std::string& messageId, 
+    void SetMessageIdEnabled(const std::string& messageId,
                              bool enabled)
     {
       ReaderWriterLock::WriteLock lock(messageIdsMutex_);
