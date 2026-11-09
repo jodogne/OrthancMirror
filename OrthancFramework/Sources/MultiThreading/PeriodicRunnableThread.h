@@ -57,10 +57,7 @@ namespace Orthanc
     PeriodicRunnableThread(IRunnable* runnable /* takes ownership */,
                            unsigned int delay /* number of milliseconds between 2 executions */);
 
-    ~PeriodicRunnableThread()
-    {
-      StopInternal(false /* no exception in destructors */);
-    }
+    ~PeriodicRunnableThread();
 
     /**
      * Set the granularity (in milliseconds) at which "Stop()" is

@@ -2531,8 +2531,6 @@ namespace Orthanc
         DicomAssociationParameters parameters(localAet, remote);
         InjectAssociationTimeout(parameters, json);
 
-        std::vector<std::string> a(sopClassUids.begin(), sopClassUids.end());
-        std::vector<std::string> b(sopInstanceUids.begin(), sopInstanceUids.end());
         DicomAssociation::RequestStorageCommitment(parameters, transactionUid, sopClassUids, sopInstanceUids);
       }
 

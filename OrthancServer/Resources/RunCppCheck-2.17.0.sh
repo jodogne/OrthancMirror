@@ -10,20 +10,20 @@ if [ $# -ge 1 ]; then
 fi
 
 cat <<EOF > /tmp/cppcheck-suppressions.txt
-assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:460
+assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:470
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
-assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
+assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:389
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:293
 constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.cpp:50
 constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp:112
 constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp:113
 constParameterCallback:../../OrthancFramework/Sources/Pkcs11.cpp:125
-constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3553
+constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3554
 constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp:66
-constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:450
-constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:454
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:476
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:480
 constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3467
-knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:112
+knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:113
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:444
 knownConditionTrueFalse:../../OrthancFramework/Sources/Images/PamReader.cpp:204
 knownConditionTrueFalse:../../OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp:336
@@ -38,6 +38,8 @@ knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:24
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2459
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp:2460
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
+passedByValueCallback:../../OrthancFramework/Sources/JobsEngine/JobsEngine.cpp:111
+passedByValueCallback:../../OrthancFramework/Sources/JobsEngine/JobsEngine.cpp:127
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
 stlFindInsert:../../OrthancServer/Sources/Database/ResourcesContent.h:141
@@ -47,7 +49,7 @@ syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:345
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:95
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
-useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:277
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:276
 variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:230
 variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:98
 EOF
@@ -123,12 +125,29 @@ ${CPPCHECK} -j8 --enable=all --quiet --std=c++11 \
             ../../OrthancServer/Plugins/Include \
             ../../OrthancServer/Sources \
             ../../OrthancServer/UnitTestsSources \
-            ../../OrthancServer/Plugins/Samples/Common \
-            ../../OrthancServer/Plugins/Samples/ConnectivityChecks \
-            ../../OrthancServer/Plugins/Samples/DelayedDeletion \
-            ../../OrthancServer/Plugins/Samples/Housekeeper \
-            ../../OrthancServer/Plugins/Samples/ModalityWorklists \
-            ../../OrthancServer/Plugins/Samples/MultitenantDicom \
-            ../../OrthancServer/Plugins/Samples/AdoptDicomInstance \
+            \
+            ../../OrthancServer/Plugins/Samples/AdoptDicomInstance/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/AutomatedJpeg2kCompression/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp \
+            ../../OrthancServer/Plugins/Samples/ConnectivityChecks/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/CppSkeleton/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/CustomImageDecoder/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/DelayedDeletion/LargeDeleteJob.cpp \
+            ../../OrthancServer/Plugins/Samples/DelayedDeletion/PendingDeletionsDatabase.cpp \
+            ../../OrthancServer/Plugins/Samples/DelayedDeletion/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/Housekeeper/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/ModalityWorklists/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/DicomFilter.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/FindRequestHandler.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/MoveRequestHandler.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/MultitenantDicomServer.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/PluginToolbox.cpp \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom/StoreRequestHandler.cpp \
+            ../../OrthancServer/Plugins/Samples/Sanitizer/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/StorageArea/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/StorageCommitmentScp/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/WebDavFilesystem/Plugin.cpp \
+            ../../OrthancServer/Plugins/Samples/WebSkeleton/Framework/Plugin.cpp \
             \
             2>&1

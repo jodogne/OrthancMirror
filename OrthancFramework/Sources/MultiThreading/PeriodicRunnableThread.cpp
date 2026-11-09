@@ -111,6 +111,19 @@ namespace Orthanc
   }
 
 
+  PeriodicRunnableThread::~PeriodicRunnableThread()
+  {
+    try
+    {
+      StopInternal(false /* no exception in destructors */);
+    }
+    catch (...)
+    {
+      // This should never happen
+    }
+  }
+
+
   void PeriodicRunnableThread::SetTimeResolution(unsigned int resolution)
   {
     boost::mutex::scoped_lock lock(mutex_);

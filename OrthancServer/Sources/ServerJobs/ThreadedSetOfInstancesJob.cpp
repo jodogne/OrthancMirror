@@ -272,7 +272,7 @@ namespace Orthanc
         continue;  // timeout, nothing to process yet
       }
 
-      SingleValueObject<std::string>* instanceId = dynamic_cast<SingleValueObject<std::string>*>(message.get());
+      const SingleValueObject<std::string>* instanceId = dynamic_cast<const SingleValueObject<std::string>*>(message.get());
       if (instanceId == NULL)
       {
         LOG(ERROR) << "Unexpected message type in the instances queue";

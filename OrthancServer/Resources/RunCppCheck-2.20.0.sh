@@ -12,13 +12,15 @@ fi
 cat <<EOF > /tmp/cppcheck-suppressions.txt
 assertWithSideEffect:../../OrthancFramework/Sources/DataSource/DataSourceReader.cpp:356
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
-assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
+assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:389
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:293
-constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:450
-constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:454
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:476
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:480
 constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3467
 missingInclude:../../OrthancServer/Plugins/Engine/OrthancPluginDatabaseV4.cpp:41
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
+passedByValueCallback:../../OrthancFramework/Sources/JobsEngine/JobsEngine.cpp:111
+passedByValueCallback:../../OrthancFramework/Sources/JobsEngine/JobsEngine.cpp:127
 sizeofCalculation:../../OrthancFramework/UnitTestsSources/ToolboxTests.cpp:517
 sizeofCalculation:../../OrthancFramework/UnitTestsSources/ToolboxTests.cpp:518
 sizeofCalculation:../../OrthancFramework/UnitTestsSources/ToolboxTests.cpp:519
@@ -33,7 +35,7 @@ syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:345
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:95
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
-useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:277
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:276
 variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:230
 variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:98
 EOF
