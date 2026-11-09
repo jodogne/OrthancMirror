@@ -78,7 +78,7 @@ if (FirstRun)
 
   execute_process(
     COMMAND ${PERL_EXECUTABLE}
-    Configure no-asm no-shared ${Options}
+    Configure no-asm ${Options}
     WORKING_DIRECTORY ${OPENSSL_SOURCES_DIR}
     RESULT_VARIABLE Failure
     )
