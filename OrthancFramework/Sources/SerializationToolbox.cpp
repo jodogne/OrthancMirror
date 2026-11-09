@@ -193,7 +193,7 @@ namespace Orthanc
         valueObject[field.c_str()].type() != Json::arrayValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat,
-                            "List of strings expected in field: " + field);
+                             "List of strings expected in field: " + field);
     }
 
     const Json::Value& arr = valueObject[field.c_str()];
@@ -568,19 +568,25 @@ namespace Orthanc
   {
     try
     {
-      std::string value = Toolbox::StripSpaces(source);
-      if (value.empty())
+      if (source.empty())
+      {
+	return false;
+      }
+
+      const std::string stripped = Toolbox::StripSpaces(source);
+
+      if (stripped.empty())
       {
         return false;
       }
       else if (!allowSigned &&
-               value[0] == '-')
+               stripped[0] == '-')
       {
         return false;
       }
       else
       {
-        target = boost::lexical_cast<T>(value);
+        target = boost::lexical_cast<T>(stripped);
         return true;
       }
     }
@@ -658,20 +664,18 @@ namespace Orthanc
   }
 
 
-  static bool GetFirstItem(std::string& target,
+  static void GetFirstItem(std::string& target,
                            const std::string& source)
   {
-    std::vector<std::string> tokens;
-    Toolbox::TokenizeString(tokens, source, '\\');
+    const size_t pos = source.find('\\');
 
-    if (tokens.empty())
+    if (pos == std::string::npos)
     {
-      return false;
+      target = source;
     }
     else
     {
-      target = tokens[0];
-      return true;
+      target.assign(source, 0, pos);
     }
   }
 
@@ -680,14 +684,8 @@ namespace Orthanc
                                                  const std::string& source)
   {
     std::string first;
-    if (GetFirstItem(first, source))
-    {
-      return ParseInteger32(target, first);
-    }
-    else
-    {
-      return false;
-    }
+    GetFirstItem(first, source);
+    return ParseInteger32(target, first);
   }
 
 
@@ -695,14 +693,8 @@ namespace Orthanc
                                                  const std::string& source)
   {
     std::string first;
-    if (GetFirstItem(first, source))
-    {
-      return ParseInteger64(target, first);
-    }
-    else
-    {
-      return false;
-    }
+    GetFirstItem(first, source);
+    return ParseInteger64(target, first);
   }
 
 
@@ -710,14 +702,8 @@ namespace Orthanc
                                                          const std::string& source)
   {
     std::string first;
-    if (GetFirstItem(first, source))
-    {
-      return ParseUnsignedInteger32(target, first);
-    }
-    else
-    {
-      return false;
-    }
+    GetFirstItem(first, source);
+    return ParseUnsignedInteger32(target, first);
   }
 
 
@@ -725,14 +711,8 @@ namespace Orthanc
                                                          const std::string& source)
   {
     std::string first;
-    if (GetFirstItem(first, source))
-    {
-      return ParseUnsignedInteger64(target, first);
-    }
-    else
-    {
-      return false;
-    }
+    GetFirstItem(first, source);
+    return ParseUnsignedInteger64(target, first);
   }
 
 
@@ -740,14 +720,8 @@ namespace Orthanc
                                              const std::string& source)
   {
     std::string first;
-    if (GetFirstItem(first, source))
-    {
-      return ParseFloat(target, first);
-    }
-    else
-    {
-      return false;
-    }
+    GetFirstItem(first, source);
+    return ParseFloat(target, first);
   }
 
 
@@ -755,14 +729,8 @@ namespace Orthanc
                                               const std::string& source)
   {
     std::string first;
-    if (GetFirstItem(first, source))
-    {
-      return ParseDouble(target, first);
-    }
-    else
-    {
-      return false;
-    }
+    GetFirstItem(first, source);
+    return ParseDouble(target, first);
   }
 
 

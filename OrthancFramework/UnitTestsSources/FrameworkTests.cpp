@@ -1895,7 +1895,7 @@ TEST(Math, Rounding)
   ASSERT_EQ(-45ll, Math::llround(-45.005));
   ASSERT_EQ(-45ll, Math::llround(-44.995));
 
-  long long a;
+  long long a = 0;
   ASSERT_TRUE(Math::llround(a, 46.005f));  ASSERT_EQ(46ll, a);
   ASSERT_TRUE(Math::llround(a, 45.995f));  ASSERT_EQ(46ll, a);
   ASSERT_TRUE(Math::llround(a, -46.005f));  ASSERT_EQ(-46ll, a);
