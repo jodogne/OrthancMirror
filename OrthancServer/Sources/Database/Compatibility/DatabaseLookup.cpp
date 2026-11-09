@@ -383,10 +383,8 @@ namespace Orthanc
 
       // Get the public ID of all the selected resources
 
-      size_t pos = 0;
-
       for (std::list<int64_t>::const_iterator
-             it = resources.begin(); it != resources.end(); ++it, pos++)
+             it = resources.begin(); it != resources.end(); ++it)
       {
         assert(transaction_.GetResourceType(*it) == queryLevel);
 
