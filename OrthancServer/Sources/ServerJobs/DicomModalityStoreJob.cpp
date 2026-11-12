@@ -26,6 +26,7 @@
 
 #include "../../../OrthancFramework/Sources/Compatibility.h"
 #include "../../../OrthancFramework/Sources/DicomNetworking/DicomAssociation.h"
+#include "../../../OrthancFramework/Sources/ElapsedTimer.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../ServerContext.h"
@@ -46,10 +47,12 @@ namespace Orthanc
   bool DicomModalityStoreJob::HandleInstance(const std::string& instance)
   {
     assert(IsStarted());
-    OpenConnection();
+    ElapsedTimer elapsedTimer;
 
     LOG(INFO) << "Sending instance " << instance << " to modality \""
               << parameters_.GetRemoteModality().GetApplicationEntityTitle() << "\"";
+
+    OpenConnection();
 
     std::unique_ptr<DicomSequentialReader::Item> item;
 
@@ -100,7 +103,7 @@ namespace Orthanc
       }
     }
 
-    //boost::this_thread::sleep(boost::posix_time::milliseconds(500));
+    LOG(INFO) << "Sent instance " << instance << " (elapsed: " << elapsedTimer.GetHumanElapsedDuration() << ")";
 
     return true;
   }
