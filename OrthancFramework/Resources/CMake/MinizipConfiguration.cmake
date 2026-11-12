@@ -27,7 +27,10 @@ endif()
 if (STATIC_BUILD OR
     ORTHANC_SANDBOXED OR   # For WebAssembly
     NOT USE_SYSTEM_MINIZIP)
-  add_definitions(-DORTHANC_USE_SYSTEM_MINIZIP=0)
+  add_definitions(
+    -DORTHANC_USE_SYSTEM_MINIZIP=0
+    -DORTHANC_MINIZIP_VERSION="1.3.2"  # This must match ZLIB_VERSION in "../ThirdParty/minizip/SyncMinizip.py"
+    )
 
   list(APPEND ORTHANC_CORE_SOURCES_DEPENDENCIES
     ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/minizip/ioapi.c
@@ -36,7 +39,10 @@ if (STATIC_BUILD OR
     )
 
 else()
-  add_definitions(-DORTHANC_USE_SYSTEM_MINIZIP=1)
+  add_definitions(
+    -DORTHANC_USE_SYSTEM_MINIZIP=1
+    -DORTHANC_MINIZIP_VERSION="unknown"
+    )
 
   CHECK_INCLUDE_FILE_CXX(minizip/zip.h HAVE_MINIZIP_H)
   if (NOT HAVE_MINIZIP_H)

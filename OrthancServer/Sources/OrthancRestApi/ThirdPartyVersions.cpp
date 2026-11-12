@@ -124,5 +124,7 @@ namespace Orthanc
     target["sqlite"] = SQLITE_VERSION;
 
     target["zlib"] = ZLIB_VERSION;
+
+    target["minizip"] = ORTHANC_MINIZIP_VERSION;
   }
 }

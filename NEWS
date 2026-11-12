@@ -12,6 +12,13 @@ General
   DICOM file by modifying its "SpecificCharacterSet" tag when calling "/modify".
   (https://github.com/orthanc-server/orthanc-explorer-2/issues/123)
 
+REST API
+--------
+
+* In the "/system" route, "ThirdPartyVersions" now includes the version of minizip,
+  if known. The minizip version must be at least 1.3.2 to guarantee that UTF-8 filenames
+  are correctly stored in ZIP archives (check out explanations in "ZipWriter.h").
+
 Plugin SDK
 ----------
 
