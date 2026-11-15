@@ -29,6 +29,7 @@
 #include "Compatibility.h"
 
 #include <boost/noncopyable.hpp>
+#include <boost/shared_ptr.hpp>
 #include <iostream>
 #include <stdint.h>
 
@@ -152,7 +153,7 @@ namespace Orthanc
 
     ORTHANC_PUBLIC ThreadContextMemento* CreateCurrentThreadContextMemento();
 
-    ORTHANC_PUBLIC void AddLoggingListener(ILoggingListener* listener);
+    ORTHANC_PUBLIC void AddLoggingListener(const boost::shared_ptr<ILoggingListener>& listener);
 
     ORTHANC_PUBLIC void ClearLoggingListeners();
 

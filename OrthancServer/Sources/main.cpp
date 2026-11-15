@@ -1412,8 +1412,8 @@ static bool StartHttpServer(ServerContext& context,
 
     httpServer.Start();
 
-    MetricsLoggingListener loggingMetrics(context.GetMetricsRegistry());
-    Logging::AddLoggingListener(&loggingMetrics);
+    boost::shared_ptr<MetricsLoggingListener> loggingMetrics(new MetricsLoggingListener(context.GetMetricsRegistry()));
+    Logging::AddLoggingListener(loggingMetrics);
 
     bool restart = WaitForExit(context, restApi);
 

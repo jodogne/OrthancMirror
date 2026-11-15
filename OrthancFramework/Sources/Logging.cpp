@@ -28,6 +28,7 @@
 #include "MultiThreading/ReaderWriterLock.h"
 #include "OrthancException.h"
 
+#include <boost/weak_ptr.hpp>
 #include <cassert>
 #include <stdint.h>
 #include <string.h>
@@ -976,7 +977,7 @@ static ThreadsInformations                      threadsInformations_;
 static bool                                     enableThreadNames_ = true;
 static bool                                     enableThreadContexts_ = true;
 static bool                                     logCallerThreadNameInContext_ = false; // add a "from THREADNAME" in the context everytime the context is copied from a thread to the other to help track the runnable/callable journey
-static std::list<Orthanc::Logging::ILoggingListener*> loggingListeners_;
+static std::list< boost::weak_ptr<Orthanc::Logging::ILoggingListener> > loggingListeners_;
 static boost::shared_mutex                            loggingListenersMutex_;
 
 namespace Orthanc
@@ -1204,7 +1205,7 @@ namespace Orthanc
     }
 
 
-    void AddLoggingListener(ILoggingListener* listener)
+    void AddLoggingListener(const boost::shared_ptr<ILoggingListener>& listener)
     {
       boost::unique_lock<boost::shared_mutex> lock(loggingListenersMutex_);
       loggingListeners_.push_back(listener);
@@ -1601,15 +1602,21 @@ namespace Orthanc
         {
           boost::shared_lock<boost::shared_mutex> lock(loggingListenersMutex_);
 
-          for (std::list<Orthanc::Logging::ILoggingListener*>::iterator it = loggingListeners_.begin(); it != loggingListeners_.end(); ++it)
+          for (std::list< boost::weak_ptr<Orthanc::Logging::ILoggingListener> >::iterator
+                 it = loggingListeners_.begin(); it != loggingListeners_.end(); ++it)
           {
-            try
+            boost::shared_ptr<Orthanc::Logging::ILoggingListener> listener(it->lock());
+
+            if (listener)  // The listener is still alive
             {
-              (*it)->HandleLog(level_, category_, pluginName_, file_, line_, messageStream_.str(), messageId_);
-            }
-            catch (...) // NOLINT(bugprone-empty-catch)
-            {
-              // Don't throw in destructors
+              try
+              {
+                listener->HandleLog(level_, category_, pluginName_, file_, line_, messageStream_.str(), messageId_);
+                catch (...) // NOLINT(bugprone-empty-catch)
+                {
+                  // Don't throw in destructors
+                }
+              }
             }
           }
         }
