@@ -1612,10 +1612,10 @@ namespace Orthanc
               try
               {
                 listener->HandleLog(level_, category_, pluginName_, file_, line_, messageStream_.str(), messageId_);
-                catch (...) // NOLINT(bugprone-empty-catch)
-                {
-                  // Don't throw in destructors
-                }
+              }
+              catch (...) // NOLINT(bugprone-empty-catch)
+              {
+                // Don't throw in destructors
               }
             }
           }
