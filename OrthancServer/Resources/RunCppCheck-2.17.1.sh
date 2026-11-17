@@ -19,8 +19,8 @@ constParameterCallback:../../OrthancFramework/Sources/DicomNetworking/Internals/
 constParameterCallback:../../OrthancFramework/Sources/Pkcs11.cpp:125
 constParameterCallback:../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp:3554
 constParameterCallback:../../OrthancServer/Sources/OrthancGetRequestHandler.cpp:66
-constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:476
-constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:480
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:477
+constParameterPointer:../../OrthancFramework/Sources/Logging.cpp:481
 constParameterPointer:../../OrthancFramework/Sources/Toolbox.cpp:3467
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:113
 knownConditionTrueFalse:../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp:444
@@ -48,7 +48,7 @@ syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:345
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:95
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
-useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:276
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:279
 variableScope:../../OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp:230
 variableScope:../../OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp:98
 EOF

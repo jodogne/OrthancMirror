@@ -38,7 +38,7 @@ unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
 unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1179
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:95
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
-useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:276
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:279
 EOF
 
 CPPCHECK_BUILD_DIR=/tmp/cppcheck-build-dir-2.1/
