@@ -282,7 +282,7 @@ TEST(MultiThreading, SharedMessageQueueBasic)
     q.Enqueue(new DynamicInteger(30, s));
     q.Enqueue(new DynamicInteger(40, s));
 
-    ASSERT_EQ(4, s.size());
+    ASSERT_EQ(4u, s.size());
 
     std::unique_ptr<DynamicInteger> i;
     i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(10, i->GetValue());
@@ -294,7 +294,7 @@ TEST(MultiThreading, SharedMessageQueueBasic)
     ASSERT_EQ(NULL, q.Dequeue(1));
   }
 
-  ASSERT_EQ(0, s.size());
+  ASSERT_EQ(0u, s.size());
 }
 
 
@@ -306,13 +306,13 @@ TEST(MultiThreading, SharedMessageQueueClean)
     SharedMessageQueue q;
     q.Enqueue(new DynamicInteger(10, s));
     q.Enqueue(new DynamicInteger(20, s));
-    ASSERT_EQ(2, s.size());
+    ASSERT_EQ(2u, s.size());
     THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
   }
   catch (OrthancException&)
   {
     // the SharedMessageQueue is destroyed -> make sure the elements have been deleted
-    ASSERT_EQ(0, s.size());
+    ASSERT_EQ(0u, s.size());
   }
 }
 
@@ -336,7 +336,7 @@ TEST(MultiThreading, BlockingSharedMessageQueueBasicUnlimited)
   i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(0))); ASSERT_EQ(30, i->GetValue());
   i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(NULL, i.get());
 
-  ASSERT_EQ(0, s.size());
+  ASSERT_EQ(0u, s.size());
 }
 
 
@@ -347,7 +347,7 @@ TEST(MultiThreading, BlockingSharedMessageQueueBasicLimitedSize)
   std::unique_ptr<IDynamicObject> o10(new DynamicInteger(10, s));
   std::unique_ptr<IDynamicObject> o20(new DynamicInteger(20, s));
   std::unique_ptr<IDynamicObject> o30(new DynamicInteger(30, s));
-  ASSERT_EQ(3, s.size());
+  ASSERT_EQ(3u, s.size());
 
   std::unique_ptr<DynamicInteger > i;
 
@@ -365,7 +365,7 @@ TEST(MultiThreading, BlockingSharedMessageQueueBasicLimitedSize)
   i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(NULL, i.get());
 
   // ensures all objects have been destroyed
-  ASSERT_EQ(0, s.size());
+  ASSERT_EQ(0u, s.size());
 }
 
 TEST(MultiThreading, BlockingSharedMessageQueueBasicClear)
@@ -382,12 +382,12 @@ TEST(MultiThreading, BlockingSharedMessageQueueBasicClear)
 
   ASSERT_TRUE(q.Enqueue(o10, 0));
   ASSERT_TRUE(q.Enqueue(o20, 1));
-  ASSERT_EQ(2, q.GetSize());
+  ASSERT_EQ(2u, q.GetSize());
   ASSERT_FALSE(q.Enqueue(o30, 1));
-  ASSERT_EQ(2, q.GetSize());
+  ASSERT_EQ(2u, q.GetSize());
 
   q.Clear();
-  ASSERT_EQ(0, q.GetSize());
+  ASSERT_EQ(0u, q.GetSize());
 
   ASSERT_TRUE(q.Enqueue(o30, 1));
 
@@ -406,13 +406,13 @@ TEST(MultiThreading, BlockingSharedMessageQueueClean)
 
     q.Enqueue(o10, 0);
     q.Enqueue(o20, 0);
-    ASSERT_EQ(2, s.size());
+    ASSERT_EQ(2u, s.size());
     THROW_WITH_FILE_AND_LINE_INFO(ErrorCode_InternalError);
   }
   catch (OrthancException&)
   {
     // the BlockingSharedMessageQueue is destroyed -> make sure the elements have been deleted
-    ASSERT_EQ(0, s.size());
+    ASSERT_EQ(0u, s.size());
   }
 }
 

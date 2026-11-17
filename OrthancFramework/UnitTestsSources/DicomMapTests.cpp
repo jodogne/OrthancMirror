@@ -1416,9 +1416,9 @@ TEST(DicomWebJson, VisitIntegers)
     memcpy(&f0, decoded.c_str(), sizeof(uint32_t));
     memcpy(&f1, decoded.c_str() + sizeof(uint32_t), sizeof(uint32_t));
     memcpy(&f2, decoded.c_str() + 2 * sizeof(uint32_t), sizeof(uint32_t));
-    ASSERT_EQ(100, f0);
-    ASSERT_EQ(200, f1);
-    ASSERT_EQ(300, f2);
+    ASSERT_EQ(100u, f0);
+    ASSERT_EQ(200u, f1);
+    ASSERT_EQ(300u, f2);
   }
 
 #if DCMTK_VERSION_NUMBER >= 365
@@ -1450,9 +1450,9 @@ TEST(DicomWebJson, VisitIntegers)
     memcpy(&f0, decoded.c_str(), sizeof(uint64_t));
     memcpy(&f1, decoded.c_str() + sizeof(uint64_t), sizeof(uint64_t));
     memcpy(&f2, decoded.c_str() + 2 * sizeof(uint64_t), sizeof(uint64_t));
-    ASSERT_EQ(100, f0);
-    ASSERT_EQ(200, f1);
-    ASSERT_EQ(300, f2);
+    ASSERT_EQ(100u, f0);
+    ASSERT_EQ(200u, f1);
+    ASSERT_EQ(300u, f2);
   }
 #endif
 }

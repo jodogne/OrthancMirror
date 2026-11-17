@@ -166,14 +166,14 @@ TEST(DataSource, ParallelReader)
   {
     std::unique_ptr<DataSourceAnswer::Item> item(reader.ReadSingle(new IntegerIdentifier(false, 10, 0)));
     ASSERT_TRUE(item.get() != NULL);
-    ASSERT_EQ(10u, dynamic_cast<const IntegerIdentifier&>(item->GetId()).GetValue());
-    ASSERT_EQ(10u, dynamic_cast<const SingleValueObject<int>&>(*item->GetValue()).GetValue());
+    ASSERT_EQ(10, dynamic_cast<const IntegerIdentifier&>(item->GetId()).GetValue());
+    ASSERT_EQ(10, dynamic_cast<const SingleValueObject<int>&>(*item->GetValue()).GetValue());
   }
 
   {
     std::unique_ptr<DataSourceAnswer::Item> item(reader.ReadSingle(new IntegerIdentifier(true, 20, 0)));
     ASSERT_TRUE(item.get() != NULL);
-    ASSERT_EQ(20u, dynamic_cast<const IntegerIdentifier&>(item->GetId()).GetValue());
+    ASSERT_EQ(20, dynamic_cast<const IntegerIdentifier&>(item->GetId()).GetValue());
 
     bool hasThrown = false;
 

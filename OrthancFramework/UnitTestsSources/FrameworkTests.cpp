@@ -580,31 +580,31 @@ TEST(Toolbox, Utf8ToUnicode)
 
   {
     const uint8_t data[] = { 0x24 };
-    ASSERT_EQ(0x24, GetUnicode(data, 1, 1));
+    ASSERT_EQ(0x24u, GetUnicode(data, 1, 1));
     ASSERT_THROW(GetUnicode(data, 0, 1), OrthancException);
   }
 
   {
     const uint8_t data[] = { 0xc2, 0xa2 };
-    ASSERT_EQ(0xa2, GetUnicode(data, 2, 2));
+    ASSERT_EQ(0xa2u, GetUnicode(data, 2, 2));
     ASSERT_THROW(GetUnicode(data, 1, 2), OrthancException);
   }
 
   {
     const uint8_t data[] = { 0xe0, 0xa4, 0xb9 };
-    ASSERT_EQ(0x0939, GetUnicode(data, 3, 3));
+    ASSERT_EQ(0x0939u, GetUnicode(data, 3, 3));
     ASSERT_THROW(GetUnicode(data, 2, 3), OrthancException);
   }
 
   {
     const uint8_t data[] = { 0xe2, 0x82, 0xac };
-    ASSERT_EQ(0x20ac, GetUnicode(data, 3, 3));
+    ASSERT_EQ(0x20acu, GetUnicode(data, 3, 3));
     ASSERT_THROW(GetUnicode(data, 2, 3), OrthancException);
   }
 
   {
     const uint8_t data[] = { 0xf0, 0x90, 0x8d, 0x88 };
-    ASSERT_EQ(0x010348, GetUnicode(data, 4, 4));
+    ASSERT_EQ(0x010348u, GetUnicode(data, 4, 4));
     ASSERT_THROW(GetUnicode(data, 3, 4), OrthancException);
   }
 
