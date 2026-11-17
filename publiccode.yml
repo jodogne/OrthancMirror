@@ -1,9 +1,9 @@
-publiccodeYmlVersion: 0.5.0
+publiccodeYmlVersion: 0.7.0
 name: Orthanc
-url: https://orthanc.uclouvain.be/hg/orthanc/
+url: https://github.com/jodogne/OrthancMirror
 landingURL: https://www.orthanc-server.com/
-softwareVersion: 1.13.0
-releaseDate: 2026-08-15
+softwareVersion: 1.13.1
+releaseDate: 2026-11-17
 platforms:
   - web
   - windows
