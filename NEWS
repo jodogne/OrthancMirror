@@ -8,16 +8,17 @@ General
   - Optimized some queries if accessing single resources.
   - Added/updated 2 indexes. The first startup with this version may take longer while
     these indexes are being rebuilt.
-* It is now possible to change the character encoding of all text elements in a
-  DICOM file by modifying its "SpecificCharacterSet" tag when calling "/modify".
-  (https://github.com/orthanc-server/orthanc-explorer-2/issues/123)
 
 REST API
 --------
 
+* API version upgraded to 32.
 * In the "/system" route, "ThirdPartyVersions" now includes the version of minizip,
   if known. The minizip version must be at least 1.3.2 to guarantee that UTF-8 filenames
   are correctly stored in ZIP archives (check out explanations in "ZipWriter.h").
+* It is now possible to change the character encoding of all text elements in a
+  DICOM file by modifying its "SpecificCharacterSet" tag when calling "/modify".
+  (https://github.com/orthanc-server/orthanc-explorer-2/issues/123)
 
 Plugin SDK
 ----------
@@ -30,7 +31,7 @@ Maintenance
 
 * Fixed a memory management issue related to the transcoder cache. The memory consumption of
   each transcoded file was significantly underestimated, which could lead to out-of-memory
-  crashes when transcoding was used during file/archive downloads or C-STORE operations.
+  errors when transcoding was used during file/archive downloads or C-STORE operations.
   Transcoding performed at ingest time was not affected by this issue.
 * Renamed the "DICOM conformance statement" of Orthanc as "DICOM conformance summary",
   as it is not a formal DICOM Conformance Statement in the sense of DICOM PS3.2, but only
@@ -39,9 +40,9 @@ Maintenance
 * Now rejecting Storage Commitment Report (N-EVENT-REPORT) if they do not perfectly match the
   request initiated by Orthanc (N-ACTION).
 * Added more tolerance on invalid OW value representations.
-* Fixed handling of "DicomModalities.LocalAet" handling in /modalities/../find-worklists.
+* Fixed handling of "DicomModalities.LocalAet" handling in "/modalities/../find-worklists".
   (https://discourse.orthanc-server.org/t/find-worklist-with-localaet-from-modality-configuration/6482)
-* Added new warnings that can be disabled in the advanced configuration:
+* Added new warnings, which are documented in the advanced configuration file:
   - W101_TruncatingDicomTagTo256Values
   - W102_KeepSOPInstanceUIDInModification
   - W103_KeepSeriesInstanceUIDInModification
