@@ -298,6 +298,8 @@ if (NOT DCMTK_USE_EMBEDDED_DICTIONARIES)
       /usr/share/dcmtk-3.6.8
       /usr/share/dcmtk-3.6.9
       /usr/share/dcmtk-3.7.0
+      /usr/share/dcmtk-3.7.1
+      /usr/share/dcmtk-3.7.2
       /usr/share/libdcmtk1
       /usr/share/libdcmtk2
       /usr/share/libdcmtk3
@@ -319,7 +321,6 @@ if (NOT DCMTK_USE_EMBEDDED_DICTIONARIES)
       /usr/share/libdcmtk19
       /usr/share/libdcmtk20
       /usr/local/share/dcmtk
-      /usr/local/share/dcmtk-3.6.8
       )
 
     if (${DCMTK_DICTIONARY_DIR_AUTO} MATCHES "DCMTK_DICTIONARY_DIR_AUTO-NOTFOUND")
