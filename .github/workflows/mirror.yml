@@ -3,7 +3,9 @@ name: Mirror Mercurial to GitHub
 env:
   HG_SOURCE_URL: https://orthanc.uclouvain.be/hg/orthanc/
   GITHUB_TARGET: jodogne/OrthancMirror
-  FAST_EXPORT_VERSION: fast-export-260405
+  # FAST_EXPORT_URL: https://orthanc.uclouvain.be/downloads/third-party-downloads/fast-export-260405.tar.gz
+  FAST_EXPORT_URL: https://github.com/frej/fast-export/archive/refs/tags/v260405.tar.gz
+  FAST_EXPORT_FILENAME: fast-export-260405
 
 on:
   schedule:
@@ -27,8 +29,8 @@ jobs:
           sudo apt-get update
           DEBIAN_FRONTEND=noninteractive sudo apt-get install -y mercurial git wget
           cd /tmp/
-          wget https://orthanc.uclouvain.be/downloads/third-party-downloads/${FAST_EXPORT_VERSION}.tar.gz
-          tar xvf ${FAST_EXPORT_VERSION}.tar.gz
+          wget ${FAST_EXPORT_URL}
+          tar xvf ${FAST_EXPORT_FILENAME}.tar.gz
 
       - name: Full clone of Mercurial source
         run: |
@@ -38,7 +40,7 @@ jobs:
         run: |
           git init --bare git-repo
           cd git-repo
-          /tmp/${FAST_EXPORT_VERSION}/hg-fast-export.sh -r ../hg-repo --hg-hash --hgtags
+          /tmp/${FAST_EXPORT_FILENAME}/hg-fast-export.sh -r ../hg-repo --hg-hash --hgtags
 
       - name: Push (never force, so it can't rewrite or delete history)
         env:
