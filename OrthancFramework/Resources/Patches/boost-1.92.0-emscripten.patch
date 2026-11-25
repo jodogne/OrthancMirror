@@ -1,6 +1,6 @@
 diff -urEb boost_1_92_0.orig/libs/locale/src/shared/date_time.cpp boost_1_92_0/libs/locale/src/shared/date_time.cpp
---- boost_1_92_0.orig/libs/locale/src/shared/date_time.cpp	2026-11-08 11:04:03.058738872 +0100
-+++ boost_1_92_0/libs/locale/src/shared/date_time.cpp	2026-11-08 11:04:20.993584803 +0100
+--- boost_1_92_0.orig/libs/locale/src/shared/date_time.cpp	2026-11-25 14:45:07.105739793 +0100
++++ boost_1_92_0/libs/locale/src/shared/date_time.cpp	2026-11-25 14:45:21.759637235 +0100
 @@ -12,8 +12,10 @@
  #include <boost/locale/date_time.hpp>
  #include <boost/locale/formatting.hpp>
@@ -32,8 +32,8 @@ diff -urEb boost_1_92_0.orig/libs/locale/src/shared/date_time.cpp boost_1_92_0/l
  
  // boostinspect:nominmax
 diff -urEb boost_1_92_0.orig/libs/locale/src/shared/generator.cpp boost_1_92_0/libs/locale/src/shared/generator.cpp
---- boost_1_92_0.orig/libs/locale/src/shared/generator.cpp	2026-11-08 11:04:03.058738872 +0100
-+++ boost_1_92_0/libs/locale/src/shared/generator.cpp	2026-11-08 11:05:45.734857346 +0100
+--- boost_1_92_0.orig/libs/locale/src/shared/generator.cpp	2026-11-25 14:45:07.105670414 +0100
++++ boost_1_92_0/libs/locale/src/shared/generator.cpp	2026-11-25 14:45:21.759853564 +0100
 @@ -8,8 +8,10 @@
  #include <boost/locale/encoding.hpp>
  #include <boost/locale/generator.hpp>
@@ -78,9 +78,9 @@ diff -urEb boost_1_92_0.orig/libs/locale/src/shared/generator.cpp boost_1_92_0/l
              if(p == d->cached.end())
                  d->cached[id] = result;
 diff -urEb boost_1_92_0.orig/libs/locale/src/shared/localization_backend.cpp boost_1_92_0/libs/locale/src/shared/localization_backend.cpp
---- boost_1_92_0.orig/libs/locale/src/shared/localization_backend.cpp	2026-11-08 11:04:03.058738872 +0100
-+++ boost_1_92_0/libs/locale/src/shared/localization_backend.cpp	2026-11-08 11:04:20.994584795 +0100
-@@ -5,8 +5,10 @@
+--- boost_1_92_0.orig/libs/locale/src/shared/localization_backend.cpp	2026-11-25 14:45:07.105567848 +0100
++++ boost_1_92_0/libs/locale/src/shared/localization_backend.cpp	2026-11-25 14:45:48.897959102 +0100
+@@ -5,11 +5,14 @@
  // https://www.boost.org/LICENSE_1_0.txt
  
  #include <boost/locale/localization_backend.hpp>
@@ -93,7 +93,11 @@ diff -urEb boost_1_92_0.orig/libs/locale/src/shared/localization_backend.cpp boo
  #include <functional>
  #include <memory>
  #include <vector>
-@@ -211,11 +213,13 @@
++#include <algorithm>
+ 
+ #ifdef BOOST_LOCALE_WITH_ICU
+ #    include "../icu/icu_backend.hpp"
+@@ -211,11 +214,13 @@
              return mgr;
          }
  
@@ -107,7 +111,7 @@ diff -urEb boost_1_92_0.orig/libs/locale/src/shared/localization_backend.cpp boo
          localization_backend_manager& localization_backend_manager_global()
          {
              static localization_backend_manager the_manager = make_default_backend_mgr();
-@@ -225,12 +229,16 @@
+@@ -225,12 +230,16 @@
  
      localization_backend_manager localization_backend_manager::global()
      {
