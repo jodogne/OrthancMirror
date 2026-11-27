@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* It is now allowed to use `MaximumStorageSize != 0` with `PatientLevelEnabled = true`.
+ 
 
 Version 1.13.1 (2026-11-17)
 ===========================

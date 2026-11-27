@@ -1843,9 +1843,9 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       unsigned int maximumPatientCount = lock.GetConfiguration().GetMaximumPatientCount();
       unsigned int maximumStorageSize = lock.GetConfiguration().GetMaximumStorageSize();
 
-      if (!context.IsPatientLevelEnabled() && (maximumPatientCount != 0 || maximumStorageSize != 0))
+      if (!context.IsPatientLevelEnabled() && (maximumPatientCount != 0))
       {
-        LOG(ERROR) << "Can not set MaximumPatientCount or MaximumStorageSize when PatientLevelEnabled is set to false since these options require patient recycling.";
+        LOG(ERROR) << "Can not set MaximumPatientCount when PatientLevelEnabled is set to false.";
         return false;
       }
 
